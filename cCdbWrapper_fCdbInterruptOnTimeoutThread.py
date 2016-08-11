@@ -24,7 +24,7 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
             oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT);
 #            print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
             break;
-          else:
+#          else:
 #            print "@@@ sleep for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
         oCdbWrapper.oTimeoutsLock.release();
     finally:
