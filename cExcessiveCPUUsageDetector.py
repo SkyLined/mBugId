@@ -204,7 +204,7 @@ class cExcessiveCPUUsageDetector(object):
 #    if not oCdbWrapper.bCdbRunning: return;
     uBreakpointAddress = uInstructionPointer; # uReturnAddress would be preferred.
     oExcessiveCPUUsageDetector.fWormDebugOutput(
-      "Starting at IP=%ly, SP=%p: setting breakpoint at IP=%ly ...",
+      "Starting at IP=%p, SP=%p: setting breakpoint at IP=%p ...",
       uInstructionPointer, uBreakpointAddress, uStackPointer
     );
     if not oCdbWrapper.bCdbRunning: return;
@@ -238,7 +238,7 @@ class cExcessiveCPUUsageDetector(object):
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer <= oExcessiveCPUUsageDetector.uLastStackPointer:
         oExcessiveCPUUsageDetector.fWormDebugOutput(
-          "Ignored breakpoint at IP=%ly, SP=%p: SP but must be >%p",
+          "Ignored breakpoint at IP=%p, SP=%p: SP but must be >%p",
           uInstructionPointer, uStackPointer, oExcessiveCPUUsageDetector.uLastStackPointer
         );
         if not oCdbWrapper.bCdbRunning: return;
@@ -246,7 +246,7 @@ class cExcessiveCPUUsageDetector(object):
       uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
       if not oCdbWrapper.bCdbRunning: return;
       oExcessiveCPUUsageDetector.fWormDebugOutput(
-        "Moving from IP=%ly, SP=%p by setting breakpoint at IP=%ly...",
+        "Moving from IP=%p, SP=%p by setting breakpoint at IP=%p...",
         uInstructionPointer, uStackPointer, uReturnAddress
       );
       if not oCdbWrapper.bCdbRunning: return;
@@ -266,7 +266,7 @@ class cExcessiveCPUUsageDetector(object):
           # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
           # the timeout fires and we get a stack.
           oExcessiveCPUUsageDetector.fWormDebugOutput(
-            "Unable to set breakpoint at IP=%ly: worm breakpoint remains at IP=%ly...\\r\\n",
+            "Unable to set breakpoint at IP=%p: worm breakpoint remains at IP=%p...\\r\\n",
             uReturnAddress, uInstructionPointer
           );
           if not oCdbWrapper.bCdbRunning: return;
@@ -295,7 +295,7 @@ class cExcessiveCPUUsageDetector(object):
         return; # Analysis was stopped because a new timeout was set.
       oExcessiveCPUUsageDetector.xWormRunTimeout = None;
       oExcessiveCPUUsageDetector.fWormDebugOutput(
-        "Run timeout; putting bug breakpoint at IP=%ly, SP=%p...",
+        "Run timeout; putting bug breakpoint at IP=%p, SP=%p...",
         oExcessiveCPUUsageDetector.uLastInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer
       );
       if not oCdbWrapper.bCdbRunning: return;
@@ -332,7 +332,7 @@ class cExcessiveCPUUsageDetector(object):
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer < oExcessiveCPUUsageDetector.uLastStackPointer:
         oExcessiveCPUUsageDetector.fWormDebugOutput(
-          "Ignored bug breakpoint at IP=%ly, SP=%p: SP but must be >=%p",
+          "Ignored bug breakpoint at IP=%p, SP=%p: SP but must be >=%p",
           uInstructionPointer, uStackPointer, oExcessiveCPUUsageDetector.uLastStackPointer
         );
         if not oCdbWrapper.bCdbRunning: return;
