@@ -250,35 +250,39 @@ class cExcessiveCPUUsageDetector(object):
         uInstructionPointer, uStackPointer, uReturnAddress
       );
       if not oCdbWrapper.bCdbRunning: return;
-      # Try to move the breakpoint to the return addess:
-      uNewWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
-        uAddress = uReturnAddress,
-        fCallback = oExcessiveCPUUsageDetector.fMoveWormBreakpointUpTheStack,
-        uProcessId = oExcessiveCPUUsageDetector.uProcessId,
-        uThreadId = oExcessiveCPUUsageDetector.uThreadId,
-      );
-      if not oCdbWrapper.bCdbRunning: return;
-      if uNewWormBreakpointId is None:
-        # Could not move breakpoint: the return address may be invalid.
-        # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
-        # the timeout fires and we get a stack.
-        oExcessiveCPUUsageDetector.fWormDebugOutput(
-          "Unable to set breakpoint at IP=%ly: worm breakpoint remains at IP=%ly...\\r\\n",
-          uReturnAddress, uInstructionPointer
+      if uInstructionPointer == uReturnAddress:
+        # This is a recursive call, the breakpoint does not need to be moved.
+        oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
+        # Try to move the breakpoint to the return addess:
+        uNewWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
+          uAddress = uReturnAddress,
+          fCallback = oExcessiveCPUUsageDetector.fMoveWormBreakpointUpTheStack,
+          uProcessId = oExcessiveCPUUsageDetector.uProcessId,
+          uThreadId = oExcessiveCPUUsageDetector.uThreadId,
         );
         if not oCdbWrapper.bCdbRunning: return;
-      else:
-        # Remove the old breakpoint.
-        oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uWormBreakpointId);
-        if not oCdbWrapper.bCdbRunning: return;
-        oExcessiveCPUUsageDetector.uWormBreakpointId = uNewWormBreakpointId;
-        oExcessiveCPUUsageDetector.uLastInstructionPointer = uInstructionPointer;
-        oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
-        oExcessiveCPUUsageDetector.uNextBreakpointAddress = uReturnAddress;
-        # Clear the current timeout and start a new one.
-        oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
-        nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
-        oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
+        if uNewWormBreakpointId is None:
+          # Could not move breakpoint: the return address may be invalid.
+          # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
+          # the timeout fires and we get a stack.
+          oExcessiveCPUUsageDetector.fWormDebugOutput(
+            "Unable to set breakpoint at IP=%ly: worm breakpoint remains at IP=%ly...\\r\\n",
+            uReturnAddress, uInstructionPointer
+          );
+          if not oCdbWrapper.bCdbRunning: return;
+        else:
+          # Remove the old breakpoint.
+          oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uWormBreakpointId);
+          if not oCdbWrapper.bCdbRunning: return;
+          oExcessiveCPUUsageDetector.uWormBreakpointId = uNewWormBreakpointId;
+          oExcessiveCPUUsageDetector.uLastInstructionPointer = uInstructionPointer;
+          oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
+          oExcessiveCPUUsageDetector.uNextBreakpointAddress = uReturnAddress;
+# I think it's better to let the loop run for X seconds.
+#        # Clear the current timeout and start a new one.
+#        oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
+#        nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
+#        oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
 
