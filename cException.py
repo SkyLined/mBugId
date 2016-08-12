@@ -113,14 +113,21 @@ class cException(object):
     else:
       sCdbLine = "0x%x" % oException.uAddress; # Kinda faking it here :)
     if not oStack.aoFrames:
-      # Failed to get stack, use information from exception.
-      uFrameNumber = 0;
+      # Failed to get stack, use information from exception and the current return adderss.
+      uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
+      if not oCdbWrapper.bCdbRunning: return;
       oStack.fCreateAndAddStackFrame(
-        uFrameNumber, sCdbLine,
-        oException.uAddress,
-        oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
-        oException.oFunction, oException.uFunctionOffset,
-        None, None
+        uNumber = 0,
+        sCdbLine = sCdbLine,
+        uAddress = oException.uAddress,
+        sUnloadedModuleFileName = oException.sUnloadedModuleFileName,
+        oModule = oException.oModule,
+        uModuleOffset = oException.uModuleOffset,
+        oFunction = oException.oFunction,
+        uFunctionOffset = oException.uFunctionOffset,
+        sSourceFilePath = None, 
+        uSourceFileLineNumber = None,
+        uReturnAddress = uReturnAddress,
       );
     else:
       if oException.uCode == STATUS_WAKE_SYSTEM_DEBUGGER:
