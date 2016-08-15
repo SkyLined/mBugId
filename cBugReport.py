@@ -181,7 +181,12 @@ class cBugReport(object):
             sAtAddressInstructionDescription = "current instruction";
           else:
             oPreviousFrame = oBugReport.oStack.aoFrames[oFrame.uNumber - 1];
-            sAddress = "0x%X" % oPreviousFrame.uReturnAddress;
+            if oPreviousFrame.uReturnAddress:
+              sAddress = "0x%X" % oPreviousFrame.uReturnAddress;
+            else:
+              # This is an inlined function, so I'm not sure how useful this is (not to mention reliable).
+              # I'll let it sit here for a while and if doesn't work or it's useless, I'll remove it.
+              sAddress = oStackFrame.sAddress;
             sBeforeAddressInstructionDescription = "call";
             sAtAddressInstructionDescription = "return address";
           sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, \
