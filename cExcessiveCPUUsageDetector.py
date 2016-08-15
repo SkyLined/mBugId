@@ -253,6 +253,7 @@ class cExcessiveCPUUsageDetector(object):
       if uInstructionPointer == uReturnAddress:
         # This is a recursive call, the breakpoint does not need to be moved.
         oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
+      else:
         # Try to move the breakpoint to the return addess:
         uNewWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
           uAddress = uReturnAddress,
@@ -278,11 +279,11 @@ class cExcessiveCPUUsageDetector(object):
           oExcessiveCPUUsageDetector.uLastInstructionPointer = uInstructionPointer;
           oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
           oExcessiveCPUUsageDetector.uNextBreakpointAddress = uReturnAddress;
-       # The current timeout was for the function that just returned:
-       # Start a new timeout for the function that is now executing.
-       oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
-       nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
-       oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
+      # The current timeout was for the function that just returned:
+      # Start a new timeout for the function that is now executing.
+      oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
+      nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
+      oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
 
