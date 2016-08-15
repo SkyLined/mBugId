@@ -278,11 +278,11 @@ class cExcessiveCPUUsageDetector(object):
           oExcessiveCPUUsageDetector.uLastInstructionPointer = uInstructionPointer;
           oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
           oExcessiveCPUUsageDetector.uNextBreakpointAddress = uReturnAddress;
-# I think it's better to let the loop run for X seconds.
-#        # Clear the current timeout and start a new one.
-#        oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
-#        nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
-#        oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
+       # The current timeout was for the function that just returned:
+       # Start a new timeout for the function that is now executing.
+       oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
+       nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
+       oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
 
