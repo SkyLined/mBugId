@@ -90,6 +90,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         asCdbOutput = asIntialCdbOutput;
         asIntialCdbOutput = None;
       else:
+        # cdb will no longer have a "current process", as the application will be running.
+        oCdbWrapper.uCurrentProcessId = None;
         # Then attach to a process, or start or resume the application
         if ( # If we've just started the application or we've attached to all processes and are about to resume them...
           not bInitialApplicationRunningCallbackFired and len(oCdbWrapper.auProcessIdsPendingAttach) == 0
@@ -178,7 +180,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           sExceptionDescription, sExceptionCode, sChance,
           sBreakpointId,
       ) = oEventMatch.groups();
-      uProcessId = long(sProcessIdHex, 16);
+      oCdbWrapper.uCurrentProcessId = long(sProcessIdHex, 16);
       uExceptionCode = sExceptionCode and long(sExceptionCode, 16);
       uBreakpointId = sBreakpointId and long(sBreakpointId);
       # cdb can throw a "Create Process" event, a STATUS_BREAKPOINT exception and a STATUS_WAKE_SYSTEM_DEBUGGER
@@ -189,10 +191,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # A STATUS_BREAKPOINT exception sets uLastExceptionWasBreakpointForNewProcessId to the current process id.
       # If the next event is a STATUS_WX86_BREAKPOINT exception in the same process, do not report it.
       if sCreateExitProcess == "Create":
-        uLastExceptionWasCreateProcessForNewProcessId = uProcessId;
+        uLastExceptionWasCreateProcessForNewProcessId = oCdbWrapper.uCurrentProcessId;
       if (
         uExceptionCode in (STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEBUGGER)
-        and uProcessId not in oCdbWrapper.auProcessIds
+        and oCdbWrapper.uCurrentProcessId not in oCdbWrapper.auProcessIds
       ):
         # This is assumed to be the initial breakpoint after starting/attaching to the first process or after a new
         # process was created by the application.
@@ -201,10 +203,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       bGetBugReportForException = True;
       bSuperfluousBreakpointForNewProcess = (
           uExceptionCode == STATUS_BREAKPOINT
-          and uLastExceptionWasCreateProcessForNewProcessId == uProcessId
+          and uLastExceptionWasCreateProcessForNewProcessId == oCdbWrapper.uCurrentProcessId
       ) or (
           uExceptionCode == STATUS_WX86_BREAKPOINT
-          and uLastExceptionWasBreakpointForNewProcessId == uProcessId
+          and uLastExceptionWasBreakpointForNewProcessId == oCdbWrapper.uCurrentProcessId
       );
       uLastExceptionWasCreateProcessForNewProcessId = None;
       uLastExceptionWasBreakpointForNewProcessId = None;
@@ -214,8 +216,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # Make sure the created/exited process is the current process.
         assert sProcessIdHex == sCreateExitProcessIdHex, "%s vs %s" % (sProcessIdHex, sCreateExitProcessIdHex);
         if sCreateExitProcess == "Create":
-          uLastExceptionWasBreakpointForNewProcessId = uProcessId;
-        oCdbWrapper.fHandleCreateExitProcess(sCreateExitProcess, uProcessId);
+          uLastExceptionWasBreakpointForNewProcessId = oCdbWrapper.uCurrentProcessId;
+        oCdbWrapper.fHandleCreateExitProcess(sCreateExitProcess, oCdbWrapper.uCurrentProcessId);
         # If there are more processes to attach to, do so:
         if len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
           asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
@@ -265,7 +267,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             # When a 32-bit application is running on a 64-bit OS, creating a new processes can generate two exceptions;
             # first a STATUS_BREAKPOINT, then a STATUS_WX86_BREAKPOINT. Only the first exception is needed, so the
             # second is ignored.
-            uLastExceptionWasBreakpointForNewProcessId = uProcessId;
+            uLastExceptionWasBreakpointForNewProcessId = oCdbWrapper.uCurrentProcessId;
             bGetBugReportForException = False;
           if sCurrentFunctionSymbol == "ntdll.dll!LdrInitShimEngineDynamic" and sCallerFunctionSymbol == "ntdll.dll!WinSqmAddToStream":
             # When a 32-bit application is running on a 64-bit OS, this exception can happen for unknown reasons.

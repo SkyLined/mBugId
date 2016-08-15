@@ -108,6 +108,7 @@ class cCdbWrapper(object):
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
     oCdbWrapper.auProcessIds = [];
+    oCdbWrapper.uCurrentProcessId = None; # The current process id in cdb's context
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
     # When provided, fApplicationExitCallback is called when any of the applications "main" processes exits.
     # If cdb is told to create a process, this first process is the main process. If cdb is attaching o processes, all
@@ -295,7 +296,8 @@ class cCdbWrapper(object):
     # Both arguments are optional
     sSelectCommand = "";
     asSelected = [];
-    if uProcessId is not None:
+    if uProcessId is not None and uProcessId != oCdbWrapper.uCurrentProcessId:
+      # Only do this if the current process is not the one we need.
       sSelectCommand += "|~[0x%X]s;" % uProcessId;
       asSelected.append("process");
     if uThreadId is not None:
@@ -312,6 +314,8 @@ class cCdbWrapper(object):
       for sLine in asSelectOutput:
         assert re.match(srIgnoredErrors, sLine), \
             "Unexpected select process/thread output:\r\n%s" % "\r\n".join(asSelectOutput);
+      if uProcessId is not None:
+        oCdbWrapper.uCurrentProcessId = uProcessId;
   # Excessive CPU usage
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
     oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
