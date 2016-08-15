@@ -42,18 +42,13 @@ class cStack(object):
       if uFrameNumber == uStackFramesCount:
         break;
       oMatch = re.match(r"^\s*%s\s*$" % (
-        r"(?:"                                  # either {
-          r"[0-9A-F`]+" r"\s+"                  #   stack_address whitespace
-          r"([0-9A-F`]+)" r"\s+"                #   (return_address) whitespace
-        r"|"                                    # } or {
-          r"\(Inline(?: Function)?\)" r"\s+"    #   "(Inline" [" Function"] ")" whitespace
-          r"\-{8}(?:`\-{8})?" r"\s+"            #   "--------" [`--------] whitespace
-        r")"                                    # }
-        r"(.+?)"                                # Symbol or address
-        r"(?: \[(.+) @ (\d+)\])?"               # [ "[" source_file_path " @ " line_number "]" ]
+        r"[0-9A-F`]+" r"\s+"                    #   stack_address whitespace
+        r"([0-9A-F`]+)" r"\s+"                  #   (return_address) whitespace
+        r"(.+?)"                                # (Symbol or address)
+        r"(?: \[(.+) @ (\d+)\])?"               # [ "[" (source_file_path) " @ " (line_number) "]" ]
       ), sLine, re.I);
       assert oMatch, "Unknown stack output: %s" % sLine;
-      sReturnAddress, sCdbSymbolOrAddress = oMatch.groups();
+      sReturnAddress, sCdbSymbolOrAddress, sSourceFilePath, sSourceFileLineNumber = oMatch.groups();
       (
         uAddress,
         sUnloadedModuleFileName, oModule, uModuleOffset,
@@ -110,11 +105,11 @@ class cStack(object):
             r"[0-9A-F`]+" r"\s+"                  #   stack_address whitespace
             r"([0-9A-F`]+)" r"\s+"                #   (return_address) whitespace
           r"|"                                    # } or {
-            r"\(Inline(?: Function)?\)" r"\s+"    #   "(Inline" [" Function"] ")" whitespace
+            r"\(Inline(?: Function)?\)" r"\s+"  #   "(Inline" [" Function"] ")" whitespace
             r"\-{8}(?:`\-{8})?" r"\s+"            #   "--------" [`--------] whitespace
           r")"                                    # }
           r"(.+?)"                                # Symbol or address
-        r"(?: \[(.+) @ (\d+)\])?"                 # [ "[" source_file_path " @ " line_number "]" ]
+        r"(?: \[(.+) @ (\d+)\])?"                 # [ "[" (source_file_path) " @ " (line_number) "]" ]
         ), sLine, re.I);
         assert oMatch, "Unknown stack output: %s\r\n%s" % (repr(sLine), "\r\n".join(asStack));
         (sFrameNumber, sReturnAddress, sCdbSymbolOrAddress, sSourceFilePath, sSourceFileLineNumber) = oMatch.groups();
