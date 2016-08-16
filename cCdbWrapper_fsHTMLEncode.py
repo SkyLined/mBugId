@@ -1,7 +1,7 @@
 import re;
-
-def fsHTMLEncode(sLine):
-  return sLine.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;');
+from fsHTMLCP437 import fsHTMLCP437;
+def fsHTMLEncodeString(sString):
+  return "".join([fsHTMLCP437(sChar) for sChar in sString]);
 
 def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine):
   # This will only apply a link to the first match, but improving it would be rather complex. Since I've not encountered
@@ -14,7 +14,7 @@ def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine):
       sURL = (sURLTemplate % oMatch.groupdict()).replace("\\", "/");
       sAfter = sLine[oMatch.end():];
       return "%s<a target=\"_blank\" href=\"%s\">%s</a>%s" % \
-          (fsHTMLEncode(sBefore), sURL, fsHTMLEncode(sPath), fsHTMLEncode(sAfter));
+          (fsHTMLEncodeString(sBefore), sURL, fsHTMLEncodeString(sPath), fsHTMLEncodeString(sAfter));
   else:
-    return fsHTMLEncode(sLine);
+    return fsHTMLEncodeString(sLine);
 
