@@ -33,8 +33,8 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, sBeforeAd
       asDisassemblyHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asBeforeDisassembly];
       if sBeforeAddressInstructionDescription:
         asDisassemblyHTML.append(
-          "<span class=\"Important\">%s &#8656; %s</span>" % \
-              (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sBeforeAddressDisassembly.ljust(80)), sBeforeAddressInstructionDescription)
+          "<span class=\"Important\">%s // %s</span>" % \
+              (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sBeforeAddressDisassembly), sBeforeAddressInstructionDescription)
         );
   if uDisassemblyBytesAfter > 0:
     asAtAndAfterDisassembly = oCdbWrapper.fasSendCommandAndReadOutput(
@@ -55,8 +55,8 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, sBeforeAd
       if sAtAddressInstructionDescription:
         sAtAddressDisassembly = asAtAndAfterDisassembly.pop(0);
         asDisassemblyHTML.append(
-          "<span class=\"Important\">%s &#8656; %s</span>" % \
-              (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAtAddressDisassembly.ljust(80)), sAtAddressInstructionDescription)
+          "<span class=\"Important\">%s // %s</span>" % \
+              (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAtAddressDisassembly), sAtAddressInstructionDescription)
         );
       asDisassemblyHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asAtAndAfterDisassembly];
     elif asDisassemblyHTML:
