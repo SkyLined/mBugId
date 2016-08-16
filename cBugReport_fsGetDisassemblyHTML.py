@@ -43,14 +43,14 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, sBeforeAd
       bOutputIsInformative = True,
     );
     if not oCdbWrapper.bCdbRunning: return None;
-    # The first line contains the address of the instruction
-    sAddress = asAtAndAfterDisassembly.pop(0);
-    asDisassemblyHTML.append(fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAddress));
-    # Limit number of instructions
-    asAtAndAfterDisassembly = asAtAndAfterDisassembly[:dxBugIdConfig["uDisassemblyInstructionsAfter"]];
     if asAtAndAfterDisassembly:
+      # The first line contains the address of the instruction
       if not asDisassemblyHTML:
         asDisassemblyHTML.append("(prior disassembly not possible)");
+      sAddress = asAtAndAfterDisassembly.pop(0);
+      asDisassemblyHTML.append(fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAddress));
+      # Limit number of instructions
+      asAtAndAfterDisassembly = asAtAndAfterDisassembly[:dxBugIdConfig["uDisassemblyInstructionsAfter"]];
       # Optionally highlight and describe instruction at the address:
       if sAtAddressInstructionDescription:
         sAtAddressDisassembly = asAtAndAfterDisassembly.pop(0);
@@ -61,6 +61,4 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, sBeforeAd
       asDisassemblyHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asAtAndAfterDisassembly];
     elif asDisassemblyHTML:
       asDisassemblyHTML.append("(further disassembly not possible)");
-  if asDisassemblyHTML:
-    return "<br/>".join(asDisassemblyHTML);
-  return None;
+  return "<br/>".join(asDisassemblyHTML);
