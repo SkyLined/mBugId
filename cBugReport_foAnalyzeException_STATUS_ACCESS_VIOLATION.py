@@ -217,7 +217,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         sViolationTypeDescription = "executing";
     uAddress = long(sAddress.replace("`", ""), 16);
   
-  sMemoryDumpDescription = "Memory near access violation address 0x%X" % uAddress;
+  sMemoryDumpDescription = "access violation at 0x%X" % uAddress;
   
   if sViolationTypeId == "E":
     # Hide the stack frame for the address at which the execute access violation happened: (e.g. 0x0 for a NULL pointer).
@@ -354,7 +354,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                     sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
                         "beyond that block because it modified the page heap suffix pattern.") % \
                         (uCorruptionAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                    sMemoryDumpDescription = "Memory near corruption address 0x%X" % uCorruptionAddress;
+                    sMemoryDumpDescription = "memory corruption at 0x%X" % uCorruptionAddress;
                     uAddress = uCorruptionAddress; # Used later on to dump memory
                     break;
               elif uAddress == uGuardPageAddress and uAddress > uBlockAddress + uBlockSize:

@@ -184,6 +184,22 @@ sDetailsHTMLTemplate = ("""
         border: dotted black;
         border-width: 0 0 1pt 0;
       }
+      .MemoryAddress {
+        color: grey;
+        white-space: pre;
+      }
+      .MemoryBytes {
+        white-space: pre;
+      }
+      .MemoryChars {
+        white-space: pre;
+      }
+      .MemoryPointer {
+        white-space: pre;
+      }
+      .MemoryPointerSymbol {
+        white-space: pre;
+      }
     </style>
     <script>
       function fAddClickHandler(oBlockHeaderElement) {

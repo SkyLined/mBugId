@@ -1,7 +1,47 @@
 import re;
 from dxBugIdConfig import dxBugIdConfig;
 
-def cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uAddress):
+def fsHTMLProcessMemoryDumpLine(oCdbWrapper, sLine, uImportantOffset = None):
+  oMatch = re.match(r"([0-9a-f`]+)\s+(?:([\?`]+)|([0-9a-f`]+))(?:\s+(.*?))?\s*$", sLine);
+  assert oMatch, "Unexpected memory dump output: %s" % repr(sLine);
+  (sAddress, bInaccessible, sPointerData, sPointerSymbol) = oMatch.groups();
+  if bInaccessible:
+    sProcessedLine = " | ".join([
+      '<span class="MemoryAddress%s">%s</span>' % \
+          (uImportantOffset is not None and " Important" or "", oCdbWrapper.fsHTMLEncode(sAddress)),
+      '<span class="MemoryInaccessible">%s</span>' % "-- inaccessible --",
+    ]);
+  else:
+    sByteData = sPointerData.replace("`", "");
+    asBytesHTML = [];
+    asCharsHTML = [];
+    uOffset = 0;
+    while sByteData:
+      sCharHTML = oCdbWrapper.fsHTMLEncode(chr(long(sByteData[-2:], 16)));
+      sByteHTML = oCdbWrapper.fsHTMLEncode(sByteData[-2:]);
+      if uImportantOffset is not None and uImportantOffset == uOffset:
+        sCharHTML = '<span class="Important">%s</span>' % sCharHTML;
+        sByteHTML = '<span class="Important">%s</span>' % sByteHTML;
+      uOffset += 1;
+      asCharsHTML.append(sCharHTML);
+      asBytesHTML.append(sByteHTML);
+      sByteData = sByteData[:-2];
+    sProcessedLine = " | ".join([
+      '<span class="MemoryAddress%s">%s</span>' % \
+          (uImportantOffset is not None and " Important" or "", oCdbWrapper.fsHTMLEncode(sAddress)),
+      '<span class="MemoryBytes">%s</span> <span class="MemoryChars">%s</span>' % \
+          (" ".join(asBytesHTML), "".join(asCharsHTML)),
+      '<span class="MemoryPointer">%s</span>%s' % (
+        oCdbWrapper.fsHTMLEncode(sPointerData),
+        (sPointerSymbol 
+          and (' &#8594; <span class="MemoryPointerSymbol">%s</span>' % oCdbWrapper.fsHTMLEncode(sPointerSymbol))
+          or ""
+        ),
+      ),
+    ]);
+  return sProcessedLine;
+
+def cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uAddress, sDescription):
   uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
   if not oCdbWrapper.bCdbRunning: return None;
   uAlignedAddress = uAddress - (uAddress % uPointerSize);
@@ -18,16 +58,21 @@ def cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uAddress):
     bOutputIsInformative = True,
   );
   if not oCdbWrapper.bCdbRunning: return None;
-  sAtReferencedMemory = asAtAndAfterReferencedMemory.pop(0);
-  asAfterReferencedMemory = asAtAndAfterReferencedMemory;
-  if uAlignedAddress == uAddress:
-    sNote = "right here";
-  else:
-    sNote = "at offset 0x%X" % (uAddress - uAlignedAddress);
-  return (
-    "<br/>".join(
-      ['<span class="Memory">%s</span>' % oCdbWrapper.fsHTMLEncode(re.sub(r"(\?{8}`)?\?{8}\s*$", "<inaccessible>", s)) for s in asBeforeReferencedMemory] +
-      ['<span class="Memory Important">%s &#8656; %s</span>' % (oCdbWrapper.fsHTMLEncode(sAtReferencedMemory.ljust(80)), sNote)] +
-      ['<span class="Memory">%s</span>' % oCdbWrapper.fsHTMLEncode(re.sub(r"(\?{8}`)?\?{8}\s*$", "<inaccessible>", s)) for s in asAfterReferencedMemory]
-    )
-  );
+  uOffset = uAddress - uAlignedAddress;
+  if uOffset != 0:
+    sDescription += " (at offset %d)" % uOffset;
+  asHTML = [];
+  if asBeforeReferencedMemory:
+    asHTML += ['<span class="Memory">%s</span>' % fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asBeforeReferencedMemory];
+  if asAtAndAfterReferencedMemory:
+    sAtReferencedMemory = asAtAndAfterReferencedMemory.pop(0);
+    asAfterReferencedMemory = asAtAndAfterReferencedMemory;
+    asHTML += [
+      '<span class="Memory">%s</span> <span class="Important">// %s</span>' % (
+        fsHTMLProcessMemoryDumpLine(oCdbWrapper, sAtReferencedMemory, uOffset),
+        oCdbWrapper.fsHTMLEncode(sDescription)
+      )
+    ];
+    asHTML += ['<span class="Memory">%s</span>' % fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asAfterReferencedMemory];
+  
+  return "<br/>".join(asHTML);

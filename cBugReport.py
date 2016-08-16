@@ -158,11 +158,11 @@ class cBugReport(object):
       for uSequentialAddress in sorted(list(set(oBugReport.duRelevantAddress_by_sDescription.values()))):
         for (sDescription, uRelevantAddress) in oBugReport.duRelevantAddress_by_sDescription.items():
           if uRelevantAddress == uSequentialAddress:
-            sRelevantMemoryHTML = cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uRelevantAddress)
+            sRelevantMemoryHTML = cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uRelevantAddress, sDescription)
             if not oCdbWrapper.bCdbRunning: return None;
             if sRelevantMemoryHTML:
               asBlocksHTML.append(sBlockHTMLTemplate % {
-                "sName": sDescription,
+                "sName": "Memory for %s" % sDescription,
                 "sContent": sRelevantMemoryHTML,
               });
       
