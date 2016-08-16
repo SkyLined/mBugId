@@ -33,6 +33,8 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
       ]), sLine);
       if oBadPDBFileError:
         sPDBFilePath = [s for s in oBadPDBFileError.groups() if s][0];
+        # Try to delete the file. If this fails, wait a bit and retry. Repeat this a few times before giving up and
+        # throwing an exception.
         FileSystem.fbDeleteFile(sPDBFilePath);
         uSkipLines = 1;
       else:
