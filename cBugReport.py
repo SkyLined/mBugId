@@ -186,7 +186,7 @@ class cBugReport(object):
             else:
               # This is an inlined function, so I'm not sure how useful this is (not to mention reliable).
               # I'll let it sit here for a while and if doesn't work or it's useless, I'll remove it.
-              sAddress = oStackFrame.sAddress;
+              sAddress = oFrame.sAddress;
             sBeforeAddressInstructionDescription = "call";
             sAtAddressInstructionDescription = "return address";
           sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, \
