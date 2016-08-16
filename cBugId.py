@@ -1,6 +1,22 @@
 import threading;
 from cCdbWrapper import cCdbWrapper;
 
+for (sModule, sURL) in {
+  "FileSystem": "https://github.com/SkyLined/FileSystem/",
+  "Kill": "https://github.com/SkyLined/Kill/",
+}.items():
+  try:
+    __import__(sModule, globals(), locals(), [], -1);
+  except ImportError:
+    print "*" * 80;
+    print "BugId depends on %s, which you can download at:" % sModule;
+    print "    %s" % sURL;
+    print "After downloading, please save the code in the folder \"%s\"," % sModule;
+    print "\"modules\\%s\" or any other location where it can be imported." % sModule;
+    print "Once you have completed these steps, please try again.";
+    print "*" * 80;
+    raise;
+
 class cBugId(object):
   def __init__(oBugId, **dxArguments):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
