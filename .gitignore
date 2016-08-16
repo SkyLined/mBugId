@@ -1,2 +1,5 @@
 \#*
 *.pyc
+*.suo
+Tests/tmp/
+Tests/Reports/

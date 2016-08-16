@@ -1,0 +1,3 @@
+@ECHO OFF
+SET _NT_SYMBOL_PATH=
+PYTHON Tests\Tests.py %*
