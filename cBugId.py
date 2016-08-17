@@ -1,5 +1,6 @@
 import threading;
 from cCdbWrapper import cCdbWrapper;
+from sBugIdVersion import sBugIdVersion;
 
 for (sModule, sURL) in {
   "FileSystem": "https://github.com/SkyLined/FileSystem/",
@@ -18,6 +19,7 @@ for (sModule, sURL) in {
     raise;
 
 class cBugId(object):
+  sVersion = sBugIdVersion;
   def __init__(oBugId, **dxArguments):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
     # This event is used by the fWait function to wait for the process to
