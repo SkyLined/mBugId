@@ -204,7 +204,7 @@ class cExcessiveCPUUsageDetector(object):
 #    if not oCdbWrapper.bCdbRunning: return;
     uBreakpointAddress = uInstructionPointer; # uReturnAddress would be preferred.
     oExcessiveCPUUsageDetector.fWormDebugOutput(
-      "Starting at IP=%p, SP=%p: setting breakpoint at IP=%p ...",
+      "Starting at IP=%p by creating a breakpoint at IP=%p, SP=%p...",
       uInstructionPointer, uBreakpointAddress, uStackPointer
     );
     if not oCdbWrapper.bCdbRunning: return;
@@ -219,7 +219,7 @@ class cExcessiveCPUUsageDetector(object):
     );
     if not oCdbWrapper.bCdbRunning: return;
     assert oExcessiveCPUUsageDetector.uWormBreakpointId is not None, \
-        "Could not set breakpoint at 0x%X" % oExcessiveCPUUsageDetector.uLastInstructionPointer;
+        "Could not create breakpoint at 0x%X" % oExcessiveCPUUsageDetector.uLastInstructionPointer;
     nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
     oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
   
@@ -245,15 +245,19 @@ class cExcessiveCPUUsageDetector(object):
         return;
       uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
       if not oCdbWrapper.bCdbRunning: return;
-      oExcessiveCPUUsageDetector.fWormDebugOutput(
-        "Moving from IP=%p, SP=%p by setting breakpoint at IP=%p...",
-        uInstructionPointer, uStackPointer, uReturnAddress
-      );
       if not oCdbWrapper.bCdbRunning: return;
       if uInstructionPointer == uReturnAddress:
+        oExcessiveCPUUsageDetector.fWormDebugOutput(
+          "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by leaving breakpoint in place and adjusting expected SP...",
+          uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer, uReturnAddress, uStackPointer
+        );
         # This is a recursive call, the breakpoint does not need to be moved.
         oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
       else:
+        oExcessiveCPUUsageDetector.fWormDebugOutput(
+          "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by creating a new breakpoint...",
+          uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer, uReturnAddress, uStackPointer,
+        );
         # Try to move the breakpoint to the return addess:
         uNewWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
           uAddress = uReturnAddress,
@@ -267,11 +271,15 @@ class cExcessiveCPUUsageDetector(object):
           # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
           # the timeout fires and we get a stack.
           oExcessiveCPUUsageDetector.fWormDebugOutput(
-            "Unable to set breakpoint at IP=%p: worm breakpoint remains at IP=%p...\\r\\n",
-            uReturnAddress, uInstructionPointer
+            "Unable to create breakpoint at IP=%p: worm breakpoint remains at IP=%p, SP=%p...\\r\\n",
+            uReturnAddress, uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer,
           );
           if not oCdbWrapper.bCdbRunning: return;
         else:
+          oExcessiveCPUUsageDetector.fWormDebugOutput(
+            "Removing old breakpoint at IP=%p, SP=%p...",
+            uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer,
+          );
           # Remove the old breakpoint.
           oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uWormBreakpointId);
           if not oCdbWrapper.bCdbRunning: return;
@@ -296,15 +304,22 @@ class cExcessiveCPUUsageDetector(object):
         return; # Analysis was stopped because a new timeout was set.
       oExcessiveCPUUsageDetector.xWormRunTimeout = None;
       oExcessiveCPUUsageDetector.fWormDebugOutput(
-        "Run timeout; putting bug breakpoint at IP=%p, SP=%p...",
-        oExcessiveCPUUsageDetector.uLastInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer
+        "Run timeout; stopping worm and creating bug breakpoint...",
       );
       if not oCdbWrapper.bCdbRunning: return;
       # Remove worm breakpoint
+      oExcessiveCPUUsageDetector.fWormDebugOutput(
+        "Removing old worm breakpoint at IP=%p, SP=%p...",
+        oExcessiveCPUUsageDetector.uLastInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer,
+      );
       oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uWormBreakpointId);
       oExcessiveCPUUsageDetector.uWormBreakpointId = None;
       if not oCdbWrapper.bCdbRunning: return;
       # Set bug breakpoint
+      oExcessiveCPUUsageDetector.fWormDebugOutput(
+        "Creating bug breakpoint at IP=%p, SP=%p...",
+        oExcessiveCPUUsageDetector.uLastInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer
+      );
       oExcessiveCPUUsageDetector.uBugBreakpointId = oCdbWrapper.fuAddBreakpoint(
         uAddress = oExcessiveCPUUsageDetector.uLastInstructionPointer,
         fCallback = oExcessiveCPUUsageDetector.fReportCPUUsageBug,
@@ -339,6 +354,10 @@ class cExcessiveCPUUsageDetector(object):
         if not oCdbWrapper.bCdbRunning: return;
         return;
       if bDebugOutput: print "@@@ Reporting excessive CPU usage bug...";
+      oExcessiveCPUUsageDetector.fWormDebugOutput(
+        "Bug breakpoint at IP=%p, SP=%p is hit, removing breakpoint and reporting bug...",
+        uInstructionPointer, uStackPointer,
+      );
       # Remove the breakpoint
       oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uBugBreakpointId);
       if not oCdbWrapper.bCdbRunning: return;
