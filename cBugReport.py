@@ -21,7 +21,7 @@ from FileSystem import FileSystem;
 from NTSTATUS import *;
 from HRESULT import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from sBugIdVersion import sBugIdVersion;
+from sVersion import sVersion;
 from sDetailsHTMLTemplate import sDetailsHTMLTemplate;
 
 dfoAnalyzeException_by_uExceptionCode = {
@@ -234,7 +234,7 @@ class cBugReport(object):
         "sBinaryVersionHTML": sBinaryVersionHTML,
         "sBlocks": "".join(asBlocksHTML),
         "sCdbStdIO": sCdbStdIOHTML,
-        "sBugIdVersion": sBugIdVersion,
+        "sBugIdVersion": sVersion,
       };
     
     # See if a dump should be saved
