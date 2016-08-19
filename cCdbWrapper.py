@@ -159,9 +159,9 @@ class cCdbWrapper(object):
     # Keep track of future timeouts and their callbacks
     oCdbWrapper.axTimeouts = [];
     oCdbWrapper.oTimeoutsLock = threading.Lock();
-    # Set to true if cdb has been interrupted by the timeout thread but the stdio thread has not yet handled this. Used
-    # to prevent the timeout thread from interrupting it multiple times if the stdio thread is slow.
-    oCdbWrapper.bInterruptPending = False;
+    # incremented whenever a CTRL+BREAK event is sent to cdb by the interrupt-on-timeout thread, so the stdio thread
+    # knows to expect a DBG_CONTROL_BREAK exception and won't report it as an error.
+    oCdbWrapper.uCdbBreakExceptionsPending = 0;
     # oCdbLock is used by oCdbStdInOutThread and oCdbInterruptOnTimeoutThread to allow the former to execute commands
     # (other than "g") without the later attempting to get cdb to suspend the application with a breakpoint, and vice
     # versa. It's acquired on behalf of the former, to prevent the later from interrupting before the application has
@@ -324,7 +324,9 @@ class cCdbWrapper(object):
     oCdbWrapper.oApplicationTimeLock.acquire();
     try:
       if oCdbWrapper.nApplicationResumeTime is None:
+        print "%s" % oCdbWrapper.nApplicationRunTime;
         return oCdbWrapper.nApplicationRunTime;
+      print "%s + %s - %s" % (oCdbWrapper.nApplicationRunTime, time.clock(), oCdbWrapper.nApplicationResumeTime);
       return oCdbWrapper.nApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
     finally:
       oCdbWrapper.oApplicationTimeLock.release();

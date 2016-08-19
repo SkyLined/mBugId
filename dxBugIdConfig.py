@@ -11,13 +11,6 @@ for (sName, xValue) in {
   ### cdb/kill binary settings
   "sCdbBinaryPath_x86": dsCdbBinaryPath_sISA.get("x86"),
   "sCdbBinaryPath_x64": dsCdbBinaryPath_sISA.get("x64"),
-  ### Exception control
-  "bIgnoreFirstChanceBreakpoints": False, # When enabled, first chance debugger breakpoints are ignored and only second
-                                        # chance debugger breakpoints are analyzed. This speeds up debugging
-                                        # considerably, but you risk not detecting some bugs. For instance, application
-                                        # verifier signals that it has detected memory corruption with a first chance
-                                        # debugger breakpoint, but this exception is handled by verfier and the
-                                        # application terminated if this setting is enabled.
   ### Console output
   "bOutputStdIn": False,                # Output cdb input (commands) send to cdb while debugging application
   "bOutputStdOut": False,               # Output cdb output while debugging application
