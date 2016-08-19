@@ -324,9 +324,7 @@ class cCdbWrapper(object):
     oCdbWrapper.oApplicationTimeLock.acquire();
     try:
       if oCdbWrapper.nApplicationResumeTime is None:
-        print "%s" % oCdbWrapper.nApplicationRunTime;
         return oCdbWrapper.nApplicationRunTime;
-      print "%s + %s - %s" % (oCdbWrapper.nApplicationRunTime, time.clock(), oCdbWrapper.nApplicationResumeTime);
       return oCdbWrapper.nApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
     finally:
       oCdbWrapper.oApplicationTimeLock.release();
