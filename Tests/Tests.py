@@ -168,7 +168,7 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA, ["AccessViolation", "READ", "8"], "AVR:NULL+4*N"));
   #    if sISA != "x64": # Does not work on x64 dues to limitations of exception handling (See foAnalyzeException_STATUS_ACCESS_VIOLATION for details).
       sMinusPadding = {"x86": "", "x64": "FFFFFFFF"}[sISA];
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFF"], "%s:NULL-1" % {"x86": "AVR", "x64": "AV?"}[sISA]));
+      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFF"], "AVR:NULL-1"));
       aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFE"], "AVR:NULL-2"));
       aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFD"], "AVR:NULL-3"));
       aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFC"], "AVR:NULL-4*N"));
@@ -240,7 +240,7 @@ if __name__ == "__main__":
           # memory address ranges.
           if uBaseAddress >= 0x800000000000 and uBaseAddress < 0xffff800000000000:
             aoTests.extend([
-              cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AV?:%s" % sDescription),
+              cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AVR:%s" % sDescription),
               cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV?:%s" % sDescription),
             ]);
           else:
@@ -259,7 +259,7 @@ if __name__ == "__main__":
           aoTests.append(cTest(sISA, ["AccessViolation", "Call", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Jump", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
         elif sISA == "x64":
-          aoTests.append(cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AV?:%s" % sAddressId));
+          aoTests.append(cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AVR:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV?:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Call", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Jump", "%X" % uBaseAddress], "AVE:%s" % sAddressId));

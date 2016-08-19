@@ -180,6 +180,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     # |00007ff6`e7ab1204 ffe1            jmp     rcx {c0c0c0c0`c0c0c0c0}
     # or
     # |00000000`7fffffff ??              ???
+    # or
+    # |00007ff9`b6f1a904 488b8d500d0000  mov     rcx,qword ptr [rbp+0D50h] ss:00000244`4124f590=0000024441210240
     assert len(asLastInstructionAndAddress) == 1, \
         "Unexpected last instruction output:\r\n%r" % "\r\n".join(asLastInstructionAndAddress);
     oEIPOutsideAllocatedMemoryMatch = re.match("^%s$" % "".join([
@@ -194,25 +196,38 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         r"[0-9a-f`]+", r"\s+",      # address   spaces
         r"[0-9a-f`]+", r"\s+",      # opcode   spaces
         r"\w+", r"\s+",             # instruction   spaces
-        r".*", r"\s+",              # arguments   spaces
+        r"(?:",                     # either{
+          r"([^\[,]+,.+)",          #   (destination operand that does not reference memory "," source operand )
+        r"|",                       # }or{
+          ".*"                      #   any other combination of operands
+        r")",                       # }
         r"(?:",                     # either{
           r"\ws:",                  #   segment register ":"
-          r"(?:[0-9a-f`]{4}:)?",    #   segment value ":"
+          r"(?:[0-9a-f`]{4}:)?",    #   optional { segment value ":" }
           r"([0-9a-f`]+)",          #   (address)
-          r"=\?+",                  #   "=???????"
+          r"=(\?+|[0-9a-f`]+)",     #   "=" (either{ "???????" }or{ value })
         r"|",                       # }or{
           r"\{([0-9a-f`]+)\}",      #   "{" (address) "}"
         r")",                       # }
       ]), asLastInstructionAndAddress[0]);
       assert oLastInstructionMatch, \
-          "Unexpected last instruction output:\r\n%r" % "\r\n".join(asLastInstructionAndAddress);
-      if oLastInstructionMatch.group(1):
-        sAddress = oLastInstructionMatch.group(1);
-        sViolationTypeId = "?";
-        sViolationTypeDescription = "accessing";
-        sViolationTypeNotes = " (the type of accesss must be read or write, but cannot be determined)";
+          "Unexpected last instruction output:\r\n%s" % "\r\n".join(asLastInstructionAndAddress);
+      sDestinationOperandThatDoesNotReferenceMemory, sAddress1, sValue, sAddress2 = oLastInstructionMatch.groups();
+      sAddress = sAddress1 or sAddress2;
+      if sAddress1:
+        if sDestinationOperandThatDoesNotReferenceMemory:
+          # The destination operand does not reference memory, so this must be a read AV
+          sViolationTypeId = "R";
+          sViolationTypeDescription = "reading";
+        elif sValue[0] != "?":
+          # The adress referenced can be read, so it must be write AV
+          sViolationTypeId = "W";
+          sViolationTypeDescription = "writing";
+        else:
+          sViolationTypeId = "?";
+          sViolationTypeDescription = "accessing";
+          sViolationTypeNotes = " (the type of accesss must be read or write, but cannot be determined)";
       else:
-        sAddress = oLastInstructionMatch.group(2);
         sViolationTypeId = "E";
         sViolationTypeDescription = "executing";
     uAddress = long(sAddress.replace("`", ""), 16);
