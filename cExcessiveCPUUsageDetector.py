@@ -271,7 +271,7 @@ class cExcessiveCPUUsageDetector(object):
           # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
           # the timeout fires and we get a stack.
           oExcessiveCPUUsageDetector.fWormDebugOutput(
-            "Unable to create breakpoint at IP=%p: worm breakpoint remains at IP=%p, SP=%p...\\r\\n",
+            "Unable to create breakpoint at IP=%p: worm breakpoint remains at IP=%p, SP=%p...",
             uReturnAddress, uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer,
           );
           if not oCdbWrapper.bCdbRunning: return;
