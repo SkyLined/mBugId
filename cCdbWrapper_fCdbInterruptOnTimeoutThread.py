@@ -2,10 +2,13 @@ import signal, time;
 
 from dxBugIdConfig import dxBugIdConfig;
 
+bDebugOutput = False;
+
 def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
   # Thread that checks if a timeout has fired every N seconds (N = nTimeoutInterruptGranularity in dxBugIdConfig).
   while 1:
-    print "@@@ waiting for application to run...";
+    if bDebugOutput:
+      print "@@@ waiting for application to run...";
     bTimeout = False;
     # Wait for cdb to be running or have terminated...
     oCdbWrapper.oCdbLock.acquire();
@@ -15,8 +18,9 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
       if not oCdbWrapper.bCdbStdInOutThreadRunning: return;
       # Time spent running before the application was resumed + time since the application was resumed.
       nApplicationRunTime = oCdbWrapper.fnApplicationRunTime();
-      print "@@@ application run time    : %.3f" % nApplicationRunTime;
-      print "@@@ number of timeouts      : %d" % len(oCdbWrapper.axTimeouts);
+      if bDebugOutput:
+        print "@@@ application run time    : %.3f" % nApplicationRunTime;
+        print "@@@ number of timeouts      : %d" % len(oCdbWrapper.axTimeouts);
       oCdbWrapper.oTimeoutsLock.acquire();
       for (nTimeoutTime, fTimeoutCallback, axTimeoutCallbackArguments) in oCdbWrapper.axTimeouts: # Make a copy so modifcation during the loop does not affect it.
         if nTimeoutTime <= nApplicationRunTime:
@@ -24,12 +28,14 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
           # it would get reported as a bug!).
           oCdbWrapper.uCdbBreakExceptionsPending += 1;
           oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT);
-          print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
+          if bDebugOutput:
+            print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
           break;
-        else:
+        elif bDebugOutput:
           print "@@@ sleep for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
       oCdbWrapper.oTimeoutsLock.release();
     finally:
       oCdbWrapper.oCdbLock.release();
-    print "@@@ sleeping until next possible timeout...";
+    if bDebugOutput:
+      print "@@@ sleeping until next possible timeout...";
     time.sleep(dxBugIdConfig["nTimeoutGranularity"]);
