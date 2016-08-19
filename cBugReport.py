@@ -139,7 +139,10 @@ class cBugReport(object):
         });
       
       # Add stack block
-      asBlocksHTML.append(sBlockHTMLTemplate % {"sName": "Stack", "sContent": sStackHTML});
+      asBlocksHTML.append(sBlockHTMLTemplate % {
+        "sName": "Stack",
+        "sContent": "<span class=\"Stack\">%s</span>" % sStackHTML
+      });
       
       # Add exception specific blocks if needed:
       asBlocksHTML += oBugReport.asExceptionSpecificBlocksHTML;
@@ -151,8 +154,11 @@ class cBugReport(object):
           bOutputIsInformative = True,
         );
         if not oCdbWrapper.bCdbRunning: return None;
-        sRegistersHTML = "<br/>".join(['<span class="Registers">%s</span>' % oCdbWrapper.fsHTMLEncode(s) for s in asRegisters]);
-        asBlocksHTML.append(sBlockHTMLTemplate % {"sName": "Registers", "sContent": sRegistersHTML});
+        sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s) for s in asRegisters]);
+        asBlocksHTML.append(sBlockHTMLTemplate % {
+          "sName": "Registers",
+          "sContent": "<span class=\"Registers\">%s</span>" % sRegistersHTML,
+        });
       
       # Add relevant memory blocks in order if needed
       for uSequentialAddress in sorted(list(set(oBugReport.duRelevantAddress_by_sDescription.values()))):
@@ -163,7 +169,7 @@ class cBugReport(object):
             if sRelevantMemoryHTML:
               asBlocksHTML.append(sBlockHTMLTemplate % {
                 "sName": "Memory for %s" % sDescription,
-                "sContent": sRelevantMemoryHTML,
+                "sContent": "<span class=\"Memory\">%s</span>" % sRelevantMemoryHTML,
               });
       
       # Create and add disassembly blocks if needed:
@@ -195,7 +201,7 @@ class cBugReport(object):
           if sFrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (oFrame.uNumber + 1, oFrame.sAddress),
-              "sContent": sFrameDisassemblyHTML,
+              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
       
       # Add relevant binaries block
@@ -218,12 +224,18 @@ class cBugReport(object):
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
       sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML);
       if sBinaryInformationHTML:
-        asBlocksHTML.append(sBlockHTMLTemplate % {"sName": "Binary information", "sContent": sBinaryInformationHTML});
+        asBlocksHTML.append(sBlockHTMLTemplate % {
+          "sName": "Binary information",
+          "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
+        });
       
       # Convert saved cdb IO HTML into one string and delete everything but the last line to free up some memory.
       sCdbStdIOHTML = '<hr/>'.join(oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML);
       oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML = oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML[-1:];
-      asBlocksHTML.append(sBlockHTMLTemplate % {"sName": "Application and cdb output log", "sContent": sCdbStdIOHTML});
+      asBlocksHTML.append(sBlockHTMLTemplate % {
+        "sName": "Application and cdb output log",
+        "sContent": sCdbStdIOHTML
+      });
       # Stick everything together.
       oBugReport.sDetailsHTML = sDetailsHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),

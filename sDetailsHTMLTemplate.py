@@ -71,6 +71,10 @@ sDetailsHTMLTemplate = ("""
       sup, sub {
         font-size: 50%%;
       }
+      hr {
+        border: dotted black;
+        border-width: 0 0 1pt 0;
+      }
       .Block {
         padding: 1em;
         border: 1px solid rgba(22, 19, 16, 0.2);
@@ -137,68 +141,42 @@ sDetailsHTMLTemplate = ("""
         color: grey;
         white-space: pre;
       }
-      .Stack {
-        white-space: pre;
-      }
-      .StackIgnored {
-        color: silver;
-        white-space: pre;
-      }
-      .StackHash {
-        font-weight: bold;
-        background: rgba(255,255,0,0.2);
-        white-space: pre;
-      }
-      .StackNoSymbol {
-        font-style: italic;
-        white-space: pre;
-      }
-      .StackSource {
-        color: grey;
-        white-space: pre;
-      }
-      .Registers {
-        white-space: pre;
-      }
-      .Memory {
-        white-space: pre;
-      }
-      .BinaryInformation {
+      .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
         white-space: pre;
       }
       .DisassemblyInformation {
-        white-space: pre;
       }
       .DisassemblyAddress {
         color: grey;
-        white-space: pre;
       }
       .DisassemblyOpcode {
         color: grey;
-        white-space: pre;
       }
       .DisassemblyInstruction {
-        white-space: pre;
-      }
-      hr {
-        border: dotted black;
-        border-width: 0 0 1pt 0;
       }
       .MemoryAddress {
         color: grey;
-        white-space: pre;
       }
       .MemoryBytes {
-        white-space: pre;
       }
       .MemoryChars {
-        white-space: pre;
       }
       .MemoryPointer {
-        white-space: pre;
       }
       .MemoryPointerSymbol {
-        white-space: pre;
+      }
+      .StackFrameAddress {
+      }
+      .StackFrameNoSymbol {
+        font-style: italic;
+      }
+      .StackFrameIgnored {
+        color: silver;
+      }
+      .StackFrameHash {
+      }
+      .StackSource {
+        color: grey;
       }
     </style>
     <script>

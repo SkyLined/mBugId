@@ -63,16 +63,16 @@ def cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uAddress, sDescr
     sDescription += " (at offset %d)" % uOffset;
   asHTML = [];
   if asBeforeReferencedMemory:
-    asHTML += ['<span class="Memory">%s</span>' % fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asBeforeReferencedMemory];
+    asHTML += [fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asBeforeReferencedMemory];
   if asAtAndAfterReferencedMemory:
     sAtReferencedMemory = asAtAndAfterReferencedMemory.pop(0);
     asAfterReferencedMemory = asAtAndAfterReferencedMemory;
     asHTML += [
-      '<span class="Memory">%s</span> <span class="Important">// %s</span>' % (
+      '%s <span class="Important">// %s</span>' % (
         fsHTMLProcessMemoryDumpLine(oCdbWrapper, sAtReferencedMemory, uOffset),
         oCdbWrapper.fsHTMLEncode(sDescription)
       )
     ];
-    asHTML += ['<span class="Memory">%s</span>' % fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asAfterReferencedMemory];
+    asHTML += [fsHTMLProcessMemoryDumpLine(oCdbWrapper, s) for s in asAfterReferencedMemory];
   
   return "<br/>".join(asHTML);
