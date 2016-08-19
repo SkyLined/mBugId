@@ -36,13 +36,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # There are situations where an exception should be handled by the debugger and not by the application, this
     # boolean is set to True to indicate this and is used to execute either "gh" or "gn" in cdb.
     bPassLastExceptionToApplication = False;
-    # An event that triggers a breakpoint in an x86 application running on an x64 operating system can result in a
-    # STATUS_BREAKPOINT exception followed by a STATUS_WX86_BREAKPOINT exception. If this exception is handled by BugId
-    # (e.g. the event signals that a new process has been created), the second exception is superfluous and should be
-    # ignored. To do this, a list of process ids for which we might expect such a breakpoint is maintained. Whenever
-    # an exception happens in a process that is in this list, it is removed from the list. If that exception is a
-    # STATUS_WX86_BREAKPOINT exception, it is ignored.
-    auIgnoreNextWX86BreakpointInProcessIds = [];
+    # Sometime an event can trigger multiple exceptions but only the first one contains new information. For instance
+    # when a new process is created, up to three exceptions can happen that are related this this event. In such cases
+    # BugId may need to ignore all but the first such exception. to be able to ignore exceptions, a dict contains the
+    # exception code of the exception to ignore for each process.
+    duIgnoreNextExceptionCode_by_uProcessId = {};
     # Create a list of commands to set up event handling. The default for any exception not explicitly mentioned is to
     # be handled as a second chance exception.
     asExceptionHandlingCommands = ["sxd *"];
@@ -186,21 +184,31 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       oCdbWrapper.uCurrentProcessId = long(sProcessIdHex, 16);
       uExceptionCode = sExceptionCode and long(sExceptionCode, 16);
       uBreakpointId = sBreakpointId and long(sBreakpointId);
-      bIsIgnoreedWX86Breakpoint = False;
-      if uExceptionCode == STATUS_BREAKPOINT and oCdbWrapper.uCurrentProcessId not in oCdbWrapper.auProcessIds:
-        # This is assumed to be the initial breakpoint after starting/attaching to the first process or after a new
-        # process was created by the application.
-        sCreateExitProcess = "Create";
-        sCreateExitProcessIdHex = sProcessIdHex;
-        auIgnoreNextWX86BreakpointInProcessIds.append(oCdbWrapper.uCurrentProcessId);
-      elif oCdbWrapper.uCurrentProcessId in auIgnoreNextWX86BreakpointInProcessIds:
-        # See inline doc above at first initialization of auIgnoreNextWX86BreakpointInProcessIds for details.
-        auIgnoreNextWX86BreakpointInProcessIds.remove(oCdbWrapper.uCurrentProcessId);
-        bIsIgnoreedWX86Breakpoint = uExceptionCode == STATUS_WX86_BREAKPOINT;
+      # Creating a new process can trigger a create process event, a STATUS_BREAKPOINT and a STATUS_WX86_BREAKPOINT,
+      # in that order. This sequence starts with either a create process event or a STATUS_BREAKPOINT. The first
+      # exception informs us of the new process, but the rest are superfluous and should be ignored. To do that, we
+      # have dict duIgnoreNextExceptionCode_by_uProcessId in which we store the exception code to ignore if it happens
+      # next in this process.
+      bIsIgnoredException = False;
+      if oCdbWrapper.uCurrentProcessId in duIgnoreNextExceptionCode_by_uProcessId:
+        if duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] == uExceptionCode:
+          bIsIgnoredException = True;
+        del duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId];
+      if sCreateExitProcess == "Create":
+        # Ignore the next exception if it's STATUS_BREAKPOINT.
+        duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] = STATUS_BREAKPOINT;
+      elif uExceptionCode == STATUS_BREAKPOINT:
+        if oCdbWrapper.uCurrentProcessId not in oCdbWrapper.auProcessIds:
+          # This is assumed to be the initial breakpoint after starting/attaching to the first process or after a new
+          # process was created by the application.
+          sCreateExitProcess = "Create";
+          sCreateExitProcessIdHex = sProcessIdHex;
+        # Ignore the next exception if it's STATUS_WX86_BREAKPOINT.
+        duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] = STATUS_WX86_BREAKPOINT;
       # Assume this exception is related to debugging and should not be reported to the application until we determine
       # otherwise in the code below:
       bPassLastExceptionToApplication = False;
-      if bIsIgnoreedWX86Breakpoint:
+      if bIsIgnoredException:
         # This exception is superfluous, there's nothing to do here.
         pass;
       elif uExceptionCode == DBG_CONTROL_BREAK:
@@ -264,7 +272,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # Create a bug report, if the exception is fatal.
         oCdbWrapper.oBugReport = cBugReport.foCreateForException(oCdbWrapper, uExceptionCode, sExceptionDescription);
         if not oCdbWrapper.bCdbRunning: return;
-
+      
       # See if a bug needs to be reported
       if oCdbWrapper.oBugReport is not None:
         oCdbWrapper.oBugReport.fPostProcess(oCdbWrapper);
