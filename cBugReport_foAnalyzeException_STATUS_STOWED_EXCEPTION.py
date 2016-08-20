@@ -1,5 +1,6 @@
 import re;
 from cStowedException import cStowedException;
+from cProcess import cProcess;
 
 def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oCdbWrapper, oException):
   # Parameter[0] = paStowedExceptionInformationArray;
