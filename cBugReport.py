@@ -12,7 +12,7 @@ from cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT import cBugReport_foAn
 from cBugReport_foTranslate import cBugReport_foTranslate;
 from cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
 from cBugReport_fsGetRelevantMemoryHTML import cBugReport_fsGetRelevantMemoryHTML;
-from cBugReport_fsProcessStack import cBugReport_fsProcessStack;
+from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
 from cProcess import cProcess;
@@ -126,7 +126,7 @@ class cBugReport(object):
   
   def fPostProcess(oBugReport, oCdbWrapper):
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
-    sStackHTML = cBugReport_fsProcessStack(oBugReport, oCdbWrapper); # Also sets oStack.oTopmostRelevantFrame
+    aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
     if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
       # Create HTML details
@@ -173,36 +173,22 @@ class cBugReport(object):
               });
       
       # Create and add disassembly blocks if needed:
-      if dxBugIdConfig["uDisassemblyNumberOfStackFrames"] > 0:
-        aoDisassemblyFrames = oBugReport.oStack.aoFrames[:1]; # Always disassemble top frame (current instruction).
-        # Potentially disassemble more frames starting at topmost relevant frame:
-        uTopmostRelevantFrameNumber = max(1, oBugReport.oStack.oTopmostRelevantFrame.uNumber); # first frame has already been shown.
-        uEndFrameNumber = oBugReport.oStack.oTopmostRelevantFrame.uNumber + dxBugIdConfig["uDisassemblyNumberOfStackFrames"];
-        if uEndFrameNumber > uTopmostRelevantFrameNumber:
-          aoDisassemblyFrames += oBugReport.oStack.aoFrames[uTopmostRelevantFrameNumber:uEndFrameNumber]
-        for oFrame in aoDisassemblyFrames:
-          if oFrame.uNumber == 0:
-            sAddress = "@$ip";
-            sBeforeAddressInstructionDescription = None;
-            sAtAddressInstructionDescription = "current instruction";
-          else:
-            oPreviousFrame = oBugReport.oStack.aoFrames[oFrame.uNumber - 1];
-            if oPreviousFrame.uReturnAddress:
-              sAddress = "0x%X" % oPreviousFrame.uReturnAddress;
-            else:
-              # This is an inlined function, so I'm not sure how useful this is (not to mention reliable).
-              # I'll let it sit here for a while and if doesn't work or it's useless, I'll remove it.
-              sAddress = oFrame.sCdbSymbolOrAddress;
-            sBeforeAddressInstructionDescription = "call";
-            sAtAddressInstructionDescription = "return address";
-          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, \
-              sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
-          if not oCdbWrapper.bCdbRunning: return None;
-          if sFrameDisassemblyHTML:
-            asBlocksHTML.append(sBlockHTMLTemplate % {
-              "sName": "Disassembly of stack frame %d at %s" % (oFrame.uNumber + 1, oFrame.sAddress),
-              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
-            });
+      for oFrame in aoRelevantStackFrames:
+        sAddress = oFrame.sCdbSymbolOrAddress;
+        if oFrame.uNumber == 0:
+          sBeforeAddressInstructionDescription = None;
+          sAtAddressInstructionDescription = "current instruction";
+        else:
+          sBeforeAddressInstructionDescription = "call";
+          sAtAddressInstructionDescription = "return address";
+        sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, \
+            sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
+        if not oCdbWrapper.bCdbRunning: return None;
+        if sFrameDisassemblyHTML:
+          asBlocksHTML.append(sBlockHTMLTemplate % {
+            "sName": "Disassembly of stack frame %d at %s" % (oFrame.uNumber + 1, oFrame.sAddress),
+            "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
+          });
       
       # Add relevant binaries block
       aoProcessBinaryModules = oCdbWrapper.faoGetModulesForFileNameInCurrentProcess(oBugReport.sProcessBinaryName);
@@ -212,7 +198,7 @@ class cBugReport(object):
       # executed.
       aoModules = aoProcessBinaryModules[:1];
       # Get the id frame's module cdb name for retreiving version information:
-      oRelevantModule = oBugReport.oStack and oBugReport.oStack.oTopmostRelevantFrame and oBugReport.oStack.oTopmostRelevantFrame.oModule;
+      oRelevantModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
       if oRelevantModule and oRelevantModule not in aoModules:
         aoModules.append(oRelevantModule);
       asBinaryInformationHTML = [];

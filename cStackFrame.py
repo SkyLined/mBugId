@@ -15,7 +15,10 @@ class cStackFrame(object):
     oStackFrame.sSourceFilePath = sSourceFilePath;
     oStackFrame.uSourceFileLineNumber = uSourceFileLineNumber;
     oStackFrame.uReturnAddress = uReturnAddress;
-    oStackFrame.bIsHidden = False; # Set to true if this frame should be hidden because it is not relevant.
+    # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). The bIsHidden flag is
+    # set for such frames to "hide" them. Frames that do not have a return address are inline frames and also not
+    # considered relevant.
+    oStackFrame.bIsHidden = uReturnAddress is None;
     if oFunction:
       oStackFrame.sAddress = oFunction.sName;
       if uFunctionOffset:
@@ -50,7 +53,7 @@ class cStackFrame(object):
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
       oStackFrame.sId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
-
+  
   def fbHide(oStackFrame, asFrameAddresses, bLowered = False):
     asFrameAddressesLowered = bLowered and asFrameAddresses or [s.lower() for s in asFrameAddresses];
     # Hide the frame if the address, simplified address or id address matches any of the supplied values:

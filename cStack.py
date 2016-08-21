@@ -6,7 +6,6 @@ class cStack(object):
   def __init__(oStack, asCdbLines):
     oStack.asCdbLines = asCdbLines;
     oStack.aoFrames = [];
-    oStack.oTopmostRelevantFrame = None; # Will be set later.
     oStack.bPartialStack = True;
     oStack.uHashFramesCount = dxBugIdConfig["uStackHashFramesCount"];
   

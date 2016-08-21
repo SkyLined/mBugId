@@ -43,7 +43,6 @@ for (sName, xValue) in {
   "uStackHashFramesCount": 2,           # How many stack frames are hashed for the crash id?
   "uMaxStackFrameHashChars": 3,         # How many characters of hash to use in the id for each stack frame.
   ### HTML Report Disassembly settings
-  "uDisassemblyNumberOfStackFrames": 3, # The number of stack frames to shown disassembly for.
   "uDisassemblyInstructionsBefore": 0x20, # How many instructions to disassemble before the current instruction or the
                                         # return address of the stack frame.
   "uDisassemblyInstructionsAfter": 0x10, # How many instructions to disassemble after the current instruction or the
