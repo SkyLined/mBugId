@@ -26,7 +26,16 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
   # It could be that a previous breakpoint existed at the given location, in which case that breakpoint id is used
   # by cdb instead. This must be detected so we can return the correct breakpoint id to the caller and match the
   # callback to the right breakpoint as well.
-  if len(asBreakpointResult) == 1:
+  if (
+    len(asBreakpointResult) == 5
+    and re.match(r'^Unable to insert breakpoint %d at .*, Win32 error 0n\d+$' % uBreakpointId, asBreakpointResult[0])
+    and asBreakpointResult[1] == '    "Invalid access to memory location."'
+    and asBreakpointResult[2] == 'The breakpoint was set with BP.  If you want breakpoints'
+    and asBreakpointResult[3] == 'to track module load/unload state you must use BU.'
+    and re.match(r'^bp%d at .* failed$' % uBreakpointId, asBreakpointResult[4])
+  ):
+     return None;
+  elif len(asBreakpointResult) == 1:
     if asBreakpointResult[0] == "Invalid address":
       return None;
     oActualBreakpointIdMatch = re.match(r"^breakpoint (\d+) (?:exists, redefining|redefined)$", asBreakpointResult[0]);
