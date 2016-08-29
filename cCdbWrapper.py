@@ -333,6 +333,8 @@ class cCdbWrapper(object):
     asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
         '.printf "%%p\\n", %s; $$ Get value' % sValue, bIgnoreUnknownSymbolErrors = True);
     if not oCdbWrapper.bCdbRunning: return;
+    if len(asValueResult) > 1 and asValueResult[-1].startswith("Ambiguous symbol error at '"):
+      return None;
     assert len(asValueResult) == 1, \
         "Unexpected value result:\r\n%s" % "\r\n".join(asValueResult);
     if asValueResult[0].startswith("Couldn't resolve error at "):
