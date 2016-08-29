@@ -192,7 +192,7 @@ class cBugReport(object):
             oFrame = oFrame.oPreviousFrame;
             uAddress = oFrame.uReturnAddress;
         if uAddress is not None:
-          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, \
+          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, \
               sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
           if not oCdbWrapper.bCdbRunning: return None;
           if sFrameDisassemblyHTML:
