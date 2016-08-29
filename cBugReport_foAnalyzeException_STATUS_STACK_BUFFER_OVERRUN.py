@@ -7,6 +7,7 @@ asHiddenTopFrames = [
   "ntdll.dll!LdrpValidateUserCallTargetEH",
   "ntdll.dll!RtlFailFast2",
   "ntdll.dll!RtlpHandleInvalidUserCallTarget",
+  "ntdll.dll!RtlDeleteCriticalSection", # can throw CorruptList
   # Edge
   "EMODEL.dll!wil::details::ReportFailure",
   "EMODEL.dll!wil::details::ReportFailure_Hr",
