@@ -1,13 +1,27 @@
 # Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
+# Some of these exceptions get thrown during heap allocations/frees, thus there are a number of related functions
+# in this list, as the problem is not caused by them (but probably also not by their caller, but the caller may give
+# a reasonably good indication what the application was doing on the heap that caused the exception).
 asHiddenTopFrames = [
+  "msvcrt.dll!malloc",
   "ntdll.dll!KiUserExceptionDispatcher",
   "ntdll.dll!LdrpValidateUserCallTarget",
   "ntdll.dll!LdrpValidateUserCallTargetBitMapCheck",
   "ntdll.dll!LdrpValidateUserCallTargetBitMapRet",
   "ntdll.dll!LdrpValidateUserCallTargetEH",
-  "ntdll.dll!RtlFailFast2",
-  "ntdll.dll!RtlpHandleInvalidUserCallTarget",
+  "ntdll.dll!RtlAllocateHeap",
+  "ntdll.dll!RtlDebugAllocateHeap",
   "ntdll.dll!RtlDeleteCriticalSection", # can throw CorruptList
+  "ntdll.dll!RtlFailFast2",
+  "ntdll.dll!RtlpAllocateHeap",
+  "ntdll.dll!RtlpAllocateHeapInternal",
+  "ntdll.dll!RtlpHandleInvalidUserCallTarget",
+  "verifier.dll!AVrfDebugPageHeapAllocate",
+  "verifier.dll!AVrfpDphFindAvailableMemory",
+  "verifier.dll!AVrfpDphRemoveFromFreeList",
+  "verifier.dll!FatalListEntryError",
+  "verifier.dll!RemoveEntryList",
+  "verifier.dll!RtlFailFast", # can throw CorruptList
   # Edge
   "EMODEL.dll!wil::details::ReportFailure",
   "EMODEL.dll!wil::details::ReportFailure_Hr",
