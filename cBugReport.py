@@ -35,6 +35,7 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
   STATUS_WX86_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT,
   STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
+  STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
 };
 # Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
 asHiddenTopFrames = [
