@@ -14,8 +14,7 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
     ]);
   return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
   
-def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, sAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
-  uAddress = oCdbWrapper.fuGetValue(sAddress);
+def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
   # See dxBugIdConfig for a description of these "magic" values.
   uDisassemblyBytesBefore = dxBugIdConfig["uDisassemblyInstructionsBefore"] * dxBugIdConfig["uDisassemblyAverageInstructionSize"] + \
       dxBugIdConfig["uDisassemblyAlignmentBytes"];
