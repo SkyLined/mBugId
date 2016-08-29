@@ -1,5 +1,5 @@
-from dxBugIdConfig import dxBugIdConfig;
 import hashlib;
+from dxBugIdConfig import dxBugIdConfig;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   # Get a HTML representation of the stack, find the topmost relevatn stack frame and get stack id.

@@ -36,6 +36,12 @@ for (sName, xValue) in {
                                         #  5,  9, 13, 17, ... => "4*N+1"
                                         #  6, 10, 14, 18, ... => "4*N+2"
                                         #  7, 11, 15, 19, ... => "4*N+3"
+  "uHeapCorruptedBytesHashChars": 4,    # Put a hash of the values of modified bytes in the id. Can be useful when
+                                        # attempting to modify some input that triggers the heap corruption in order to
+                                        # find out if this affects the corruption: if this ends up modifying the values
+                                        # that are written to the heap, the BugId will change with it. It may also
+                                        # result in many different BugIds for the same bug if the bytes written depend
+                                        # on things not in the input that triggered the bug, e.g. timing.
   "uMaxFunctionOffset": 0xFFF,          # How big an offset from a function symbol do you expect in your application?
                                         # Anything within this range is considered to be a valid symbol, anything
                                         # further from the symbol is marked as dubious.

@@ -188,9 +188,9 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA, ["RecursiveCall"], "RecursiveCall"));
       aoTests.append(cTest(sISA, ["StaticBufferOverrun10", "Write", "20"], "FailFast2:StackCookie"));
       # These are detected by Page Heap / Application Verifier
-      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "-1"], "OOBW[4*N]-1"));  # Write the byte at offset -1 from the start of the buffer.
-      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "c"], "OOBW[4*N]"));    # Write the byte at offset 0 from the end of the buffer.
-      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "d"], "OOBW[4*N]+1"));  # Write the byte at offset 1 from the end of the buffer.
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "-1"], "OOBW[4*N]-1~1:b4b1"));  # Write the byte at offset -1 from the start of the buffer.
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "c"], "OOBW[4*N]~1:b4b1"));    # Write the byte at offset 0 from the end of the buffer.
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "d"], "OOBW[4*N]+1~1:b4b1"));  # Write the byte at offset 1 from the end of the buffer.
       if sISA not in ["x86"]:
         # These are detected because they cause an access violation.
         aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1c"], "OOBW[4*N]+4*N")); # Write the byte at offset 0x10 from the end of the buffer.
@@ -205,11 +205,12 @@ if __name__ == "__main__":
         aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1f", "4"], "OOBR[4*N+3]+1"));
         aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1e", "4"], "OOBR[4*N+2]+2"));
         aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1d", "4"], "OOBR[4*N+1]+3"));
-        # These issues are detected when they cause an access violation; but the earlier OOBWs can be detected because the page heap suffix was modified.
+        # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
+        # This is detected and reported by application verifier because the page heap suffix was modified.
         aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "20", "4"], "OOBW[4*N]"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1f", "4"], "OOBW[4*N+3]"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1e", "4"], "OOBW[4*N+2]"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1d", "4"], "OOBW[4*N+1]"));
+        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1f", "4"], "OOBW[4*N+3]~1:b4b1"));
+        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1e", "4"], "OOBW[4*N+2]~2:4a7d"));
+        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1d", "4"], "OOBW[4*N+1]~3:670b"));
         aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "10"], "OOBR[4*N]+4*N"));    # Read byte at offset 4 from the end of the memory block
         aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "11"], "OOBR[4*N]+4*N+1"));  # Read byte at offset 5 from the end of the memory block
         aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "12"], "OOBR[4*N]+4*N+2"));  # Read byte at offset 6 from the end of the memory block

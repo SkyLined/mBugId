@@ -1,4 +1,5 @@
 import re;
+from cCorruptionDetector import cCorruptionDetector;
 from dxBugIdConfig import dxBugIdConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
@@ -342,7 +343,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
           # beyond the end of the heap block, in  the next memory page:
           uBlockAddress = long(sBlockAddress.replace("`", ""), 16);
           uBlockSize = long(sBlockSize.replace("`", ""), 16);
-          uGuardPageAddress = (uBlockAddress | 0xFFF) + 1; # Follows the page in which the block is located.
+          uPageEndAddress = (uBlockAddress | 0xFFF) + 1; # Follows the page in which the block is located.
           bAccessIsBeyondBlock = uAddress >= uBlockAddress + uBlockSize;
           # The same type of block may have different sizes for 32-bit and 64-bit versions of an application, so the size
           # cannot be used in the id. The same is true for the offset, but the fact that there is an offset is unique to
@@ -352,37 +353,42 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             sOffsetDescription = "%d/0x%X bytes beyond" % (uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
             sBugDescription = "Out-of-bounds access violation while %s memory at 0x%X; %s a %d/0x%X byte heap block at 0x%X." % \
                 (sViolationTypeDescription, uAddress, sOffsetDescription, uBlockSize, uBlockSize, uBlockAddress);
+            asCorruptedBytes= None;
             if uOffsetPastEndOfBlock != 0:
               if sViolationTypeDescription == "writing":
                 # Page heap stores the heap as close as possible to the edge of a page, taking into account that the start
                 # of the heap block must be properly aligned. Bytes between the heap block and the end of the page are
                 # initialized to 0xD0 and may have been modified before the program wrote beyond the end of the page.
                 # We can use this to get a better idea of where to OOB write started:
-                uCorruptionAddress = uBlockAddress + uBlockSize;
-                while uCorruptionAddress < uGuardPageAddress:
-                  if oCdbWrapper.fuGetValue("by(0x%X)" % uCorruptionAddress) == 0xD0:
-                    uCorruptionAddress += 1;
-                  else:
-                    # We detected a modified byte; there was an OOB write before the one that caused this access
-                    # violation. Use it's offset instead and add this fact to the description.
-                    uOffsetPastEndOfBlock = uCorruptionAddress - (uBlockAddress + uBlockSize);
-                    sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
-                        "beyond that block because it modified the page heap suffix pattern.") % \
-                        (uCorruptionAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                    sMemoryDumpDescription = "memory corruption at 0x%X" % uCorruptionAddress;
-                    uAddress = uCorruptionAddress; # Used later on to dump memory
-                    break;
-              elif uAddress == uGuardPageAddress and uAddress > uBlockAddress + uBlockSize:
+                uHeapBlockEndAddress = uBlockAddress + uBlockSize;
+                uPaddingSize = uPageEndAddress - uHeapBlockEndAddress;
+                oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
+                oCorruptionDetector.fDetectCorruption(uHeapBlockEndAddress, *[0xD0 for x in xrange(uPaddingSize)]);
+                if oCorruptionDetector.bCorruptionDetected:
+                  # We detected a modified byte; there was an OOB write before the one that caused this access
+                  # violation. Use it's offset instead and add this fact to the description.
+                  uAddress = oCorruptionDetector.uCorruptionStartAddress;
+                  uOffsetPastEndOfBlock = uAddress - uHeapBlockEndAddress;
+                  sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
+                      "beyond that block because it modified the page heap suffix pattern.") % \
+                      (uAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
+                  sMemoryDumpDescription = "memory corruption at 0x%X" % uAddress;
+                  asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
+              elif uAddress == uPageEndAddress and uAddress > uBlockAddress + uBlockSize:
                 sBugDescription += " An earlier out-of-bounds access before this address may have happened without " \
                     "having triggered an access violation.";
             # The access was beyond the end of the block (out-of-bounds, OOB)
             oBugReport.sBugTypeId = "OOB%s[%s]%s" % (sViolationTypeId, fsGetNumberDescription(uBlockSize), \
                 fsGetOffsetDescription(uOffsetPastEndOfBlock));
+            if asCorruptedBytes:
+              sBugDescription += " The following byte values were written to the corrupted area: %s." % \
+                  ", ".join(asCorruptedBytes);
+              oBugReport.sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
           else:
             # The access was inside the block but apparently the kind of access attempted is not allowed (e.g. write to
             # read-only memory).
-            oBugReport.sBugTypeId = "AV%s[%s]@%s" % (sViolationTypeId, fsGetNumberDescription(uBlockSize), \
-                fsGetOffsetDescription(uOffsetFromStartOfBlock));
+            oBugReport.sBugTypeId = "AV%s[%s]@%s" % (sViolationTypeId, \
+                fsGetNumberDescription(uBlockSize), fsGetNumberDescription(uOffsetFromStartOfBlock));
             sOffsetDescription = "%d/0x%X bytes into" % (uOffsetFromStartOfBlock, uOffsetFromStartOfBlock);
             sBugDescription = "Access violation while %s memory at 0x%X; %s a %d/0x%X byte heap block at 0x%X." % \
                 (sViolationTypeDescription, uAddress, sOffsetDescription, uBlockSize, uBlockSize, uBlockAddress);
