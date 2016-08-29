@@ -330,10 +330,13 @@ class cCdbWrapper(object):
       oCdbWrapper.oApplicationTimeLock.release();
   
   def fuGetValue(oCdbWrapper, sValue):
-    asValueResult = oCdbWrapper.fasSendCommandAndReadOutput('.printf "%%p\\n", %s; $$ Get value' % sValue);
+    asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
+        '.printf "%%p\\n", %s; $$ Get value' % sValue, bIgnoreUnknownSymbolErrors = True);
     if not oCdbWrapper.bCdbRunning: return;
     assert len(asValueResult) == 1, \
         "Unexpected value result:\r\n%s" % "\r\n".join(asValueResult);
+    if asValueResult[0].startswith("Couldn't resolve error at "):
+      return None;
     return long(asValueResult[0], 16);
   
   # Breakpoints

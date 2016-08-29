@@ -6,6 +6,7 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bShowOnlyCommandOutput = False,
     bOutputCanContainApplicationOutput = False,
     bHandleSymbolLoadErrors = True,
+    bIgnoreUnknownSymbolErrors = False,
 ):
   # Commands can only be execute from within the cCdbWrapper.fCdbStdInOutThread call.
   assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
@@ -38,7 +39,12 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bHandleSymbolLoadErrors = bHandleSymbolLoadErrors
   );
   # Detect obvious errors executing the command. (this will not catch everything, but does help development)
-  assert asOutput is None or len(asOutput) == 0 or not re.match(r"^(\s*\^ .*|Couldn't resolve error at .+)$", asOutput[0]), \
+  if asOutput is not None and len(asOutput) > 0:
+    assert (
+      not re.match(r"^\s*\^ .*$", asOutput[0])
+      and (bIgnoreUnknownSymbolErrors or not asOutput[0].startswith("Couldn't resolve error at "))
+    ), (
       "There was a problem executing the command %s:\r\n%s" % \
-      (repr(sCommand), "\r\n".join([repr(sLine) for sLine in asOutput]));
+      (repr(sCommand), "\r\n".join([repr(sLine) for sLine in asOutput]))
+    );
   return asOutput;
