@@ -105,6 +105,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # ...report that the application is about to start running.
           oCdbWrapper.fApplicationRunningCallback and oCdbWrapper.fApplicationRunningCallback();
           bInitialApplicationRunningCallbackFired = True;
+          bApplicationWasPausedToAnalyzeAnException = False;
         # Mark the time when the application was resumed.
         asCdbTimeOutput = oCdbWrapper.fasSendCommandAndReadOutput(".time; $$ Get debugger time");
         if not oCdbWrapper.bCdbRunning: return;
