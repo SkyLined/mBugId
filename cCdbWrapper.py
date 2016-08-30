@@ -27,16 +27,14 @@ except:
   raise;
 
 class cCdbWrapper(object):
-  sCdbISA = sOSISA;
   def __init__(oCdbWrapper,
+    sCdbISA = sOSISA, # Which version of cdb should be used to debug this application?
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
     asSymbolServerURLs = [],
     dsURLTemplate_by_srSourceFilePath = {},
     rImportantStdOutLines = None,
     rImportantStdErrLines = None,
-    # bIgnoreFirstChanceBreakpoints = False, ### This setting has been moved to dxBugIdConfig.py
-    # bEnableSourceCodeSupport = True, ### This setting has been moved to dxBugIdConfig.py
     bGetDetailsHTML = False,
     fApplicationRunningCallback = None,
     # fApplicationRunningCallback is called when the application starts and after exception analysis is finished for
@@ -61,6 +59,7 @@ class cCdbWrapper(object):
     # Called when there is a bug in BugId itself. Can be used to make sure BugId is working as expected. If you run
     # into a sitaution where this callback gets called, you can file a bug at https://github.com/SkyLined/BugId/issues
   ):
+    oCdbWrapper.sCdbISA = sCdbISA;
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath;
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;

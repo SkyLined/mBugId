@@ -60,6 +60,7 @@ class cTest(object):
       oTest.bHasOutputLock = False;
     try:
       oTest.oBugId = cBugId(
+        sCdbISA = oTest.sISA,
         asApplicationCommandLine = asApplicationCommandLine,
         asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"],
         bGetDetailsHTML = True,
@@ -191,36 +192,36 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "-1"], "OOBW[4*N]-1~1:b4b1"));  # Write the byte at offset -1 from the start of the buffer.
       aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "c"], "OOBW[4*N]~1:b4b1"));    # Write the byte at offset 0 from the end of the buffer.
       aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c",  "d"], "OOBW[4*N]+1~1:b4b1"));  # Write the byte at offset 1 from the end of the buffer.
-      if sISA not in ["x86"]:
-        # These are detected because they cause an access violation.
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1c"], "OOBW[4*N]+4*N")); # Write the byte at offset 0x10 from the end of the buffer.
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1d"], "OOBW[4*N]+4*N+1")); # Write the byte at offset 0x10 from the end of the buffer.
-        # x86 test results in "0BA2 FailFast2:AppExit Tests_x86.exe!abort (A critical issue was detected (code C0000409, fail fast code 7: FAST_FAIL_FATAL_APP_EXIT))"
-        aoTests.append(cTest(sISA, ["PureCall"], "PureCall"));
-        # Page heap does not appear to work for x86 tests on x64 platform.
-        aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "0"], "UAFR"));
-        aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "0"], "UAFW"));
-        # These issues are not detected until they cause an access violation; there is no way to detect and report OOBRs before this happens.
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "20", "4"], "OOBR[4*N]"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1f", "4"], "OOBR[4*N+3]+1"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1e", "4"], "OOBR[4*N+2]+2"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1d", "4"], "OOBR[4*N+1]+3"));
-        # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
-        # This is detected and reported by application verifier because the page heap suffix was modified.
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "20", "4"], "OOBW[4*N]"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1f", "4"], "OOBW[4*N+3]~1:b4b1"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1e", "4"], "OOBW[4*N+2]~2:4a7d"));
-        aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1d", "4"], "OOBW[4*N+1]~3:670b"));
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "10"], "OOBR[4*N]+4*N"));    # Read byte at offset 4 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "11"], "OOBR[4*N]+4*N+1"));  # Read byte at offset 5 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "12"], "OOBR[4*N]+4*N+2"));  # Read byte at offset 6 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "13"], "OOBR[4*N]+4*N+3"));  # Read byte at offset 7 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "14"], "OOBR[4*N]+4*N"));    # Read byte at offset 8 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "10"], "OOBW[4*N]+4*N"));   # Write byte at offset 4 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "11"], "OOBW[4*N]+4*N+1")); # Write byte at offset 5 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "12"], "OOBW[4*N]+4*N+2")); # Write byte at offset 6 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "13"], "OOBW[4*N]+4*N+3")); # Write byte at offset 7 from the end of the memory block
-        aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "14"], "OOBW[4*N]+4*N"));   # Write byte at offset 8 from the end of the memory block
+      # These are detected because they cause an access violation.
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1c"], "OOBW[4*N]+4*N")); # Write the byte at offset 0x10 from the end of the buffer.
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1d"], "OOBW[4*N]+4*N+1")); # Write the byte at offset 0x10 from the end of the buffer.
+      # Sometimes there is a call to "binary!purecall" or "binary!_purecall" that can be used in order to detect a
+      # pure virtual function call, but not always: in our test code, it's not there on x86, but it is on x64.
+      aoTests.append(cTest(sISA, ["PureCall"], {"x86": "FailFast2:AppExit", "x64": "PureCall"}[sISA]));
+      # Page heap does not appear to work for x86 tests on x64 platform.
+      aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "0"], "UAFR"));
+      aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "0"], "UAFW"));
+      # These issues are not detected until they cause an access violation; there is no way to detect and report OOBRs before this happens.
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "20", "4"], "OOBR[4*N]"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1f", "4"], "OOBR[4*N+3]+1"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1e", "4"], "OOBR[4*N+2]+2"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "1d", "4"], "OOBR[4*N+1]+3"));
+      # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
+      # This is detected and reported by application verifier because the page heap suffix was modified.
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "20", "4"], "OOBW[4*N]"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1f", "4"], "OOBW[4*N+3]~1:b4b1"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1e", "4"], "OOBW[4*N+2]~2:4a7d"));
+      aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Write", "1d", "4"], "OOBW[4*N+1]~3:670b"));
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "10"], "OOBR[4*N]+4*N"));    # Read byte at offset 4 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "11"], "OOBR[4*N]+4*N+1"));  # Read byte at offset 5 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "12"], "OOBR[4*N]+4*N+2"));  # Read byte at offset 6 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "13"], "OOBR[4*N]+4*N+3"));  # Read byte at offset 7 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Read", "c", "14"], "OOBR[4*N]+4*N"));    # Read byte at offset 8 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "10"], "OOBW[4*N]+4*N"));   # Write byte at offset 4 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "11"], "OOBW[4*N]+4*N+1")); # Write byte at offset 5 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "12"], "OOBW[4*N]+4*N+2")); # Write byte at offset 6 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "13"], "OOBW[4*N]+4*N+3")); # Write byte at offset 7 from the end of the memory block
+      aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "14"], "OOBW[4*N]+4*N"));   # Write byte at offset 8 from the end of the memory block
       if False:
         # This does not appear to work at all. TODO: fix this.
         aoTests.append(cTest(sISA, ["BufferOverrun", "Stack", "Write", "20", "1000"], "OOBW"));

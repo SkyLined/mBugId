@@ -37,7 +37,11 @@ dsFastFailErrorCodes = {
   4:  ("BadStack",      "FAST_FAIL_INCORRECT_STACK",                                  "Potentially exploitable security issue"),
   5:  ("InvalidArg",    "FAST_FAIL_INVALID_ARG",                                      "Potentially exploitable security issue"),
   6:  ("GSCookie",      "FAST_FAIL_GS_COOKIE_INIT",                                   "Potentially exploitable security issue"),
-  7:  ("AppExit",       "FAST_FAIL_FATAL_APP_EXIT",                                   None),
+  # TODO: It may be possible to check if an AppExit is an R6025: this only happens on x86, the first frame should be
+  # "application!abort" and the second frame should be a non-static call (e.g. CALL EAX) from the application.
+  # However, I'm worried about false positives and this does not appear to happen often enough to warrant the expense
+  # of creating code for it at the moment.
+                                                                                      "Potentially exploitable security issue"),
   8:  ("RangeCheck",    "FAST_FAIL_RANGE_CHECK_FAILURE",                              "Potentially exploitable security issue"),
   9:  ("Registry",      "FAST_FAIL_UNSAFE_REGISTRY_ACCESS",                           "Potentially exploitable security issue"),
   10: ("GuardICall",    "Control flow guard detected a call to an invalid address",   "Potentially exploitable security issue"),
