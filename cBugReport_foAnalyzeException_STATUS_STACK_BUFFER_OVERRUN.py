@@ -41,6 +41,7 @@ dsFastFailErrorCodes = {
   # "application!abort" and the second frame should be a non-static call (e.g. CALL EAX) from the application.
   # However, I'm worried about false positives and this does not appear to happen often enough to warrant the expense
   # of creating code for it at the moment.
+  7:  ("AppExit",       "Fatal application error, possibly a pure virtual function call (R6025)",
                                                                                       "Potentially exploitable security issue"),
   8:  ("RangeCheck",    "FAST_FAIL_RANGE_CHECK_FAILURE",                              "Potentially exploitable security issue"),
   9:  ("Registry",      "FAST_FAIL_UNSAFE_REGISTRY_ACCESS",                           "Potentially exploitable security issue"),
