@@ -24,7 +24,7 @@ class cStack(object):
         "Unexpected frame number %d vs %d" % (uNumber, len(oStack.aoFrames));
     uMaxStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
     oStackFrame = cStackFrame(uNumber, sCdbLine, uAddress, sUnloadedModuleFileName, oModule, uModuleOffset, \
-        oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress)
+        oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress, oStack);
     oStack.aoFrames.append(oStackFrame);
     
   @classmethod

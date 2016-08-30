@@ -3,7 +3,7 @@ from dxBugIdConfig import dxBugIdConfig;
 
 class cStackFrame(object):
   def __init__(oStackFrame, uNumber, sCdbSymbolOrAddress, uAddress, sUnloadedModuleFileName, oModule, uModuleOffset, \
-      oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress):
+      oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress, oStack):
     oStackFrame.uNumber = uNumber;
     oStackFrame.sCdbSymbolOrAddress = sCdbSymbolOrAddress;
     oStackFrame.uAddress = uAddress;
@@ -15,6 +15,8 @@ class cStackFrame(object):
     oStackFrame.sSourceFilePath = sSourceFilePath;
     oStackFrame.uSourceFileLineNumber = uSourceFileLineNumber;
     oStackFrame.uReturnAddress = uReturnAddress;
+    oStackFrame.oStack = oStack;
+    oStackFrame.oPreviousFrame = uNumber > 0 and oStack.aoFrames[uNumber - 1] or None;
     # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). The bIsHidden flag is
     # set for such frames to "hide" them. Frames that do not have a return address are inline frames and also not
     # considered relevant.
