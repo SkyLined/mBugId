@@ -1,4 +1,4 @@
-Notes:
+2016-08-31:
 * The BugId can now include the number of overwritten bytes, and a hash of
   their values if you supply a dxBugIdConfig["uHeapCorruptedBytesHashChars"]
   setting value of 1 or more. This can be useful when you want to detect if
