@@ -149,7 +149,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   # Access violation: add the type of operation and the location to the exception id.
   sViolationTypeId = {0:"R", 1:"W", 8:"E"}.get(oException.auParameters[0], "?");
   sViolationTypeDescription = {0:"reading", 1:"writing", 8:"executing"}.get(oException.auParameters[0], "accessing");
-  sViolationTypeNotes = sViolationTypeId == "?" and " (the type-of-accesss code was 0x%X)" % oException.auParameters[0] or "";
+  sViolationTypeNotes = sViolationTypeId == "_" and " (the type-of-accesss code was 0x%X)" % oException.auParameters[0] or "";
   uAddress = oException.auParameters[1];
   if uAddress == 0xFFFFFFFFFFFFFFFF and sViolationTypeId == "R":
     # In x64 mode, current processors will thrown an exception when you use an address larger than 0x7FFFFFFFFFFF and
@@ -225,7 +225,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
           sViolationTypeId = "W";
           sViolationTypeDescription = "writing";
         else:
-          sViolationTypeId = "?";
+          sViolationTypeId = "_";
           sViolationTypeDescription = "accessing";
           sViolationTypeNotes = " (the type of accesss must be read or write, but cannot be determined)";
       else:

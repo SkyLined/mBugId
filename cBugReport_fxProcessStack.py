@@ -34,7 +34,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
     if oCdbWrapper.bGetDetailsHTML:
       sAddressHTML = "<span class=\"%s\">%s</span>" % (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
-  asStackFrameIds = [oStackFrame.sId or "?" for oStackFrame in aoRelevantStackFrames];
+  asStackFrameIds = [oStackFrame.sId or "_" for oStackFrame in aoRelevantStackFrames];
   if len(asStackFrameIds) > dxBugIdConfig["uStackHashFramesCount"]:
     # For certain bugs, such as recursive function calls, ids may have been generated for more functions than the value
     # in uStackHashFramesCount. In this case, the last ids are hashes into one id to reduce the number of hashes:
