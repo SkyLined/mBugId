@@ -1,3 +1,6 @@
+2016-09-05:
+* Bug fixes, no API changes.
+
 2016-08-31:
 * The BugId can now include the number of overwritten bytes, and a hash of
   their values if you supply a dxBugIdConfig["uHeapCorruptedBytesHashChars"]
