@@ -40,7 +40,7 @@ def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules
     # Any value referencing it will be converted to an address:
     sAddress = "SharedUserData";
     if sSymbol: sAddress += "!%s" % sSymbol;
-    uAddress = oCdbWrapper.fuGetValue(sAddress);
+    uAddress = oCdbWrapper.fuGetValueForSymbol(sAddress);
     if uModuleOffset: uAddress += uModuleOffset;
     if uSymbolOffset: uAddress += uSymbolOffset;
   else:

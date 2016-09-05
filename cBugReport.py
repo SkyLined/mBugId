@@ -177,7 +177,10 @@ class cBugReport(object):
       # Create and add disassembly blocks if needed:
       for oFrame in aoRelevantStackFrames:
         sAddress = oFrame.sCdbSymbolOrAddress;
-        uAddress = oCdbWrapper.fuGetValue(sAddress);
+        if oFrame.uAddress:
+          uAddress = oCdbWrapper.fuGetValue(sAddress);
+        else:
+          uAddress = oCdbWrapper.fuGetValueForSymbol(sAddress);
         uFrameNumber = oFrame.uNumber + 1; # Make it base 1, rather than 0
         if oFrame.uNumber == 0:
           sBeforeAddressInstructionDescription = None;
