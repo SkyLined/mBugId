@@ -90,6 +90,14 @@ ddtxBugTranslations = {
         [
           "chrome_child.dll!WTF::partitionExcessiveAllocationSize",
         ],
+        [
+          "chrome_child.dll!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
+          "chrome_child.dll!raise",
+          "chrome_child.dll!abort",
+          "chrome_child.dll!sk_abort_no_print",
+          "chrome_child.dll!SkBitmap::allocPixels",
+          "chrome_child.dll!SkBitmap::allocPixels",
+        ],
       ],
     ),
   },
