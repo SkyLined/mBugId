@@ -306,12 +306,15 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
       # |***    doesn't have full symbol information.  Unqualified symbol      ***
       # |***    resolution is turned off by default. Please either specify a   ***
       # |***    fully qualified symbol module!symbolname, or enable resolution ***
+      # <<<snip>>>
+      # unable to resolve ntdll!RtlpStackTraceDataBase
       asPageHeapReport = [
         x for x in asPageHeapReport
         if not re.match(r"^(%s)\s*$" % "|".join([
           "ReadMemory error for address [0-9`a-f]+",
           "Use `!address [0-9`a-f]+' to check validity of the address.",
           "\*\*\*.*\*\*\*",
+          "unable to resolve ntdll!RtlpStackTraceDataBase",
         ]), x)
       ];
       # TODO: error resolving symbol should be handled by attempting to reload them, similar to cCdbWrapper_fasGetStack

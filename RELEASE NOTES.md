@@ -9,6 +9,7 @@ Bug fixes and improvements
 --------------------------
 + Handle negative offsets in time zone in debugger time to prevent an exception.
 + Add another Chrome OOM crash signature
++ Improve handling of symbol problems in page heap output.
 
 2016-09-05
 ==========
