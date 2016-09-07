@@ -14,7 +14,7 @@ def fnGetDebuggerTime(sDebuggerTime):
     r"(\d+)",                                                # Day in month
     r"(\d+):(\d+):(\d+).(\d+)",                              # Hour:Minute:Second.Milisecond
     r"(\d+)",                                                # Year
-    r"\(\w+ \+ \d+:\d+\)",                                   # Timezone (don't care).
+    r"\(\w+ [\+\-] \d+:\d+\)",                               # Timezone (don't care).
   ]), sDebuggerTime);
   assert oTimeMatch, "Cannot parse debugger time: %s" % repr(sDebuggerTime);
   sWeekDay, sMonth, sDay, sHour, sMinute, sSecond, sMilisecond, sYear = oTimeMatch.groups();
