@@ -153,7 +153,10 @@ class cTest(object):
 if __name__ == "__main__":
   aoTests = [];
   if len(sys.argv) > 1:
-    # Test is user supplied:
+    # Test is user supplied, output I/O
+    dxBugIdConfig["bOutputStdIn"] = \
+        dxBugIdConfig["bOutputStdOut"] = \
+        dxBugIdConfig["bOutputStdErr"] = True;
     aoTests.append(cTest(sys.argv[1], sys.argv[2:], None)); # Expect no exceptions.
   else:
     for sISA in asTestISAs:
@@ -243,7 +246,7 @@ if __name__ == "__main__":
           if uBaseAddress >= 0x800000000000 and uBaseAddress < 0xffff800000000000:
             aoTests.extend([
               cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AVR:%s" % sDescription),
-              cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV?:%s" % sDescription),
+              cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV_:%s" % sDescription),
             ]);
           else:
             aoTests.extend([
@@ -262,7 +265,7 @@ if __name__ == "__main__":
           aoTests.append(cTest(sISA, ["AccessViolation", "Jump", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
         elif sISA == "x64":
           aoTests.append(cTest(sISA, ["AccessViolation", "Read", "%X" % uBaseAddress], "AVR:%s" % sAddressId));
-          aoTests.append(cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV?:%s" % sAddressId));
+          aoTests.append(cTest(sISA, ["AccessViolation", "Write", "%X" % uBaseAddress], "AV_:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Call", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
           aoTests.append(cTest(sISA, ["AccessViolation", "Jump", "%X" % uBaseAddress], "AVE:%s" % sAddressId));
   
