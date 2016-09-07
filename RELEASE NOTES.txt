@@ -1,3 +1,11 @@
+2016-09-07:
+* Bug fix: allow negative offsets in time zone in debugger time.
+* Add another Chrme OOM crash signature
+
+Breaking change:
+* Replace "?" in BugIds with "_": this improvies legibility IMHO and makes
+  use of the BugId in a file or folder name easier.
+
 2016-09-05:
 * Bug fixes, no API changes.
 
