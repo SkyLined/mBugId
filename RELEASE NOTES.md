@@ -5,6 +5,7 @@ Bug fixes and improvements
 + Avoid some exceptions that can happen after cdb has terminated, when the code
   tries to make sure it has.
 + Report descriptive error if FileSystem or Kill are not found.
++ Handle empty arguments to the application ("")
 
 2016-09-07
 ==========
