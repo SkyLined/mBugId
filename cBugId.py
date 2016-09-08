@@ -1,7 +1,4 @@
 import threading;
-from cCdbWrapper import cCdbWrapper;
-from sVersion import sVersion;
-
 for (sModule, sURL) in {
   "FileSystem": "https://github.com/SkyLined/FileSystem/",
   "Kill": "https://github.com/SkyLined/Kill/",
@@ -17,6 +14,9 @@ for (sModule, sURL) in {
     print "Once you have completed these steps, please try again.";
     print "*" * 80;
     raise;
+
+from cCdbWrapper import cCdbWrapper;
+from sVersion import sVersion;
 
 class cBugId(object):
   sVersion = sVersion;
