@@ -18,9 +18,18 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   except:
     pass; # Apparently it wasn't running.
   # Make sure all stdio pipes are closed.
-  oCdbWrapper.oCdbProcess.stdout.close();
-  oCdbWrapper.oCdbProcess.stderr.close();
-  oCdbWrapper.oCdbProcess.stdin.close();
+  try:
+    oCdbWrapper.oCdbProcess.stdout.close();
+  except:
+    pass; # Apparently it wasn't open.
+  try:
+    oCdbWrapper.oCdbProcess.stderr.close();
+  except:
+    pass; # Apparently it wasn't open.
+  try:
+    oCdbWrapper.oCdbProcess.stdin.close();
+  except:
+    pass; # Apparently it wasn't open.
   # Wait for the cdb process to terminate
   uExitCode = oCdbWrapper.oCdbProcess.wait();
   # Destroy the subprocess object to make even more sure all stdio pipes are closed.
