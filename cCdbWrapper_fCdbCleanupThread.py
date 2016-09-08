@@ -13,7 +13,10 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for stderr thread to terminate.
   oCdbWrapper.oCdbStdErrThread.join();
   # Terminate the cdb process in case it somehow is still running.
-  oCdbWrapper.oCdbProcess.terminate();
+  try:
+    oCdbWrapper.oCdbProcess.terminate();
+  except:
+    pass; # Apparently it wasn't running.
   # Make sure all stdio pipes are closed.
   oCdbWrapper.oCdbProcess.stdout.close();
   oCdbWrapper.oCdbProcess.stderr.close();
