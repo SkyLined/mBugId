@@ -1,4 +1,5 @@
 2016-09-08
+==========
 Bug fixes and improvements
 --------------------------
 + Avoid some exceptions that can happen after cdb has terminated, when the code
