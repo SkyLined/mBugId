@@ -125,7 +125,7 @@ class cCdbWrapper(object):
       asCommandLine += ["-p", str(auApplicationProcessIds[0])];
     # Quote any non-quoted argument that contain spaces:
     asCommandLine = [
-      (x[0] == '"' or x.find(" ") == -1) and x or '"%s"' % x.replace('"', '\\"')
+      (x and (x[0] == '"' or x.find(" ") == -1)) and x or '"%s"' % x.replace('"', '\\"')
       for x in asCommandLine
     ];
     # Show the command line if requested.
