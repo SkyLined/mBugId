@@ -204,20 +204,29 @@ class cBugReport(object):
               "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
       
-      # Add relevant binaries block
+      # Find cModule for main process binary (i.e. the .exe)
       aoProcessBinaryModules = oCdbWrapper.faoGetModulesForFileNameInCurrentProcess(oBugReport.sProcessBinaryName);
       if not oCdbWrapper.bCdbRunning: return None;
       assert len(aoProcessBinaryModules) > 0, "Cannot find binary %s module" % oBugReport.sProcessBinaryName;
-      # If the binary is loaded as a module multiple times in the process, the first should be the binary that was
-      # executed.
-      aoModules = aoProcessBinaryModules[:1];
-      # Get the id frame's module cdb name for retreiving version information:
-      oRelevantModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
-      if oRelevantModule and oRelevantModule not in aoModules:
-        aoModules.append(oRelevantModule);
+      # Add main process binary version information to bug report. If the binary is loaded as a module multiple times
+      # in the process, the first should be the binary that was executed.
+      oMainModule = aoProcessBinaryModules[0];
+      
+      # Find cModule for bug binary (i.e. the module in which the bug is located)
+      oBugModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
+      # If bug niary and main binary are not the same, gather information for both of them:
+      aoRelevantModules = [oMainModule];
+      if oBugModule and oBugModule != oMainModule:
+        aoRelevantModules.append(oBugModule);
+      # Add relevant binaries information to cBugReport.
+      oBugReport.asVersionInformation = [
+        "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown")
+        for oModule in aoRelevantModules
+      ];
+      # Add relevant binaries information to HTML
       asBinaryInformationHTML = [];
       asBinaryVersionHTML = [];
-      for oModule in aoModules:
+      for oModule in aoRelevantModules:
         asBinaryInformationHTML.append(oModule.fsGetInformationHTML(oCdbWrapper));
         if not oCdbWrapper.bCdbRunning: return None;
         asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
