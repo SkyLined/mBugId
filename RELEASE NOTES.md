@@ -1,3 +1,11 @@
+2016-09-09
+==========
+Added features
+--------------
++ Added `cBugReport.asVersionInformation`, which contains version information
+  on the main process binary (i.e. the .exe) and the binary in which the crash
+  happened if it's not the main process binary (i.e. a .dll).
+
 2016-09-08
 ==========
 Bug fixes and improvements
