@@ -218,18 +218,16 @@ class cBugReport(object):
       aoRelevantModules = [oMainModule];
       if oBugModule and oBugModule != oMainModule:
         aoRelevantModules.append(oBugModule);
-      # Add relevant binaries information to cBugReport.
-      oBugReport.asVersionInformation = [
-        "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown")
-        for oModule in aoRelevantModules
-      ];
-      # Add relevant binaries information to HTML
+      # Add relevant binaries information to cBugReport and HTML report.
       asBinaryInformationHTML = [];
       asBinaryVersionHTML = [];
+      oBugReport.asVersionInformation = [];
       for oModule in aoRelevantModules:
         asBinaryInformationHTML.append(oModule.fsGetInformationHTML(oCdbWrapper));
         if not oCdbWrapper.bCdbRunning: return None;
         asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
+        oBugReport.asVersionInformation.append(
+            "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
       sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML);
       if sBinaryInformationHTML:
