@@ -2,10 +2,22 @@ import hashlib, math;
 from dxBugIdConfig import dxBugIdConfig;
 
 class cStackFrame(object):
-  def __init__(oStackFrame, uNumber, sCdbSymbolOrAddress, uAddress, sUnloadedModuleFileName, oModule, uModuleOffset, \
-      oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress, oStack):
+  def __init__(oStackFrame,
+      oStack,
+      uNumber,
+      sCdbSymbolOrAddress,
+      uInstructionPointer, uReturnAddress,
+      uAddress,
+      sUnloadedModuleFileName,
+      oModule, uModuleOffset, 
+      oFunction, uFunctionOffset,
+      sSourceFilePath, uSourceFileLineNumber,
+  ):
+    oStackFrame.oStack = oStack;
     oStackFrame.uNumber = uNumber;
     oStackFrame.sCdbSymbolOrAddress = sCdbSymbolOrAddress;
+    oStackFrame.uInstructionPointer = uInstructionPointer;
+    oStackFrame.uReturnAddress = uReturnAddress;
     oStackFrame.uAddress = uAddress;
     oStackFrame.sUnloadedModuleFileName = sUnloadedModuleFileName;
     oStackFrame.oModule = oModule;
@@ -14,8 +26,6 @@ class cStackFrame(object):
     oStackFrame.uFunctionOffset = uFunctionOffset;
     oStackFrame.sSourceFilePath = sSourceFilePath;
     oStackFrame.uSourceFileLineNumber = uSourceFileLineNumber;
-    oStackFrame.uReturnAddress = uReturnAddress;
-    oStackFrame.oStack = oStack;
     oStackFrame.oPreviousFrame = uNumber > 0 and oStack.aoFrames[uNumber - 1] or None;
     # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). The bIsHidden flag is
     # set for such frames to "hide" them. Frames that do not have a return address are inline frames and also not

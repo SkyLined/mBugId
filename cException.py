@@ -1,8 +1,29 @@
 import re;
-from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
 from cStowedException import cStowedException;
+from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
 from dxBugIdConfig import dxBugIdConfig;
 from NTSTATUS import *;
+
+def fsAddressData(oStackFrameOrException):
+  return "ip=0x%X addr=%s mod=%s,%s%s func=%s%s" % (
+    oStackFrameOrException.uInstructionPointer,
+    oStackFrameOrException.uAddress is None and "-" or "0x%X" % oStackFrameOrException.uAddress,
+    oStackFrameOrException.sUnloadedModuleFileName or "-",
+    oStackFrameOrException.oModule and "%s@%s" % (
+      oStackFrameOrException.oModule.sBinaryName,
+      oStackFrameOrException.oModule.uStartAddress and "0x%X" % oStackFrameOrException.oModule.uStartAddress or "?"
+    ) or "-",
+    oStackFrameOrException.uModuleOffset and "%s0x%X" % (
+        oStackFrameOrException.uModuleOffset < 0 and "-" or "+",
+        abs(oStackFrameOrException.uModuleOffset)
+    ) or "",
+    oStackFrameOrException.oFunction and oStackFrameOrException.oFunction.sSymbol or "-",
+    oStackFrameOrException.uFunctionOffset and "%s0x%X" % (
+        oStackFrameOrException.uFunctionOffset < 0 and "-" or "+",
+        abs(oStackFrameOrException.uFunctionOffset)
+    ) or "",
+  )
+
 
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription):
@@ -43,17 +64,19 @@ class cException(object):
     # |Attempt to read from address ffffffffffffffff
     uParameterCount = None;
     uParameterIndex = None;
+    sCdbExceptionAddress = None;
     for sLine in asExceptionRecord:
       oNameValueMatch = re.match(r"^\s*%s\s*$" % (
         r"(\w+)(?:\[(\d+)\])?\:\s+"     # (name) optional{ "[" (index) "]" } ":" whitespace
-        r"([0-9A-F`]+)"                  # (value)
+        r"([0-9A-F`]+)"                 # (value)
         r"(?:\s+\((.*)\))?"             # optional{ whitespace "(" (symbol || description) ")" }
       ), sLine, re.I);
       if oNameValueMatch:
         sName, sIndex, sValue, sDetails = oNameValueMatch.groups();
         uValue = long(sValue.replace("`", ""), 16);
         if sName == "ExceptionAddress":
-          oException.uAddress = uValue;
+          oException.uInstructionPointer = uValue;
+          sCdbExceptionAddress = sValue + (sDetails and " (%s)" % sDetails or "");
           oException.sAddressSymbol = sDetails;
         elif sName == "ExceptionCode":
           assert uValue == uCode, \
@@ -79,7 +102,7 @@ class cException(object):
         oException.sDetails = sLine;
       else:
         raise AssertionError("Superfluous exception record line %s\r\n%s" % (sLine, "\r\n".join(asExceptionRecord)));
-    assert oException.uAddress is not None, \
+    assert oException.uInstructionPointer is not None, \
         "Exception record is missing an ExceptionAddress value\r\n%s" % "\r\n".join(asExceptionRecord);
     assert oException.uFlags is not None, \
         "Exception record is missing an ExceptionFlags value\r\n%s" % "\r\n".join(asExceptionRecord);
@@ -111,44 +134,36 @@ class cException(object):
         # so do not try to check that exception information matches the first stack frame.
         return None;
     else:
-      sCdbLine = "0x%x" % oException.uAddress; # Kinda faking it here :)
+      oException.uAddress = oException.uInstructionPointer;
+      sCdbLine = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
     if not oStack.aoFrames:
-      # Failed to get stack, use information from exception and the current return adderss.
+      # Failed to get stack, use information from exception and the current return adderss to reconstruct the top frame.
       uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
       if not oCdbWrapper.bCdbRunning: return;
       oStack.fCreateAndAddStackFrame(
         uNumber = 0,
         sCdbLine = sCdbLine,
+        uInstructionPointer = oException.uInstructionPointer,
+        uReturnAddress = uReturnAddress,
         uAddress = oException.uAddress,
         sUnloadedModuleFileName = oException.sUnloadedModuleFileName,
-        oModule = oException.oModule,
-        uModuleOffset = oException.uModuleOffset,
-        oFunction = oException.oFunction,
-        uFunctionOffset = oException.uFunctionOffset,
-        sSourceFilePath = None, 
-        uSourceFileLineNumber = None,
-        uReturnAddress = uReturnAddress,
+        oModule = oException.oModule, uModuleOffset = oException.uModuleOffset,
+        oFunction = oException.oFunction, uFunctionOffset = oException.uFunctionOffset,
+        # No source information.
       );
     else:
       if oException.uCode == STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not happen in a particular part of the code, and the exception address is therefore 0.
         # Do not try to find this address on the stack.
         pass;
-      elif oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
-        oFrame = oStack.aoFrames[0];
-        if (
-          oFrame.uAddress == oException.uAddress
-          and oFrame.sUnloadedModuleFileName == oException.sUnloadedModuleFileName
-          and oFrame.oModule == oException.oModule
-          and oFrame.uModuleOffset == oException.uModuleOffset
-          and oFrame.oFunction == oException.oFunction
-          and oFrame.uFunctionOffset == oException.uFunctionOffset
-        ):
-          pass;
-        else:
-          # A breakpoint normally happens at an int 3 instruction, and eip/rip will be updated to the next instruction.
-          # If the same exception code (0x80000003) is raised using ntdll!RaiseException, the address will be
-          # off-by-one, see if this can be fixed:
+      else:
+        #### Work-around for a cdb bug ###############################################################################
+        # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
+        # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
+        # will be off-by-one.
+        bExceptionOffByOne = oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]
+        if bExceptionOffByOne:
+          oException.uInstructionPointer -= 1;
           if oException.uAddress is not None:
             oException.uAddress -= 1;
           elif oException.uModuleOffset is not None:
@@ -157,32 +172,21 @@ class cException(object):
             oException.uFunctionOffset -= 1;
           else:
             raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
-          assert (
-            oFrame.uAddress == oException.uAddress
-            and oFrame.sUnloadedModuleFileName == oException.sUnloadedModuleFileName
-            and oFrame.oModule == oException.oModule
-            and oFrame.uModuleOffset == oException.uModuleOffset
-            and oFrame.oFunction == oException.oFunction
-            and oFrame.uFunctionOffset == oException.uFunctionOffset
-          ), "The first stack frame does not appear to match the exception address:\r\n%s\r\n%s" % (
-            repr((oFrame.uAddress, oFrame.sUnloadedModuleFileName, oFrame.oModule, oFrame.uModuleOffset, oFrame.oFunction, oFrame.uFunctionOffset)),
-            repr((oException.uAddress, oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset, oException.oFunction, oException.uFunctionOffset)),
-          );
-      else:
-        # Check that the address where the exception happened is on the stack and hide any frames that appear above it,
-        # as these are not interesting (e.g. ntdll!RaiseException).
-        for oFrame in oStack.aoFrames:
-          if (
-            oFrame.uAddress == oException.uAddress
-            and oFrame.sUnloadedModuleFileName == oException.sUnloadedModuleFileName
-            and oFrame.oModule == oException.oModule
-            and oFrame.uModuleOffset == oException.uModuleOffset
-            and oFrame.oFunction == oException.oFunction
-            and oFrame.uFunctionOffset == oException.uFunctionOffset
-          ):
-            break;
-          oFrame.bIsHidden = True;
-        else:
-          raise AssertionError("The exception address %s was not found on the stack\r\n%s" % \
-              (sCdbLine, "\r\n".join(oStack.asCdbLines)));
+        # Under all circumstances one expects there to be a stack frame for the exception (i.e. the stack frame has
+        # the same uInstructionPointer as the exception). There may be stack frames above it that were used to trigger
+        # the exception ((e.g. ntdll!RaiseException) but these are not relevant to the bug and can be hidden.
+        # We need to special case int3 breakpoints: the exception happens at the int3 instruction, but the first stack
+        # frame should point to the instruction immediately following it (one byte higher).
+        bInt3 = bExceptionOffByOne and oException.uInstructionPointer + 1 == oStack.aoFrames[0].uInstructionPointer
+        if not bInt3:
+          for oFrame in oStack.aoFrames:
+            if oFrame.uInstructionPointer == oException.uInstructionPointer:
+              break;
+            oFrame.bIsHidden = True;
+          else:
+            raise AssertionError("The %sexception address was not found on the stack\r\n%s\r\n---\r\n%s" % (
+              bOffByOne and "adjusted " or "",
+              fsAddressData(oException),
+              "\r\n".join([fsAddressData(oFrame) for oFrame in oStack.aoFrames])
+            ));
     return oException;

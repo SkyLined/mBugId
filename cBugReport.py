@@ -175,32 +175,24 @@ class cBugReport(object):
               });
       
       # Create and add disassembly blocks if needed:
+      uLastInstructionPointer = None;
       for oFrame in aoRelevantStackFrames:
-        sAddress = oFrame.sCdbSymbolOrAddress;
-        if oFrame.uAddress:
-          uAddress = oCdbWrapper.fuGetValue(sAddress);
-        else:
-          uAddress = oCdbWrapper.fuGetValueForSymbol(sAddress);
-        uFrameNumber = oFrame.uNumber + 1; # Make it base 1, rather than 0
-        if oFrame.uNumber == 0:
-          sBeforeAddressInstructionDescription = None;
-          sAtAddressInstructionDescription = "current instruction";
-        else:
-          sBeforeAddressInstructionDescription = "call";
-          sAtAddressInstructionDescription = "return address";
-          while uAddress is None and oFrame.oPreviousFrame and oFrame.oPreviousFrame not in aoRelevantStackFrames:
-            # Can't resolve symbol; try to get return address from previous non-inline frame, unless it was
-            # also relevant, in which case don't add disassembly for this second frame as it would be the same as
-            # the previous.
-            oFrame = oFrame.oPreviousFrame;
-            uAddress = oFrame.uReturnAddress;
-        if uAddress is not None:
-          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, \
+        # Inlined functions do not add a new location to disassemble.
+        if uLastInstructionPointer != oFrame.uInstructionPointer:
+          uLastInstructionPointer = oFrame.uInstructionPointer;
+          uFrameNumber = oFrame.uNumber + 1; # Make it base 1, rather than 0
+          if oFrame.uNumber == 0:
+            sBeforeAddressInstructionDescription = None;
+            sAtAddressInstructionDescription = "current instruction";
+          else:
+            sBeforeAddressInstructionDescription = "call";
+            sAtAddressInstructionDescription = "return address";
+          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oFrame.uInstructionPointer, \
               sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
           if not oCdbWrapper.bCdbRunning: return None;
           if sFrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
-              "sName": "Disassembly of stack frame %d at %s" % (uFrameNumber, sAddress),
+              "sName": "Disassembly of stack frame %d at %s" % (uFrameNumber, oFrame.sAddress),
               "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
       

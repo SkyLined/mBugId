@@ -17,14 +17,31 @@ class cStack(object):
         # or stop hiding frames if it should not be hidden.
         break;
   
-  def fCreateAndAddStackFrame(oStack, uNumber, sCdbLine, uAddress, sUnloadedModuleFileName, oModule, uModuleOffset, \
-      oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress):
+  def fCreateAndAddStackFrame(oStack,
+    uNumber,
+    sCdbSymbolOrAddress,
+    uInstructionPointer, uReturnAddress,
+    uAddress,
+    sUnloadedModuleFileName,
+    oModule, uModuleOffset,
+    oFunction, uFunctionOffset,
+    sSourceFilePath = None, uSourceFileLineNumber = None,
+  ):
     # frames must be created in order:
     assert uNumber == len(oStack.aoFrames), \
         "Unexpected frame number %d vs %d" % (uNumber, len(oStack.aoFrames));
     uMaxStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
-    oStackFrame = cStackFrame(uNumber, sCdbLine, uAddress, sUnloadedModuleFileName, oModule, uModuleOffset, \
-        oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress, oStack);
+    oStackFrame = cStackFrame(
+      oStack,
+      uNumber,
+      sCdbSymbolOrAddress,
+      uInstructionPointer, uReturnAddress,
+      uAddress,
+      sUnloadedModuleFileName,
+      oModule, uModuleOffset, 
+      oFunction, uFunctionOffset,
+      sSourceFilePath, uSourceFileLineNumber,
+    );
     oStack.aoFrames.append(oStackFrame);
     
   @classmethod
@@ -37,6 +54,7 @@ class cStack(object):
     # Here are some lines you might expect to parse:
     # |TODO put something here...
     uFrameNumber = 0;
+    uInstructionPointer = None; # Unknown for first frame.
     for sLine in asStack:
       if uFrameNumber == uStackFramesCount:
         break;
@@ -55,9 +73,19 @@ class cStack(object):
       ) = oCdbWrapper.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress, doModules_by_sCdbId);
       uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
       uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
-      oStack.fCreateAndAddStackFrame(uFrameNumber, sCdbSymbolOrAddress, uAddress, sUnloadedModuleFileName, oModule, \
-          uModuleOffset, oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress);
-      if not oCdbWrapper.bCdbRunning: return None;
+      oStack.fCreateAndAddStackFrame(
+        uNumber = uFrameNumber,
+        sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
+        uInstructionPointer = uInstructionPointer,
+        uReturnAddress = uReturnAddress,
+        uAddress = uAddress, 
+        sUnloadedModuleFileName = sUnloadedModuleFileName,
+        oModule = oModule, uModuleOffset = uModuleOffset, 
+        oFunction = oFunction, uFunctionOffset = uFunctionOffset,
+        sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
+      );
+      if uReturnAddress: # Last frame's return address is next frame's instruction pointer.
+        uInstructionPointer = uReturnAddress;
       uFrameNumber += 1;
     oStack.bPartialStack = uFrameNumber == uStackFramesCount;
     return oStack;
@@ -67,6 +95,8 @@ class cStack(object):
     # Get information on all modules in the current process
     doModules_by_sCdbId = oCdbWrapper.fdoGetModulesByCdbIdForCurrentProcess();
     if not oCdbWrapper.bCdbRunning: return None;
+    # First frame's instruction pointer is exactly that:
+    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip");
     # Create the stack object
     asStack = oCdbWrapper.fasGetStack("kn 0x%X" % (uStackFramesCount + 1));
     if not asStack: return None;
@@ -120,9 +150,19 @@ class cStack(object):
         ) = oCdbWrapper.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress, doModules_by_sCdbId);
         uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
         uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
-        oStack.fCreateAndAddStackFrame(uFrameNumber, sCdbSymbolOrAddress, uAddress, sUnloadedModuleFileName, oModule, \
-            uModuleOffset, oFunction, uFunctionOffset, sSourceFilePath, uSourceFileLineNumber, uReturnAddress);
-        if not oCdbWrapper.bCdbRunning: return None;
+        oStack.fCreateAndAddStackFrame(
+          uNumber = uFrameNumber,
+          sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
+          uInstructionPointer = uInstructionPointer,
+          uReturnAddress = uReturnAddress,
+          uAddress = uAddress, 
+          sUnloadedModuleFileName = sUnloadedModuleFileName,
+          oModule = oModule, uModuleOffset = uModuleOffset, 
+          oFunction = oFunction, uFunctionOffset = uFunctionOffset,
+          sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
+        );
+        if uReturnAddress: # Last frame's return address is next frame's instruction pointer.
+          uInstructionPointer = uReturnAddress;
         uFrameNumber += 1;
     oStack.bPartialStack = uFrameNumber == uStackFramesCount;
     return oStack;
