@@ -185,7 +185,7 @@ class cException(object):
             oFrame.bIsHidden = True;
           else:
             raise AssertionError("The %sexception address was not found on the stack\r\n%s\r\n---\r\n%s" % (
-              bOffByOne and "adjusted " or "",
+              bExceptionOffByOne and "adjusted " or "",
               fsAddressData(oException),
               "\r\n".join([fsAddressData(oFrame) for oFrame in oStack.aoFrames])
             ));
