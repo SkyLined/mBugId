@@ -60,6 +60,7 @@ class cCdbWrapper(object):
     # into a sitaution where this callback gets called, you can file a bug at https://github.com/SkyLined/BugId/issues
   ):
     oCdbWrapper.sCdbISA = sCdbISA;
+    oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath;
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;

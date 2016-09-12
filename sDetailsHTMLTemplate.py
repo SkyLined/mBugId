@@ -217,8 +217,9 @@ sDetailsHTMLTemplate = ("""
           <tr><td>BugId:                  &nbsp;</td><td><span class="Important"><b>%(sId)s</b></span></td></tr>
           <tr><td>Location:               &nbsp;</td><td><span class="Important">%(sBugLocation)s</span></td></tr>
           <tr><td>Description:            &nbsp;</td><td><span class="Important">%(sBugDescription)s</span></td></tr>
-          <tr><td>Version:                &nbsp;</td><td>%(sBinaryVersionHTML)s</td></tr>
+          <tr><td>Version:                &nbsp;</td><td>%(sBinaryVersion)s</td></tr>
           <tr><td>Security&nbsp;impact:   &nbsp;</td><td>%(sSecurityImpact)s</td></tr>
+%(sAdditionalSummaryInformation)s
         </table>
         <br/>
         BugId version <b>%(sBugIdVersion)s</b>. You may not use this version of BugId for commercial purposes. Please

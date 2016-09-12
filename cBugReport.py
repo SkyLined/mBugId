@@ -235,6 +235,9 @@ class cBugReport(object):
         "sName": "Application and cdb output log",
         "sContent": sCdbStdIOHTML
       });
+      dsAdditionalSummaryInformation = {};
+      if oBugReport.oCdbWrapper.asApplicationCommandLine:
+        dsAdditionalSummaryInformation["Command line"] = " ".join(oBugReport.oCdbWrapper.asApplicationCommandLine);
       # Stick everything together.
       oBugReport.sDetailsHTML = sDetailsHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
@@ -242,7 +245,11 @@ class cBugReport(object):
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "Denial of Service",
-        "sBinaryVersionHTML": sBinaryVersionHTML,
+        "sBinaryVersion": sBinaryVersionHTML,
+        "sAdditionalSummaryInformation": "\r\n".join([
+          "          <tr><td>%s:   &nbsp;</td><td>%s</td></tr>" % (oCdbWrapper.fsHTMLEncode(sName).replace(" ", "&nbsp;"), oCdbWrapper.fsHTMLEncode(sValue))
+          for (sName, sValue) in dsAdditionalSummaryInformation.items()
+        ]),
         "sBlocks": "".join(asBlocksHTML),
         "sCdbStdIO": sCdbStdIOHTML,
         "sBugIdVersion": sVersion,
