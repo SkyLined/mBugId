@@ -1,5 +1,14 @@
 2016-09-12
 ==========
+New features
+------------
++ Output application command-line in HTML report.
+
+Alterations to exception handling
+---------------------------------
++ Ignore first chance STATUS_HANDLE_NOT_CLOSABLE exceptions, similar to how
+  other handle related exceptions are handled.
+
 Bug fixes and improvements
 --------------------------
 + Avoids problems in timezone parsing in debugger time.
