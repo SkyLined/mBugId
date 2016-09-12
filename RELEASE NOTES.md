@@ -1,3 +1,10 @@
+2016-09-12
+==========
+Bug fixes and improvements
+--------------------------
++ Avoids problems in timezone parsing in debugger time.
++ Make stack handling more robust.
+
 2016-09-09
 ==========
 Added features
