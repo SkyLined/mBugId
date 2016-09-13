@@ -130,6 +130,9 @@ class cBugReport(object):
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
     aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
+    if oBugReport.sSecurityImpact is None:
+      oBugReport.sSecurityImpact = "Denial of Service";
+    
     if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
       # Create HTML details
       asBlocksHTML = [];
