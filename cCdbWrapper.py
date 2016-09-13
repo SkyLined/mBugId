@@ -259,7 +259,10 @@ class cCdbWrapper(object):
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
     oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
     if oCdbProcess:
-      oCdbProcess.terminate();
+      try:
+        oCdbProcess.terminate();
+      except:
+        pass;
     # The below three threads may have called an event callback, which issued this fStop call. Therefore, we cannot
     # wait for them to terminate, as this could mean "waiting until we stop waiting", which takes forever. Since Python
     # won't allow you to wait for yourself, this could thow a RuntimeError exception: "cannot join current thread".
@@ -271,7 +274,6 @@ class cCdbWrapper(object):
     # function returns. This is assuming they have not called a callback that does not return: that is a bug, but not
     # in BugIg, but in that callback function. The third thread waits for the first two, does some cleanup and then
     # stops running as well. In other words, termination is guaranteed assuming any active callbacks do not block.
-    if oCdbProcess:
       oCdbProcess.wait();
     oCdbWrapper.bCdbRunning = False;
   
