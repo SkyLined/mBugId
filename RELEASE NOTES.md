@@ -1,7 +1,14 @@
 2016-09-13
 ==========
-+ Reorder HTML report output and add source.
+Alterations to bug report
+-------------------------
 + Default security impact is no longer None but "Denial of Service".
+
+Bug fixes and improvements
+--------------------------
++ Reorder HTML report output and add source.
++ Fix bug where binary version information was not available when HTML report
+  was not generated.
 
 2016-09-12
 ==========
