@@ -19,6 +19,7 @@ class cModule(object):
     return oModule._doFunction_by_sSymbol[sSymbol];
   
   def fsGetInformationHTML(oModule, oCdbWrapper):
+    # Gather version information and optionally returns output for use in HTML report.
     # Also sets oModule.sFileVersion if possible.
     asModuleInformationOutput = oCdbWrapper.fasSendCommandAndReadOutput(
       "lmv m *%s; $$ Get module information" % oModule.sCdbId,
@@ -52,9 +53,10 @@ class cModule(object):
     # |    LegalTrademarks:  Firefox is a Trademark of The Mozilla Foundation.
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
-    asModuleInformationHTML = [
-        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName),
-    ];
+    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+      asModuleInformationHTML = [
+          "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName),
+      ];
     for sLine in asModuleInformationOutput[2:]: # First two lines contain no useful information.
       oFileVersionMatch = re.match(r"^    File version:\s*(.*?)\s*$", sLine);
       if oFileVersionMatch:
@@ -62,7 +64,9 @@ class cModule(object):
       oTimestampMatch = re.match(r"^    Timestamp:\s*(.*?)\s*$", sLine);
       if oTimestampMatch:
         oModule.sTimestamp = oTimestampMatch.group(1);
-      asModuleInformationHTML.append(
-        '<span class="BinaryInformation">%s</span>' % oCdbWrapper.fsHTMLEncode(sLine)
-      );
-    return "<br/>".join(asModuleInformationHTML);
+      if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+        asModuleInformationHTML.append(
+          '<span class="BinaryInformation">%s</span>' % oCdbWrapper.fsHTMLEncode(sLine)
+        );
+    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+      return "<br/>".join(asModuleInformationHTML);

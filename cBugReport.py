@@ -52,7 +52,7 @@ class cBugReport(object):
     oBugReport.oCdbWrapper = oCdbWrapper;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
-    oBugReport.sSecurityImpact = sSecurityImpact or "Denial of Service";
+    oBugReport.sSecurityImpact = sSecurityImpact;
     oBugReport.oProcess = cProcess.foCreate(oCdbWrapper);
     oBugReport.oStack = oStack;
     oBugReport.duRelevantAddress_by_sDescription = {};
@@ -132,6 +132,35 @@ class cBugReport(object):
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
     if oBugReport.sSecurityImpact is None:
       oBugReport.sSecurityImpact = "Denial of Service";
+    
+    # Find cModule for main process binary (i.e. the .exe)
+    aoProcessBinaryModules = oCdbWrapper.faoGetModulesForFileNameInCurrentProcess(oBugReport.sProcessBinaryName);
+    if not oCdbWrapper.bCdbRunning: return None;
+    assert len(aoProcessBinaryModules) > 0, "Cannot find binary %s module" % oBugReport.sProcessBinaryName;
+    # Add main process binary version information to bug report. If the binary is loaded as a module multiple times
+    # in the process, the first should be the binary that was executed.
+    oMainModule = aoProcessBinaryModules[0];
+    
+    # Find cModule for bug binary (i.e. the module in which the bug is located)
+    oBugModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
+    # If bug niary and main binary are not the same, gather information for both of them:
+    aoRelevantModules = [oMainModule];
+    if oBugModule and oBugModule != oMainModule:
+      aoRelevantModules.append(oBugModule);
+    # Add relevant binaries information to cBugReport and optionally to the HTML report.
+    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+      # If a HTML report is requested, these will be used later on to construct it.
+      asBinaryInformationHTML = [];
+      asBinaryVersionHTML = [];
+    oBugReport.asVersionInformation = [];
+    for oModule in aoRelevantModules:
+      sBinaryInformationHTML = oModule.fsGetInformationHTML(oCdbWrapper);
+      if not oCdbWrapper.bCdbRunning: return None;
+      if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+        asBinaryInformationHTML.append(sBinaryInformationHTML);
+        asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
+      oBugReport.asVersionInformation.append(
+          "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
     
     if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
       # Create HTML details
@@ -214,17 +243,8 @@ class cBugReport(object):
       if oBugModule and oBugModule != oMainModule:
         aoRelevantModules.append(oBugModule);
       # Add relevant binaries information to cBugReport and HTML report.
-      asBinaryInformationHTML = [];
-      asBinaryVersionHTML = [];
-      oBugReport.asVersionInformation = [];
-      for oModule in aoRelevantModules:
-        asBinaryInformationHTML.append(oModule.fsGetInformationHTML(oCdbWrapper));
-        if not oCdbWrapper.bCdbRunning: return None;
-        asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
-        oBugReport.asVersionInformation.append(
-            "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
-      sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML);
+      sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML) or "not available";
       if sBinaryInformationHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Binary information",
@@ -246,8 +266,7 @@ class cBugReport(object):
         "sBinaryVersion": sBinaryVersionHTML,
         "sOptionalSource": oBugReport.sBugSourceLocation and \
             "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
-        "sSecurityImpact": oBugReport.sSecurityImpact and \
-              '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
+        "sSecurityImpact": '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
         "sOptionalCommandLine": oBugReport.oCdbWrapper.asApplicationCommandLine and \
             "<tr><td>Command line: </td><td>%s</td></tr>" % oBugReport.oCdbWrapper.asApplicationCommandLine or "",
         "sBlocks": "".join(asBlocksHTML),
