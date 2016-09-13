@@ -1,3 +1,7 @@
+2016-09-13
+==========
++ Reorder HTML report output and add source.
+
 2016-09-12
 ==========
 New features
