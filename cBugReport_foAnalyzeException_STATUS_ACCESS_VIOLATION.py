@@ -97,6 +97,7 @@ ddtxBugTranslations = {
           "chrome_child.dll!sk_abort_no_print",
           "chrome_child.dll!SkBitmap::allocPixels",
           "chrome_child.dll!SkBitmap::allocPixels",
+          "chrome_child.dll!SkBitmap::allocN32Pixels",
         ],
       ],
     ),
