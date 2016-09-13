@@ -266,7 +266,8 @@ class cBugReport(object):
         "sBinaryVersion": sBinaryVersionHTML,
         "sOptionalSource": oBugReport.sBugSourceLocation and \
             "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
-        "sSecurityImpact": '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
+        "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
+            "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
         "sOptionalCommandLine": oBugReport.oCdbWrapper.asApplicationCommandLine and \
             "<tr><td>Command line: </td><td>%s</td></tr>" % oBugReport.oCdbWrapper.asApplicationCommandLine or "",
         "sBlocks": "".join(asBlocksHTML),
