@@ -1,6 +1,7 @@
 2016-09-13
 ==========
 + Reorder HTML report output and add source.
++ Default security impact is no longer None but "Denial of Service".
 
 2016-09-12
 ==========
