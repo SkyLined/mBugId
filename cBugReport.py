@@ -52,7 +52,7 @@ class cBugReport(object):
     oBugReport.oCdbWrapper = oCdbWrapper;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
-    oBugReport.sSecurityImpact = sSecurityImpact;
+    oBugReport.sSecurityImpact = sSecurityImpact or "Denial of Service";
     oBugReport.oProcess = cProcess.foCreate(oCdbWrapper);
     oBugReport.oStack = oStack;
     oBugReport.duRelevantAddress_by_sDescription = {};
@@ -244,7 +244,7 @@ class cBugReport(object):
         "sOptionalSource": oBugReport.sBugSourceLocation and \
             "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
-              '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "Denial of Service",
+              '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
         "sOptionalCommandLine": oBugReport.oCdbWrapper.asApplicationCommandLine and \
             "<tr><td>Command line: </td><td>%s</td></tr>" % oBugReport.oCdbWrapper.asApplicationCommandLine or "",
         "sBlocks": "".join(asBlocksHTML),
