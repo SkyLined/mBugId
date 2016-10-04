@@ -1,8 +1,17 @@
 2016-10-04
 ==========
+New features
+------------
++ Add stack dump to FailFast exceptions that report stack cookie corruption.
++ Add VERIFIER STOP message to reports.
+
 Bug fixes and improvements
 --------------------------
++ New way of dumping memory regions and marking memory addresses and ranges
+  with remarks.
++ Some layout changes in memory regions in HTML reports.
 + Improve sanity checks in code that detects VERIFIER STOP messages.
++ Rewrote parts of CPU usage detection code.
 
 2016-09-13
 ==========
