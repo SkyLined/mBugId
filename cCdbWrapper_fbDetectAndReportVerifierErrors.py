@@ -46,16 +46,22 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asLines);
     return False;
   
+  assert uHeapBlockAddress is not None
+      "The heap block start address was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines;
+  assert uHeapBlockSize is not None,
+      "The heap block size was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
+  
   uHeapBlockEndAddress = uHeapBlockAddress + uHeapBlockSize;
   uHeapPageEndAddress = (uHeapBlockEndAddress | 0xFFF) + 1;
   assert uHeapPageEndAddress >= uHeapBlockEndAddress, \
-      "The heap block at 0x%X is expected to end at 0x%X, but the page is expected to end at 0x%X, which is impossible." % \
-      (uHeapBlockAddress, uHeapBlockEndAddress, uHeapPageEndAddress);
+      "The heap block at 0x%X is expected to end at 0x%X, but the page is expected to end at 0x%X, which is impossible.\r\n%s" % \
+      (uHeapBlockAddress, uHeapBlockEndAddress, uHeapPageEndAddress, "\r\n".join(asRelevantLines));
   oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
   # End of VERIFIER STOP message; report a bug.
   if sMessage in ["corrupted start stamp", "corrupted end stamp"]:
     assert uCorruptionAddress is None, \
-        "We do not expect the corruption address to be provided in the VERIFIER STOP message";
+        "We do not expect the corruption address to be provided in the VERIFIER STOP message\r\n%s" % \
+            "\r\n".join(asRelevantLines);
     sBugTypeId = "OOBW";
     # Both the start and end stamp may have been corrupted and it appears that a bug in verifier causes a corruption
     # of the end stamp to be reported as a corruption of the start stamp, so we'll check both for unexpected values:
@@ -84,7 +90,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   elif sMessage == "corrupted suffix pattern":
     assert uCorruptionAddress is not None, \
         "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
-            "\r\n" % (asRelevantLines);
+            "\r\n".join(asRelevantLines);
     # Page heap stores the heap as close as possible to the edge of a page, taking into account that the start of the
     # heap block must be properly aligned. Bytes between the heap block and the end of the page are initialized to
     # 0xD0. Verifier has detected that one of the bytes changed value, which indicates an out-of-bounds write. BugId
@@ -97,7 +103,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   elif sMessage == "corrupted infix pattern":
     assert uCorruptionAddress is not None, \
         "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
-            "\r\n" % (asRelevantLines);
+            "\r\n".join(asRelevantLines);
     # Page heap sometimes does not free a heap block immediately, but overwrites the bytes with 0xF0. Verifier has
     # detected that one of the bytes changed value, which indicates a write-after-free. BugId will try to find all
     # bytes that were changed:
