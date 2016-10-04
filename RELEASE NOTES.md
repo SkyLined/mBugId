@@ -1,3 +1,9 @@
+2016-10-04
+==========
+Bug fixes and improvements
+--------------------------
++ Improve sanity checks in code that detects VERIFIER STOP messages.
+
 2016-09-13
 ==========
 Alterations to bug report
