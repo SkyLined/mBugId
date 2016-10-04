@@ -162,24 +162,24 @@ if __name__ == "__main__":
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA, ["Nop"], None)); # No exceptions, just a clean program exit.
       aoTests.append(cTest(sISA, ["CPUUsage"], "CPUUsage"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "1"], "AVR:NULL+1"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "2"], "AVR:NULL+2"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "3"], "AVR:NULL+3"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "4"], "AVR:NULL+4*N"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "5"], "AVR:NULL+4*N+1"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "6"], "AVR:NULL+4*N+2"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "7"], "AVR:NULL+4*N+3"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", "8"], "AVR:NULL+4*N"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "1"], "AVR:NULL+1"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "2"], "AVR:NULL+2"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "3"], "AVR:NULL+3"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "4"], "AVR:NULL+4*N"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "5"], "AVR:NULL+4*N+1"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "6"], "AVR:NULL+4*N+2"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "7"], "AVR:NULL+4*N+3"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", "8"], "AVR:NULL+4*N"));
   #    if sISA != "x64": # Does not work on x64 dues to limitations of exception handling (See foAnalyzeException_STATUS_ACCESS_VIOLATION for details).
       sMinusPadding = {"x86": "", "x64": "FFFFFFFF"}[sISA];
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFF"], "AVR:NULL-1"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFE"], "AVR:NULL-2"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFD"], "AVR:NULL-3"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFC"], "AVR:NULL-4*N"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFB"], "AVR:NULL-4*N-1"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFFA"], "AVR:NULL-4*N-2"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFF9"], "AVR:NULL-4*N-3"));
-      aoTests.append(cTest(sISA, ["AccessViolation", "READ", sMinusPadding+"FFFFFFF8"], "AVR:NULL-4*N"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFF"], "AVR:NULL-1"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFE"], "AVR:NULL-2"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFD"], "AVR:NULL-3"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFC"], "AVR:NULL-4*N"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFB"], "AVR:NULL-4*N-1"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFFA"], "AVR:NULL-4*N-2"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFF9"], "AVR:NULL-4*N-3"));
+      aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFF8"], "AVR:NULL-4*N"));
       aoTests.append(cTest(sISA, ["Breakpoint"], "Breakpoint"));
       aoTests.append(cTest(sISA, ["C++"], "C++:cException"));
       aoTests.append(cTest(sISA, ["IntegerDivideByZero"], "IntegerDivideByZero"));
