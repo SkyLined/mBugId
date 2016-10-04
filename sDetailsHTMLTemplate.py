@@ -159,14 +159,29 @@ sDetailsHTMLTemplate = ("""
       }
       .MemoryAddress {
         color: grey;
+        padding-right: 0.5em;
+      }
+      .MemoryInaccessible {
+        color: grey;
+        text-align: center;
       }
       .MemoryBytes {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
       }
       .MemoryChars {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
       }
       .MemoryPointer {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
       }
       .MemoryPointerSymbol {
+        padding-left: 0.5em;
+      }
+      .MemoryRemarks {
+        background-color: rgba(255,255,0,0.3);
       }
       .StackFrameAddress {
       }

@@ -70,8 +70,7 @@ for (sName, xValue) in {
                                         # total number of bytes disassembled is too large, you may get no disassembly
                                         # at all when part of the memory it attempts to disassemble is not readable.
   ### HTML Report Memory dump settings
-  "uRelevantMemoryPointersBefore": 0x10, # How many pointer sized values should be dumped before a relevant address.
-  "uRelevantMemoryPointersAfter": 0x20, # How many pointer sized values should be dumped after a relevant address.
+  "uStackDumpSize": 0x100,              # How many pointer sized values should a stack dump contain?
   ### HTML Report Stack settings
   "uMaxStackFramesCount": 20,           # How many stack frames are retreived for analysis?
   "uMinStackRecursionLoops": 3,         # How many recursive functions call loops are needed to assume a stack overflow
@@ -110,7 +109,7 @@ for (sName, xValue) in {
                                         # report. Value in percent of the check interval, e.g. a value of 75 for a
                                         # check interval of 10s means a bug will be reported if the application uses
                                         # the CPU more than 7.5 seconds during a 10s interval.
-  "nExcessiveCPUUsageWormRunTime": 0.5, # How many seconds to allow a function to run to find the topmost function
+  "nExcessiveCPUUsageWormRunTime": 2,   # How many seconds to allow a function to run to find the topmost function
                                         # involved in the CPU usage? Lower values yield results quicker, but may be
                                         # inaccurate. Higher values increase the time in which the code can run and
                                         # return to the topmost function. If you provide too large a value the CPU

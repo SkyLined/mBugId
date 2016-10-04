@@ -163,8 +163,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   if uAddress == 0xFFFFFFFFFFFFFFFF and sViolationTypeId == "R":
     # In x64 mode, current processors will thrown an exception when you use an address larger than 0x7FFFFFFFFFFF and
     # smaller than 0xFFFF800000000000. In such cases cdb reports incorrect information in the exception parameters,
-    # e.g. the address is always reported as 0xFFFFFFFFFFFFFFFF was and the access type is always "read".
-    # A partial work-around is to get the address from the last instruction output, which can be retreived by asking
+    # e.g. the address is always reported as 0xFFFFFFFFFFFFFFFF and the access type is always "read".
+    # A partial work-around is to get the address from the last instruction output, which can be retrieved by asking
     # cdb to output disassembly and address after each command. This may also tell us if the access type was "execute".
     oCdbWrapper.fasSendCommandAndReadOutput( \
         ".prompt_allow +dis +ea; $$ Enable disassembly and address in cdb prompt");
@@ -242,8 +242,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         sViolationTypeDescription = "executing";
     uAddress = long(sAddress.replace("`", ""), 16);
   
-  sMemoryDumpDescription = "access violation at 0x%X" % uAddress;
-  
   if sViolationTypeId == "E":
     # Hide the stack frame for the address at which the execute access violation happened: (e.g. 0x0 for a NULL pointer).
     asHiddenTopFrames = ["0x%X" % uAddress];
@@ -265,6 +263,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     uOffset = abs(iOffset);
     if uOffset <= dxBugIdConfig["uMaxAddressOffset"]:
       oBugReport.sBugTypeId = "AV%s:%s%s" % (sViolationTypeId, sAddressId, fsGetOffsetDescription(iOffset));
+      oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
       break;
   else:
     if uAddress >= 0x800000000000:
@@ -343,6 +342,22 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapReport);
         sBlockType = oBlockTypeMatch.group(1);
         sBlockAddress, sBlockSize = oBlockAdressAndSizeMatch.groups();
+        uBlockAddress = sBlockAddress and long(sBlockAddress.replace("`", ""), 16);
+        uBlockSize = sBlockSize and long(sBlockSize.replace("`", ""), 16);
+        if uBlockAddress:
+          uMemoryDumpAddress = uBlockAddress;
+          uMemoryDumpSize = uBlockSize;
+          if uAddress < uBlockAddress:
+            uPrefix = uBlockAddress - uAddress;
+            uMemoryDumpAddress -= uPrefix;
+            uMemoryDumpSize += uPrefix;
+          elif uAddress >= uBlockAddress + uBlockSize:
+            uPostFix = uAddress - (uBlockAddress + uBlockSize) + 1;
+            uMemoryDumpSize += uPostFix;
+          oBugReport.atxMemoryDumps.append(("Memory block in which access violation happened", uMemoryDumpAddress, uMemoryDumpSize));
+          oBugReport.atxMemoryRemarks.append(("Memory block start", uBlockAddress, None));
+          oBugReport.atxMemoryRemarks.append(("Memory block end", uBlockAddress + uBlockSize, None));
+          oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
         if sBlockType == "free-ed":
           # Page heap says the memory was freed:
           oBugReport.sBugTypeId = "UAF%s" % sViolationTypeId;
@@ -353,8 +368,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         elif sBlockType == "busy":
           # Page heap says the region is allocated, so the heap block must be inaccessible or the access must have been
           # beyond the end of the heap block, in  the next memory page:
-          uBlockAddress = long(sBlockAddress.replace("`", ""), 16);
-          uBlockSize = long(sBlockSize.replace("`", ""), 16);
           uPageEndAddress = (uBlockAddress | 0xFFF) + 1; # Follows the page in which the block is located.
           bAccessIsBeyondBlock = uAddress >= uBlockAddress + uBlockSize;
           # The same type of block may have different sizes for 32-bit and 64-bit versions of an application, so the size
@@ -366,6 +379,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             sBugDescription = "Out-of-bounds access violation while %s memory at 0x%X; %s a %d/0x%X byte heap block at 0x%X." % \
                 (sViolationTypeDescription, uAddress, sOffsetDescription, uBlockSize, uBlockSize, uBlockAddress);
             asCorruptedBytes= None;
+            # Increase size of memory dump beyond end of block
             if uOffsetPastEndOfBlock != 0:
               if sViolationTypeDescription == "writing":
                 # Page heap stores the heap as close as possible to the edge of a page, taking into account that the start
@@ -379,12 +393,13 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                 if oCorruptionDetector.bCorruptionDetected:
                   # We detected a modified byte; there was an OOB write before the one that caused this access
                   # violation. Use it's offset instead and add this fact to the description.
-                  uAddress = oCorruptionDetector.uCorruptionStartAddress;
-                  uOffsetPastEndOfBlock = uAddress - uHeapBlockEndAddress;
+                  uStartAddress = oCorruptionDetector.uCorruptionStartAddress;
+                  oBugReport.atxMemoryRemarks.append(("Memory corruption", uStartAddress, uAddress - uStartAddress));
+                  uOffsetPastEndOfBlock = uStartAddress - uHeapBlockEndAddress;
                   sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
                       "beyond that block because it modified the page heap suffix pattern.") % \
-                      (uAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                  sMemoryDumpDescription = "memory corruption at 0x%X" % uAddress;
+                      (uStartAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
+                  sMemoryDumpDescription = "memory corruption at 0x%X" % uStartAddress;
                   asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
               elif uAddress == uPageEndAddress and uAddress > uBlockAddress + uBlockSize:
                 sBugDescription += " An earlier out-of-bounds access before this address may have happened without " \
@@ -478,6 +493,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               uProtectionFlags = uValue;
             elif sInfoType == "Type":
               uTypeFlags = uValue;
+          oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
+          oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
           if uStateFlags == 0x10000:
             oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
             sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAddress);
@@ -505,6 +522,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             oBugReport.sBugTypeId = "AV%s:Arbitrary" % sViolationTypeId;
             sBugDescription = "Access violation while %s %s memory at 0x%X." % (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
+            oBugReport.atxMemoryDumps.append(("Memory block in which access violation happened", uAllocationStartAddress, uAllocationSize));
+            oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
           else:
             raise AssertionError("Unexpected memory state 0x%X\r\n%s" % (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
   oBugReport.sBugDescription = sBugDescription + sViolationTypeNotes;
@@ -514,6 +533,4 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     oBugReport = oBugReport.foTranslate(dtxBugTranslations);
   if oBugReport:
     oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
-  if uAddress is not None:
-    oBugReport.duRelevantAddress_by_sDescription[sMemoryDumpDescription] = uAddress;
   return oBugReport;

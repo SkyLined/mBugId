@@ -1,3 +1,4 @@
+from dxBugIdConfig import dxBugIdConfig;
 # Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
 # Some of these exceptions get thrown during heap allocations/frees, thus there are a number of related functions
 # in this list, as the problem is not caused by them (but probably also not by their caller, but the caller may give
@@ -29,7 +30,7 @@ asHiddenTopFrames = [
 ];
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
-dsFastFailErrorCodes = {
+dtsFastFailErrorInformation_by_uCode = {
   0:  ("LegacyGS",      "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
   1:  ("VTGuard",       "VTGuard detected an invalid virtual function table cookie",  "Potentially exploitable security issue"),
   2:  ("StackCookie",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
@@ -60,6 +61,12 @@ dsFastFailErrorCodes = {
   25: ("DLoadProt",     "FAST_FAIL_DLOAD_PROTECTION_FAILURE",                         "Potentially exploitable security issue"),
   26: ("ExtCall",       "FAST_FAIL_UNSAFE_EXTENSION_CALL",                            "Potentially exploitable security issue"),
 };
+auErrorCodesForWhichAStackDumpIsUseful = [
+  0, #LegacyGS
+  2, #StackCookie
+  4, #BadStack
+];
+
 # Some fast fail exceptions may indicate other bugs:
 ddtxBugTranslations_by_sFastFailCodeId = {
   "AppExit": {
@@ -98,7 +105,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
   assert len(oException.auParameters) == 1, \
       "Unexpected number of fail fast exception parameters (%d vs 1)" % len(oException.auParameters);
   uFastFailCode = oException.auParameters[0];
-  sFastFailCodeId, sFastFailCodeDescription, sSecurityImpact = dsFastFailErrorCodes.get( \
+  sFastFailCodeId, sFastFailCodeDescription, sSecurityImpact = dtsFastFailErrorInformation_by_uCode.get( \
       uFastFailCode, ("Unknown", "unknown code", "May be a security issue"));
   sOriginalBugTypeId = oBugReport.sBugTypeId;
   dtxBugTranslations = ddtxBugTranslations_by_sFastFailCodeId.get(sFastFailCodeId);
@@ -114,4 +121,13 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
       oBugReport.sBugDescription = sFastFailCodeDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
     oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
+  if uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
+    uStackPointer = oCdbWrapper.fuGetValue("@$csp");
+    if not oCdbWrapper.bCdbRunning: return;
+    uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
+    if not oCdbWrapper.bCdbRunning: return None;
+    # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
+    oBugReport.atxMemoryDumps.append(("Stack", uStackPointer, dxBugIdConfig["uStackDumpFrames"] * uPointerSize));
+    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, uPointerSize));
+    
   return oBugReport;

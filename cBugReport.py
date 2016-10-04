@@ -12,7 +12,7 @@ from cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foA
 from cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT import cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT;
 from cBugReport_foTranslate import cBugReport_foTranslate;
 from cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
-from cBugReport_fsGetRelevantMemoryHTML import cBugReport_fsGetRelevantMemoryHTML;
+from cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
 from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
@@ -55,7 +55,8 @@ class cBugReport(object):
     oBugReport.sSecurityImpact = sSecurityImpact;
     oBugReport.oProcess = cProcess.foCreate(oCdbWrapper);
     oBugReport.oStack = oStack;
-    oBugReport.duRelevantAddress_by_sDescription = {};
+    oBugReport.atxMemoryRemarks = [];
+    oBugReport.atxMemoryDumps = [];
     oBugReport.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
     if oCdbWrapper.bGetDetailsHTML:
@@ -195,15 +196,18 @@ class cBugReport(object):
         });
       
       # Add relevant memory blocks in order if needed
-      for uSequentialAddress in sorted(list(set(oBugReport.duRelevantAddress_by_sDescription.values()))):
-        for (sDescription, uRelevantAddress) in oBugReport.duRelevantAddress_by_sDescription.items():
-          if uRelevantAddress == uSequentialAddress:
-            sRelevantMemoryHTML = cBugReport_fsGetRelevantMemoryHTML(oBugReport, oCdbWrapper, uRelevantAddress, sDescription)
+      auAddresses = set();
+      for (sDescription, uStartAddress, uSize) in oBugReport.atxMemoryDumps:
+        auAddresses.add(uStartAddress);
+      for uAddress in sorted(list(auAddresses)):
+        for (sDescription, uStartAddress, uSize) in oBugReport.atxMemoryDumps:
+          if uStartAddress == uAddress:
+            sMemoryDumpHTML = cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uSize)
             if not oCdbWrapper.bCdbRunning: return None;
-            if sRelevantMemoryHTML:
+            if sMemoryDumpHTML:
               asBlocksHTML.append(sBlockHTMLTemplate % {
-                "sName": "Memory for %s" % sDescription,
-                "sContent": "<span class=\"Memory\">%s</span>" % sRelevantMemoryHTML,
+                "sName": sDescription,
+                "sContent": "<span class=\"Memory\">%s</span>" % sMemoryDumpHTML,
               });
       
       # Create and add disassembly blocks if needed:

@@ -3,6 +3,7 @@ from cBugReport import cBugReport;
 from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
 from cCorruptionDetector import cCorruptionDetector;
+from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   uErrorNumber = None;
@@ -13,7 +14,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   uCorruptedStamp = None;
   uCorruptionAddress = None;
   asRelevantLines = [];
-
+  
   for sLine in asCdbOutput:
     # Ignore exmpty lines
     if not sLine:
@@ -39,7 +40,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
       elif sDescription == "corruption address": uCorruptionAddress = uValue;
     else:
       assert sLine.strip().replace("=", "") == "", \
-          "Unknown VERIFIER STOP message line: %s" % repr(sLine);
+          "Unknown VERIFIER STOP message line: %s\r\n%s" % (repr(sLine), "\r\n".join(asLines));
       break;
   else:
     assert uErrorNumber is None, \
@@ -70,6 +71,11 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
       (uHeapBlockAddress, uHeapBlockEndAddress, uHeapPageEndAddress, "\r\n".join(asRelevantLines));
   uMemoryDumpStartAddress = uHeapBlockAddress;
   uMemoryDumpSize = uHeapBlockSize;
+  atxMemoryRemarks = [
+    ("Memory block start", uHeapBlockAddress, None),
+    ("Memory block end", uHeapBlockEndAddress, None)
+  ];
+  
   oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
   # End of VERIFIER STOP message; report a bug.
   if sMessage in ["corrupted start stamp", "corrupted end stamp"]:
@@ -131,50 +137,43 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     sBugTypeId += "[%s]" % (fsGetNumberDescription(uHeapBlockSize));
   
   # See if we have a better idea of where the corruption started and ended:
-  uCorruptionStartAddress = uCorruptionEndAddress = uCorruptionAddress;
+  uCorruptionStartAddress = uCorruptionAddress;
+  uCorruptionEndAddress = uCorruptionAddress;
   if oCorruptionDetector.bCorruptionDetected:
     uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
-    uCorruptionSize = oCorruptionDetector.uCorruptionEndAddress - uCorruptionStartAddress;
-    oBugReport.atxMemoryRemarks.append(("Corrupted memory", uCorruptionStartAddress, uCorruptionSize));
-    if uCorruptionStartAddress < uMemoryDumpStartAddress:
-      uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
-      uMemoryDumpStartAddress = uCorruptionStartAddress;
-    if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
-      uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
-    if uCorruptionAddress is None:
-      uCorruptionAddress = oCorruptionDetector.uCorruptionStartAddress;
-    else:
-      assert uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
-          "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X" % \
-          (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress);
+    uCorruptionEndAddress = oCorruptionDetector.uCorruptionEndAddress;
+    uCorruptionSize = uCorruptionEndAddress - uCorruptionStartAddress;
+    atxMemoryRemarks.append(("Corrupted memory", uCorruptionStartAddress, uCorruptionSize));
+    assert uCorruptionAddress is None or uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
+        "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X\r\n%s" % \
+        (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress, "\r\n".join(asRelevantLines));
   else:
-    if uCorruptionAddress < uMemoryDumpStartAddress:
-      uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionAddress;
-      uMemoryDumpStartAddress = uCorruptionAddress;
-    if uCorruptionAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
-      uMemoryDumpSize += uCorruptionAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
     oBugReport.atxMemoryRemarks.append(("Corrupted memory", uCorruptionAddress, None));
-  if uCorruptionAddress is not None:
-    sMessage = "heap corruption";
-    uCorruptionOffset = uCorruptionAddress - uHeapBlockAddress;
-    if uCorruptionOffset >= uHeapBlockSize:
-      uCorruptionOffset -= uHeapBlockSize;
-      sOffsetDescription = "%d/0x%X bytes beyond" % (uCorruptionOffset, uCorruptionOffset);
-      sBugTypeId += fsGetOffsetDescription(uCorruptionOffset);
-    elif uCorruptionOffset > 0:
-      sOffsetDescription = "%d/0x%X bytes into" % (uCorruptionOffset, uCorruptionOffset);
-      sBugTypeId += "@%s" % fsGetNumberDescription(uCorruptionOffset);
-    else:
-      sOffsetDescription = "%d/0x%X bytes before" % (-uCorruptionOffset, -uCorruptionOffset);
-      sBugTypeId += fsGetOffsetDescription(uCorruptionOffset);
-    sBugDescription = "Page heap detected %s at 0x%X; %s a %d/0x%X byte heap block at address 0x%X" % \
-        (sMessage, uCorruptionAddress, sOffsetDescription, uHeapBlockSize, uHeapBlockSize, uHeapBlockAddress);
-    uRelevantAddress = uCorruptionAddress;
+    uCorruptionStartAddress = uCorruptionAddress;
+    uCorruptionEndAddress = uCorruptionAddress;
+  
+  # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
+  # corrupted region.
+  if uCorruptionStartAddress < uMemoryDumpStartAddress:
+    uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
+    uMemoryDumpStartAddress = uCorruptionStartAddress;
+  if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
+    uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
+  # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
+  # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
+  uCorruptionStartOffset = uCorruptionStartAddress - uHeapBlockAddress;
+  if uCorruptionStartOffset >= uHeapBlockSize:
+    uCorruptionStartOffset -= uHeapBlockSize;
+    sCorruptionStartOffsetDescription = "%d/0x%X bytes beyond" % (uCorruptionStartOffset, uCorruptionStartOffset);
+    sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
+  elif uCorruptionStartOffset > 0:
+    sCorruptionStartOffsetDescription = "%d/0x%X bytes into" % (uCorruptionStartOffset, uCorruptionStartOffset);
+    sBugTypeId += "@%s" % fsGetNumberDescription(uCorruptionStartOffset);
   else:
-    sBugDescription = "Page heap detected %s in a %d/0x%X byte heap block at address 0x%X." % \
-        (sMessage, uHeapBlockSize, uHeapBlockSize, uHeapBlockAddress);
-    uRelevantAddress = uHeapBlockAddress;
-    oBugReport.atxMemoryDumps.append(("Heap block for memory corruption", uMemoryDumpStartAddress, uMemoryDumpSize));
+    sCorruptionStartOffsetDescription = "%d/0x%X bytes before" % (-uCorruptionStartOffset, -uCorruptionStartOffset);
+    sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
+  sBugDescription = "Page heap detected heap corruption at 0x%X; %s a %d/0x%X byte heap block at address 0x%X" % \
+      (uCorruptionStartAddress, sCorruptionStartOffsetDescription, uHeapBlockSize, uHeapBlockSize, uHeapBlockAddress);
     
   # If we detected corruption by scanning certain bytes in the applications memory, make sure this matches what
   # verifier reported and save all bytes that were affected: so far, we only saved the bytes that had an unexpected
@@ -188,11 +187,14 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   
   sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled";
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
-  oBugReport.atxMemoryDumps.append(("Memory corruption in which access violation happened", uMemoryDumpAddress, uMemoryDumpSize));
-  oBugReport.atxMemoryRemarks.append(("Memory block start", uBlockAddress, None));
-
-  oBugReport.duRelevantAddress_by_sDescription \
-      ["memory corruption at 0x%X" % uRelevantAddress] = uRelevantAddress;
+  oBugReport.atxMemoryDumps.append(("Heap block for memory corruption", uMemoryDumpStartAddress, uMemoryDumpSize));
+  oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
+  sVerifierStopMessageHTML = sBlockHTMLTemplate % {
+    "sName": "VERIFIER STOP message",
+    "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asRelevantLines])
+  };
+  oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
+  
   oBugReport.bRegistersRelevant = False;
   oCdbWrapper.oBugReport = oBugReport;
   return True;

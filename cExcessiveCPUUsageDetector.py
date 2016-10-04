@@ -79,6 +79,64 @@ class cExcessiveCPUUsageDetector(object):
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
   
+  def fxMaxCPUUsage(oExcessiveCPUUsageDetector):
+    # NO LOCK! Called from method that already locked it.
+    ddnPreviousCPUTime_by_uThreadId_by_uProcessId = oExcessiveCPUUsageDetector.ddnLastCPUTime_by_uThreadId_by_ProcessId;
+    nPreviousRunTime = oExcessiveCPUUsageDetector.nLastRunTime;
+    oExcessiveCPUUsageDetector.fGetUsageData();
+    ddnCurrentCPUTime_by_uThreadId_by_uProcessId = oExcessiveCPUUsageDetector.ddnLastCPUTime_by_uThreadId_by_ProcessId;
+    nCurrentRunTime = oExcessiveCPUUsageDetector.nLastRunTime;
+    nRunTime = nCurrentRunTime - nPreviousRunTime;
+    # Find out which thread in which process used the most CPU time by comparing previous CPU usage and
+    # run time values to current values for all threads in all processes that exist in both data sets.
+    nMaxCPUTime = 0;
+    nMaxCPUUsagePercent = -1;
+    nTotalCPUUsagePercent = 0;
+    if bDebugOutputCalculation:
+      print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
+      print "| Application run time: %.3f->%.3f=%.3f" % (nPreviousRunTime, nCurrentRunTime, nRunTime);
+    for (uProcessId, dnCurrentCPUTime_by_uThreadId) in ddnCurrentCPUTime_by_uThreadId_by_uProcessId.items():
+      if bDebugOutputCalculation:
+        print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
+        print "| %3s  %21s  %7s" % ("tid", "CPU time", "% Usage");
+      dnPreviousCPUTime_by_uThreadId = ddnPreviousCPUTime_by_uThreadId_by_uProcessId.get(uProcessId, {});
+      for (uThreadId, nCurrentCPUTime) in dnCurrentCPUTime_by_uThreadId.items():
+        # nRunTime can be None due to a bug in cdb. In such cases, usage percentage cannot be calculated
+        nPreviousCPUTime = dnPreviousCPUTime_by_uThreadId.get(uThreadId);
+        if nPreviousCPUTime is not None and nCurrentCPUTime is not None:
+          nCPUTime = nCurrentCPUTime - nPreviousCPUTime;
+        else:
+          nCPUTime = None;
+        if nCPUTime is not None:
+          nCPUUsagePercent = nRunTime > 0 and (100.0 * nCPUTime / nRunTime) or 0;
+          nTotalCPUUsagePercent += nCPUUsagePercent;
+          if nCPUUsagePercent > nMaxCPUUsagePercent:
+            nMaxCPUTime = nCPUTime;
+            nMaxCPUUsagePercent = nCPUUsagePercent;
+            uMaxCPUProcessId = uProcessId;
+            uMaxCPUThreadId = uThreadId;
+        else:
+          nCPUUsagePercent = None;
+        def fsFormat(nNumber):
+          return nNumber is None and " - " or ("%.3f" % nNumber);
+        if bDebugOutputCalculation: print "| %4X  %6s->%6s=%6s  %6s%%" % (
+          uThreadId,
+          fsFormat(nPreviousCPUTime), fsFormat(nCurrentCPUTime), fsFormat(nCPUTime),
+          fsFormat(nCPUUsagePercent),
+        );
+    if bDebugOutputCalculation:
+      print "|".ljust(120, "-");
+      print "| Total CPU usage: %d%%, max: %d%% for pid 0x%X, tid 0x%X" % \
+         (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId);
+      print "'".ljust(120, "-");
+    elif bDebugOutput:
+      print "*** Total CPU usage: %d%%, max: %d%% for pid %d, tid %d" % \
+          (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId);
+    # Rounding errors can give results > 100%. Fix that.
+    if nTotalCPUUsagePercent > 100:
+      nTotalCPUUsagePercent = 100.0;
+    return uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent;
+
   def fCheckUsage(oExcessiveCPUUsageDetector):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
@@ -89,62 +147,11 @@ class cExcessiveCPUUsageDetector(object):
       if oExcessiveCPUUsageDetector.xCheckUsageTimeout is None:
         return; # Analysis was stopped because a new timeout was set.
       oExcessiveCPUUsageDetector.xCheckUsageTimeout = None;
-      ddnPreviousCPUTime_by_uThreadId_by_uProcessId = oExcessiveCPUUsageDetector.ddnLastCPUTime_by_uThreadId_by_ProcessId;
-      nPreviousRunTime = oExcessiveCPUUsageDetector.nLastRunTime;
-      oExcessiveCPUUsageDetector.fGetUsageData();
-      ddnCurrentCPUTime_by_uThreadId_by_uProcessId = oExcessiveCPUUsageDetector.ddnLastCPUTime_by_uThreadId_by_ProcessId;
-      nCurrentRunTime = oExcessiveCPUUsageDetector.nLastRunTime;
-      nRunTime = nCurrentRunTime - nPreviousRunTime;
-      # Find out which thread in which process used the most CPU time by comparing previous CPU usage and
-      # run time values to current values for all threads in all processes that exist in both data sets.
-      nMaxCPUPercent = -1;
-      nTotalCPUPercent = 0;
-      if bDebugOutputCalculation:
-        print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
-        print "| Application run time: %.3f->%.3f=%.3f" % (nPreviousRunTime, nCurrentRunTime, nRunTime);
-      for (uProcessId, dnCurrentCPUTime_by_uThreadId) in ddnCurrentCPUTime_by_uThreadId_by_uProcessId.items():
-        if bDebugOutputCalculation:
-          print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
-          print "| %3s  %21s  %7s" % ("tid", "CPU time", "% Usage");
-        dnPreviousCPUTime_by_uThreadId = ddnPreviousCPUTime_by_uThreadId_by_uProcessId.get(uProcessId, {});
-        for (uThreadId, nCurrentCPUTime) in dnCurrentCPUTime_by_uThreadId.items():
-          # nRunTime can be None due to a bug in cdb. In such cases, usage percentage cannot be calculated
-          nPreviousCPUTime = dnPreviousCPUTime_by_uThreadId.get(uThreadId);
-          if nPreviousCPUTime is not None and nCurrentCPUTime is not None:
-            nCPUTime = nCurrentCPUTime - nPreviousCPUTime;
-          else:
-            nCPUTime = None;
-          if nCPUTime is not None:
-            nCPUPercent = nRunTime > 0 and (100.0 * nCPUTime / nRunTime) or 0;
-            nTotalCPUPercent += nCPUPercent;
-            if nCPUPercent > nMaxCPUPercent:
-              nMaxCPUPercent = nCPUPercent;
-              uMaxCPUProcessId = uProcessId;
-              uMaxCPUThreadId = uThreadId;
-          else:
-            nCPUPercent = None;
-          def fsFormat(nNumber):
-            return nNumber is None and " - " or ("%.3f" % nNumber);
-          if bDebugOutputCalculation: print "| %4X  %6s->%6s=%6s  %6s%%" % (
-            uThreadId,
-            fsFormat(nPreviousCPUTime), fsFormat(nCurrentCPUTime), fsFormat(nCPUTime),
-            fsFormat(nCPUPercent),
-          );
-      if bDebugOutputCalculation:
-        print "|".ljust(120, "-");
-        print "| Total CPU usage: %d%%, max: %d%% for pid 0x%X, tid 0x%X" % \
-           (nTotalCPUPercent, nMaxCPUPercent, uMaxCPUProcessId, uMaxCPUThreadId);
-        print "'".ljust(120, "-");
-      elif bDebugOutput:
-        print "*** Total CPU usage: %d%%, max: %d%% for pid %d, tid %d" % \
-            (nTotalCPUPercent, nMaxCPUPercent, uMaxCPUProcessId, uMaxCPUThreadId);
-      # Rounding errors can give results > 100%. Fix that.
-      if nTotalCPUPercent > 100:
-        nTotalCPUPercent = 100.0;
+      uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oExcessiveCPUUsageDetector.fxMaxCPUUsage();
       # If all threads in all processes combined have excessive CPU usage
-      if nTotalCPUPercent > dxBugIdConfig["nExcessiveCPUUsagePercent"]:
+      if nTotalCPUUsagePercent > dxBugIdConfig["nExcessiveCPUUsagePercent"]:
         # Find out which function is using excessive CPU time in the most active thread.
-        oExcessiveCPUUsageDetector.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUPercent);
+        oExcessiveCPUUsageDetector.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
       else:
         # No thread suspected of excessive CPU usage: measure CPU usage over another interval.
         nTimeout = dxBugIdConfig["nExcessiveCPUUsageCheckInterval"];
@@ -163,7 +170,7 @@ class cExcessiveCPUUsageDetector(object):
     assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
     if bDebugOutputWorm: print "@@@ %s" % asDebugOutput[0];
   
-  def fInstallWorm(oExcessiveCPUUsageDetector, uProcessId, uThreadId, nTotalCPUPercent):
+  def fInstallWorm(oExcessiveCPUUsageDetector, uProcessId, uThreadId, nTotalCPUUsagePercent):
     if bDebugOutput: print "@@@ Installing excessive CPU usage worm...";
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
     # NO LOCK! Called from method that already locked it.
@@ -192,7 +199,7 @@ class cExcessiveCPUUsageDetector(object):
     if not oCdbWrapper.bCdbRunning: return;
     oExcessiveCPUUsageDetector.uProcessId = uProcessId;
     oExcessiveCPUUsageDetector.uThreadId = uThreadId;
-    oExcessiveCPUUsageDetector.nTotalCPUPercent = nTotalCPUPercent;
+    oExcessiveCPUUsageDetector.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
     uInstructionPointer = oCdbWrapper.fuGetValue("@$ip");
     if not oCdbWrapper.bCdbRunning: return;
     uStackPointer = oCdbWrapper.fuGetValue("@$csp");
@@ -220,8 +227,8 @@ class cExcessiveCPUUsageDetector(object):
     if not oCdbWrapper.bCdbRunning: return;
     assert oExcessiveCPUUsageDetector.uWormBreakpointId is not None, \
         "Could not create breakpoint at 0x%X" % oExcessiveCPUUsageDetector.uLastInstructionPointer;
-    nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
-    oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
+    oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout( \
+        dxBugIdConfig["nExcessiveCPUUsageWormRunTime"], oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
   
   def fMoveWormBreakpointUpTheStack(oExcessiveCPUUsageDetector):
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
@@ -244,7 +251,6 @@ class cExcessiveCPUUsageDetector(object):
         if not oCdbWrapper.bCdbRunning: return;
         return;
       uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
-      if not oCdbWrapper.bCdbRunning: return;
       if not oCdbWrapper.bCdbRunning: return;
       if uInstructionPointer == uReturnAddress:
         oExcessiveCPUUsageDetector.fWormDebugOutput(
@@ -290,12 +296,15 @@ class cExcessiveCPUUsageDetector(object):
       # The current timeout was for the function that just returned:
       # Start a new timeout for the function that is now executing.
       oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
-      nTimeout = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"];
-      oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(nTimeout, oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
+      oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(
+          dxBugIdConfig["nExcessiveCPUUsageWormRunTime"], oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout);
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
 
   def fSetBugBreakpointAfterTimeout(oExcessiveCPUUsageDetector):
+    # Ideally, we'd check here to make sure the application has actually been using CPU for
+    # dxBugIdConfig["nExcessiveCPUUsageWormRunTime"] seconds since the last breakpoint was hit: if there were many
+    # breakpoints, this will not be the case. Doing so should improve the reliability of the result.
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
     if bDebugOutput: print "@@@ Worm run timeout: setting excessive CPU usage bug breakpoint...";
     oExcessiveCPUUsageDetector.oLock.acquire();
@@ -365,7 +374,7 @@ class cExcessiveCPUUsageDetector(object):
       # Report a bug
       sBugTypeId = "CPUUsage";
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
-          (oExcessiveCPUUsageDetector.nTotalCPUPercent, dxBugIdConfig["nExcessiveCPUUsageCheckInterval"]);
+          (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxBugIdConfig["nExcessiveCPUUsageCheckInterval"]);
       sSecurityImpact = None;
       if not oCdbWrapper.bCdbRunning: return;
       oCdbWrapper.oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
