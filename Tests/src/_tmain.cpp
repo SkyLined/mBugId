@@ -91,7 +91,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       BYTE x = *(BYTE*)pAddress;
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      *(BYTE*)pAddress = 0;
+      *(BYTE*)pAddress = 0x41;
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read or Write, not %s\r\n"), asArguments[2]);
       return 1;
@@ -125,7 +125,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       BYTE x = *(BYTE*)pMemory;
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      *(BYTE*)pMemory = 0;
+      *(BYTE*)pMemory = 0x41;
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
       return 1;
@@ -147,7 +147,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
       BYTE x = *(BYTE*)(pMemory + iOffset);
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
-      *(BYTE*)(pMemory + iOffset) = 0;
+      *(BYTE*)(pMemory + iOffset) = 0x41;
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
@@ -175,7 +175,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       }
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       for (BYTE* pAddress = pMemory; pAddress < pMemory + uSize + uOverrun; pAddress++) {
-        *pAddress = 0;
+        *pAddress = 0x41;
       }
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
@@ -193,7 +193,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       }
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
       for (BYTE* pAddress = pMemory; pAddress < pMemory + 10 + uOverrun; pAddress++) {
-        *pAddress = 0;
+        *pAddress = 0x41;
       }
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
