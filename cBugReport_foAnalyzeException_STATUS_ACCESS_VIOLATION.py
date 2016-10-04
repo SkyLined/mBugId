@@ -407,11 +407,11 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
           sSecurityImpact = "Potentially exploitable security issue.";
         else:
           raise NotImplemented("NOT REACHED");
-        sBLockHTML = sBlockHTMLTemplate % {
+        sPageHeapOutputHTML = sBlockHTMLTemplate % {
           "sName": "Page heap report for address 0x%X" % uAddress,
-          "sContent": "<br/>".join([oCdbWrapper.fsHTMLEncode(s) for s in asPageHeapReport])
+          "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asPageHeapReport])
         };
-        oBugReport.asExceptionSpecificBlocksHTML.append(sBLockHTML);
+        oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
       else:
         asMemoryProtectionInformation = oCdbWrapper.fasSendCommandAndReadOutput(
           "!vprot 0x%X; $$ Get memory protection information" % uAddress,
