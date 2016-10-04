@@ -471,7 +471,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             elif sInfoType == "AllocationProtect":
               uAllocationProtectionFlags = uValue;
             elif sInfoType == "RegionSize":
-              uAllocationStartAddress = uValue;
+              uAllocationSize = uValue;
             elif sInfoType == "State":
               uStateFlags = uValue;
             elif sInfoType == "Protect":
