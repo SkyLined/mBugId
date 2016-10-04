@@ -46,9 +46,9 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asLines);
     return False;
   
-  assert uHeapBlockAddress is not None
-      "The heap block start address was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines;
-  assert uHeapBlockSize is not None,
+  assert uHeapBlockAddress is not None, \
+      "The heap block start address was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
+  assert uHeapBlockSize is not None, \
       "The heap block size was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
   
   uHeapBlockEndAddress = uHeapBlockAddress + uHeapBlockSize;
