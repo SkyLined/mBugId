@@ -282,7 +282,7 @@ class cBugReport(object):
     # See if a dump should be saved
     if dxBugIdConfig["bSaveDump"]:
       # We'd like a dump file name base on the BugId, but the later may contain characters that are not valid in a file name
-      sDesiredDumpFileName = "%s @ %s.dmp" % (oBugId.oBugReport.sId, oBugId.oBugReport.sBugLocation);
+      sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
       # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
       sValidDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
