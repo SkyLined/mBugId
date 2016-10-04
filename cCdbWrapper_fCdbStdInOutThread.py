@@ -254,7 +254,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
               if not oCdbWrapper.bCdbRunning: return;
       elif uExceptionCode in [STATUS_BREAKPOINT, STATUS_WX86_BREAKPOINT] and \
           cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
-        # Application verifier reported a bug, for which a report has been created. There is nothing left to do here.
+        # Application verifier reported something, which is always expected to have triggered this breakpoint.
+        # The cCdbWrapper_fbDetectAndReportVerifierErrors will have created a report if one is needed, so there is
+        # nothing left to do here.
         pass;
       else:
         # This exception is not related to debugging and should be analyzed to see if it's a bug. If it is not, it

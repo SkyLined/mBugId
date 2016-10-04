@@ -45,6 +45,18 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     assert uErrorNumber is None, \
         "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asLines);
     return False;
+  if uErrorNumber == 0x303:
+    # =======================================
+    # VERIFIER STOP 0000000000000303: pid 0xB2C: NULL handle passed as parameter. A valid handle must be used.
+    # 
+    # 0000000000000000 : Not used.
+    # 0000000000000000 : Not used.
+    # 0000000000000000 : Not used.
+    # 0000000000000000 : Not used.
+    # 
+    # =======================================
+    # This is not interesting; do not report an error.
+    return True;
   
   assert uHeapBlockAddress is not None, \
       "The heap block start address was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
@@ -56,6 +68,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   assert uHeapPageEndAddress >= uHeapBlockEndAddress, \
       "The heap block at 0x%X is expected to end at 0x%X, but the page is expected to end at 0x%X, which is impossible.\r\n%s" % \
       (uHeapBlockAddress, uHeapBlockEndAddress, uHeapPageEndAddress, "\r\n".join(asRelevantLines));
+  uMemoryDumpStartAddress = uHeapBlockAddress;
+  uMemoryDumpSize = uHeapBlockSize;
   oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
   # End of VERIFIER STOP message; report a bug.
   if sMessage in ["corrupted start stamp", "corrupted end stamp"]:
@@ -115,13 +129,31 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     sBugTypeId = "HeapCorrupt";
   if uHeapBlockSize is not None:
     sBugTypeId += "[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+  
+  # See if we have a better idea of where the corruption started and ended:
+  uCorruptionStartAddress = uCorruptionEndAddress = uCorruptionAddress;
   if oCorruptionDetector.bCorruptionDetected:
+    uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
+    uCorruptionSize = oCorruptionDetector.uCorruptionEndAddress - uCorruptionStartAddress;
+    oBugReport.atxMemoryRemarks.append(("Corrupted memory", uCorruptionStartAddress, uCorruptionSize));
+    if uCorruptionStartAddress < uMemoryDumpStartAddress:
+      uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
+      uMemoryDumpStartAddress = uCorruptionStartAddress;
+    if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
+      uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
     if uCorruptionAddress is None:
       uCorruptionAddress = oCorruptionDetector.uCorruptionStartAddress;
     else:
       assert uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
           "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X" % \
           (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress);
+  else:
+    if uCorruptionAddress < uMemoryDumpStartAddress:
+      uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionAddress;
+      uMemoryDumpStartAddress = uCorruptionAddress;
+    if uCorruptionAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
+      uMemoryDumpSize += uCorruptionAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
+    oBugReport.atxMemoryRemarks.append(("Corrupted memory", uCorruptionAddress, None));
   if uCorruptionAddress is not None:
     sMessage = "heap corruption";
     uCorruptionOffset = uCorruptionAddress - uHeapBlockAddress;
@@ -142,7 +174,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     sBugDescription = "Page heap detected %s in a %d/0x%X byte heap block at address 0x%X." % \
         (sMessage, uHeapBlockSize, uHeapBlockSize, uHeapBlockAddress);
     uRelevantAddress = uHeapBlockAddress;
-  
+    oBugReport.atxMemoryDumps.append(("Heap block for memory corruption", uMemoryDumpStartAddress, uMemoryDumpSize));
+    
   # If we detected corruption by scanning certain bytes in the applications memory, make sure this matches what
   # verifier reported and save all bytes that were affected: so far, we only saved the bytes that had an unexpected
   # value, but there is a chance that a byte was overwritten with the same value it has before, in which case it was
@@ -154,8 +187,12 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
   
   sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled";
-  oCdbWrapper.oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
-  oCdbWrapper.oBugReport.duRelevantAddress_by_sDescription \
+  oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
+  oBugReport.atxMemoryDumps.append(("Memory corruption in which access violation happened", uMemoryDumpAddress, uMemoryDumpSize));
+  oBugReport.atxMemoryRemarks.append(("Memory block start", uBlockAddress, None));
+
+  oBugReport.duRelevantAddress_by_sDescription \
       ["memory corruption at 0x%X" % uRelevantAddress] = uRelevantAddress;
-  oCdbWrapper.oBugReport.bRegistersRelevant = False;
+  oBugReport.bRegistersRelevant = False;
+  oCdbWrapper.oBugReport = oBugReport;
   return True;
