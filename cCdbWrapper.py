@@ -346,11 +346,19 @@ class cCdbWrapper(object):
     if not oCdbWrapper.bCdbRunning: return;
     if len(asValueResult) > 1 and asValueResult[-1].startswith("Ambiguous symbol error at '"):
       return None;
-    assert len(asValueResult) == 1, \
-        "Unexpected value result:\r\n%s" % "\r\n".join(asValueResult);
-    if asValueResult[0].startswith("Couldn't resolve error at "):
+    uValueAtIndex = 0;
+    if len(asValueResult) == 2 and asValueResult[0].startswith("Unable to read dynamic function table entry at "):
+        # It looks like we can safely ignore this error: the next line should contain the value.
+        uValueAtIndex = 1;
+    else:
+      assert len(asValueResult) == 1, \
+          "Expected only one line in value result:\r\n%s" % "\r\n".join(asValueResult);
+    if asValueResult[uValueAtIndex].startswith("Couldn't resolve error at "):
       return None;
-    return long(asValueResult[0], 16);
+    try:
+      return long(asValueResult[uValueAtIndex], 16);
+    except:
+      raise AssertionError("Cannot parse value on line %s:\r\n%s" % (uValueAtIndex + 1, "\r\n".join(asValueResult)));
   
   # Breakpoints
   def fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
