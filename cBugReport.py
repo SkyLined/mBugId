@@ -274,7 +274,7 @@ class cBugReport(object):
             "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
         "sOptionalCommandLine": oBugReport.oCdbWrapper.asApplicationCommandLine and \
             "<tr><td>Command line: </td><td>%s</td></tr>" % oBugReport.oCdbWrapper.asApplicationCommandLine or "",
-        "sBlocks": "".join(asBlocksHTML),
+        "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": sCdbStdIOHTML,
         "sBugIdVersion": sVersion,
       };

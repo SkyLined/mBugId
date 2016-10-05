@@ -1,4 +1,5 @@
 from sDetailsHTMLTemplate import sDetailsHTMLTemplate;
+from sVersion import sVersion;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):
@@ -24,14 +25,23 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       # Turn cdb output into formatted HTML. It is separated into blocks, one for the initial cdb output and one for each
       # command executed.
       sCdbStdIOHTML = '<hr/>'.join(oCdbWrapper.asCdbStdIOBlocksHTML);
+      asBlocksHTML = [];
+      asBlocksHTML.append(sBlockHTMLTemplate % {
+        "sName": "Application and cdb output log",
+        "sContent": sCdbStdIOHTML
+      });
       del oCdbWrapper.asCdbStdIOBlocksHTML;
       # Create HTML details
       oBugReport.sDetailsHTML = sDetailsHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
-        "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
+        "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
+        "sBinaryVersion": "Not available",
+        "sOptionalSource": "",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
-        "sOptionalBlocks": "",
+        "sOptionalCommandLine": "",
+        "sBugIdVersion": sVersion,
+        "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": sCdbStdIOHTML,
       };
