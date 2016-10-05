@@ -1,3 +1,10 @@
+2016-10-05
+==========
+Bug fixes and improvements
+--------------------------
++ Handle error output by cdb when getting value using cCdbWrapper.fuGetValue.
++ Fix typo in new FailFast code that caused exception when dumping stack.
+
 2016-10-04
 ==========
 New features
