@@ -127,7 +127,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
     uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
     if not oCdbWrapper.bCdbRunning: return None;
     # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
-    oBugReport.atxMemoryDumps.append(("Stack", uStackPointer, dxBugIdConfig["uStackDumpFrames"] * uPointerSize));
+    oBugReport.atxMemoryDumps.append(("Stack", uStackPointer, dxBugIdConfig["uStackDumpSize"] * uPointerSize));
     oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, uPointerSize));
     
   return oBugReport;
