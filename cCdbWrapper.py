@@ -3,6 +3,7 @@ from cCdbWrapper_faoGetModulesForFileNameInCurrentProcess import cCdbWrapper_fao
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasSendCommandAndReadOutput import cCdbWrapper_fasSendCommandAndReadOutput;
+from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
@@ -12,6 +13,8 @@ from cCdbWrapper_fHandleCreateExitProcess import cCdbWrapper_fHandleCreateExitPr
 from cCdbWrapper_ftxGetProcessIdAndBinaryNameForCurrentProcess import cCdbWrapper_ftxGetProcessIdAndBinaryNameForCurrentProcess;
 from cCdbWrapper_ftxSplitSymbolOrAddress import cCdbWrapper_ftxSplitSymbolOrAddress;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
+from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
+from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
 from cCdbWrapper_f_Timeout import cCdbWrapper_fxSetTimeout, cCdbWrapper_fClearTimeout;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
@@ -331,35 +334,11 @@ class cCdbWrapper(object):
     finally:
       oCdbWrapper.oApplicationTimeLock.release();
   
-  def fuGetValueForSymbol(oCdbWrapper, sValue):
-    # Symbols can contain chars that cause syntax errors, so some escaping may be needed using @!"symbol"+offset.
-    # The offset must be outside the escaped string because a symbol that is just a module+offset can cause a
-    # "Numeric expression missing from '@!"module+offset"'" error, whereas @!"module"+offset works fine.
-    oSymbolAndOffsetMatch = re.match(r"^(.+?)(\+(?:0x)?[0-9a-f]+)?$", sValue);
-    assert oSymbolAndOffsetMatch, "Unrecognized symbol pattern: %s" % sValue;
-    sSymbol, sOffset = oSymbolAndOffsetMatch.groups();
-    return oCdbWrapper.fuGetValue('@!"%s"%s' % (sSymbol, sOffset or ""));
-  
-  def fuGetValue(oCdbWrapper, sValue):
-    asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
-        '.printf "%%p\\n", %s; $$ Get value' % sValue, bIgnoreUnknownSymbolErrors = True);
-    if not oCdbWrapper.bCdbRunning: return;
-    if len(asValueResult) > 1 and asValueResult[-1].startswith("Ambiguous symbol error at '"):
-      return None;
-    uValueAtIndex = 0;
-    if len(asValueResult) == 2 and asValueResult[0].startswith("Unable to read dynamic function table entry at "):
-        # It looks like we can safely ignore this error: the next line should contain the value.
-        uValueAtIndex = 1;
-    else:
-      assert len(asValueResult) == 1, \
-          "Expected only one line in value result:\r\n%s" % "\r\n".join(asValueResult);
-    if asValueResult[uValueAtIndex].startswith("Couldn't resolve error at "):
-      return None;
-    try:
-      return long(asValueResult[uValueAtIndex], 16);
-    except:
-      raise AssertionError("Cannot parse value on line %s:\r\n%s" % (uValueAtIndex + 1, "\r\n".join(asValueResult)));
-  
+  # Get values
+  def fuGetValue(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fuGetValue(oCdbWrapper, *axArguments, **dxArguments);
+  def fuGetValueForSymbol(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fuGetValueForSymbol(oCdbWrapper, *axArguments, **dxArguments);
   # Breakpoints
   def fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
@@ -399,3 +378,6 @@ class cCdbWrapper(object):
   
   def fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments);
+  
+  def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);

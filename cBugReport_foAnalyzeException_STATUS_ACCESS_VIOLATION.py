@@ -1,5 +1,6 @@
 import re;
 from cCorruptionDetector import cCorruptionDetector;
+from cPageHeapReport import cPageHeapReport;
 from dxBugIdConfig import dxBugIdConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
@@ -273,111 +274,46 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     else:
       # This is not a special marker or NULL, so it must be an invalid pointer
       # See is page heap has more details on the address at which the access violation happened:
-      asPageHeapReport = oCdbWrapper.fasSendCommandAndReadOutput(
-        "!heap -p -a 0x%X; $$ Get page heap information" % uAddress,
-        bOutputIsInformative = True,
-      );
+      oPageHeapReport = cPageHeapReport.foCreate(oCdbWrapper, uAddress);
       if not oCdbWrapper.bCdbRunning: return None;
-      # Sample output:
-      # |    address 0e948ffc found in
-      # |    _DPH_HEAP_ROOT @ 48b1000
-      # |    in free-ed allocation (  DPH_HEAP_BLOCK:         VirtAddr         VirtSize)
-      # |                                    e9f08bc:          e948000             2000
-      # |    6d009cd2 verifier!AVrfDebugPageHeapFree+0x000000c2
-      # |    77d42e20 ntdll!RtlDebugFreeHeap+0x0000003c
-      # |    77cfe0da ntdll!RtlpFreeHeap+0x0006c97a
-      # |    77cf5d2c ntdll!RtlpFreeHeapInternal+0x0000027e
-      # |    77c90a3c ntdll!RtlFreeHeap+0x0000002c
-      # <<<snip>>> no 0-day information for you!
-      # |    address 07fd1000 found in
-      # |    _DPH_HEAP_ROOT @ 4fd1000
-      # |    in busy allocation (  DPH_HEAP_BLOCK:         UserAddr         UserSize -         VirtAddr         VirtSize)
-      # |                                 7f51d9c:          7fd0fc0               40 -          7fd0000             2000
-      # |    6c469abc verifier!AVrfDebugPageHeapAllocate+0x0000023c
-      # <<<snip>>> no 0-day information for you!
-      # There may be errors, sample output:
-      # |ReadMemory error for address 5b59c3d0
-      # |Use `!address 5b59c3d0' to check validity of the address.
-      # <<<snip>>>
-      # |*************************************************************************
-      # |***                                                                   ***
-      # |***                                                                   ***
-      # |***    Either you specified an unqualified symbol, or your debugger   ***
-      # |***    doesn't have full symbol information.  Unqualified symbol      ***
-      # |***    resolution is turned off by default. Please either specify a   ***
-      # |***    fully qualified symbol module!symbolname, or enable resolution ***
-      # <<<snip>>>
-      # unable to resolve ntdll!RtlpStackTraceDataBase
-      asPageHeapReport = [
-        x for x in asPageHeapReport
-        if not re.match(r"^(%s)\s*$" % "|".join([
-          "ReadMemory error for address [0-9`a-f]+",
-          "Use `!address [0-9`a-f]+' to check validity of the address.",
-          "\*\*\*.*\*\*\*",
-          "unable to resolve ntdll!RtlpStackTraceDataBase",
-        ]), x)
-      ];
-      # TODO: error resolving symbol should be handled by attempting to reload them, similar to cCdbWrapper_fasGetStack
-      if len(asPageHeapReport) >= 4 and not asPageHeapReport[0].startswith("unable to resolve ntdll!"):
-        assert re.match(r"^\s+address [0-9`a-f]+ found in\s*$", asPageHeapReport[0]), \
-            "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asPageHeapReport);
-        assert re.match(r"^\s+\w+ @ [0-9`a-f]+\s*$", asPageHeapReport[1]), \
-            "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asPageHeapReport);
-        oBlockTypeMatch = re.match(                       # line #3
-            r"^\s+in (free-ed|busy) allocation \("        # space "in" space ("free-ed" | "busy") space  "allocation ("
-            r"\s*\w+:"                                    #   [space] DPH_HEAP_BLOCK ":"
-            r"(?:\s+UserAddr\s+UserSize\s+\-)?"           #   optional{ space "UserAddr" space "UserSize" space "-" }
-            r"\s+VirtAddr\s+VirtSize"                     #   space "VirtAddr" space "VirtSize"
-            r"\)\s*$",                                    # ")" [space]
-            asPageHeapReport[2]);
-        assert oBlockTypeMatch, \
-            "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapReport);
-        oBlockAdressAndSizeMatch = re.match(              # line #4
-            r"^\s+[0-9`a-f]+:"                            # space heap_header_address ":"
-            r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (heap_block_address) space (heap_block_size) space "-" }
-            r"\s+[0-9`a-f]+\s+[0-9`a-f]+"                 # space heap_pages_address space heap_pages_size
-            r"\s*$",                                      # [space]
-            asPageHeapReport[3]);
-        assert oBlockAdressAndSizeMatch, \
-            "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapReport);
-        sBlockType = oBlockTypeMatch.group(1);
-        sBlockAddress, sBlockSize = oBlockAdressAndSizeMatch.groups();
-        uBlockAddress = sBlockAddress and long(sBlockAddress.replace("`", ""), 16);
-        uBlockSize = sBlockSize and long(sBlockSize.replace("`", ""), 16);
-        if uBlockAddress:
-          uMemoryDumpAddress = uBlockAddress;
-          uMemoryDumpSize = uBlockSize;
-          if uAddress < uBlockAddress:
-            uPrefix = uBlockAddress - uAddress;
-            uMemoryDumpAddress -= uPrefix;
-            uMemoryDumpSize += uPrefix;
-          elif uAddress >= uBlockAddress + uBlockSize:
-            uPostFix = uAddress - (uBlockAddress + uBlockSize) + 1;
-            uMemoryDumpSize += uPostFix;
-          oBugReport.atxMemoryDumps.append(("Memory block in which access violation happened", uMemoryDumpAddress, uMemoryDumpSize));
-          oBugReport.atxMemoryRemarks.append(("Memory block start", uBlockAddress, None));
-          oBugReport.atxMemoryRemarks.append(("Memory block end", uBlockAddress + uBlockSize, None));
-          oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
-        if sBlockType == "free-ed":
+      if oPageHeapReport:
+        oBugReport.atxMemoryRemarks.extend(oPageHeapReport.fatxMemoryRemarks());
+        if oPageHeapReport.uBlockStartAddress:
+          if oCdbWrapper.bGetDetailsHTML:
+            uMemoryDumpAddress = oPageHeapReport.uBlockStartAddress;
+            uMemoryDumpSize = oPageHeapReport.uBlockSize;
+          if uAddress < oPageHeapReport.uBlockStartAddress:
+            uPrefix = oPageHeapReport.uBlockStartAddress - uAddress;
+            if oCdbWrapper.bGetDetailsHTML:
+              uMemoryDumpAddress -= uPrefix;
+              uMemoryDumpSize += uPrefix;
+          elif uAddress >= oPageHeapReport.uBlockEndAddress:
+            uPostFix = uAddress - oPageHeapReport.uBlockEndAddress + 1;
+            if oCdbWrapper.bGetDetailsHTML:
+              uMemoryDumpSize += uPostFix;
+          if oCdbWrapper.bGetDetailsHTML:
+            oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
+                uMemoryDumpAddress, uMemoryDumpSize));
+        if oPageHeapReport.sBlockType == "free-ed":
           # Page heap says the memory was freed:
           oBugReport.sBugTypeId = "UAF%s" % sViolationTypeId;
           sAddressDescription = "freed memory";
           sBugDescription = "Access violation while %s %s at 0x%X indicates a use-after-free." % \
               (sViolationTypeDescription, sAddressDescription, uAddress);
           sSecurityImpact = "Potentially exploitable security issue.";
-        elif sBlockType == "busy":
+        elif oPageHeapReport.sBlockType == "busy":
           # Page heap says the region is allocated, so the heap block must be inaccessible or the access must have been
           # beyond the end of the heap block, in  the next memory page:
-          uPageEndAddress = (uBlockAddress | 0xFFF) + 1; # Follows the page in which the block is located.
-          bAccessIsBeyondBlock = uAddress >= uBlockAddress + uBlockSize;
+          bAccessIsBeyondBlock = uAddress >= oPageHeapReport.uBlockEndAddress;
           # The same type of block may have different sizes for 32-bit and 64-bit versions of an application, so the size
           # cannot be used in the id. The same is true for the offset, but the fact that there is an offset is unique to
           # the bug, so that can be added.
           if bAccessIsBeyondBlock:
-            uOffsetPastEndOfBlock = uAddress - uBlockAddress - uBlockSize;
+            uOffsetPastEndOfBlock = uAddress - oPageHeapReport.uBlockEndAddress;
             sOffsetDescription = "%d/0x%X bytes beyond" % (uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
             sBugDescription = "Out-of-bounds access violation while %s memory at 0x%X; %s a %d/0x%X byte heap block at 0x%X." % \
-                (sViolationTypeDescription, uAddress, sOffsetDescription, uBlockSize, uBlockSize, uBlockAddress);
+                (sViolationTypeDescription, uAddress, sOffsetDescription, oPageHeapReport.uBlockSize, \
+                oPageHeapReport.uBlockSize, oPageHeapReport.uBlockStartAddress);
             asCorruptedBytes= None;
             # Increase size of memory dump beyond end of block
             if uOffsetPastEndOfBlock != 0:
@@ -386,27 +322,26 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                 # of the heap block must be properly aligned. Bytes between the heap block and the end of the page are
                 # initialized to 0xD0 and may have been modified before the program wrote beyond the end of the page.
                 # We can use this to get a better idea of where to OOB write started:
-                uHeapBlockEndAddress = uBlockAddress + uBlockSize;
-                uPaddingSize = uPageEndAddress - uHeapBlockEndAddress;
                 oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
-                oCorruptionDetector.fDetectCorruption(uHeapBlockEndAddress, *[0xD0 for x in xrange(uPaddingSize)]);
-                if oCorruptionDetector.bCorruptionDetected:
+                if oPageHeapReport.fbCheckForCorruption(oCorruptionDetector):
                   # We detected a modified byte; there was an OOB write before the one that caused this access
                   # violation. Use it's offset instead and add this fact to the description.
+                  if oCdbWrapper.bGetDetailsHTML:
+                    oBugReport.atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
                   uStartAddress = oCorruptionDetector.uCorruptionStartAddress;
-                  oBugReport.atxMemoryRemarks.append(("Memory corruption", uStartAddress, uAddress - uStartAddress));
-                  uOffsetPastEndOfBlock = uStartAddress - uHeapBlockEndAddress;
+                  uOffsetPastEndOfBlock = uStartAddress - oPageHeapReport.uBlockEndAddress;
                   sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
                       "beyond that block because it modified the page heap suffix pattern.") % \
                       (uStartAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                  sMemoryDumpDescription = "memory corruption at 0x%X" % uStartAddress;
+                  if oCdbWrapper.bGetDetailsHTML:
+                    sMemoryDumpDescription = "memory corruption at 0x%X" % uStartAddress;
                   asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
-              elif uAddress == uPageEndAddress and uAddress > uBlockAddress + uBlockSize:
+              elif uAddress == oPageHeapReport.uAllocationEndAddress and uAddress > oPageHeapReport.uBlockEndAddress:
                 sBugDescription += " An earlier out-of-bounds access before this address may have happened without " \
                     "having triggered an access violation.";
             # The access was beyond the end of the block (out-of-bounds, OOB)
-            oBugReport.sBugTypeId = "OOB%s[%s]%s" % (sViolationTypeId, fsGetNumberDescription(uBlockSize), \
-                fsGetOffsetDescription(uOffsetPastEndOfBlock));
+            oBugReport.sBugTypeId = "OOB%s[%s]%s" % (sViolationTypeId, \
+                fsGetNumberDescription(oPageHeapReport.uBlockSize), fsGetOffsetDescription(uOffsetPastEndOfBlock));
             if asCorruptedBytes:
               sBugDescription += " The following byte values were written to the corrupted area: %s." % \
                   ", ".join(asCorruptedBytes);
@@ -415,18 +350,20 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             # The access was inside the block but apparently the kind of access attempted is not allowed (e.g. write to
             # read-only memory).
             oBugReport.sBugTypeId = "AV%s[%s]@%s" % (sViolationTypeId, \
-                fsGetNumberDescription(uBlockSize), fsGetNumberDescription(uOffsetFromStartOfBlock));
+                fsGetNumberDescription(oPageHeapReport.uBlockSize), fsGetNumberDescription(uOffsetFromStartOfBlock));
             sOffsetDescription = "%d/0x%X bytes into" % (uOffsetFromStartOfBlock, uOffsetFromStartOfBlock);
             sBugDescription = "Access violation while %s memory at 0x%X; %s a %d/0x%X byte heap block at 0x%X." % \
-                (sViolationTypeDescription, uAddress, sOffsetDescription, uBlockSize, uBlockSize, uBlockAddress);
+                (sViolationTypeDescription, uAddress, sOffsetDescription, oPageHeapReport.uBlockSize, \
+                oPageHeapReport.uBlockSize, oPageHeapReport.uBlockStartAddress);
           sSecurityImpact = "Potentially exploitable security issue.";
         else:
           raise NotImplemented("NOT REACHED");
-        sPageHeapOutputHTML = sBlockHTMLTemplate % {
-          "sName": "Page heap report for address 0x%X" % uAddress,
-          "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asPageHeapReport])
-        };
-        oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
+        if oCdbWrapper.bGetDetailsHTML:
+          sPageHeapOutputHTML = sBlockHTMLTemplate % {
+            "sName": "Page heap output for address 0x%X" % uAddress,
+            "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in oPageHeapReport.asPageHeapOutput])
+          };
+          oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
       else:
         asMemoryProtectionInformation = oCdbWrapper.fasSendCommandAndReadOutput(
           "!vprot 0x%X; $$ Get memory protection information" % uAddress,
@@ -493,11 +430,13 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               uProtectionFlags = uValue;
             elif sInfoType == "Type":
               uTypeFlags = uValue;
-          oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
-          oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
+          if oCdbWrapper.bGetDetailsHTML:
+            oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
+            oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
           if uStateFlags == 0x10000:
             oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
-            sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAddress);
+            sBugDescription = "Access violation while %s unallocated memory at 0x%X." % \
+                (sViolationTypeDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the attacker can control the address or the memory at the address.";
           elif uStateFlags == 0x2000: # MEM_RESERVE
 # These checks were added to make sure I understood exactly what was going on. However, it turns out that I don't
@@ -509,7 +448,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
 #            assert uProtectionFlags == 0x1 or uAllocationProtectionFlags in [0x1, 02], \
 #                "Expected MEM_RESERVE memory to have protection PAGE_NOACCESS or PAGE_READONLY\r\n%s" % "\r\n".join(asMemoryProtectionInformation);
             oBugReport.sBugTypeId = "AV%s:Reserved" % sViolationTypeId;
-            sBugDescription = "Access violation while %s reserved but unallocated memory at 0x%X." % (sViolationTypeDescription, uAddress);
+            sBugDescription = "Access violation while %s reserved but unallocated memory at 0x%X." % \
+                (sViolationTypeDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
           elif uStateFlags == 0x1000: # MEM_COMMIT
             dsMemoryProtectionsDescription_by_uFlags = {
@@ -518,14 +458,19 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             };
             sMemoryProtectionsDescription = dsMemoryProtectionsDescription_by_uFlags.get(uAllocationProtectionFlags);
             assert sMemoryProtectionsDescription, \
-                "Unexpected MEM_COMMIT memory to have protection value 0x%X\r\n%s" % (uAllocationProtectionFlags, "\r\n".join(asMemoryProtectionInformation));
+                "Unexpected MEM_COMMIT memory to have protection value 0x%X\r\n%s" % \
+                 (uAllocationProtectionFlags, "\r\n".join(asMemoryProtectionInformation));
             oBugReport.sBugTypeId = "AV%s:Arbitrary" % sViolationTypeId;
-            sBugDescription = "Access violation while %s %s memory at 0x%X." % (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
+            sBugDescription = "Access violation while %s %s memory at 0x%X." % \
+                (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
-            oBugReport.atxMemoryDumps.append(("Memory block in which access violation happened", uAllocationStartAddress, uAllocationSize));
-            oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
+            if oCdbWrapper.bGetDetailsHTML:
+              oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
+                  uAllocationStartAddress, uAllocationSize));
+              oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
           else:
-            raise AssertionError("Unexpected memory state 0x%X\r\n%s" % (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
+            raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
+                (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
   oBugReport.sBugDescription = sBugDescription + sViolationTypeNotes;
   oBugReport.sSecurityImpact = sSecurityImpact;
   dtxBugTranslations = ddtxBugTranslations.get(oBugReport.sBugTypeId, None);

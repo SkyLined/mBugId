@@ -1,5 +1,6 @@
 import re;
 from cBugReport import cBugReport;
+from cPageHeapReport import cPageHeapReport;
 from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
 from cCorruptionDetector import cCorruptionDetector;
@@ -9,8 +10,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   uErrorNumber = None;
   uProcessId = None;
   sMessage = None;
-  uHeapBlockAddress = None;
-  uHeapBlockSize = None;
+  uVerifierStopHeapBlockStartAddress = None;
+  uVerifierStopHeapBlockSize = None;
   uCorruptedStamp = None;
   uCorruptionAddress = None;
   asRelevantLines = [];
@@ -26,16 +27,16 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         sErrorNumber, sProcessId, sMessage = oErrorMessageMatch.groups();
         uErrorNumber = long(sErrorNumber, 16);
         uProcessId = long(sProcessId, 16);
-      asRelevantLines.append(sLine);
+        asRelevantLines.append(sLine);
       continue;
-    asRelevantLines.append(sLine);
     # A VERIFIER STOP message has been detected, gather what information verifier provides:
     oInformationMatch = re.match(r"\t([0-9A-F]+) : (.*?)\s*$", sLine);
     if oInformationMatch:
+      asRelevantLines.append(sLine);
       sValue, sDescription = oInformationMatch.groups();
       uValue = long(sValue, 16);
-      if sDescription == "Heap block": uHeapBlockAddress = uValue;
-      elif sDescription == "Block size": uHeapBlockSize = uValue;
+      if sDescription == "Heap block": uVerifierStopHeapBlockStartAddress = uValue;
+      elif sDescription == "Block size": uVerifierStopHeapBlockSize = uValue;
       elif sDescription == "Corrupted stamp": uCorruptedStamp = uValue;
       elif sDescription == "corruption address": uCorruptionAddress = uValue;
     else:
@@ -59,65 +60,67 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     # This is not interesting; do not report an error.
     return True;
   
-  assert uHeapBlockAddress is not None, \
+  assert uVerifierStopHeapBlockStartAddress is not None, \
       "The heap block start address was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
-  assert uHeapBlockSize is not None, \
+  assert uVerifierStopHeapBlockSize is not None, \
       "The heap block size was not found in the verifier stop message.\r\n%s" % "\r\n".join(asRelevantLines);
   
-  uHeapBlockEndAddress = uHeapBlockAddress + uHeapBlockSize;
-  uHeapPageEndAddress = (uHeapBlockEndAddress | 0xFFF) + 1;
-  assert uHeapPageEndAddress >= uHeapBlockEndAddress, \
-      "The heap block at 0x%X is expected to end at 0x%X, but the page is expected to end at 0x%X, which is impossible.\r\n%s" % \
-      (uHeapBlockAddress, uHeapBlockEndAddress, uHeapPageEndAddress, "\r\n".join(asRelevantLines));
-  uMemoryDumpStartAddress = uHeapBlockAddress;
-  uMemoryDumpSize = uHeapBlockSize;
-  atxMemoryRemarks = [
-    ("Memory block start", uHeapBlockAddress, None),
-    ("Memory block end", uHeapBlockEndAddress, None)
-  ];
-  
   oCorruptionDetector = cCorruptionDetector(oCdbWrapper);
-  # End of VERIFIER STOP message; report a bug.
+  oPageHeapReport = cPageHeapReport.foCreate(oCdbWrapper, uVerifierStopHeapBlockStartAddress);
+  if not oCdbWrapper.bCdbRunning: return None;
+  if oPageHeapReport:
+    # Prefer page heap information over VERIFIER STOP info - the later has been known to be incorrect sometimes, for
+    # instance when the application frees (heap pointer + offset), the VERIFIER STOP info will use that as the heap
+    # block base, whereas the page heap report will correctly report (heap pointer) as the heap block base.
+    uAllocationStartAddress = oPageHeapReport.uAllocationStartAddress;
+    uAllocationEndAddress = oPageHeapReport.uAllocationEndAddress;
+    uHeapBlockStartAddress = oPageHeapReport.uBlockStartAddress;
+    uHeapBlockSize = oPageHeapReport.uBlockSize;
+    uHeapBlockEndAddress = oPageHeapReport.uBlockEndAddress;
+    # Check the page heap data near the heap block for signs of corruption:
+    oPageHeapReport.fbCheckForCorruption(oCorruptionDetector);
+    if not oCdbWrapper.bCdbRunning: return None;
+  else:
+    uHeapBlockStartAddress = uVerifierStopHeapBlockStartAddress;
+    uHeapBlockSize = uVerifierStopHeapBlockSize;
+    uHeapBlockEndAddress = uVerifierStopHeapBlockStartAddress + uVerifierStopHeapBlockSize;
+  if oCdbWrapper.bGetDetailsHTML:
+    uMemoryDumpStartAddress = uHeapBlockStartAddress;
+    uMemoryDumpSize = uVerifierStopHeapBlockSize;
+    atxMemoryRemarks = oPageHeapReport.fatxMemoryRemarks();
+  
+  # Handle various VERIFIER STOP messages.
+  sBugDescription = None;
   if sMessage in ["corrupted start stamp", "corrupted end stamp"]:
     assert uCorruptionAddress is None, \
-        "We do not expect the corruption address to be provided in the VERIFIER STOP message\r\n%s" % \
+        "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
             "\r\n".join(asRelevantLines);
-    sBugTypeId = "OOBW";
-    # Both the start and end stamp may have been corrupted and it appears that a bug in verifier causes a corruption
-    # of the end stamp to be reported as a corruption of the start stamp, so we'll check both for unexpected values:
-    uPointerSize = oCdbWrapper.fuGetValue("$ptrsize");
-    if not oCdbWrapper.bCdbRunning: return;
-    # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
-    uEndStampAddress = uHeapBlockAddress - uPointerSize;          # ULONG with optional padding to pointer size
-    if uPointerSize == 8:
-      # End stamp comes immediately after other header values
-      oCorruptionDetector.fDetectCorruption(uEndStampAddress, 0, 0, 0, 0, [0xBA, 0xBB], 0xBB, 0xBA, 0xDC);
+    if not oCorruptionDetector.bCorruptionDetected and oPageHeapReport.uBlockStartAddress != uVerifierStopHeapBlockStartAddress:
+      # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
+      # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
+      # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
+      # can special case it.
+      iFreeAtOffset = uVerifierStopHeapBlockStartAddress - oPageHeapReport.uBlockStartAddress;
+      sBugTypeId = "MisalignedFree[%s]%s" % (fsGetNumberDescription(uHeapBlockSize), fsGetOffsetDescription(iFreeAtOffset));
+      sOffsetBeforeOrAfter = iFreeAtOffset < 0 and "before" or "after";
+      sBugDescription = "The application attempted to free memory using a pointer that was %d/0x%X bytes %s a " \
+          "%d/0x%X byte heap block at address 0x%X" % (abs(iFreeAtOffset), abs(iFreeAtOffset), \
+          sOffsetBeforeOrAfter, uHeapBlockSize, uHeapBlockSize, oPageHeapReport.uBlockStartAddress);
+      sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
-      oCorruptionDetector.fDetectCorruption(uEndStampAddress, [0xBA, 0xBB], 0xBB, 0xBA, 0xDC);
-    uStackTraceAddress = uEndStampAddress - uPointerSize;         # PVOID
-    uFreeQueueAddress = uStackTraceAddress - 2 * uPointerSize;    # LIST_ENTRY
-    uActualSizeAddress = uFreeQueueAddress - uPointerSize;        # size_t
-    uRequestedSizeAddress = uActualSizeAddress - uPointerSize;    # size_t
-    uHeapAddressAddress = uRequestedSizeAddress - uPointerSize;   # PVOID
-    uStartStampAddress = uHeapAddressAddress - uPointerSize;      # ULONG with optional padding to pointer size
-    if uPointerSize == 8:
-      # End stamp comes immediately before other header values
-      oCorruptionDetector.fDetectCorruption(uStartStampAddress, [0xBA, 0xBB], 0xBB, 0xCD, 0xAB, 0, 0, 0, 0);
-    else:
-      oCorruptionDetector.fDetectCorruption(uStartStampAddress, [0xBA, 0xBB], 0xBB, 0xCD, 0xAB);
-    assert oCorruptionDetector.bCorruptionDetected, \
-        "Cannot find any sign of corruption";
+      sBugTypeId = "OOBW[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+      assert oCorruptionDetector.bCorruptionDetected, \
+          "Cannot find any sign of corruption";
   elif sMessage == "corrupted suffix pattern":
     assert uCorruptionAddress is not None, \
-        "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
+        "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
             "\r\n".join(asRelevantLines);
     # Page heap stores the heap as close as possible to the edge of a page, taking into account that the start of the
     # heap block must be properly aligned. Bytes between the heap block and the end of the page are initialized to
     # 0xD0. Verifier has detected that one of the bytes changed value, which indicates an out-of-bounds write. BugId
     # will try to find all bytes that were changed:
-    sBugTypeId = "OOBW";
-    uPaddingSize = uHeapPageEndAddress - uHeapBlockEndAddress;
-    oCorruptionDetector.fDetectCorruption(uHeapBlockEndAddress, *[0xD0 for x in xrange(uPaddingSize)]);
+    sBugTypeId = "OOBW[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+    oPageHeapReport.fbCheckForCorruption(oCorruptionDetector);
     assert oCorruptionDetector.bCorruptionDetected, \
         "Cannot find any sign of corruption";
   elif sMessage == "corrupted infix pattern":
@@ -127,73 +130,92 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     # Page heap sometimes does not free a heap block immediately, but overwrites the bytes with 0xF0. Verifier has
     # detected that one of the bytes changed value, which indicates a write-after-free. BugId will try to find all
     # bytes that were changed:
-    sBugTypeId = "UAFW";
-    oCorruptionDetector.fDetectCorruption(uHeapBlockAddress, *[0xF0 for x in xrange(uHeapBlockSize)]);
+    sBugTypeId = "UAFW[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+    # TODO add these checks to cPaheHeapReport if possible.
+    oCorruptionDetector.fbDetectCorruption(uHeapBlockStartAddress, [0xF0 for x in xrange(uHeapBlockSize)]);
     assert oCorruptionDetector.bCorruptionDetected, \
         "Cannot find any sign of corruption";
   else:
-    sBugTypeId = "HeapCorrupt";
-  if uHeapBlockSize is not None:
-    sBugTypeId += "[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+    sBugTypeId = "HeapCorrupt[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+  # sBugDescription is not set if this is a memory corruption
   
   # See if we have a better idea of where the corruption started and ended:
-  uCorruptionStartAddress = uCorruptionAddress;
-  uCorruptionEndAddress = uCorruptionAddress;
   if oCorruptionDetector.bCorruptionDetected:
     uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
     uCorruptionEndAddress = oCorruptionDetector.uCorruptionEndAddress;
     uCorruptionSize = uCorruptionEndAddress - uCorruptionStartAddress;
-    atxMemoryRemarks.append(("Corrupted memory", uCorruptionStartAddress, uCorruptionSize));
+    if oCdbWrapper.bGetDetailsHTML:
+      atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
     assert uCorruptionAddress is None or uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
         "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X\r\n%s" % \
         (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress, "\r\n".join(asRelevantLines));
-  else:
-    oBugReport.atxMemoryRemarks.append(("Corrupted memory", uCorruptionAddress, None));
+    bCorruptionDetected = True;
+  elif uCorruptionAddress:
+    if oCdbWrapper.bGetDetailsHTML:
+      atxMemoryRemarks.append(("Corrupted memory", uCorruptionAddress, None));
     uCorruptionStartAddress = uCorruptionAddress;
     uCorruptionEndAddress = uCorruptionAddress;
-  
-  # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
-  # corrupted region.
-  if uCorruptionStartAddress < uMemoryDumpStartAddress:
-    uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
-    uMemoryDumpStartAddress = uCorruptionStartAddress;
-  if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
-    uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
-  # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
-  # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
-  uCorruptionStartOffset = uCorruptionStartAddress - uHeapBlockAddress;
-  if uCorruptionStartOffset >= uHeapBlockSize:
-    uCorruptionStartOffset -= uHeapBlockSize;
-    sCorruptionStartOffsetDescription = "%d/0x%X bytes beyond" % (uCorruptionStartOffset, uCorruptionStartOffset);
-    sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
-  elif uCorruptionStartOffset > 0:
-    sCorruptionStartOffsetDescription = "%d/0x%X bytes into" % (uCorruptionStartOffset, uCorruptionStartOffset);
-    sBugTypeId += "@%s" % fsGetNumberDescription(uCorruptionStartOffset);
+    bCorruptionDetected = True;
   else:
-    sCorruptionStartOffsetDescription = "%d/0x%X bytes before" % (-uCorruptionStartOffset, -uCorruptionStartOffset);
-    sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
-  sBugDescription = "Page heap detected heap corruption at 0x%X; %s a %d/0x%X byte heap block at address 0x%X" % \
-      (uCorruptionStartAddress, sCorruptionStartOffsetDescription, uHeapBlockSize, uHeapBlockSize, uHeapBlockAddress);
-    
-  # If we detected corruption by scanning certain bytes in the applications memory, make sure this matches what
-  # verifier reported and save all bytes that were affected: so far, we only saved the bytes that had an unexpected
-  # value, but there is a chance that a byte was overwritten with the same value it has before, in which case it was
-  # not saved. This can be detect if it is surrounded by bytes that did change value. This code reads the value of all
-  # bytes between the first and last byte that we detected was corrupted:
-  asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
-  if asCorruptedBytes:
-    sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
-    sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
+    bCorruptionDetected = False;
   
-  sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled";
+  if bCorruptionDetected:
+    # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
+    # corrupted region.
+    if oCdbWrapper.bGetDetailsHTML:
+      if uCorruptionStartAddress < uMemoryDumpStartAddress:
+        uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
+        uMemoryDumpStartAddress = uCorruptionStartAddress;
+      if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
+        uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
+    # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
+    # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
+    uCorruptionStartOffset = uCorruptionStartAddress - uHeapBlockStartAddress;
+    if uCorruptionStartOffset >= uHeapBlockSize:
+      uCorruptionStartOffset -= uHeapBlockSize;
+      sCorruptionStartOffsetDescription = "%d/0x%X bytes beyond" % (uCorruptionStartOffset, uCorruptionStartOffset);
+      sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
+    elif uCorruptionStartOffset > 0:
+      sCorruptionStartOffsetDescription = "%d/0x%X bytes into" % (uCorruptionStartOffset, uCorruptionStartOffset);
+      sBugTypeId += "@%s" % fsGetNumberDescription(uCorruptionStartOffset);
+    else:
+      sCorruptionStartOffsetDescription = "%d/0x%X bytes before" % (-uCorruptionStartOffset, -uCorruptionStartOffset);
+      sBugTypeId += fsGetOffsetDescription(uCorruptionStartOffset);
+    sBugDescription = "Page heap detected heap corruption at 0x%X; %s a %d/0x%X byte heap block at address 0x%X" % \
+        (uCorruptionStartAddress, sCorruptionStartOffsetDescription, uHeapBlockSize, uHeapBlockSize, uHeapBlockStartAddress);
+    # If we detected corruption by scanning certain bytes in the applications memory, make sure this matches what
+    # verifier reported and save all bytes that were affected: so far, we only saved the bytes that had an unexpected
+    # value, but there is a chance that a byte was overwritten with the same value it has before, in which case it was
+    # not saved. This can be detect if it is surrounded by bytes that did change value. This code reads the value of all
+    # bytes between the first and last byte that we detected was corrupted:
+    asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
+    if asCorruptedBytes:
+      sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
+      sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
+    sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled";
+  else:
+    assert sBugDescription, \
+        "sBugDescription should have been set";
+    
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
-  oBugReport.atxMemoryDumps.append(("Heap block for memory corruption", uMemoryDumpStartAddress, uMemoryDumpSize));
-  oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
-  sVerifierStopMessageHTML = sBlockHTMLTemplate % {
-    "sName": "VERIFIER STOP message",
-    "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asRelevantLines])
-  };
-  oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
+  if oCdbWrapper.bGetDetailsHTML:
+    oBugReport.atxMemoryDumps.append(("Memory near heap block at 0x%X" % uMemoryDumpStartAddress, \
+        uMemoryDumpStartAddress, uMemoryDumpSize));
+    oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
+  # Output the VERIFIER STOP message for reference
+  if oCdbWrapper.bGetDetailsHTML:
+    sVerifierStopMessageHTML = sBlockHTMLTemplate % {
+      "sName": "VERIFIER STOP message",
+      "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asRelevantLines])
+    };
+    oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
+    # Output the page heap information for reference
+    if oPageHeapReport:
+      sPageHeapOutputHTML = sBlockHTMLTemplate % {
+        "sName": "Page heap output for heap block at 0x%X" % uHeapBlockStartAddress,
+        "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in oPageHeapReport.asPageHeapOutput])
+      };
+      oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
   
   oBugReport.bRegistersRelevant = False;
   oCdbWrapper.oBugReport = oBugReport;

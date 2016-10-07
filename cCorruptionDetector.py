@@ -6,19 +6,21 @@ class cCorruptionDetector(object):
     # Can be used to check for memory corruption
   def __init__(oCorruptionDetector, oCdbWrapper):
     oCorruptionDetector.oCdbWrapper = oCdbWrapper;
-    oCorruptionDetector.dsBytesHex_by_uAddress = {};
+    oCorruptionDetector.dsCorruptedBytesHex_by_uAddress = {};
     oCorruptionDetector.bCorruptionDetected = False;
-    oCorruptionDetector.uCorruptionStartAddress = None;
-    oCorruptionDetector.uCorruptionEndAddress = None;
+    oCorruptionDetector.uCorruptionStartAddress = None; # first corrupted byte as detected by fDetectCorruption
+    oCorruptionDetector.uCorruptionSize = None;
+    oCorruptionDetector.uCorruptionEndAddress = None; # first non-corrupted byte after corruption
   
-  def fDetectCorruption(oCorruptionDetector, uStartAddress, *axExpectedBytes):
+  def fbDetectCorruption(oCorruptionDetector, uStartAddress, axExpectedBytes):
     aauExpectedBytes = [isinstance(xExpectedBytes, list) and xExpectedBytes or [xExpectedBytes] for xExpectedBytes in axExpectedBytes];
-    uAddress = uStartAddress;
-    auBytes = [];
-    for auExpectedBytes in aauExpectedBytes:
-      uByte = oCorruptionDetector.oCdbWrapper.fuGetValue("by(0x%X)" % uAddress);
-      oCorruptionDetector.dsBytesHex_by_uAddress[uAddress] = "%02X" % uByte;
+    auBytes = oCorruptionDetector.oCdbWrapper.fauGetBytes(uStartAddress, len(axExpectedBytes));
+    for uOffset in xrange(len(axExpectedBytes)):
+      uAddress = uStartAddress + uOffset;
+      auExpectedBytes = aauExpectedBytes[uOffset];
+      uByte = auBytes[uOffset];
       if uByte not in auExpectedBytes:
+        oCorruptionDetector.dsCorruptedBytesHex_by_uAddress[uAddress] = uByte is None and "??" or "%02X" % uByte;
         if not oCorruptionDetector.bCorruptionDetected:
           oCorruptionDetector.bCorruptionDetected = True;
           oCorruptionDetector.uCorruptionStartAddress = uAddress;
@@ -27,24 +29,41 @@ class cCorruptionDetector(object):
           oCorruptionDetector.uCorruptionStartAddress = uAddress;
         elif uAddress >= oCorruptionDetector.uCorruptionEndAddress:
           oCorruptionDetector.uCorruptionEndAddress = uAddress + 1;
-      uAddress += 1;
+        oCorruptionDetector.uCorruptionSize = \
+            oCorruptionDetector.uCorruptionEndAddress - oCorruptionDetector.uCorruptionStartAddress;
+    return oCorruptionDetector.bCorruptionDetected;
+  
+  def fatxMemoryRemarks(oCorruptionDetector):
+    # Coalese corrupted bytes into blocks where possible, then create remarks for each such block or single byte.
+    atxMemoryRemarks = [];
+    uStartAddress = None;
+    uLength = None;
+    for uAddress in sorted(oCorruptionDetector.dsCorruptedBytesHex_by_uAddress.keys()):
+      if uStartAddress is None or uAddress != uStartAddress + uLength:
+        if uStartAddress is not None:
+          atxMemoryRemarks.append(("Corrupted", uStartAddress, uLength));
+        uStartAddress = uAddress;
+        uLength = 1;
+      else:
+        uLength += 1;
+    if uStartAddress is not None:
+      atxMemoryRemarks.append(("Corrupted", uStartAddress, uLength));
+    return atxMemoryRemarks;
   
   def fasCorruptedBytes(oCorruptionDetector):
-    uCorruptionLength = oCorruptionDetector.uCorruptionEndAddress - oCorruptionDetector.uCorruptionStartAddress;
-    asCorruptedBytes = [];
-    for uOffset in xrange(uCorruptionLength):
-      uAddress = oCorruptionDetector.uCorruptionStartAddress + uOffset;
-      if uAddress not in oCorruptionDetector.dsBytesHex_by_uAddress:
-        oCorruptionDetector.dsBytesHex_by_uAddress[uAddress] = \
-            "%02X" % oCorruptionDetector.oCdbWrapper.fuGetValue("by(0x%X)" % (uAddress));
-      asCorruptedBytes.append(oCorruptionDetector.dsBytesHex_by_uAddress[uAddress]);
-    return asCorruptedBytes;
+    # xrange can't handle longs, so we have to work around that:
+    uStartAddress = oCorruptionDetector.uCorruptionStartAddress;
+    uLength = oCorruptionDetector.uCorruptionEndAddress - uStartAddress;
+    return [
+      oCorruptionDetector.dsCorruptedBytesHex_by_uAddress.get(uStartAddress + uOffset, "??")
+      for uOffset in xrange(uLength)
+    ];
   
   def fsCorruptionId(oCorruptionDetector):
-    if dxBugIdConfig["uHeapCorruptedBytesHashChars"] == 0:
-      return None;
-    oHasher = hashlib.md5();
-    oHasher.update("".join(oCorruptionDetector.fasCorruptedBytes()));
     uCorruptionLength = oCorruptionDetector.uCorruptionEndAddress - oCorruptionDetector.uCorruptionStartAddress;
-    return "~%s:%s" % (fsGetNumberDescription(uCorruptionLength), \
-        oHasher.hexdigest()[:dxBugIdConfig["uHeapCorruptedBytesHashChars"]]);
+    sId = "~%s" % fsGetNumberDescription(uCorruptionLength);
+    if dxBugIdConfig["uHeapCorruptedBytesHashChars"]:
+      oHasher = hashlib.md5();
+      oHasher.update("".join(oCorruptionDetector.fasCorruptedBytes()));
+      sId += "#%s" % oHasher.hexdigest()[:dxBugIdConfig["uHeapCorruptedBytesHashChars"]];
+    return sId;

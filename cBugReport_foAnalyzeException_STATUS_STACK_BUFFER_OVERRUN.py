@@ -31,9 +31,9 @@ asHiddenTopFrames = [
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
 dtsFastFailErrorInformation_by_uCode = {
-  0:  ("LegacyGS",      "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
+  0:  ("OOBW[Stack]",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
   1:  ("VTGuard",       "VTGuard detected an invalid virtual function table cookie",  "Potentially exploitable security issue"),
-  2:  ("StackCookie",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
+  2:  ("OOBW[Stack]",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
   3:  ("CorruptList",   "Safe unlinking detected a corrupted LIST_ENTRY",             "Potentially exploitable security issue"),
   4:  ("BadStack",      "FAST_FAIL_INCORRECT_STACK",                                  "Potentially exploitable security issue"),
   5:  ("InvalidArg",    "FAST_FAIL_INVALID_ARG",                                      "Potentially exploitable security issue"),
@@ -113,7 +113,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
     oBugReport = oBugReport.foTranslate(dtxBugTranslations);
   # If the bug was not translated, continue to treat it as a fast fail call:
   if oBugReport and oBugReport.sBugTypeId == sOriginalBugTypeId:
-    oBugReport.sBugTypeId += ":%s" % sFastFailCodeId;
+    oBugReport.sBugTypeId = sFastFailCodeId;
     if sFastFailCodeDescription.startswith("FAST_FAIL_"):
       oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)" % \
           (oException.uCode, uFastFailCode, sFastFailCodeDescription);
@@ -121,7 +121,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
       oBugReport.sBugDescription = sFastFailCodeDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
     oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
-  if uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
+  if oCdbWrapper.bGetDetailsHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
     uStackPointer = oCdbWrapper.fuGetValue("@$csp");
     if not oCdbWrapper.bCdbRunning: return;
     uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
