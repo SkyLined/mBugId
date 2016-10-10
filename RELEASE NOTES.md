@@ -1,29 +1,36 @@
 2016-10-10
+==========
+New features
+------------
++ Page heap settings are now automatically applied by default to all processes
+  to ensure best results. Settings can be used to disable this if needed. Which
+  settings are applied can also be modified through settings.
+
 Bugfixes
 --------
-* cCdbWrapper_fuGetValue now ignores an additional cdb warning.
++ cCdbWrapper_fuGetValue now ignores an additional cdb warning.
 
 2016-10-07
 ==========
 New or changed BugIds
 ---------------------
-* Detect and report misaligned frees in VERIFIER STOP heap stamp corruptions,
++ Detect and report misaligned frees in VERIFIER STOP heap stamp corruptions,
   the BugId takes the for `MisalignedFree[size]+offset`. e.g if the code
   attempts to free heap using a pointer that is at offset 0x8 of a 0x20 byte
   block, you will get a BugId of `MisalignedFree[0x20]+8`
-* The `FailFast2:` prefix was removed from FailFast exceptions.
-* Both `LegacyGS` and `StackCookie` FailFast exceptions are now reported as
++ The `FailFast2:` prefix was removed from FailFast exceptions.
++ Both `LegacyGS` and `StackCookie` FailFast exceptions are now reported as
   `OOBW[Stack]` (as in: Out-Of-Bounds Write on the Stack).
 
 Improvements
 ------------
-* Mayor rewrite of page heap information handling, same code now used when an
++ Mayor rewrite of page heap information handling, same code now used when an
   access violation is handled as well as for VERIFIER STOPs.
-* Rewrite of parts of the VERIFIER STOP handling code.
-* Change code to not generate information for the HTML report when this is not
++ Rewrite of parts of the VERIFIER STOP handling code.
++ Change code to not generate information for the HTML report when this is not
   needed.
-* memory dumps in HTML reports contain more information.
-* Rewrote parts of the memory corruption detector.
++ memory dumps in HTML reports contain more information.
++ Rewrote parts of the memory corruption detector.
 
 2016-10-05
 ==========
