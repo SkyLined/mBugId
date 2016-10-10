@@ -140,6 +140,23 @@ for (sName, xValue) in {
                                         # need to switch this to True. If you do; you should consider contacting the
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
+  ### Page heap
+  "bForcePageHeap": true,               # If true (the default), each process that BugId attaches to, creates, or which
+                                        # is created during debugging will have page heap automatically enabled with
+                                        # the flags set in `uPageHeapFlags` below. BugId works best with page heap
+                                        # enabled, but this may cause problems with certain applications. In such cases
+                                        # it should be disabled using gflags.exe and by changing this setting to false.
+  "uDisablePageHeapFlags": 0,           # BugId automatically disables these settings in all processes (default 0)
+  "uEnablePageHeapFlags": 0x2109870,    # BugId automatically enables these settings in all processes (the default,
+                                        # 0x02109870, enables these settings:
+                                        # 0x00000010 Enable heap tail checking (htc).
+                                        # 0x00000020 Enable heap free checking (hfc).
+                                        # 0x00000040 Enable heap parameter checking (hpc).
+                                        # 0x00000800 Enable heap tagging (htg).
+                                        # 0x00001000 Create a user-mode stack trace DB (ust).
+                                        # 0x00008000 Enable heap tagging by DLL (htd).
+                                        # 0x00100000 Enable critical system breaks (scb).
+                                        # 0x02000000 Put heap allocations at the end of pages (hpa).
 }.items():
   if sName not in dxBugIdConfig:
     dxBugIdConfig[sName] = xValue;

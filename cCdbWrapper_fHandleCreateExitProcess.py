@@ -32,6 +32,9 @@ def cCdbWrapper_fHandleNewProcess(oCdbWrapper, uProcessId):
   # affect on performance and would prevent bugs if this assumption is not true.
   oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes");
   if not oCdbWrapper.bCdbRunning: return;
+  if dxBugIdConfig["bForcePageHeap"]:
+    oCdbWrapper.fasSendCommandAndReadOutput("!gflag -ffffffff; !gflag +0x%X; $$ Enable page heap" % dxBugIdConfig["uPageHeapFlags"]);
+    if not oCdbWrapper.bCdbRunning: return;
 
 def cCdbWrapper_fHandleCreateExitProcess(oCdbWrapper, sCreateExit, uProcessId):
   # Returns true if the debugger is ready to debug the application and false if the debugger is still attaching to the
