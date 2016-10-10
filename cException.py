@@ -128,23 +128,22 @@ class cException(object):
         oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
         oException.oFunction, oException.uFunctionOffset
       ) = oCdbWrapper.ftxSplitSymbolOrAddress(oException.sAddressSymbol, doModules_by_sCdbId);
-      sCdbLine = oException.sAddressSymbol;
+      sCdbSymbolOrAddress = oException.sAddressSymbol;
       if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
         # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,
         # so do not try to check that exception information matches the first stack frame.
         return None;
     else:
       oException.uAddress = oException.uInstructionPointer;
-      sCdbLine = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
+      sCdbSymbolOrAddress = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
     if not oStack.aoFrames:
       # Failed to get stack, use information from exception and the current return adderss to reconstruct the top frame.
       uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
       if not oCdbWrapper.bCdbRunning: return;
       oStack.fCreateAndAddStackFrame(
         uNumber = 0,
-        sCdbLine = sCdbLine,
-        uInstructionPointer = oException.uInstructionPointer,
-        uReturnAddress = uReturnAddress,
+        sCdbSymbolOrAddress = sCdbSymbolOrAddress,
+        uInstructionPointer = oException.uInstructionPointer, uReturnAddress = uReturnAddress,
         uAddress = oException.uAddress,
         sUnloadedModuleFileName = oException.sUnloadedModuleFileName,
         oModule = oException.oModule, uModuleOffset = oException.uModuleOffset,
