@@ -8,7 +8,7 @@ def cCdbWrapper_fuGetValue(oCdbWrapper, sValue):
   if len(asValueResult) == 2 and asValueResult[0].startswith("Unable to read dynamic function table entry at "):
     # It looks like we can safely ignore this error: the next line should contain the value.
     uValueAtIndex = 1;
-  elif len(asValueResult) == 2 and asValueResult[0] == "WARNING: Stack overflow detected. The unwound frames are extracted from outside normal stack bounds."):
+  elif len(asValueResult) == 2 and asValueResult[0] == "WARNING: Stack overflow detected. The unwound frames are extracted from outside normal stack bounds.":
     # It looks like we can safely ignore this warning: the next line should contain the value.
     uValueAtIndex = 1;
   else:
