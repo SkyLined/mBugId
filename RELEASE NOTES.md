@@ -1,7 +1,12 @@
+2016-10-10
+Bugfixes
+--------
+* cCdbWrapper_fuGetValue now ignores an additional cdb warning.
+
 2016-10-07
 ==========
-New or changed bugids
-=====================
+New or changed BugIds
+---------------------
 * Detect and report misaligned frees in VERIFIER STOP heap stamp corruptions,
   the BugId takes the for `MisalignedFree[size]+offset`. e.g if the code
   attempts to free heap using a pointer that is at offset 0x8 of a 0x20 byte
@@ -11,7 +16,7 @@ New or changed bugids
   `OOBW[Stack]` (as in: Out-Of-Bounds Write on the Stack).
 
 Improvements
-============
+------------
 * Mayor rewrite of page heap information handling, same code now used when an
   access violation is handled as well as for VERIFIER STOPs.
 * Rewrite of parts of the VERIFIER STOP handling code.
