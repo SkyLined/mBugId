@@ -33,7 +33,8 @@ def cCdbWrapper_fHandleNewProcess(oCdbWrapper, uProcessId):
   oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes");
   if not oCdbWrapper.bCdbRunning: return;
   if dxBugIdConfig["bForcePageHeap"]:
-    oCdbWrapper.fasSendCommandAndReadOutput("!gflag -ffffffff; !gflag +0x%X; $$ Enable page heap" % dxBugIdConfig["uPageHeapFlags"]);
+    oCdbWrapper.fasSendCommandAndReadOutput("!gflag -0x%X; !gflag +0x%X; $$ Disable/Enable page heap" % \
+        (dxBugIdConfig["uDisablePageHeapFlags"], dxBugIdConfig["uEnablePageHeapFlags"]));
     if not oCdbWrapper.bCdbRunning: return;
 
 def cCdbWrapper_fHandleCreateExitProcess(oCdbWrapper, sCreateExit, uProcessId):
