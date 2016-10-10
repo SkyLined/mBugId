@@ -141,7 +141,7 @@ for (sName, xValue) in {
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
   ### Page heap
-  "bForcePageHeap": true,               # If true (the default), each process that BugId attaches to, creates, or which
+  "bForcePageHeap": True,               # If true (the default), each process that BugId attaches to, creates, or which
                                         # is created during debugging will have page heap automatically enabled with
                                         # the flags set in `uPageHeapFlags` below. BugId works best with page heap
                                         # enabled, but this may cause problems with certain applications. In such cases
