@@ -141,11 +141,11 @@ for (sName, xValue) in {
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
   ### Page heap
-  "bForcePageHeap": True,               # If true (the default), each process that BugId attaches to, creates, or which
-                                        # is created during debugging will have page heap automatically enabled with
-                                        # the flags set in `uPageHeapFlags` below. BugId works best with page heap
-                                        # enabled, but this may cause problems with certain applications. In such cases
-                                        # it should be disabled using gflags.exe and by changing this setting to false.
+  "bForcePageHeap": False,              # If True, each process that BugId attaches to, creates, or which is created
+                                        # during debugging will have page heap automatically enabled with the flags set
+                                        # in `uPageHeapFlags` below. BugId works best with page heap enabled, but this
+                                        # may cause problems with certain applications. In such cases it should be
+                                        # disabled using gflags.exe and by changing this setting to false.
   "uDisablePageHeapFlags": 0,           # BugId automatically disables these settings in all processes (default 0)
   "uEnablePageHeapFlags": 0x2109870,    # BugId automatically enables these settings in all processes (the default,
                                         # 0x02109870, enables these settings:
