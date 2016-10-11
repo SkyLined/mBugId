@@ -1,3 +1,9 @@
+2016-10-11
+==========
+Bug fixes
+---------
++ Add missing include in code handling unexpected cdb termination.
+
 2016-10-10
 ==========
 New features
