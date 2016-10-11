@@ -21,6 +21,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sStackId = None;
     oBugReport.sBugLocation = None;
     oBugReport.sBugSourceLocation = None;
+    oBugReport.asVersionInformation = ["BugId: %s" % sVersion];
     
     if oCdbWrapper.bGetDetailsHTML:
       # Turn cdb output into formatted HTML. It is separated into blocks, one for the initial cdb output and one for each
