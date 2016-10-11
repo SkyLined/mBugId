@@ -3,6 +3,8 @@
 Bug fixes
 ---------
 + Add missing include in code handling unexpected cdb termination.
++ Disable automatically applying of page heap: it was causing access violations
+  for unknown reasons.
 
 2016-10-10
 ==========
