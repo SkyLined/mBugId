@@ -1,8 +1,16 @@
+2016-10-12
+==========
+Improvements
+------------
++ Cleanup stack for VERIFIER STOP message by removing top stack frames that are
+  irrelevant, as is already done for other bugs.
+
 2016-10-11
 ==========
 Bug fixes
 ---------
 + Add missing include in code handling unexpected cdb termination.
++ Add missing property to report for unexpected cdb termination.
 + Disable automatically applying of page heap: it was causing access violations
   for unknown reasons.
 
