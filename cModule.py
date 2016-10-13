@@ -53,7 +53,7 @@ class cModule(object):
     # |    LegalTrademarks:  Firefox is a Trademark of The Mozilla Foundation.
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
-    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+    if oCdbWrapper.bGetDetailsHTML:
       asModuleInformationHTML = [
           "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName),
       ];
