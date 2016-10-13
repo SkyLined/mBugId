@@ -143,14 +143,6 @@ ddtsDetails_uSpecialAddress_sISA = {
   },
 };
 
-def fsGetSpecialExceptionTypeId(sTypeId, oFrame):
-  dsFunctionName_sSpecialTypeId = ddsFunctionName_sSpecialTypeId_sTypeId.get(sTypeId, {});
-  return (
-    dsFunctionName_sSpecialTypeId.get(oFrame.sAddress)
-    or dsFunctionName_sSpecialTypeId.get(oFrame.sSimplifiedAddress)
-  );
-
-
 def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrapper, oException):
   # Parameter[0] = access type (0 = read, 1 = write, 8 = execute)
   # Parameter[1] = address
