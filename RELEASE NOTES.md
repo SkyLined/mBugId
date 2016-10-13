@@ -4,6 +4,9 @@ Breaking changes
 ----------------
 + Renamed sDetailsHTML property of bug report to sReportHTML (and
   sDetailsHTMLTemplate to sReportHTMLTemplate).
++ Don't count stack frames without a symbol towards the number of hashed frames.
+  They are added to the hash as a placeholder (`-`), so you hash may get larger
+  than what you could previously expect.
 
 Improvements
 ------------
