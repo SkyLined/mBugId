@@ -198,14 +198,23 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       if sCreateExitProcess == "Create":
         # Ignore the next exception if it's STATUS_BREAKPOINT.
         duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] = STATUS_BREAKPOINT;
-      elif uExceptionCode == STATUS_BREAKPOINT:
+      elif uExceptionCode in [STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEBUGGER]:
+        # Process is normally interrupted with a STATUS_BREAKPOINT when all DLLs have loaded. If one DLL is stuck in
+        # DllMain, the process will be interrupted with STATUS_WAKE_SYSTEM_DEBUGGER after 30 seconds. I am assuming
+        # that we can treat the later case the same as the former.
+        # When debugging an x86 application in a x64 debugger, a STATUS_BREAKPOINT may be followed by a 
+        # STATUS_WX86_BREAKPOINT for the same breakpoint. The later can be ignored, as we do everything needed when
+        # the former is detected.
+        if uExceptionCode == STATUS_BREAKPOINT:
+          duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] = STATUS_WX86_BREAKPOINT;
+        # When/if a process interrupted with STATUS_WAKE_SYSTEM_DEBUGGER is finally interrupted with a
+        # STATUS_BREAKPOINT when all DLLs have been loaded, this code is executed again, but it does nothing, so the
+        # later is effectively ignored.
         if oCdbWrapper.uCurrentProcessId not in oCdbWrapper.auProcessIds:
           # This is assumed to be the initial breakpoint after starting/attaching to the first process or after a new
           # process was created by the application.
           sCreateExitProcess = "Create";
           sCreateExitProcessIdHex = sProcessIdHex;
-        # Ignore the next exception if it's STATUS_WX86_BREAKPOINT.
-        duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.uCurrentProcessId] = STATUS_WX86_BREAKPOINT;
       # Assume this exception is related to debugging and should not be reported to the application until we determine
       # otherwise in the code below:
       bPassLastExceptionToApplication = False;
