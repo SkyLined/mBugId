@@ -11,6 +11,7 @@ Breaking changes
 Improvements
 ------------
 + Replace tabs with spaces where appropriate in HTML report.
++ Add ISA to module version information.
 + Handle STATUS_WAKE_SYSTEM_DEBUGGER better.
 
 2016-10-12

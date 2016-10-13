@@ -159,9 +159,10 @@ class cBugReport(object):
       if not oCdbWrapper.bCdbRunning: return None;
       if oCdbWrapper.bGetDetailsHTML:
         asBinaryInformationHTML.append(sBinaryInformationHTML);
-        asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
+        asBinaryVersionHTML.append("<b>%s</b>: %s (%s)" % \
+            (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
       oBugReport.asVersionInformation.append(
-          "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
+          "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
     
     if oCdbWrapper.bGetDetailsHTML:
       # Create HTML details
