@@ -189,7 +189,7 @@ class cBugReport(object):
           bOutputIsInformative = True,
         );
         if not oCdbWrapper.bCdbRunning: return None;
-        sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s) for s in asRegisters]);
+        sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
           "sContent": "<span class=\"Registers\">%s</span>" % sRegistersHTML,

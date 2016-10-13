@@ -27,7 +27,8 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     ) 
     if bAddCommandToHTML:
       # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
-      oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "<span class=\"CDBCommand\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sCommand);
+      oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "<span class=\"CDBCommand\">%s</span><br/>" % \
+          oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
     else:
       # Remove the second to last output block: it contains the cdb prompt that is linked to this command and thus it
       # has become irrelevant.

@@ -14,7 +14,8 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       sOptionalSourceHTML = "";
       if oStackFrame.sSourceFilePath:
         sSourceFilePathAndLineNumber = "%s @ %d" % (oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        sOptionalSourceHTML = " <span class=\"StackSource\">[%s]</span>" % oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
+        sOptionalSourceHTML = " <span class=\"StackSource\">[%s]</span>" % \
+            oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
     if oStackFrame.bIsHidden:
       # This frame is hidden (because it is irrelevant to the crash)
       if oCdbWrapper.bGetDetailsHTML:
@@ -30,9 +31,11 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
         # frame adds useful information to the id: add hash and output bold
         uFramesHashed += 1;
         if oCdbWrapper.bGetDetailsHTML:
-          sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "?");
+          sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
+              oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "?");
     if oCdbWrapper.bGetDetailsHTML:
-      sAddressHTML = "<span class=\"%s\">%s</span>" % (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
+      sAddressHTML = "<span class=\"%s\">%s</span>" % \
+          (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
   asStackFrameIds = [oStackFrame.sId or "_" for oStackFrame in aoRelevantStackFrames];
   if len(asStackFrameIds) > dxBugIdConfig["uStackHashFramesCount"]:

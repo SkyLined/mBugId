@@ -1,11 +1,22 @@
 import re;
 from fsHTMLCP437 import fsHTMLCP437;
-def fsHTMLEncodeString(sString):
-  return "".join([fsHTMLCP437(sChar) for sChar in sString]);
+def fsHTMLEncodeLine(sString, uTabStop = None):
+  asResult = [];
+  uLineIndex = 0;
+  for sChar in sString:
+    if uTabStop is not None and sChar == "\t":
+      while 1:
+        asResult.append("&nbsp;");
+        uLineIndex += 1;
+        if uLineIndex % uTabStop == 0: break;
+    else:
+      asResult.append(fsHTMLCP437(sChar));
+      uLineIndex += 1;
+  return "".join(asResult);
 
-def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine):
-  # This will only apply a link to the first match, but improving it would be rather complex. Since I've not encountered
-  # a situation where more than one links is needed, I've kept it simple.
+def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine, uTabStop = None):
+  # Convert to HTML and add links to the first reference to source code. Adding links to all references would be rather
+  # complex and since I've not encountered situations where this is needed, so I've kept it simple.
   for (srSourceFilePath, sURLTemplate) in oCdbWrapper.dsURLTemplate_by_srSourceFilePath.items():
     oMatch = re.search(srSourceFilePath, sLine);
     if oMatch:
@@ -13,8 +24,7 @@ def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine):
       sPath = oMatch.group(0);
       sURL = (sURLTemplate % oMatch.groupdict()).replace("\\", "/");
       sAfter = sLine[oMatch.end():];
-      return "%s<a target=\"_blank\" href=\"%s\">%s</a>%s" % \
-          (fsHTMLEncodeString(sBefore), sURL, fsHTMLEncodeString(sPath), fsHTMLEncodeString(sAfter));
+      return '%s<a target="_blank" href="%s">%s</a>%s' % (fsHTMLEncodeLine(sBefore, uTabStop), sURL, \
+          fsHTMLEncodeLine(sPath, uTabStop), fsHTMLEncodeLine(sAfter, uTabStop));
   else:
-    return fsHTMLEncodeString(sLine);
-
+    return fsHTMLEncodeLine(sLine, uTabStop);

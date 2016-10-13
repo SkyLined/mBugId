@@ -218,14 +218,18 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   if oCdbWrapper.bGetDetailsHTML:
     sVerifierStopMessageHTML = sBlockHTMLTemplate % {
       "sName": "VERIFIER STOP message",
-      "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in asRelevantLines])
+      "sContent": "<pre>%s</pre>" % "\r\n".join([
+        oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRelevantLines
+      ])
     };
     oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
     # Output the page heap information for reference
     if oPageHeapReport:
       sPageHeapOutputHTML = sBlockHTMLTemplate % {
         "sName": "Page heap output for heap block at 0x%X" % uHeapBlockStartAddress,
-        "sContent": "<pre>%s</pre>" % "\r\n".join([oCdbWrapper.fsHTMLEncode(s) for s in oPageHeapReport.asPageHeapOutput])
+        "sContent": "<pre>%s</pre>" % "\r\n".join([
+          oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapReport.asPageHeapOutput
+        ])
       };
       oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
   

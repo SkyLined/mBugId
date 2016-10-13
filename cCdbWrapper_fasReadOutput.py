@@ -98,7 +98,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         else:
           if bAddOutputToHTML:
             sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
-            sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sLine));
+            sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
             # Add the line to the current block of I/O
             oCdbWrapper.asCdbStdIOBlocksHTML[-1] += sLineHTML;
             # Optionally add the line to the important output

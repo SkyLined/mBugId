@@ -9,7 +9,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
     elif sChar in ("\n", ""):
       if sChar == "\n" or sLine:
         if oCdbWrapper.bGetDetailsHTML:
-          sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine);
+          sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
           oCdbWrapper.asCdbStdIOBlocksHTML[-1] += sLineHTML;
           if oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine):
             oCdbWrapper.sImportantOutputHTML += sLineHTML;

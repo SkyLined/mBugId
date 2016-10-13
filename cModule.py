@@ -66,7 +66,7 @@ class cModule(object):
         oModule.sTimestamp = oTimestampMatch.group(1);
       if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
         asModuleInformationHTML.append(
-          '<span class="BinaryInformation">%s</span>' % oCdbWrapper.fsHTMLEncode(sLine)
+          '<span class="BinaryInformation">%s</span>' % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8)
         );
     if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
       return "<br/>".join(asModuleInformationHTML);

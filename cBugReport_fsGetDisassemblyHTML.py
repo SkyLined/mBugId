@@ -12,7 +12,7 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
       "<span class=\"DisassemblyInstruction%s\">%s</span>" % \
           (bImportant and " Important" or "", oCdbWrapper.fsHTMLEncode(sInstruction)),
     ]);
-  return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
+  return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
   
 def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
   # See dxBugIdConfig for a description of these "magic" values.
