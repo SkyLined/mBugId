@@ -57,7 +57,7 @@ class cStackFrame(object):
       # by stack corruption in the application or cdb failing to unwind the stack correctly. Both are interesting to
       # report. When I ever run into an example of this, I will implement it.
       oStackFrame.sAddress = "0x%X" % uAddress;
-      oStackFrame.sSimplifiedAddress = "(unknown)";
+      oStackFrame.sSimplifiedAddress = None;
       oStackFrame.sUniqueAddress = None;
     if oStackFrame.sUniqueAddress is None:
       oStackFrame.sId = None;
@@ -71,7 +71,7 @@ class cStackFrame(object):
     # Hide the frame if the address, simplified address or id address matches any of the supplied values:
     if (
         oStackFrame.sAddress.lower() in asFrameAddressesLowered
-        or oStackFrame.sSimplifiedAddress.lower() in asFrameAddressesLowered
+        or (oStackFrame.sSimplifiedAddress and oStackFrame.sSimplifiedAddress.lower() in asFrameAddressesLowered)
         or (oStackFrame.sUniqueAddress and oStackFrame.sUniqueAddress.lower() in asFrameAddressesLowered)
     ):
       oStackFrame.bIsHidden = True; # hide it.

@@ -45,7 +45,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oCdbWrapper,
         duStartOffset_by_sSimplifiedAddresses = {};
         for uStartOffset in xrange(uLoopSize):
           sSimplifiedAddresses = "".join([
-            oStack.aoFrames[uFirstLoopStartIndex + uStartOffset + uIndex].sSimplifiedAddress
+            oStack.aoFrames[uFirstLoopStartIndex + uStartOffset + uIndex].sSimplifiedAddress or "(unknown)"
             for uIndex in xrange(0, uLoopSize)
           ]);
           duStartOffset_by_sSimplifiedAddresses[sSimplifiedAddresses] = uStartOffset;

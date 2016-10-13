@@ -28,16 +28,17 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       # Hash frame address for id and output frame to html
       if uFramesHashed < oBugReport.oStack.uHashFramesCount:
         aoRelevantStackFrames.append(oStackFrame);
-        # frame adds useful information to the id: add hash and output bold
-        uFramesHashed += 1;
         if oCdbWrapper.bGetDetailsHTML:
+          # frame adds useful information to the id: add hash and output bold
           sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
-              oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "?");
+              oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "-");
+        if oStackFrame.sId: # Only if the stack frame has a hash do we count it.
+          uFramesHashed += 1;
     if oCdbWrapper.bGetDetailsHTML:
       sAddressHTML = "<span class=\"%s\">%s</span>" % \
           (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
-  asStackFrameIds = [oStackFrame.sId or "_" for oStackFrame in aoRelevantStackFrames];
+  asStackFrameIds = [oStackFrame.sId or "-" for oStackFrame in aoRelevantStackFrames];
   if len(asStackFrameIds) > dxBugIdConfig["uStackHashFramesCount"]:
     # For certain bugs, such as recursive function calls, ids may have been generated for more functions than the value
     # in uStackHashFramesCount. In this case, the last ids are hashes into one id to reduce the number of hashes:
@@ -54,21 +55,22 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   oBugReport.sStackId = ".".join([s for s in asStackFrameIds]);
   # Get the bug location.
   oBugReport.sBugLocation = "(unknown)";
-  if aoRelevantStackFrames:
-    if aoRelevantStackFrames[0].sSimplifiedAddress:
-      oBugReport.sBugLocation = aoRelevantStackFrames[0].sSimplifiedAddress;
-    if aoRelevantStackFrames[0].sSourceFilePath:
-      oBugReport.sBugSourceLocation = "%s @ %d" % \
-          (aoRelevantStackFrames[0].sSourceFilePath, aoRelevantStackFrames[0].uSourceFileLineNumber);
-  if (
-      oBugReport.sProcessBinaryName and (
-        not aoRelevantStackFrames[0] or
-        not aoRelevantStackFrames[0].oModule or
-        aoRelevantStackFrames[0].oModule.sBinaryName != oBugReport.sProcessBinaryName
-     )
-   ):
-    # Exception happened in a module, not the process' binary: add process' binary name:
-    oBugReport.sBugLocation = oBugReport.sProcessBinaryName + "!" + oBugReport.sBugLocation;
+  for oRelevantStackFrame in aoRelevantStackFrames:
+    # Find the first stack frame with an address we can show the user:
+    if oRelevantStackFrame.sSimplifiedAddress:
+      oBugReport.sBugLocation = oRelevantStackFrame.sSimplifiedAddress;
+      if (
+        oBugReport.sProcessBinaryName and (
+          not oRelevantStackFrame.oModule or
+          oRelevantStackFrame.oModule.sBinaryName != oBugReport.sProcessBinaryName
+        )
+      ):
+        # Exception happened in a module, not the process' binary: add process' binary name:
+        oBugReport.sBugLocation = "%s!%s" % (oBugReport.sProcessBinaryName, oBugReport.sBugLocation);
+      if oRelevantStackFrame.sSourceFilePath:
+        oBugReport.sBugSourceLocation = "%s @ %d" % \
+            (oRelevantStackFrame.sSourceFilePath, oRelevantStackFrame.uSourceFileLineNumber);
+    break;
   if oCdbWrapper.bGetDetailsHTML:
     if oBugReport.oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
