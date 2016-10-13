@@ -4,6 +4,9 @@ Breaking changes
 ----------------
 + Renamed sDetailsHTML property of bug report to sReportHTML (and
   sDetailsHTMLTemplate to sReportHTMLTemplate).
+Improvements
+------------
++ Replace tabs with spaces where appropriate in HTML report.
 
 2016-10-12
 ==========
