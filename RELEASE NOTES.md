@@ -1,3 +1,10 @@
+2016-10-13
+==========
+Breaking changes
+----------------
++ Renamed sDetailsHTML property of bug report to sReportHTML (and
+  sDetailsHTMLTemplate to sReportHTMLTemplate).
+
 2016-10-12
 ==========
 Improvements
