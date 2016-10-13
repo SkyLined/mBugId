@@ -23,7 +23,7 @@ from NTSTATUS import *;
 from HRESULT import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from sVersion import sVersion;
-from sDetailsHTMLTemplate import sDetailsHTMLTemplate;
+from sReportHTMLTemplate import sReportHTMLTemplate;
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
@@ -149,7 +149,7 @@ class cBugReport(object):
     if oBugModule and oBugModule != oMainModule:
       aoRelevantModules.append(oBugModule);
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
-    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+    if oCdbWrapper.bGetDetailsHTML:
       # If a HTML report is requested, these will be used later on to construct it.
       asBinaryInformationHTML = [];
       asBinaryVersionHTML = [];
@@ -157,13 +157,13 @@ class cBugReport(object):
     for oModule in aoRelevantModules:
       sBinaryInformationHTML = oModule.fsGetInformationHTML(oCdbWrapper);
       if not oCdbWrapper.bCdbRunning: return None;
-      if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+      if oCdbWrapper.bGetDetailsHTML:
         asBinaryInformationHTML.append(sBinaryInformationHTML);
         asBinaryVersionHTML.append("<b>%s</b>: %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
       oBugReport.asVersionInformation.append(
           "%s %s" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown"));
     
-    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+    if oCdbWrapper.bGetDetailsHTML:
       # Create HTML details
       asBlocksHTML = [];
       # Create and add important output block if needed
@@ -263,7 +263,7 @@ class cBugReport(object):
         "sContent": sCdbStdIOHTML
       });
       # Stick everything together.
-      oBugReport.sDetailsHTML = sDetailsHTMLTemplate % {
+      oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),

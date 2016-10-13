@@ -127,7 +127,7 @@ class cTest(object):
           # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
           sValidReportFileName = FileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
           FileSystem.fWriteDataToFile(
-            oBugReport.sDetailsHTML,
+            oBugReport.sReportHTML,
             sReportsFolderName,
             sValidReportFileName,
             fbRetryOnFailure = lambda: False,

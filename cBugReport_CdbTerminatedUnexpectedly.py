@@ -1,5 +1,5 @@
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from sDetailsHTMLTemplate import sDetailsHTMLTemplate;
+from sReportHTMLTemplate import sReportHTMLTemplate;
 from sVersion import sVersion;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
@@ -34,7 +34,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       });
       del oCdbWrapper.asCdbStdIOBlocksHTML;
       # Create HTML details
-      oBugReport.sDetailsHTML = sDetailsHTMLTemplate % {
+      oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),

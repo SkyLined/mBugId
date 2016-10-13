@@ -1,4 +1,4 @@
-sDetailsHTMLTemplate = ("""
+sReportHTMLTemplate = ("""
 <!doctype html>
 <html>
   <head>
@@ -241,9 +241,9 @@ sDetailsHTMLTemplate = ("""
 %(sOptionalCommandLine)s
         </table>
         <br/>
-        BugId version <b>%(sBugIdVersion)s</b>. You may not use this version of BugId for commercial purposes. Please
-        contact the author if you wish to use BugId commercially. Contact and licensing information can be found at the
-        bottom of this report.
+        <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>%(sBugIdVersion)s</b>. You may not use this
+        version of BugId for commercial purposes. Please contact the author if you wish to use BugId commercially.
+        Contact and licensing information can be found at the bottom of this report.
       </div>
     </div>
 %(sBlocks)s
