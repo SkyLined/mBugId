@@ -239,9 +239,9 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     uAddress = long(sAddress.replace("`", ""), 16);
   
   if sViolationTypeId == "E":
-    # Hide the stack frame for the address at which the execute access violation happened: (e.g. 0x0 for a NULL pointer).
-    if oBugReport:
-      oBugReport.oStack.fHideTopFrames(["0x%X" % uAddress]);
+    # Hide the top stack frame if it is for the address at which the execute access violation happened:
+    if oBugReport and oBugReport.oStack and oBugReport.oStack.aoFrames and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAddress:
+      oBugReport.oStack.aoFrames[0].bIsHidden = True;
   
   dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oCdbWrapper.sCurrentISA];
   for (uSpecialAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
