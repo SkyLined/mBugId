@@ -17,7 +17,7 @@ from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
 from cProcess import cProcess;
-from dasIrrelevantFunctions_by_srBugType import dasIrrelevantFunctions_by_srBugType;
+from asIrrelevantFunctions import asIrrelevantFunctions;
 from dxBugIdConfig import dxBugIdConfig;
 from FileSystem import FileSystem;
 from NTSTATUS import *;
@@ -39,15 +39,6 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
   STATUS_WX86_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT,
 };
-# Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
-asHiddenTopFrames = [
-  "KERNELBASE.dll!RaiseException",
-  "ntdll.dll!KiUserExceptionDispatch",
-  "ntdll.dll!NtRaiseException",
-  "ntdll.dll!RtlDispatchException",
-  "ntdll.dll!RtlpExecuteHandlerForException",
-  "ntdll.dll!ZwRaiseException",
-];
 class cBugReport(object):
   def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, oStack):
     oBugReport.oCdbWrapper = oCdbWrapper;
@@ -73,11 +64,6 @@ class cBugReport(object):
   def foTranslate(oBugReport, dtxTranslations):
     return cBugReport_foTranslate(oBugReport, dtxTranslations);
   
-  def fHideTopStackFrames(oBugReport, dasHiddenFrames_by_srBugTypeIdRegExp):
-    for (sBugTypeIdRegExp, asHiddenFrames) in dasHiddenFrames_by_srBugTypeIdRegExp.items():
-      if re.match("^(%s)$" % sBugTypeIdRegExp, oBugReport.sBugTypeId):
-        oBugReport.oStack.fHideTopFrames(asHiddenFrames);
-  
   @classmethod
   def foCreateForException(cBugReport, oCdbWrapper, uExceptionCode, sExceptionDescription):
     uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
@@ -90,8 +76,6 @@ class cBugReport(object):
     if not oCdbWrapper.bCdbRunning: return None;
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
     if oException is None: return None;
-    # Hide some functions at the top of the stack that are merely helper functions and not relevant to the error:
-    oStack.fHideTopFrames(asHiddenTopFrames);
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oCdbWrapper = oCdbWrapper,
@@ -115,8 +99,6 @@ class cBugReport(object):
     uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
     if not oCdbWrapper.bCdbRunning: return None;
-    # Hide some functions at the top of the stack that are merely helper functions and not relevant to the error:
-    oStack.fHideTopFrames(asHiddenTopFrames);
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oCdbWrapper = oCdbWrapper,
@@ -128,12 +110,16 @@ class cBugReport(object):
     return oBugReport;
   
   def fPostProcess(oBugReport, oCdbWrapper):
-    # Find out which functions are considered irrelevant for this bug type and hide them in the stack:
-    asIrrelevantFunctions = [];
-    for srBugType in dasIrrelevantFunctions_by_srBugType:
-      if re.match(srBugType, oBugReport.sBugTypeId):
-        asIrrelevantFunctions += dasIrrelevantFunctions_by_srBugType[srBugType];
-    oBugReport.oStack.fHideTopFrames(asIrrelevantFunctions);
+    # From the top, start hiding irrelevant frames until we run into one that's not irrelevant:
+    for oStackFrame in oBugReport.oStack.aoFrames:
+      oStackFrame.bIsHidden |= (
+        oStackFrame.sAddress in asIrrelevantFunctions
+        or oStackFrame.sSimplifiedAddress in asIrrelevantFunctions
+        or oStackFrame.sUniqueAddress in asIrrelevantFunctions
+      );
+      if not oStackFrame.bIsHidden:
+        break;
+    
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
     aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);

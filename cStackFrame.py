@@ -65,14 +65,3 @@ class cStackFrame(object):
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
       oStackFrame.sId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
-  
-  def fbHide(oStackFrame, asFrameAddresses, bLowered = False):
-    asFrameAddressesLowered = bLowered and asFrameAddresses or [s.lower() for s in asFrameAddresses];
-    # Hide the frame if the address, simplified address or id address matches any of the supplied values:
-    if (
-        oStackFrame.sAddress.lower() in asFrameAddressesLowered
-        or (oStackFrame.sSimplifiedAddress and oStackFrame.sSimplifiedAddress.lower() in asFrameAddressesLowered)
-        or (oStackFrame.sUniqueAddress and oStackFrame.sUniqueAddress.lower() in asFrameAddressesLowered)
-    ):
-      oStackFrame.bIsHidden = True; # hide it.
-    return oStackFrame.bIsHidden;
