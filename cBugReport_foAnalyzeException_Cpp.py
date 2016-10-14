@@ -1,13 +1,5 @@
 import re;
 
-# Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
-asHiddenTopFrames = [
-  "KERNELBASE.dll!RaiseException",
-  "msvcrt.dll!CxxThrowException",
-  "msvcrt.dll!_CxxThrowException",
-  "MSVCR110.dll!CxxThrowException",
-  "MSVCR110.dll!_CxxThrowException",
-]
 # Some C++ exceptions may indicate an out-of-memory bug.
 ddtxBugTranslations_by_uExceptionCode = {
   0xe06d7363: { # This entry was created before the code determined the exception class name...
@@ -68,6 +60,4 @@ def cBugReport_foAnalyzeException_Cpp(oBugReport, oCdbWrapper, oException):
     if dtxBugTranslations:
       oBugReport = oBugReport.foTranslate(dtxBugTranslations);
     break;
-  if oBugReport:
-    oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
   return oBugReport;

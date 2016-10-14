@@ -17,6 +17,7 @@ from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
 from cProcess import cProcess;
+from dasIrrelevantFunctions_by_srBugType import dasIrrelevantFunctions_by_srBugType;
 from dxBugIdConfig import dxBugIdConfig;
 from FileSystem import FileSystem;
 from NTSTATUS import *;
@@ -72,8 +73,8 @@ class cBugReport(object):
   def foTranslate(oBugReport, dtxTranslations):
     return cBugReport_foTranslate(oBugReport, dtxTranslations);
   
-  def fHideTopStackFrames(oBugReport, dasHiddenFrames_by_sBugTypeIdRegExp):
-    for (sBugTypeIdRegExp, asHiddenFrames) in dasHiddenFrames_by_sBugTypeIdRegExp.items():
+  def fHideTopStackFrames(oBugReport, dasHiddenFrames_by_srBugTypeIdRegExp):
+    for (sBugTypeIdRegExp, asHiddenFrames) in dasHiddenFrames_by_srBugTypeIdRegExp.items():
       if re.match("^(%s)$" % sBugTypeIdRegExp, oBugReport.sBugTypeId):
         oBugReport.oStack.fHideTopFrames(asHiddenFrames);
   
@@ -99,7 +100,6 @@ class cBugReport(object):
       sSecurityImpact = oException.sSecurityImpact,
       oStack = oStack,
     );
-    
     # Perform exception specific analysis:
     foAnalyzeException = dfoAnalyzeException_by_uExceptionCode.get(oException.uCode);
     if foAnalyzeException:
@@ -109,7 +109,7 @@ class cBugReport(object):
         # This exception is not a bug, continue the application.
         return None;
     return oBugReport;
-
+  
   @classmethod
   def foCreate(cBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
@@ -128,6 +128,12 @@ class cBugReport(object):
     return oBugReport;
   
   def fPostProcess(oBugReport, oCdbWrapper):
+    # Find out which functions are considered irrelevant for this bug type and hide them in the stack:
+    asIrrelevantFunctions = [];
+    for srBugType in dasIrrelevantFunctions_by_srBugType:
+      if re.match(srBugType, oBugReport.sBugTypeId):
+        asIrrelevantFunctions += dasIrrelevantFunctions_by_srBugType[srBugType];
+    oBugReport.oStack.fHideTopFrames(asIrrelevantFunctions);
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
     aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);

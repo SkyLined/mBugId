@@ -6,16 +6,6 @@ from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
-# Hide some functions at the top of the stack that are not relevant to the bug:
-asHiddenTopFramesForReadAndWriteAVs = [ # Note: matches are case insensitive
-  # A bad pointer can cause an exception in a memcpy. The real problem is not in that function.
-  "mshtml.dll!memcpy",
-  "msvcrt.dll!memcpy",
-  "msvcrt.dll!memcpy_s",
-  # A bad function pointer can cause an exception in CFG code that checks it. The real problem is not in that function.
-  "ntdll.dll!LdrpValidateUserCallTarget",
-  "ntdll.dll!LdrpValidateUserCallTargetBitMapCheck",
-];
 # Some access violations may not be a bug:
 ddtxBugTranslations = {
   "AVE:Arbitrary": {
@@ -99,6 +89,19 @@ ddtxBugTranslations = {
           "chrome_child.dll!SkBitmap::allocPixels",
           "chrome_child.dll!SkBitmap::allocPixels",
           "chrome_child.dll!SkBitmap::allocN32Pixels",
+        ],
+      ],
+    ),
+  },
+  "AVR:Reserved": {
+    "CFG": (
+      "The process attempted to call a function using an invalid function pointer, which caused an exception in "
+          "Control Flow Guard. This is often caused by a NULL pointer.",
+      "Unlikely to be an exploitable security issue, unless you can control the function pointer",
+      [
+        [
+          "ntdll.dll!LdrpValidateUserCallTarget",
+          "ntdll.dll!LdrpValidateUserCallTargetBitMapCheck",
         ],
       ],
     ),
@@ -237,10 +240,8 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   
   if sViolationTypeId == "E":
     # Hide the stack frame for the address at which the execute access violation happened: (e.g. 0x0 for a NULL pointer).
-    asHiddenTopFrames = ["0x%X" % uAddress];
-  else:
-    # Hide common 
-    asHiddenTopFrames = asHiddenTopFramesForReadAndWriteAVs;
+    if oBugReport:
+      oBugReport.oStack.fHideTopFrames(["0x%X" % uAddress]);
   
   dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oCdbWrapper.sCurrentISA];
   for (uSpecialAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
@@ -470,6 +471,4 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   dtxBugTranslations = ddtxBugTranslations.get(oBugReport.sBugTypeId, None);
   if dtxBugTranslations:
     oBugReport = oBugReport.foTranslate(dtxBugTranslations);
-  if oBugReport:
-    oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
   return oBugReport;

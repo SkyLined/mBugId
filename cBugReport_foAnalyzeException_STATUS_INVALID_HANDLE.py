@@ -21,14 +21,8 @@ dtxBugTranslations = {
   ),
 };
 
-# Hide some functions at the top of the stack that are merely helper functions and not relevant to the bug:
-asHiddenTopFrames = [
-  "KERNELBASE.dll!RaiseException",
-];
 def cBugReport_foAnalyzeException_STATUS_INVALID_HANDLE(oBugReport, oCdbWrapper, oException):
   oBugReport = oBugReport.foTranslate(dtxBugTranslations);
-  if oBugReport:
-    oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
   return oBugReport;
 
 
