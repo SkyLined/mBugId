@@ -82,6 +82,11 @@ dtxBugTranslations = {
         "KERNELBASE.dll!RaiseException",
         "edgehtml.dll!Abandonment::InduceAbandonment",
       ],
+      [ # Firefox
+        "mozglue.dll!mozalloc_abort",
+        "xul.dll!Abort",
+        "xul.dll!NS_DebugBreak",
+      ],
     ],
   ),
   None: (
