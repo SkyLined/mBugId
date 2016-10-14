@@ -6,17 +6,6 @@ from fsGetOffsetDescription import fsGetOffsetDescription;
 from cCorruptionDetector import cCorruptionDetector;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
-asHiddenTopFrames = [
-  "verifier.dll!AVrfDebugPageHeapFree",
-  "verifier.dll!AVrfpDphCheckNormalHeapBlock",
-  "verifier.dll!AVrfpDphNormalHeapFree",
-  "verifier.dll!AVrfpDphReportCorruptedBlock",
-  "verifier.dll!VerifierStopMessage",
-  "ntdll.dll!RtlDebugFreeHeap",
-  "ntdll.dll!RtlpFreeHeap",
-  "ntdll.dll!RtlFreeHeap",
-];
-
 def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   uErrorNumber = None;
   uProcessId = None;
@@ -209,7 +198,6 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         "sBugDescription should have been set";
     
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
-  oBugReport.oStack.fHideTopFrames(asHiddenTopFrames);
   if oCdbWrapper.bGetDetailsHTML:
     oBugReport.atxMemoryDumps.append(("Memory near heap block at 0x%X" % uMemoryDumpStartAddress, \
         uMemoryDumpStartAddress, uMemoryDumpSize));
