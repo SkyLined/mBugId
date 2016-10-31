@@ -1,3 +1,22 @@
+2016-
+
+
+Improvements
+------------
++ Detect more Control Flow Guard breakpoint exceptions.
++ Getting the values of register and pseudo registers in cdb is now much faster
+  because it no longer triggers symbol lookup. This should greatly improve
+  analysis speed in many cases.
+
+Bug fixes
+---------
++ Getting the stack with HTML reports disabled would still execute code that
+  creates part of the HTML report. This code could then cause an exception.
+  This code is no longer executed if not HTML report is required.
++ When page heap provides no information about the heap block (e.g. when the
+  heap block is freed) in case of a VERIFIER STOP, the information from the
+  VERIFIER STOP is used. This prevents an exception.
+
 2016-10-13
 ==========
 Breaking changes

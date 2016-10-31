@@ -86,9 +86,11 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     uHeapBlockSize = uVerifierStopHeapBlockSize;
     uHeapBlockEndAddress = uVerifierStopHeapBlockStartAddress + uVerifierStopHeapBlockSize;
   if oCdbWrapper.bGetDetailsHTML:
+  atxMemoryRemarks = [];
     uMemoryDumpStartAddress = uHeapBlockStartAddress;
     uMemoryDumpSize = uVerifierStopHeapBlockSize;
-    atxMemoryRemarks = oPageHeapReport.fatxMemoryRemarks();
+    if oPageHeapReport:
+      atxMemoryRemarks.extend(oPageHeapReport.fatxMemoryRemarks());
   
   # Handle various VERIFIER STOP messages.
   sBugDescription = None;
@@ -96,17 +98,17 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     assert uCorruptionAddress is None, \
         "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
             "\r\n".join(asRelevantLines);
-    if not oCorruptionDetector.bCorruptionDetected and oPageHeapReport.uBlockStartAddress != uVerifierStopHeapBlockStartAddress:
+    if not oCorruptionDetector.bCorruptionDetected and uHeapBlockStartAddress != uVerifierStopHeapBlockStartAddress:
       # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
       # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
       # can special case it.
-      iFreeAtOffset = uVerifierStopHeapBlockStartAddress - oPageHeapReport.uBlockStartAddress;
+      iFreeAtOffset = uVerifierStopHeapBlockStartAddress - uHeapBlockStartAddress;
       sBugTypeId = "MisalignedFree[%s]%s" % (fsGetNumberDescription(uHeapBlockSize), fsGetOffsetDescription(iFreeAtOffset));
       sOffsetBeforeOrAfter = iFreeAtOffset < 0 and "before" or "after";
       sBugDescription = "The application attempted to free memory using a pointer that was %d/0x%X bytes %s a " \
           "%d/0x%X byte heap block at address 0x%X" % (abs(iFreeAtOffset), abs(iFreeAtOffset), \
-          sOffsetBeforeOrAfter, uHeapBlockSize, uHeapBlockSize, oPageHeapReport.uBlockStartAddress);
+          sOffsetBeforeOrAfter, uHeapBlockSize, uHeapBlockSize, uHeapBlockStartAddress);
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
       sBugTypeId = "OOBW[%s]" % (fsGetNumberDescription(uHeapBlockSize));
@@ -121,7 +123,6 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     # 0xD0. Verifier has detected that one of the bytes changed value, which indicates an out-of-bounds write. BugId
     # will try to find all bytes that were changed:
     sBugTypeId = "OOBW[%s]" % (fsGetNumberDescription(uHeapBlockSize));
-    oPageHeapReport.fbCheckForCorruption(oCorruptionDetector);
     assert oCorruptionDetector.bCorruptionDetected, \
         "Cannot find any sign of corruption";
   elif sMessage == "corrupted infix pattern":
