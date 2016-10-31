@@ -103,6 +103,9 @@ ddtxBugTranslations = {
           "ntdll.dll!LdrpValidateUserCallTarget",
           "ntdll.dll!LdrpValidateUserCallTargetBitMapCheck",
         ],
+        [
+          "ntdll.dll!LdrpDispatchUserCallTarget",
+        ],
       ],
     ),
   },
