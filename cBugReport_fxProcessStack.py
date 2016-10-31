@@ -50,8 +50,9 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       oHasher.update(sId);
     sCombinedId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
     asStackFrameIds.append(sCombinedId);
-    asNotesHTML += ["The stack frames with ids %s and %s where combined into one id %s." % \
-        (", ".join(asCombinedIds[:-1]), asCombinedIds[-1], sCombinedId)];
+    if oCdbWrapper.bGetDetailsHTML:
+      asNotesHTML += ["The stack frames with ids %s and %s where combined into one id %s." % \
+          (", ".join(asCombinedIds[:-1]), asCombinedIds[-1], sCombinedId)];
   oBugReport.sStackId = ".".join([s for s in asStackFrameIds]);
   # Get the bug location.
   oBugReport.sBugLocation = "(unknown)";
