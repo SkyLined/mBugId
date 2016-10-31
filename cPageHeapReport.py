@@ -10,9 +10,9 @@ class cPageHeapReport(object):
       bOutputIsInformative = True,
     );
     if not oCdbWrapper.bCdbRunning: return;
-    uPointerSize = oCdbWrapper.fuGetValue("$ptrsize");
+    uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
     if not oCdbWrapper.bCdbRunning: return;
-    uPageSize = oCdbWrapper.fuGetValue("$pagesize");
+    uPageSize = oCdbWrapper.fuGetValue("@$pagesize");
     if not oCdbWrapper.bCdbRunning: return;
     # Sample output:
     # |    address 0e948ffc found in
