@@ -1,4 +1,20 @@
+import re;
+
 def cCdbWrapper_fuGetValue(oCdbWrapper, sValue):
+  if re.match(r"^@\$?\w+$", sValue):
+    # This is a register or pseudo-register: it's much faster to get these using the "r" command than printing them
+    # as is done for other values:
+    asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
+        'r %s; $$ Get register value' % sValue);
+    assert len(asValueResult) == 1, \
+        "Expected only one line in value result:\r\n%s" % "\r\n".join(asValueResult);
+    sValueResult = asValueResult[0];
+    assert sValueResult.lower().startswith(sValue[1:].lower() + "="), \
+        "Expected result to start with %s\r\n%s" % (repr(sValue[1:].lower() + "="), "\r\n".join(asValueResult));
+    try:
+      return long(sValueResult[len(sValue):], 16);
+    except:
+      raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sValueResult[len(sValue):]), sValue, "\r\n".join(asValueResult)));
   asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
       '.printf "%%p\\n", %s; $$ Get value' % sValue, bIgnoreUnknownSymbolErrors = True);
   if not oCdbWrapper.bCdbRunning: return;
