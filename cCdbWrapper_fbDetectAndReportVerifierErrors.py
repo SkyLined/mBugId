@@ -74,12 +74,13 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     # block base, whereas the page heap report will correctly report (heap pointer) as the heap block base.
     uAllocationStartAddress = oPageHeapReport.uAllocationStartAddress;
     uAllocationEndAddress = oPageHeapReport.uAllocationEndAddress;
-    uHeapBlockStartAddress = oPageHeapReport.uBlockStartAddress;
-    uHeapBlockSize = oPageHeapReport.uBlockSize;
-    uHeapBlockEndAddress = oPageHeapReport.uBlockEndAddress;
     # Check the page heap data near the heap block for signs of corruption:
     oPageHeapReport.fbCheckForCorruption(oCorruptionDetector);
     if not oCdbWrapper.bCdbRunning: return None;
+  if oPageHeapReport and oPageHeapReport.uBlockStartAddress:
+    uHeapBlockStartAddress = oPageHeapReport.uBlockStartAddress;
+    uHeapBlockSize = oPageHeapReport.uBlockSize;
+    uHeapBlockEndAddress = uHeapBlockStartAddress + uHeapBlockSize;
   else:
     uHeapBlockStartAddress = uVerifierStopHeapBlockStartAddress;
     uHeapBlockSize = uVerifierStopHeapBlockSize;
