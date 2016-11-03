@@ -11,9 +11,16 @@ def cBugReport_foTranslate(oBugReport, dtxTranslations):
           break; # There are not enough stack frames to match this translation
         oTopFrame = oBugReport.oStack.aoFrames[uFrameIndex];
         uFrameIndex += 1;
-        if oTopFrame.sSimplifiedAddress:
-          # "*!" means match only the function and not the module.
+        if sStackTopFrameAddress == None:
+          # This frame should not have a symbol, if it does have a symbol, it cannot match.
+          if oTopFrame.sSimplifiedAddress:
+            break;
+        else:
+          # This frame should have a symbol, if it does not have a symbol, it cannot match.
+          if not oTopFrame.sSimplifiedAddress:
+            break;
           if sStackTopFrameAddress[:2] == "*!":
+            # "*!" means match only the function and not the module.
             tsSimplifiedAddress = oTopFrame.sSimplifiedAddress.split("!", 1);
             # Compare the function names:
             if len(tsSimplifiedAddress) != 2 or tsSimplifiedAddress[1].lower() != sStackTopFrameAddress[2:].lower():
