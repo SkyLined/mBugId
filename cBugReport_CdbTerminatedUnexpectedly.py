@@ -13,7 +13,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.oException = None;
     oBugReport.oStack = None;
     
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       oBugReport.sImportantOutputHTML = oCdbWrapper.sImportantOutputHTML;
     oBugReport.sProcessBinaryName = "cdb.exe";
     
@@ -23,7 +23,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sBugSourceLocation = None;
     oBugReport.asVersionInformation = ["BugId: %s" % sVersion];
     
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       # Turn cdb output into formatted HTML. It is separated into blocks, one for the initial cdb output and one for each
       # command executed.
       sCdbStdIOHTML = '<hr/>'.join(oCdbWrapper.asCdbStdIOBlocksHTML);

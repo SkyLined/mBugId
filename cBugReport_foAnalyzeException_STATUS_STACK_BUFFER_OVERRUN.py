@@ -91,7 +91,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
     else:
       oBugReport.sBugDescription = sFastFailCodeDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
-  if oCdbWrapper.bGetDetailsHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
+  if oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
     uStackPointer = oCdbWrapper.fuGetValue("@$csp");
     if not oCdbWrapper.bCdbRunning: return;
     uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");

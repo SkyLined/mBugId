@@ -4,12 +4,12 @@ from dxBugIdConfig import dxBugIdConfig;
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   # Get a HTML representation of the stack, find the topmost relevatn stack frame and get stack id.
   uFramesHashed = 0;
-  if oCdbWrapper.bGetDetailsHTML:
+  if oCdbWrapper.bGenerateReportHTML:
     asHTML = [];
     asNotesHTML = [];
   aoRelevantStackFrames = [];
   for oStackFrame in oBugReport.oStack.aoFrames:
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       sOptionalHashHTML = "";
       sOptionalSourceHTML = "";
       if oStackFrame.sSourceFilePath:
@@ -18,23 +18,23 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
             oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
     if oStackFrame.bIsHidden:
       # This frame is hidden (because it is irrelevant to the crash)
-      if oCdbWrapper.bGetDetailsHTML:
+      if oCdbWrapper.bGenerateReportHTML:
         asAddressClasses = ["StackFrameIgnored"];
     else:
-      if oCdbWrapper.bGetDetailsHTML:
+      if oCdbWrapper.bGenerateReportHTML:
         asAddressClasses = [oStackFrame.oFunction and "StackFrameAddress" or "StackFrameNoSymbol"];
         if uFramesHashed < oBugReport.oStack.uHashFramesCount:
           asAddressClasses.append("Important");
       # Hash frame address for id and output frame to html
       if uFramesHashed < oBugReport.oStack.uHashFramesCount:
         aoRelevantStackFrames.append(oStackFrame);
-        if oCdbWrapper.bGetDetailsHTML:
+        if oCdbWrapper.bGenerateReportHTML:
           # frame adds useful information to the id: add hash and output bold
           sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
               oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "-");
         if oStackFrame.sId: # Only if the stack frame has a hash do we count it.
           uFramesHashed += 1;
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       sAddressHTML = "<span class=\"%s\">%s</span>" % \
           (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
@@ -50,7 +50,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       oHasher.update(sId);
     sCombinedId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
     asStackFrameIds.append(sCombinedId);
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       asNotesHTML += ["The stack frames with ids %s and %s where combined into one id %s." % \
           (", ".join(asCombinedIds[:-1]), asCombinedIds[-1], sCombinedId)];
   oBugReport.sStackId = ".".join([s for s in asStackFrameIds]);
@@ -72,7 +72,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
         oBugReport.sBugSourceLocation = "%s @ %d" % \
             (oRelevantStackFrame.sSourceFilePath, oRelevantStackFrame.uSourceFileLineNumber);
     break;
-  if oCdbWrapper.bGetDetailsHTML:
+  if oCdbWrapper.bGenerateReportHTML:
     if oBugReport.oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
     sHTML = "".join([

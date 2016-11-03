@@ -275,19 +275,19 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
       if oPageHeapReport:
         oBugReport.atxMemoryRemarks.extend(oPageHeapReport.fatxMemoryRemarks());
         if oPageHeapReport.uBlockStartAddress:
-          if oCdbWrapper.bGetDetailsHTML:
+          if oCdbWrapper.bGenerateReportHTML:
             uMemoryDumpAddress = oPageHeapReport.uBlockStartAddress;
             uMemoryDumpSize = oPageHeapReport.uBlockSize;
           if uAddress < oPageHeapReport.uBlockStartAddress:
             uPrefix = oPageHeapReport.uBlockStartAddress - uAddress;
-            if oCdbWrapper.bGetDetailsHTML:
+            if oCdbWrapper.bGenerateReportHTML:
               uMemoryDumpAddress -= uPrefix;
               uMemoryDumpSize += uPrefix;
           elif uAddress >= oPageHeapReport.uBlockEndAddress:
             uPostFix = uAddress - oPageHeapReport.uBlockEndAddress + 1;
-            if oCdbWrapper.bGetDetailsHTML:
+            if oCdbWrapper.bGenerateReportHTML:
               uMemoryDumpSize += uPostFix;
-          if oCdbWrapper.bGetDetailsHTML:
+          if oCdbWrapper.bGenerateReportHTML:
             oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                 uMemoryDumpAddress, uMemoryDumpSize));
         if oPageHeapReport.sBlockType == "free-ed":
@@ -322,14 +322,14 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                 if oPageHeapReport.fbCheckForCorruption(oCorruptionDetector):
                   # We detected a modified byte; there was an OOB write before the one that caused this access
                   # violation. Use it's offset instead and add this fact to the description.
-                  if oCdbWrapper.bGetDetailsHTML:
+                  if oCdbWrapper.bGenerateReportHTML:
                     oBugReport.atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
                   uStartAddress = oCorruptionDetector.uCorruptionStartAddress;
                   uOffsetPastEndOfBlock = uStartAddress - oPageHeapReport.uBlockEndAddress;
                   sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
                       "beyond that block because it modified the page heap suffix pattern.") % \
                       (uStartAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                  if oCdbWrapper.bGetDetailsHTML:
+                  if oCdbWrapper.bGenerateReportHTML:
                     sMemoryDumpDescription = "memory corruption at 0x%X" % uStartAddress;
                   asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
               elif uAddress == oPageHeapReport.uAllocationEndAddress and uAddress > oPageHeapReport.uBlockEndAddress:
@@ -354,7 +354,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
           sSecurityImpact = "Potentially exploitable security issue.";
         else:
           raise NotImplemented("NOT REACHED");
-        if oCdbWrapper.bGetDetailsHTML:
+        if oCdbWrapper.bGenerateReportHTML:
           sPageHeapOutputHTML = sBlockHTMLTemplate % {
             "sName": "Page heap output for address 0x%X" % uAddress,
             "sContent": "<pre>%s</pre>" % "\r\n".join([
@@ -428,7 +428,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               uProtectionFlags = uValue;
             elif sInfoType == "Type":
               uTypeFlags = uValue;
-          if oCdbWrapper.bGetDetailsHTML:
+          if oCdbWrapper.bGenerateReportHTML:
             oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
             oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
           if uStateFlags == 0x10000:
@@ -462,7 +462,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             sBugDescription = "Access violation while %s %s memory at 0x%X." % \
                 (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
-            if oCdbWrapper.bGetDetailsHTML:
+            if oCdbWrapper.bGenerateReportHTML:
               oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                   uAllocationStartAddress, uAllocationSize));
               oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access

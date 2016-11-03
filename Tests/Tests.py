@@ -63,7 +63,7 @@ class cTest(object):
         sCdbISA = oTest.sISA,
         asApplicationCommandLine = asApplicationCommandLine,
         asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"],
-        bGetDetailsHTML = True,
+        bGenerateReportHTML = oTest.bGenerateReportHTML,
         fFinishedCallback = oTest.fFinishedHandler,
         fInternalExceptionCallback = oTest.fInternalExceptionHandler,
       );
@@ -121,7 +121,7 @@ class cTest(object):
           print "+ %s" % oTest;
         oOutputLock and oOutputLock.release();
         oTest.bHasOutputLock = False;
-        if oBugReport:
+        if oTest.bGenerateReportHTML and oBugReport:
           # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
           sDesiredReportFileName = "%s == %s @ %s.html" % (" ".join(oTest.asCommandLineArguments), oBugReport.sId, oBugReport.sBugLocation);
           # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
@@ -153,11 +153,13 @@ class cTest(object):
 if __name__ == "__main__":
   aoTests = [];
   bFullTestSuite = len(sys.argv) > 1 and sys.argv[1] == "--full";
+  bGenerateReportHTML = bFullTestSuite;
   if len(sys.argv) > 1 and not bFullTestSuite:
     # Test is user supplied, output I/O
     dxBugIdConfig["bOutputStdIn"] = \
         dxBugIdConfig["bOutputStdOut"] = \
         dxBugIdConfig["bOutputStdErr"] = True;
+    bGenerateReportHTML = True;
     aoTests.append(cTest(sys.argv[1], sys.argv[2:], None)); # Expect no exceptions.
   else:
     for sISA in asTestISAs:
@@ -286,6 +288,7 @@ if __name__ == "__main__":
   for oTest in aoTests:
     if bFailed:
       break;
+    oTest.bGenerateReportHTML = bGenerateReportHTML;
     oTest.fRun();
   for oTest in aoTests:
     oTest.fWait();

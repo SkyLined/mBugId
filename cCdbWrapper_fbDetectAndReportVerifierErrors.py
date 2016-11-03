@@ -85,8 +85,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     uHeapBlockStartAddress = uVerifierStopHeapBlockStartAddress;
     uHeapBlockSize = uVerifierStopHeapBlockSize;
     uHeapBlockEndAddress = uVerifierStopHeapBlockStartAddress + uVerifierStopHeapBlockSize;
-  if oCdbWrapper.bGetDetailsHTML:
   atxMemoryRemarks = [];
+  if oCdbWrapper.bGenerateReportHTML:
     uMemoryDumpStartAddress = uHeapBlockStartAddress;
     uMemoryDumpSize = uVerifierStopHeapBlockSize;
     if oPageHeapReport:
@@ -146,14 +146,14 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
     uCorruptionEndAddress = oCorruptionDetector.uCorruptionEndAddress;
     uCorruptionSize = uCorruptionEndAddress - uCorruptionStartAddress;
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
     assert uCorruptionAddress is None or uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
         "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X\r\n%s" % \
         (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress, "\r\n".join(asRelevantLines));
     bCorruptionDetected = True;
   elif uCorruptionAddress:
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       atxMemoryRemarks.append(("Corrupted memory", uCorruptionAddress, None));
     uCorruptionStartAddress = uCorruptionAddress;
     uCorruptionEndAddress = uCorruptionAddress;
@@ -164,7 +164,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
   if bCorruptionDetected:
     # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
     # corrupted region.
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       if uCorruptionStartAddress < uMemoryDumpStartAddress:
         uMemoryDumpSize += uMemoryDumpStartAddress - uCorruptionStartAddress;
         uMemoryDumpStartAddress = uCorruptionStartAddress;
@@ -200,12 +200,12 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         "sBugDescription should have been set";
     
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
-  if oCdbWrapper.bGetDetailsHTML:
+  if oCdbWrapper.bGenerateReportHTML:
     oBugReport.atxMemoryDumps.append(("Memory near heap block at 0x%X" % uMemoryDumpStartAddress, \
         uMemoryDumpStartAddress, uMemoryDumpSize));
     oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
   # Output the VERIFIER STOP message for reference
-  if oCdbWrapper.bGetDetailsHTML:
+  if oCdbWrapper.bGenerateReportHTML:
     sVerifierStopMessageHTML = sBlockHTMLTemplate % {
       "sName": "VERIFIER STOP message",
       "sContent": "<pre>%s</pre>" % "\r\n".join([

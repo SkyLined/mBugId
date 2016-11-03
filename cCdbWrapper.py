@@ -38,7 +38,7 @@ class cCdbWrapper(object):
     dsURLTemplate_by_srSourceFilePath = {},
     rImportantStdOutLines = None,
     rImportantStdErrLines = None,
-    bGetDetailsHTML = False,
+    bGenerateReportHTML = False,
     fApplicationRunningCallback = None,
     # fApplicationRunningCallback is called when the application starts and after exception analysis is finished for
     # continuable exceptions that are not considered a bug. In the later case, fExceptionDetectedCallback is called
@@ -67,7 +67,7 @@ class cCdbWrapper(object):
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath;
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
-    oCdbWrapper.bGetDetailsHTML = bGetDetailsHTML;
+    oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.fApplicationRunningCallback = fApplicationRunningCallback;
     oCdbWrapper.fExceptionDetectedCallback = fExceptionDetectedCallback;
     oCdbWrapper.fApplicationExitCallback = fApplicationExitCallback;
@@ -137,13 +137,13 @@ class cCdbWrapper(object):
       print "* Starting %s" % " ".join(asCommandLine);
     # Initialize some variables
     oCdbWrapper.sCurrentISA = None; # During exception handling, this is set to the ISA for the code that caused it.
-    if bGetDetailsHTML:
+    if bGenerateReportHTML:
       oCdbWrapper.asCdbStdIOBlocksHTML = [""]; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
     oCdbWrapper.oBugReport = None; # Set to a bug report if a bug was detected in the application
     oCdbWrapper.uLastProcessId = None; # Set to the id of the last process to be reported as terminated by cdb.
     oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
-    if bGetDetailsHTML:
+    if bGenerateReportHTML:
       oCdbWrapper.sImportantOutputHTML = ""; # Lines from stdout/stderr that are marked as potentially important to understanding the bug.
     # cdb variables are in short supply, so a mechanism must be used to allocate and release them.
     # See fuGetVariableId and fReleaseVariableId for implementation details.

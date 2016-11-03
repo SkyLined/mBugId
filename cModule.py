@@ -56,7 +56,7 @@ class cModule(object):
     # |    LegalTrademarks:  Firefox is a Trademark of The Mozilla Foundation.
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       asModuleInformationHTML = [
           "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName),
       ];
@@ -67,9 +67,9 @@ class cModule(object):
       oTimestampMatch = re.match(r"^    Timestamp:\s*(.*?)\s*$", sLine);
       if oTimestampMatch:
         oModule.sTimestamp = oTimestampMatch.group(1);
-      if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+      if oCdbWrapper.bGenerateReportHTML:
         asModuleInformationHTML.append(
           '<span class="BinaryInformation">%s</span>' % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8)
         );
-    if oCdbWrapper.bGetDetailsHTML: # Generate sDetailsHTML?
+    if oCdbWrapper.bGenerateReportHTML:
       return "<br/>".join(asModuleInformationHTML);

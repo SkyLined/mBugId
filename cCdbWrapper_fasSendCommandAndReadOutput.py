@@ -11,6 +11,13 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
   # Commands can only be execute from within the cCdbWrapper.fCdbStdInOutThread call.
   assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
+  if oCdbWrapper.bGenerateReportHTML:
+    bAddCommandToHTML = oCdbWrapper.bGenerateReportHTML and (
+      dxBugIdConfig["bShowAllCdbCommandsInReport"] or (
+        (bOutputIsInformative and dxBugIdConfig["bShowInformativeCdbCommandsInReport"])
+        and not bShowOnlyCommandOutput
+      )
+    ) 
   if dxBugIdConfig["bOutputStdIn"]:
     print "cdb<%s" % repr(sCommand)[1:-1];
   try:
@@ -18,13 +25,7 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
   except Exception, oException:
     oCdbWrapper.bCdbRunning = False;
     return None;
-  if oCdbWrapper.bGetDetailsHTML:
-    bAddCommandToHTML = oCdbWrapper.bGetDetailsHTML and (
-      dxBugIdConfig["bShowAllCdbCommandsInReport"] or (
-        (bOutputIsInformative and dxBugIdConfig["bShowInformativeCdbCommandsInReport"])
-        and not bShowOnlyCommandOutput
-      )
-    ) 
+  if oCdbWrapper.bGenerateReportHTML:
     if bAddCommandToHTML:
       # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
       oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "<span class=\"CDBCommand\">%s</span><br/>" % \

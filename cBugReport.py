@@ -51,7 +51,7 @@ class cBugReport(object):
     oBugReport.atxMemoryDumps = [];
     oBugReport.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       oBugReport.sImportantOutputHTML = oCdbWrapper.sImportantOutputHTML;
     oBugReport.sProcessBinaryName = oBugReport.oProcess.sBinaryName;
     oBugReport.asExceptionSpecificBlocksHTML = [];
@@ -141,7 +141,7 @@ class cBugReport(object):
     if oBugModule and oBugModule != oMainModule:
       aoRelevantModules.append(oBugModule);
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       # If a HTML report is requested, these will be used later on to construct it.
       asBinaryInformationHTML = [];
       asBinaryVersionHTML = [];
@@ -149,14 +149,14 @@ class cBugReport(object):
     for oModule in aoRelevantModules:
       sBinaryInformationHTML = oModule.fsGetInformationHTML(oCdbWrapper);
       if not oCdbWrapper.bCdbRunning: return None;
-      if oCdbWrapper.bGetDetailsHTML:
+      if oCdbWrapper.bGenerateReportHTML:
         asBinaryInformationHTML.append(sBinaryInformationHTML);
         asBinaryVersionHTML.append("<b>%s</b>: %s (%s)" % \
             (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
       oBugReport.asVersionInformation.append(
           "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
     
-    if oCdbWrapper.bGetDetailsHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
       asBlocksHTML = [];
       # Create and add important output block if needed
