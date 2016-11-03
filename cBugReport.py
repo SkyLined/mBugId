@@ -151,14 +151,14 @@ class cBugReport(object):
       asBinaryVersionHTML = [];
     oBugReport.asVersionInformation = [];
     for oModule in aoRelevantModules:
-      sBinaryInformationHTML = oModule.fsGetInformationHTML(oCdbWrapper);
-      if not oCdbWrapper.bCdbRunning: return None;
+      oBugReport.asVersionInformation.append(
+          "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
       if oCdbWrapper.bGenerateReportHTML:
+        sBinaryInformationHTML = oModule.fsGetInformationHTML(oCdbWrapper);
+        if not oCdbWrapper.bCdbRunning: return None;
         asBinaryInformationHTML.append(sBinaryInformationHTML);
         asBinaryVersionHTML.append("<b>%s</b>: %s (%s)" % \
             (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
-      oBugReport.asVersionInformation.append(
-          "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
     
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
