@@ -79,6 +79,14 @@ for (sName, xValue) in {
                                         # analysis speed, but might miss-analyze a recursion loop involving many
                                         # functions as a simple stack exhaustion). I've seen 43 functions in one loop.
   ### Symbol loading settings
+  "bMakeSureSymbolsAreLoaded": False,   # True enables extra checks when getting a stack that symbols are loaded. This
+                                        # Is done by enabling noizy symbols, getting the stack to make sure the
+                                        # required symbols are loaded, then reloading all modules to check if the cdb
+                                        # outputs any errors for symbols that coult not be loaded because the symbol
+                                        # file is corrupt. If so, the symbols is deleted and the modules are reloaded
+                                        # in an attempt to download a correct copy of the symbols.
+                                        # This slows down analysis significantly, but improves results when you often
+                                        # find you are getting no symbols in BugId because symbol file are corrupt.
   "uMaxSymbolLoadingRetries": 1,        # Enable additional checks when getting a stack that can detect and fix errors
                                         # in symbol loading caused by corrupted pdb files. This turns on "noisy symbol
                                         # loading" which may provide useful information to fix symbol loading errors.
@@ -88,7 +96,11 @@ for (sName, xValue) in {
                                         # corruption).
                                         # If you often see "CDB failed to load symbols" assertion errors, try
                                         # increasing the number and see if that resolves it.
-  "asSymbolCachePaths": [],             # Where should symbols be cached?
+  "asDefaultSymbolCachePaths": [""],    # Where should symbols be cached if no cache paths are provided? The default
+                                        # ([""]) tells cdb to use its own default path.
+  "asDefaultSymbolServerURLs": [        # What symbol servers should be used if no symbol servers are provided?
+    "http://msdl.microsoft.com/download/symbols" # The default (["http://msdl.microsoft.com/download/symbols"]) tells
+  ],                                    # cdb to use only the Microsoft symbol server.
   "bDeferredSymbolLoads": True,         # True means enable SYMOPT_DEFERRED_LOADS in cdb, see Debugger help for details.
   "bUse_NT_SYMBOL_PATH": True,          # Set to True to have BugId use _NT_SYMBOL_PATH for symbol caches and servers.
                                         # Set to False to have BugId ignore it and only use values from dxBugIdConfig

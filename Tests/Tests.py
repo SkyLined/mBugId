@@ -40,12 +40,13 @@ class cTest(object):
   def __init__(oTest, sISA, asCommandLineArguments, sExpectedBugTypeId):
     oTest.sISA = sISA;
     oTest.asCommandLineArguments = asCommandLineArguments;
-    oTest.sExpectedBugTypeId = sExpectedBugTypeId;
+    oTest.sExpectedBugTypeId = sExpectedBugTypeId; # Can also be a tuple of valid values (e.g. PureCall/AppExit)
     oTest.bInternalException = False;
     oTest.bHasOutputLock = False;
+    oTest.bGenerateReportHTML = True;
   
   def __str__(oTest):
-    return "%s =%s=> %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, oTest.sExpectedBugTypeId);
+    return "%s =%s=> %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, repr(oTest.sExpectedBugTypeId));
   
   def fRun(oTest):
     global bFailed, oOutputLock;
@@ -62,7 +63,7 @@ class cTest(object):
       oTest.oBugId = cBugId(
         sCdbISA = oTest.sISA,
         asApplicationCommandLine = asApplicationCommandLine,
-        asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"],
+        asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
         bGenerateReportHTML = oTest.bGenerateReportHTML,
         fFinishedCallback = oTest.fFinishedHandler,
         fInternalExceptionCallback = oTest.fInternalExceptionHandler,
@@ -74,10 +75,11 @@ class cTest(object):
         oOutputLock and oOutputLock.acquire();
         oTest.bHasOutputLock = True;
         print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
-        print "  Expected:    %s" % oTest.sExpectedBugTypeId;
-        print "  Exception:   %s" % oException;
+        print "  Expected:    %s" % repr(oTest.sExpectedBugTypeId);
+        print "  Exception:   %s" % repr(oException);
         oOutputLock and oOutputLock.release();
         oTest.bHasOutputLock = False;
+        raise;
   
   def fWait(oTest):
     hasattr(oTest, "oBugId") and oTest.oBugId.fWait();
@@ -100,17 +102,19 @@ class cTest(object):
         if oTest.sExpectedBugTypeId:
           if not oBugReport:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
-            print "  Expected:    %s" % oTest.sExpectedBugTypeId;
+            print "  Expected:    %s" % repr(oTest.sExpectedBugTypeId);
             print "  Got nothing";
             bFailed = True;
-          elif not oTest.sExpectedBugTypeId == oBugReport.sBugTypeId:
+          elif isinstance(oTest.sExpectedBugTypeId, tuple) and oBugReport.sBugTypeId in oTest.sExpectedBugTypeId:
+            print "+ %s" % oTest;
+          elif isinstance(oTest.sExpectedBugTypeId, str) and oBugReport.sBugTypeId == oTest.sExpectedBugTypeId:
+            print "+ %s" % oTest;
+          else:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
             print "  Expected:    %s" % oTest.sExpectedBugTypeId;
             print "  Reported:    %s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
             print "               %s" % (oBugReport.sBugDescription);
             bFailed = True;
-          else:
-            print "+ %s" % oTest;
         elif oBugReport:
           print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
           print "  Expected no report";
@@ -154,6 +158,10 @@ if __name__ == "__main__":
   aoTests = [];
   bFullTestSuite = len(sys.argv) > 1 and sys.argv[1] == "--full";
   bGenerateReportHTML = bFullTestSuite;
+  if not bFullTestSuite:
+    # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
+    # Disabling symbols should speed things up considerably.
+    dxBugIdConfig["asDefaultSymbolServerURLs"] = None;
   if len(sys.argv) > 1 and not bFullTestSuite:
     # Test is user supplied, output I/O
     dxBugIdConfig["bOutputStdIn"] = \
@@ -186,7 +194,7 @@ if __name__ == "__main__":
         aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFF9"], "AVR:NULL-4*N-3"));
         aoTests.append(cTest(sISA, ["AccessViolation", "Read", sMinusPadding+"FFFFFFF8"], "AVR:NULL-4*N"));
       aoTests.append(cTest(sISA, ["Breakpoint"], "Breakpoint"));
-      aoTests.append(cTest(sISA, ["C++"], "C++:cException"));
+      aoTests.append(cTest(sISA, ["C++"], ("C++", "C++:cException"))); # With and without symbols.
       aoTests.append(cTest(sISA, ["IntegerDivideByZero"], "IntegerDivideByZero"));
       aoTests.append(cTest(sISA, ["Numbered", "41414141", "42424242"], "0x41414141"));
       # Specific test to check for ntdll!RaiseException exception address being off-by-one from the stack address:
@@ -208,9 +216,10 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1c"], "OOBW[4*N]+4*N")); # Write the byte at offset 0x10 from the end of the buffer.
       if bFullTestSuite:
         aoTests.append(cTest(sISA, ["OutOfBounds", "Heap", "Write", "c", "1d"], "OOBW[4*N]+4*N+1")); # Write the byte at offset 0x10 from the end of the buffer.
-      # Sometimes there is a call to "binary!purecall" or "binary!_purecall" that can be used in order to detect a
-      # pure virtual function call, but not always: in our test code, it's not there on x86, but it is on x64.
-      aoTests.append(cTest(sISA, ["PureCall"], {"x86": "AppExit", "x64": "PureCall"}[sISA]));
+      # A pure virtual function call should result in an AppExit exception. However, sometimes the "binary!purecall" or
+      # "binary!_purecall" function can be found on the stack to destinguish these specific cases. Wether this works
+      # depends on the build of the application and whether symbols are being used.
+      aoTests.append(cTest(sISA, ["PureCall"], ("AppExit", "PureCall")));
       # Page heap does not appear to work for x86 tests on x64 platform.
       aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "0"], "UAFR"));
       aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "0"], "UAFW"));

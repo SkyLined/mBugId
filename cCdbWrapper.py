@@ -34,7 +34,9 @@ class cCdbWrapper(object):
     sCdbISA = sOSISA, # Which version of cdb should be used to debug this application?
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
-    asSymbolServerURLs = [],
+    asLocalSymbolPaths = None,
+    asSymbolCachePaths = None, 
+    asSymbolServerURLs = None,
     dsURLTemplate_by_srSourceFilePath = {},
     rImportantStdOutLines = None,
     rImportantStdErrLines = None,
@@ -99,15 +101,20 @@ class cCdbWrapper(object):
     # Get the cdb binary path
     sCdbBinaryPath = dxBugIdConfig["sCdbBinaryPath_%s" % oCdbWrapper.sCdbISA];
     assert sCdbBinaryPath, "No %s cdb binary path found" % oCdbWrapper.sCdbISA;
-    # Get a list of symbol servers to use:
-    sSymbolsPath = ";".join(
-      ["cache*%s" % x for x in dxBugIdConfig["asSymbolCachePaths"]] +
-      ["srv*%s" % x for x in asSymbolServerURLs]
-    );
     # Get the command line (without starting/attaching to a process)
     asCommandLine = [sCdbBinaryPath, "-o", "-sflags", "0x%08X" % uSymbolOptions];
     if dxBugIdConfig["bEnableSourceCodeSupport"]:
       asCommandLine += ["-lines"];
+    # Get a list of symbol paths, caches and servers to use:
+    asLocalSymbolPaths = asLocalSymbolPaths or [];
+    if asSymbolCachePaths is None:
+      asSymbolCachePaths = dxBugIdConfig["asDefaultSymbolCachePaths"];
+    # If not symbols should be used, or no symbol paths are provided, don't use them:
+    if asSymbolServerURLs is None:
+      asSymbolServerURLs = dxBugIdConfig["asDefaultSymbolServerURLs"];
+    oCdbWrapper.bUsingSymbolServers = asSymbolServerURLs;
+    # Construct the cdb symbol path if one is needed and add it as an argument.
+    sSymbolsPath = ";".join(asLocalSymbolPaths + ["cache*%s" % x for x in asSymbolCachePaths] + ["srv*%s" % x for x in asSymbolServerURLs]);
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
     oCdbWrapper.auProcessIds = [];

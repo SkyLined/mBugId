@@ -1,4 +1,4 @@
-import re;
+import re, time;
 from dxBugIdConfig import dxBugIdConfig;
 from FileSystem import FileSystem;
 
@@ -42,14 +42,15 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
           r"\*\*\* ERROR: Module load completed but symbols could not be loaded for (?:.*\\)*([^\\]+)",
         ]), sLine);
         if oFailedToLoadSymbolsError:
-          sModuleFileName = [s for s in oFailedToLoadSymbolsError.groups() if s][0];
-          # Turn noisy symbol loading on, reload the module and symbols, turn noisy symbol loading back off
-          oCdbWrapper.fasSendCommandAndReadOutput(
-            ".symopt+ 0x80000000;.reload /f /o /v /w %s;.symopt- 0x80000000; $$ Attempt to reload module symbols" %
-                sModuleFileName,
-            bHandleSymbolLoadErrors = False,
-          );
-          if not oCdbWrapper.bCdbRunning: return;
+          if oCdbWrapper.bUsingSymbolServers: # We can try to download these again.
+            sModuleFileName = [s for s in oFailedToLoadSymbolsError.groups() if s][0];
+            # Turn noisy symbol loading on, reload the module and symbols, turn noisy symbol loading back off
+            oCdbWrapper.fasSendCommandAndReadOutput(
+              ".symopt+ 0x80000000;.reload /f /o /v /w %s;.symopt- 0x80000000; $$ Attempt to reload module symbols" %
+                  sModuleFileName,
+              bHandleSymbolLoadErrors = False,
+            );
+            if not oCdbWrapper.bCdbRunning: return;
           uSkipLines = 1;
         # Strip useless symbol warnings and errors:
         elif re.match(r"^%s\s*$" % "|".join([
@@ -72,15 +73,17 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
 ):
   sLine = "";
   asLines = [];
-  bAddOutputToHTML = oCdbWrapper.bGetDetailsHTML and (
+  bAddOutputToHTML = oCdbWrapper.bGenerateReportHTML and (
     dxBugIdConfig["bShowAllCdbCommandsInReport"]
     or (bOutputIsInformative and dxBugIdConfig["bShowInformativeCdbCommandsInReport"])
     or bOutputCanContainApplicationOutput
   );
-  bAddImportantLinesToHTML = oCdbWrapper.bGetDetailsHTML and (
+  bAddImportantLinesToHTML = oCdbWrapper.bGenerateReportHTML and (
     bOutputCanContainApplicationOutput
     and oCdbWrapper.rImportantStdOutLines
   );
+  if bAddOutputToHTML:
+    nStartTime = time.clock();
   while 1:
     sChar = oCdbWrapper.oCdbProcess.stdout.read(1);
     if sChar == "\r":
@@ -113,10 +116,13 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       # Detect the prompt. This only works if the prompt starts on a new line!
       oPromptMatch = re.match("^\d+:\d+(:x86)?> $", sLine);
       if oPromptMatch:
+        if bAddOutputToHTML:
+          nRunTime = time.clock() - nStartTime;
+          oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "(The above output was generated in %.1f seconds)<br/>" % nRunTime;
         oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
         if dxBugIdConfig["bOutputStdOut"]:
           print "cdb>%s" % repr(sLine)[1:-1];
-        if oCdbWrapper.bGetDetailsHTML:
+        if oCdbWrapper.bGenerateReportHTML:
           # The prompt is always stored in a new block of I/O
           oCdbWrapper.asCdbStdIOBlocksHTML.append("<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine));
         return fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbolLoadErrors);
