@@ -2,11 +2,11 @@ import hashlib;
 from dxBugIdConfig import dxBugIdConfig;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
-  # Get a HTML representation of the stack, find the topmost relevatn stack frame and get stack id.
-  uFramesHashed = 0;
+  # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
   if oCdbWrapper.bGenerateReportHTML:
     asHTML = [];
     asNotesHTML = [];
+  asStackFrameIds = [];
   aoRelevantStackFrames = [];
   for oStackFrame in oBugReport.oStack.aoFrames:
     if oCdbWrapper.bGenerateReportHTML:
@@ -23,22 +23,21 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
     else:
       if oCdbWrapper.bGenerateReportHTML:
         asAddressClasses = [oStackFrame.oFunction and "StackFrameAddress" or "StackFrameNoSymbol"];
-        if uFramesHashed < oBugReport.oStack.uHashFramesCount:
+        if len(asStackFrameIds) < oBugReport.oStack.uHashFramesCount and oStackFrame.sId:
           asAddressClasses.append("Important");
       # Hash frame address for id and output frame to html
-      if uFramesHashed < oBugReport.oStack.uHashFramesCount:
+      if len(asStackFrameIds) < oBugReport.oStack.uHashFramesCount:
         aoRelevantStackFrames.append(oStackFrame);
-        if oCdbWrapper.bGenerateReportHTML:
-          # frame adds useful information to the id: add hash and output bold
-          sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
-              oCdbWrapper.fsHTMLEncode(oStackFrame.sId or "-");
-        if oStackFrame.sId: # Only if the stack frame has a hash do we count it.
-          uFramesHashed += 1;
+        if oStackFrame.sId:
+          asStackFrameIds.append(oStackFrame.sId);
+          if oCdbWrapper.bGenerateReportHTML:
+            # frame adds useful information to the id: add hash and output bold
+            sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
+                oCdbWrapper.fsHTMLEncode(oStackFrame.sId);
     if oCdbWrapper.bGenerateReportHTML:
       sAddressHTML = "<span class=\"%s\">%s</span>" % \
           (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
-  asStackFrameIds = [oStackFrame.sId or "-" for oStackFrame in aoRelevantStackFrames];
   if len(asStackFrameIds) > dxBugIdConfig["uStackHashFramesCount"]:
     # For certain bugs, such as recursive function calls, ids may have been generated for more functions than the value
     # in uStackHashFramesCount. In this case, the last ids are hashes into one id to reduce the number of hashes:
@@ -71,7 +70,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       if oRelevantStackFrame.sSourceFilePath:
         oBugReport.sBugSourceLocation = "%s @ %d" % \
             (oRelevantStackFrame.sSourceFilePath, oRelevantStackFrame.uSourceFileLineNumber);
-    break;
+      break;
   if oCdbWrapper.bGenerateReportHTML:
     if oBugReport.oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
