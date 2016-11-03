@@ -134,12 +134,16 @@ class cBugReport(object):
     # in the process, the first should be the binary that was executed.
     oMainModule = aoProcessBinaryModules[0];
     
-    # Find cModule for bug binary (i.e. the module in which the bug is located)
-    oBugModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
-    # If bug niary and main binary are not the same, gather information for both of them:
+    # If bug binary and main binary are not the same, gather information for both of them:
     aoRelevantModules = [oMainModule];
-    if oBugModule and oBugModule != oMainModule:
-      aoRelevantModules.append(oBugModule);
+    # Find cModule for bug binary (i.e. the module in which the bug is located)
+    oBugModule = None;
+    for oRelevantStackFrame in aoRelevantStackFrames:
+      if oRelevantStackFrame.oModule:
+        oBugModule = oRelevantStackFrame.oModule;
+        if oBugModule != oMainModule:
+          aoRelevantModules.append(oBugModule);
+        break;
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
     if oCdbWrapper.bGenerateReportHTML:
       # If a HTML report is requested, these will be used later on to construct it.
@@ -233,12 +237,6 @@ class cBugReport(object):
       # in the process, the first should be the binary that was executed.
       oMainModule = aoProcessBinaryModules[0];
       
-      # Find cModule for bug binary (i.e. the module in which the bug is located)
-      oBugModule = aoRelevantStackFrames and aoRelevantStackFrames[0].oModule;
-      # If bug niary and main binary are not the same, gather information for both of them:
-      aoRelevantModules = [oMainModule];
-      if oBugModule and oBugModule != oMainModule:
-        aoRelevantModules.append(oBugModule);
       # Add relevant binaries information to cBugReport and HTML report.
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
       sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML) or "not available";
