@@ -18,6 +18,7 @@ dxBugIdConfig["bOutputStdIn"] = \
     dxBugIdConfig["bOutputStdOut"] = \
     dxBugIdConfig["bOutputStdErr"] = bDebugIO;
 dxBugIdConfig["bOutputProcesses"] = False;
+dxBugIdConfig["nExcessiveCPUUsageCheckInterval"] = 2; # The test application is simple: CPU usage should be apparent after a few seconds.
 dxBugIdConfig["uReserveRAM"] = 1024; # Simply test if reserving RAM works, not actually reserve any useful amount.
 dxBugIdConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
