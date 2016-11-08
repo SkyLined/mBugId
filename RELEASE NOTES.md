@@ -1,21 +1,63 @@
-2016-
+2016-11-08
+==========
+Some of the changes can result in different BugIds for the same crash with this
+version as compared to previous versions. See below for details.
 
+API changes
+-----------
++ The `bGetDetailsHTML` argument of `cBugId` was renamed to
+ `bGenerateReportHTML` to better reflect what it does and for naming
+ consistency across the code.
++ `cBugId` has two new arguments: `asLocalSymbolPaths` and `asSymbolCachePaths`:
+  + `asLocalSymbolPaths` should be used to provide a list of folders that
+    contain locally stored symbols, such as those generated when compiling a
+    binary yourself.
+  + `asSymbolCachePaths` should be used to provide a list of folders in which
+    symbols can be downloaded from symbol servers and is used as a cache.
+    This argument replaces the `asSymbolCachePaths` setting in
+    `dxBugIdConfig.py`.
++ The `asDefaultSymbolCachePaths` setting was added to `dxBugIdConfig.py`.
+  This value is used if no `asSymbolCachePaths` argument is provided to `cBugId`
+  or if `None` is provided. If you do not want to use any symbol cache paths,
+  you should use `asSymbolCachePaths = []`.
++ The `asDefaultSymbolServerURLs` setting has been added to `dxBugIdConfig.py`.
+  This value is used if no `asSymbolServerURLs` argument is provided to `cBugId`
+  or if `None` is provided. If you do not want to use any symbol servers, you
+  should use `asSymbolServerURLs = []`.
++ The `bMakeSureSymbolsAreLoaded` setting has been added to control whether
+  symbols load errors are detected and fixed. It is disabled by default, which
+  is a break from the original behavior, because this can significantly speed
+  up analysis. If you are experiencing problems generating consistent reports
+  and are missing symbols, you may want to re-enable this setting to see if this
+  fixes the issue for you.
 
 Improvements
 ------------
++ Analysis should be much faster: getting the values of register and pseudo
+  registers was done in a way that triggered a symbol look-up, which is very
+  slow (10 seconds or more). this is now done in a different way that avoids
+  this, which should greatly improve analysis speed in many cases.
 + Detect more Control Flow Guard breakpoint exceptions.
-+ Getting the values of register and pseudo registers in cdb is now much faster
-  because it no longer triggers symbol lookup. This should greatly improve
-  analysis speed in many cases.
++ The interval for CPU usage tests has been decreased to speed up these tests.
 
 Bug fixes
 ---------
-+ Getting the stack with HTML reports disabled would still execute code that
-  creates part of the HTML report. This code could then cause an exception.
-  This code is no longer executed if not HTML report is required.
-+ When page heap provides no information about the heap block (e.g. when the
-  heap block is freed) in case of a VERIFIER STOP, the information from the
-  VERIFIER STOP is used. This prevents an exception.
++ With HTML reports disabled, code that creates part of the HTML report would
+  still execute while getting the stack. This code could then cause an
+  exception. This code is no longer executed if not HTML report is required.
++ With HTML reports disabled, code that creates part of the HTML report for
+  binary module information would still be executed. This code is no longer
+  executed if not HTML report is required.
++ The code handling VERIFIER STOPs would assume page heap information would
+  always be available and contain the memory block address and size, which is
+  not the case (e.g. the block start address and size is not available for
+  freed memory blocks. This could cause an exception. The code now handles this
+  correctly.
++ Bug translation could fail if a stack frame had no symbol. This could result
+  in bug being translated incorrectly, and getting the wrong type (e.g. an
+  Assert could be reported as an OOM). This has been fixed.
++ Stack hashed and the crash location were not ideal when a relevant stack
+  frame had no symbols. This has been fixed.
 
 2016-10-13
 ==========
@@ -33,12 +75,14 @@ Improvements
 + Add ISA to module version information.
 + Handle STATUS_WAKE_SYSTEM_DEBUGGER better.
 
+
 2016-10-12
 ==========
 Improvements
 ------------
 + Cleanup stack for VERIFIER STOP message by removing top stack frames that are
   irrelevant, as is already done for other bugs.
+
 
 2016-10-11
 ==========
@@ -48,6 +92,7 @@ Bug fixes
 + Add missing property to report for unexpected cdb termination.
 + Disable automatically applying of page heap: it was causing access violations
   for unknown reasons.
+
 
 2016-10-10
 ==========
@@ -60,6 +105,7 @@ New features
 Bugfixes
 --------
 + cCdbWrapper_fuGetValue now ignores an additional cdb warning.
+
 
 2016-10-07
 ==========
@@ -83,12 +129,14 @@ Improvements
 + memory dumps in HTML reports contain more information.
 + Rewrote parts of the memory corruption detector.
 
+
 2016-10-05
 ==========
 Bug fixes and improvements
 --------------------------
 + Handle error output by cdb when getting value using cCdbWrapper.fuGetValue.
 + Fix typo in new FailFast code that caused exception when dumping stack.
+
 
 2016-10-04
 ==========
@@ -105,6 +153,7 @@ Bug fixes and improvements
 + Improve sanity checks in code that detects VERIFIER STOP messages.
 + Rewrote parts of CPU usage detection code.
 
+
 2016-09-13
 ==========
 Alterations to bug report
@@ -116,6 +165,7 @@ Bug fixes and improvements
 + Reorder HTML report output and add source.
 + Fix bug where binary version information was not available when HTML report
   was not generated.
+
 
 2016-09-12
 ==========
@@ -133,6 +183,7 @@ Bug fixes and improvements
 + Avoids problems in timezone parsing in debugger time.
 + Make stack handling more robust.
 
+
 2016-09-09
 ==========
 Added features
@@ -140,6 +191,7 @@ Added features
 + Added `cBugReport.asVersionInformation`, which contains version information
   on the main process binary (i.e. the .exe) and the binary in which the crash
   happened if it's not the main process binary (i.e. a .dll).
+
 
 2016-09-08
 ==========
@@ -149,6 +201,7 @@ Bug fixes and improvements
   tries to make sure it has.
 + Report descriptive error if FileSystem or Kill are not found.
 + Handle empty arguments to the application ("")
+
 
 2016-09-07
 ==========
@@ -163,9 +216,11 @@ Bug fixes and improvements
 + Add another Chrome OOM crash signature
 + Improve handling of symbol problems in page heap output.
 
+
 2016-09-05
 ==========
 + Bug fixes, no API changes.
+
 
 2016-08-31
 ==========
