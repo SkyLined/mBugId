@@ -3,7 +3,7 @@ from dxBugIdConfig import dxBugIdConfig;
 from FileSystem import FileSystem;
 
 dsTip_by_sErrorCode = {
-  "Win32 error 0x2": "Did you provide the correct the path and name of the executable?",
+  "Win32 error 0n2": "Did you provide the correct the path and name of the executable?",
   "NTSTATUS 0xC00000BB": "Are you using a 32-bit debugger with a 64-bit process?",
   "NTSTATUS 0xC000010A": "The process was terminated before the debugger could attach",
 };
@@ -19,13 +19,14 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
       sProcessId, sApplicationExecutable, sErrorCode = oCannotAttachMatch.groups();
       if sProcessId:
         uProcessId = long(sProcessId);
-        print "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
+        sErrorMessage = "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
       else:
-        print "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
+        sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
       if sErrorCode in dsTip_by_sErrorCode:
-        print dsTip_by_sErrorCode[sErrorCode];
-      oCdbWrapper.fStop();
-      return None;
+        sErrorMessage += "\r\n" + dsTip_by_sErrorCode[sErrorCode];
+      #oCdbWrapper.fStop();
+      #return None;
+      raise AssertionError(sErrorMessage);
     if oCdbWrapper.bCdbRunning:
       # These errors only need to be handled if cdb is still running.
       oBadPDBFileError = re.match(r"^%s\s*$" % "|".join([
