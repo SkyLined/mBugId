@@ -1,3 +1,24 @@
+2016-11-16
+==========
+API changes
+-----------
++ Failure to start an application now results in an exception. This makes more
+  sense and allows you to distinguish between an application terminating after
+  running, or an application not running at all.
+
+Improvements
+------------
++ cBugId now shows you which arguments it takes exactly.
++ More Edge and Firefox assertions that trigger an int3 are detected as such.
++ Charset and MSIE X-UA-Compatible data in HTML reports for better UI.
++ Twitter card info in HTML report (in case you ever link to one in a tweet).
+
+Bug fixes
+---------
++ cdb termination while generating a cBugReport could cause an exception. This
+  is now handled correctly.
++ More cdb warnings that caused assertions are ignored.
+
 2016-11-08
 ==========
 Some of the changes can result in different BugIds for the same crash with this
