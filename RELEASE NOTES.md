@@ -12,7 +12,7 @@ Improvements
 ------------
 + cBugId now shows you which arguments it takes exactly.
 + More Edge and Firefox assertions that trigger an int3 are detected as such.
-+ Charset and MSIE X-UA-Compatible data in HTML reports for better UI.
++ Charset, CSP and MSIE X-UA-Compatible data in HTML reports for better UI.
 + Twitter card info in HTML report (in case you ever link to one in a tweet).
 
 Bug fixes
