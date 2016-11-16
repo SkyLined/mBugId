@@ -2,6 +2,8 @@
 ==========
 API changes
 -----------
++ dxBugIdConfig is now read from `dxConfig["cBugId"]` rather than
+  `dxConfig["BugId"]`.
 + Failure to start an application now results in an exception. This makes more
   sense and allows you to distinguish between an application terminating after
   running, or an application not running at all.
