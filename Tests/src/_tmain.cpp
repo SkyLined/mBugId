@@ -10,6 +10,8 @@
   #define fpFromHexString(sInput) ((VOID*)_tcstoul(sInput, NULL, 16))
 #endif
 
+#define BYTE_TO_WRITE 0x41
+
 #define fdwFromHexString(sInput) ((DWORD)_tcstoul(sInput, NULL, 16))
 #define fuFromHexString(sInput) ((UINT)_tcstoul(sInput, NULL, 16))
 #define fiFromHexString(sInput) ((INT)_tcstol(sInput, NULL, 16))
@@ -48,29 +50,35 @@ VOID fStackRecursion() {
 }
 
 UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
+  HANDLE hHeap = GetProcessHeap();
   _set_abort_behavior( 0, _WRITE_ABORT_MSG);
   if (uArgumentsCount < 2) {
     _tprintf(_T("Usage:\r\n"));
     _tprintf(_T("  %s exception [arguments]\r\n"), asArguments[0]);
     _tprintf(_T("Exceptions and arguments:\r\n"));
-    _tprintf(_T("  AccessViolation [CALL|JMP|READ|WRITE] ADDRESS\r\n"));
-    _tprintf(_T("    e.g. AccessViolation CALL DEADBEEF\r\n"));
+    _tprintf(_T("  AccessViolation [Call|Jmp|Read|Write] ADDRESS\r\n"));
+    _tprintf(_T("    e.g. AccessViolation Call DEADBEEF\r\n"));
     _tprintf(_T("         (attempt to execute code at address 0xDEADBEEF using a CALL instruction)\r\n"));
-    _tprintf(_T("  UseAfterFree [READ|WRITE] SIZE OFFSET\r\n"));
-    _tprintf(_T("    e.g. UseAfterFree READ 20 4\r\n"));
+    _tprintf(_T("  UseAfterFree [Read|Write] SIZE OFFSET\r\n"));
+    _tprintf(_T("    e.g. UseAfterFree Read 20 4\r\n"));
     _tprintf(_T("         (free a 0x20 byte heap buffer and read from offset 4 of the free memory)\r\n"));
-    _tprintf(_T("  OutOfBounds [Heap|Stack] [READ|WRITE] SIZE OFFSET\r\n"));
-    _tprintf(_T("    e.g. OutOfBounds Heap READ 20 1\r\n"));
+    _tprintf(_T("  OutOfBounds [Heap|Stack] [Read|Write] SIZE OFFSET\r\n"));
+    _tprintf(_T("    e.g. OutOfBounds Heap Read 20 1\r\n"));
     _tprintf(_T("         (read from an address 1 byte past the end of a 20 byte heap buffer)\r\n"));
     _tprintf(_T("    -or- OutOfBounds Stack Write 20 4\r\n"));
     _tprintf(_T("         (write to an address 4 bytes past the end of a 20 byte stack buffer)\r\n"));
-    _tprintf(_T("  BufferOverrun [Heap|Stack] [READ|WRITE] SIZE OVERRUN\r\n"));
-    _tprintf(_T("    e.g. BufferOverrun Heap READ 20 4\r\n"));
+    _tprintf(_T("  BufferOverrun [Heap|Stack] [Read|Write] SIZE OVERRUN\r\n"));
+    _tprintf(_T("    e.g. BufferOverrun Heap Read 20 4\r\n"));
   	_tprintf(_T("         (read 4 bytes past the end of a 0x20 byte heap buffer)\r\n"));
     _tprintf(_T("    -or- BufferOverrun Stack Write 30 1\r\n"));
     _tprintf(_T("         (read 1 byte past the end of a 0x30 byte stack buffer)\r\n"));
-    _tprintf(_T("  StaticBufferOverrun10 [READ|WRITE] SIZE OVERRUN\r\n"));
-    _tprintf(_T("    e.g. StaticBufferOverrun10 READ 14\r\n"));
+    _tprintf(_T("  BufferUnderrun [Heap|Stack] [Read|Write] SIZE UNDERRUN\r\n"));
+    _tprintf(_T("    e.g. BufferUnderrun Heap Write 20 4\r\n"));
+  	_tprintf(_T("         (read 4 bytes before the start of a 0x20 byte heap buffer)\r\n"));
+    _tprintf(_T("    -or- BufferUnderrun Stack Write 30 1\r\n"));
+    _tprintf(_T("         (read 1 byte before the start of a 0x30 byte stack buffer)\r\n"));
+    _tprintf(_T("  StaticBufferOverrun10 [Read|Write] SIZE OVERRUN\r\n"));
+    _tprintf(_T("    e.g. StaticBufferOverrun10 Read 14\r\n"));
     _tprintf(_T("    -or- StaticBufferOverrun10 Write 11\r\n"));
     _tprintf(_T("  Breakpoint\r\n"));
     _tprintf(_T("  C++\r\n"));
@@ -91,7 +99,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       BYTE x = *(BYTE*)pAddress;
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      *(BYTE*)pAddress = 0x41;
+      *(BYTE*)pAddress = BYTE_TO_WRITE;
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read or Write, not %s\r\n"), asArguments[2]);
       return 1;
@@ -115,29 +123,39 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
   } else if (_tcsicmp(asArguments[1], _T("PureCall")) == 0) {
     cPureCall oPureCall;
   } else if (_tcsicmp(asArguments[1], _T("StackExhaustion")) == 0) {
-    while (1) alloca(0x1000);
+    while (1) alloca(fuFromHexString(asArguments[2]));
   } else if (_tcsicmp(asArguments[1], _T("RecursiveCall")) == 0) {
     fStackRecursion();
   } else if (_tcsicmp(asArguments[1], _T("UseAfterFree")) == 0) {
     DWORD uSize = fuFromHexString(asArguments[3]);
-    BYTE* pMemory = new BYTE[uSize];
-    delete pMemory;
+    INT iOffset = fiFromHexString(asArguments[4]);
+    BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
+    HeapFree(hHeap, 0, pMemory);
     if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
-      BYTE x = *(BYTE*)pMemory;
+      BYTE x = *(pMemory + iOffset);
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      *(BYTE*)pMemory = 0x41;
+      *(pMemory + iOffset) = BYTE_TO_WRITE;
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
       return 1;
     }
+  } else if (_tcsicmp(asArguments[1], _T("DoubleFree")) == 0) {
+    DWORD uSize = fuFromHexString(asArguments[2]);
+    INT iOffset = fiFromHexString(asArguments[3]);
+    BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
+    HeapFree(hHeap, 0, (PVOID)pMemory);
+    HeapFree(hHeap, 0, (PVOID)pMemory);
+  } else if (_tcsicmp(asArguments[1], _T("MisalignedFree")) == 0) {
+    DWORD uSize = fuFromHexString(asArguments[2]);
+    INT iOffset = fiFromHexString(asArguments[3]);
+    BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
+    HeapFree(hHeap, 0, (PVOID)(pMemory + iOffset));
   } else if (_tcsicmp(asArguments[1], _T("OutOfBounds")) == 0) {
     UINT uSize = fuFromHexString(asArguments[4]);
     INT iOffset = fiFromHexString(asArguments[5]);
-    BYTE* pMemory = NULL;
-    BOOL bDelete = FALSE;
+    BYTE* pMemory;
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
-      pMemory = new BYTE[uSize];
-      bDelete = TRUE;
+      pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
     } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
       pMemory = (BYTE*)alloca(uSize);
     } else {
@@ -145,24 +163,19 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     }
     if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
-      BYTE x = *(BYTE*)(pMemory + iOffset);
+      BYTE x = *(pMemory + iOffset);
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
-      *(BYTE*)(pMemory + iOffset) = 0x41;
+      *(pMemory + iOffset) = BYTE_TO_WRITE;
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
-    }
-    if (bDelete) {
-      delete pMemory;
     }
   } else if (_tcsicmp(asArguments[1], _T("BufferOverrun")) == 0) {
     UINT uSize = fuFromHexString(asArguments[4]);
     UINT uOverrun = fuFromHexString(asArguments[5]);
     BYTE* pMemory;
-    BOOL bDelete = FALSE;
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
-      pMemory = new BYTE[uSize];
-      bDelete = TRUE;
+      pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
     } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
       pMemory = (BYTE*)alloca(uSize);
     } else {
@@ -175,25 +188,46 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       }
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       for (BYTE* pAddress = pMemory; pAddress < pMemory + uSize + uOverrun; pAddress++) {
-        *pAddress = 0x41;
+        *pAddress = BYTE_TO_WRITE;
       }
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
     }
-    if (bDelete) {
-      delete pMemory;
+  } else if (_tcsicmp(asArguments[1], _T("BufferUnderrun")) == 0) {
+    UINT uSize = fuFromHexString(asArguments[4]);
+    UINT uUnderrun = fuFromHexString(asArguments[5]);
+    BYTE* pMemory;
+    if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
+      pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
+    } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
+      pMemory = (BYTE*)alloca(uSize);
+    } else {
+      _ftprintf(stderr, _T("Please use Heap or Stack, not %s\r\n"), asArguments[2]);
+      return 1;
+    }
+    if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
+      for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrun; pAddress--) {
+        BYTE x = *pAddress;
+      }
+    } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
+      for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrun; pAddress--) {
+        *pAddress = BYTE_TO_WRITE;
+      }
+    } else {
+      _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
+      return 1;
     }
   } else if (_tcsicmp(asArguments[1], _T("StaticBufferOverrun10")) == 0) {
     UINT uOverrun = fuFromHexString(asArguments[3]);
-    BYTE pMemory[10];
+    BYTE pStaticMemory[10];
     if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
-      for (BYTE* pAddress = pMemory; pAddress < pMemory + 10 + uOverrun; pAddress++) {
+      for (BYTE* pAddress = pStaticMemory; pAddress < pStaticMemory + 10 + uOverrun; pAddress++) {
         BYTE x = *pAddress;
       }
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      for (BYTE* pAddress = pMemory; pAddress < pMemory + 10 + uOverrun; pAddress++) {
-        *pAddress = 0x41;
+      for (BYTE* pAddress = pStaticMemory; pAddress < pStaticMemory + 10 + uOverrun; pAddress++) {
+        *pAddress = BYTE_TO_WRITE;
       }
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
