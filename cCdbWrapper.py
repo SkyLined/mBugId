@@ -31,13 +31,13 @@ except:
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
-    sCdbISA = sOSISA, # Which version of cdb should be used to debug this application?
+    sCdbISA = None, # Which version of cdb should be used to debug this application?
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
     asLocalSymbolPaths = None,
     asSymbolCachePaths = None, 
     asSymbolServerURLs = None,
-    dsURLTemplate_by_srSourceFilePath = {},
+    dsURLTemplate_by_srSourceFilePath = None,
     rImportantStdOutLines = None,
     rImportantStdErrLines = None,
     bGenerateReportHTML = False,
@@ -64,9 +64,9 @@ class cCdbWrapper(object):
     # Called when there is a bug in BugId itself. Can be used to make sure BugId is working as expected. If you run
     # into a sitaution where this callback gets called, you can file a bug at https://github.com/SkyLined/BugId/issues
   ):
-    oCdbWrapper.sCdbISA = sCdbISA;
+    oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
-    oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath;
+    oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
