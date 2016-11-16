@@ -78,11 +78,19 @@ dtxBugTranslations = {
     "A breakpoint was triggered because an assertion failed",
     None,
     [
-      [ # Edge
+      [  # Edge
+        "KERNELBASE.dll!RaiseException",
+        "EDGEHTML.dll!Abandonment::InduceAbandonment",
+        "EDGEHTML.dll!Abandonment::UnreachableCode", # Same as below, but with additional function hidden.
+      ], [
         "KERNELBASE.dll!RaiseException",
         "edgehtml.dll!Abandonment::InduceAbandonment",
-      ],
-      [ # Firefox
+        None, # Stack walking fails here
+        "edgehtml.dll!Abandonment::Fail",
+      ], [
+        "KERNELBASE.dll!RaiseException",
+        "edgehtml.dll!Abandonment::InduceAbandonment",
+      ], [ # Firefox
         "mozglue.dll!mozalloc_abort",
         "xul.dll!Abort",
         "xul.dll!NS_DebugBreak",
