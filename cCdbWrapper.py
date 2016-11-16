@@ -319,9 +319,10 @@ class cCdbWrapper(object):
       sSelectCommand += " $$ Select %s" % " and ".join(asSelected);
       asSelectOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
       if not oCdbWrapper.bCdbRunning: return;
-      srIgnoredErrors = r"^\*\*\* (%s) .*$" % "|".join([
-        r"WARNING: Unable to verify checksum for",
-        r"ERROR: Module load completed but symbols could not be loaded for",
+      srIgnoredErrors = r"^\*\*\* (%s)$" % "|".join([
+        r"WARNING: Unable to verify checksum for .*",
+        r"ERROR: Module load completed but symbols could not be loaded for .*",
+        "WARNING: Stack overflow detected\. The unwound frames are extracted from outside normal stack bounds\.",
       ]);
       for sLine in asSelectOutput:
         assert re.match(srIgnoredErrors, sLine), \
