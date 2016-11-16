@@ -2,7 +2,16 @@ sReportHTMLTemplate = ("""
 <!doctype html>
 <html>
   <head>
+    <meta charset="utf-8"/>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/> 
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; disown-opener; referrer no-referrer;"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:site" content="@berendjanwever"/>
+    <meta name="twitter:title" content="%(sId)s @ %(sBugLocation)s"/>
+    <meta name="twitter:description" content="%(sBugDescription)s"/>
+    <title>%(sId)s @ %(sBugLocation)s</title>
     <style>
       * {
         border: 0;
@@ -225,7 +234,6 @@ sReportHTMLTemplate = ("""
         };
       };
     </script>
-    <title>%(sId)s @ %(sBugLocation)s</title>
   </head>
   <body>
     <div class="Block Collapsable">
