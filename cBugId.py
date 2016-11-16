@@ -20,15 +20,47 @@ from sVersion import sVersion;
 
 class cBugId(object):
   sVersion = sVersion;
-  def __init__(oBugId, **dxArguments):
+  # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
+  def __init__(oBugId,
+    sCdbISA = None, # Which version of cdb should be used to debug this application?
+    asApplicationCommandLine = None,
+    auApplicationProcessIds = None,
+    asLocalSymbolPaths = None,
+    asSymbolCachePaths = None, 
+    asSymbolServerURLs = None,
+    dsURLTemplate_by_srSourceFilePath = None,
+    rImportantStdOutLines = None,
+    rImportantStdErrLines = None,
+    bGenerateReportHTML = False,
+    fApplicationRunningCallback = None,
+    fExceptionDetectedCallback = None,
+    fApplicationExitCallback = None,
+    fFinishedCallback = None,
+    fInternalExceptionCallback = None,
+  ):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
     # This event is used by the fWait function to wait for the process to
     # finish.
-    oBugId.__fExternalFinishedCallback = dxArguments.get("fFinishedCallback");
-    dxArguments["fFinishedCallback"] = oBugId.__fInternalFinishedHandler;
+    oBugId.__fExternalFinishedCallback = fFinishedCallback;
     oBugId.__oFinishedEvent = threading.Event();
     # Run the application in a debugger and catch exceptions.
-    oBugId.__oCdbWrapper = cCdbWrapper(**dxArguments);
+    oBugId.__oCdbWrapper = cCdbWrapper(
+      sCdbISA = sCdbISA,
+      asApplicationCommandLine = asApplicationCommandLine,
+      auApplicationProcessIds = auApplicationProcessIds,
+      asLocalSymbolPaths = asLocalSymbolPaths,
+      asSymbolCachePaths = asSymbolCachePaths,
+      asSymbolServerURLs = asSymbolServerURLs,
+      dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath,
+      rImportantStdOutLines = rImportantStdOutLines,
+      rImportantStdErrLines = rImportantStdErrLines,
+      bGenerateReportHTML = bGenerateReportHTML,
+      fApplicationRunningCallback = fApplicationRunningCallback,
+      fExceptionDetectedCallback = fExceptionDetectedCallback,
+      fApplicationExitCallback = fApplicationExitCallback,
+      fFinishedCallback = oBugId.__fInternalFinishedHandler,
+      fInternalExceptionCallback = fInternalExceptionCallback,
+    );
   
   def fStop(oBugId):
     oBugId.__oCdbWrapper.fStop();
@@ -44,8 +76,8 @@ class cBugId(object):
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
-  def fxSetTimeout(oBugId, nTimeout, fCallback, *axArguments):
-    return oBugId.__oCdbWrapper.fxSetTimeout(nTimeout, fCallback, *axArguments);
+  def fxSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
+    return oBugId.__oCdbWrapper.fxSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, xTimeout):
     oBugId.__oCdbWrapper.fClearTimeout(xTimeout);
