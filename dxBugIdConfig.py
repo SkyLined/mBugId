@@ -5,7 +5,7 @@ try:
 except:
   dxConfig = {};
 # Add BugId group if it doesn't exist.
-dxBugIdConfig = dxConfig.setdefault("BugId", {});
+dxBugIdConfig = dxConfig.setdefault("cBugId", {});
 # Add default values where no values have been supplied:
 for (sName, xValue) in {
   ### cdb/kill binary settings
