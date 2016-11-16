@@ -40,12 +40,12 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_WX86_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, oStack):
+  def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, oProcess, oStack):
     oBugReport.oCdbWrapper = oCdbWrapper;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
-    oBugReport.oProcess = cProcess.foCreate(oCdbWrapper);
+    oBugReport.oProcess = oProcess;
     oBugReport.oStack = oStack;
     oBugReport.atxMemoryRemarks = [];
     oBugReport.atxMemoryDumps = [];
@@ -60,6 +60,7 @@ class cBugReport(object):
     oBugReport.sId = None;
     oBugReport.sBugLocation = None;
     oBugReport.sBugSourceLocation = None;
+    oBugReport.sReportHTML = None;
   
   def foTranslate(oBugReport, dtxTranslations):
     return cBugReport_foTranslate(oBugReport, dtxTranslations);
@@ -70,6 +71,8 @@ class cBugReport(object):
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
       uStackFramesCount += dxBugIdConfig["uMinStackRecursionLoops"] * dxBugIdConfig["uMaxStackRecursionLoopSize"]
+    oProcess = cProcess.foCreate(oCdbWrapper);
+    if not oCdbWrapper.bCdbRunning: return None;
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
     if not oCdbWrapper.bCdbRunning: return None;
     oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, oStack);
@@ -82,6 +85,7 @@ class cBugReport(object):
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
+      oProcess = oProcess,
       oStack = oStack,
     );
     # Perform exception specific analysis:
@@ -97,6 +101,8 @@ class cBugReport(object):
   @classmethod
   def foCreate(cBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
+    oProcess = cProcess.foCreate(oCdbWrapper);
+    if not oCdbWrapper.bCdbRunning: return None;
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
     if not oCdbWrapper.bCdbRunning: return None;
     # Create a preliminary error report.
@@ -105,6 +111,7 @@ class cBugReport(object):
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
+      oProcess = oProcess,
       oStack = oStack,
     );
     return oBugReport;
