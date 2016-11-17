@@ -357,6 +357,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         if oCdbWrapper.bGenerateReportHTML:
           sPageHeapOutputHTML = sBlockHTMLTemplate % {
             "sName": "Page heap output for address 0x%X" % uAddress,
+            "sCollapsed": "Collapsed",
             "sContent": "<pre>%s</pre>" % "\r\n".join([
               oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapReport.asPageHeapOutput
             ])

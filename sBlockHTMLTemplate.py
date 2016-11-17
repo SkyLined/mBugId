@@ -1,5 +1,5 @@
 sBlockHTMLTemplate = """
-    <div class="Block Collapsed">
+    <div class="Block %(sCollapsed)s">
       <h1 class="BlockHeader">%(sName)s<span class="BlockHeaderIcon"></span></h1>
       <div class="Content">
         %(sContent)s

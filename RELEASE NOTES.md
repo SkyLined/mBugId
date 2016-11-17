@@ -1,3 +1,9 @@
+2016-11-17
+==========
+Improvements
+------------
++ HTML reports now start with "Stack" section open.
+
 2016-11-16
 ==========
 API changes

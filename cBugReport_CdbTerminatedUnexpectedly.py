@@ -30,6 +30,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       asBlocksHTML = [];
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
+        "sCollapsed": "Collapsed",
         "sContent": sCdbStdIOHTML
       });
       del oCdbWrapper.asCdbStdIOBlocksHTML;

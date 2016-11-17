@@ -174,12 +174,14 @@ class cBugReport(object):
       if oBugReport.sImportantOutputHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Potentially important application output",
+          "sCollapsed": "", # Not Collapsed
           "sContent": oBugReport.sImportantOutputHTML,
         });
       
       # Add stack block
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Stack",
+        "sCollapsed": "", # Not Collapsed
         "sContent": "<span class=\"Stack\">%s</span>" % sStackHTML
       });
       
@@ -196,6 +198,7 @@ class cBugReport(object):
         sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
+          "sCollapsed": "Collapsed",
           "sContent": "<span class=\"Registers\">%s</span>" % sRegistersHTML,
         });
       
@@ -211,6 +214,7 @@ class cBugReport(object):
             if sMemoryDumpHTML:
               asBlocksHTML.append(sBlockHTMLTemplate % {
                 "sName": sDescription,
+                "sCollapsed": "Collapsed",
                 "sContent": "<span class=\"Memory\">%s</span>" % sMemoryDumpHTML,
               });
       
@@ -233,6 +237,7 @@ class cBugReport(object):
           if sFrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (uFrameNumber, oFrame.sAddress),
+              "sCollapsed": "Collapsed",
               "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
       
@@ -250,6 +255,7 @@ class cBugReport(object):
       if sBinaryInformationHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Binary information",
+          "sCollapsed": "Collapsed",
           "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
         });
       
@@ -258,6 +264,7 @@ class cBugReport(object):
       oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML = oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML[-1:];
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
+        "sCollapsed": "Collapsed",
         "sContent": sCdbStdIOHTML
       });
       # Stick everything together.
