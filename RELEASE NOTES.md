@@ -1,3 +1,21 @@
+2016-11-21
+==========
+Improvements
+------------
++ Size of memory region dumps is now limited by the
+  `dxBugIdConfig["uMaxMemoryDumpSize"]` setting. This prevents errors on really
+  large memory regions, speeds up BugId and reduces report size on large memory
+  regions.
++ Access violation address should now always be added to the memory dumps in
+  HTML reports; previously, it was not always reported.
+
+Bug fixes
+---------
++ See the above limit to memory region dump size.
++ Fixed bug where if cdb died at a certain time during analysis, this was not
+  handled correctly and BugId threw an incorrect assertion failure.
+
+
 2016-11-17
 ==========
 Improvements
