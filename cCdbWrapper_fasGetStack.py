@@ -46,10 +46,15 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
     bOutputIsInformative = True,
   );
   if not oCdbWrapper.bCdbRunning: return None;
-  # Remove checksum warning, if any.
-  if re.match(r"^\*\*\* WARNING: Unable to verify checksum for .*$", asStackOutput[0]):
-    asStackOutput.pop(0);
-  assert asStackOutput, "CDB did not return any stack information for command %s" % repr(sGetStackCommand);
+  # Remove irrelevant warnings, if any.
+  asRemovedOutput = [];
+  while asStackOutput and re.match("|".join(["^%s$" % s for s in [
+    r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
+    r"\*\*\* WARNING: Unable to verify checksum for .*",
+  ]]), asStackOutput[0]):
+    asRemovedOutput.append(asStackOutput.pop(0));
+  assert asStackOutput, "CDB did not return any stack information for command %s\r\n%s" % \
+      (repr(sGetStackCommand), "\r\n".join(asRemovedOutput));
   # Getting the stack twice does not always work: for unknown reasons the second time the stack may be truncated or
   # incorrect. So, if an error in symbol loading is detected while getting the stack, there is no reliable way to try
   # to reload the symbols and get the stack again: we must throw an exception.
