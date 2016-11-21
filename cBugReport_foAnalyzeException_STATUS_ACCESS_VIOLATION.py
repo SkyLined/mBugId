@@ -276,20 +276,49 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         oBugReport.atxMemoryRemarks.extend(oPageHeapReport.fatxMemoryRemarks());
         if oPageHeapReport.uBlockStartAddress:
           if oCdbWrapper.bGenerateReportHTML:
-            uMemoryDumpAddress = oPageHeapReport.uBlockStartAddress;
+            uMemoryDumpStartAddress = oPageHeapReport.uBlockStartAddress;
             uMemoryDumpSize = oPageHeapReport.uBlockSize;
-          if uAddress < oPageHeapReport.uBlockStartAddress:
-            uPrefix = oPageHeapReport.uBlockStartAddress - uAddress;
-            if oCdbWrapper.bGenerateReportHTML:
-              uMemoryDumpAddress -= uPrefix;
-              uMemoryDumpSize += uPrefix;
-          elif uAddress >= oPageHeapReport.uBlockEndAddress:
-            uPostFix = uAddress - oPageHeapReport.uBlockEndAddress + 1;
-            if oCdbWrapper.bGenerateReportHTML:
-              uMemoryDumpSize += uPostFix;
           if oCdbWrapper.bGenerateReportHTML:
+            if uAddress < oPageHeapReport.uBlockStartAddress:
+              uPrefix = oPageHeapReport.uBlockStartAddress - uAddress;
+              uMemoryDumpStartAddress -= uPrefix;
+              uMemoryDumpSize += uPrefix;
+            elif uAddress >= oPageHeapReport.uBlockEndAddress:
+              uPostFix = uAddress - oPageHeapReport.uBlockEndAddress + 1;
+              uMemoryDumpSize += uPostFix;
+            # Check if we're not trying to dump a rediculous amount of memory:
+            uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
+            if not oCdbWrapper.bCdbRunning: return None;
+            uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+            if uMemoryDumpSize > dxBugIdConfig["uMaxMemoryDumpSize"] * uPointerSize:
+              # Yes, we'll need to reduce the size of the memory dump; try to find out what parts are farthest away
+              # from the exception address and remove those. uMemoryDumpStartAddress and/or uMemoryDumpSize are updated.
+              uMemoryDumpSizeBeforeAddress = uAddress - uMemoryDumpStartAddress;
+              uMemoryDumpSizeAfterAddress = uMemoryDumpEndAddress - uAddress;
+              # Regardless of where we remove bytes from the dump, the size will become the maximum size:
+              uMemoryDumpSize = dxBugIdConfig["uMaxMemoryDumpSize"];
+              if uMemoryDumpSizeBeforeAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
+                # The size before the address is reasonable: by reducing the total size, we reduced the size after the
+                # address and the end address must be updated:
+                uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+              elif uMemoryDumpSizeAfterAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
+                # The size after the address is reasonable: reduce the size before the address by increasing the start
+                # address so that the dump still ends at the same address after having reduced its size:
+                uMemoryDumpStartAddress = uMemoryDumpEndAddress - dxBugIdConfig["uMaxMemoryDumpSize"];
+              else:
+                # The size before and after the address are both too large: increase the start address so that the dump
+                # will surround that address as best as possible and reduce the end address to match.
+                uMemoryDumpStartAddress = round(uAddress - dxBugIdConfig["uMaxMemoryDumpSize"] / 2);
+                uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+            # Align start and end address to pointer size:
+            uPointerSizeMask = uPointerSize - 1;
+            uMemoryDumpStartAddress -= uMemoryDumpStartAddress & uPointerSizeMask; # decrease to include start
+            if uMemoryDumpEndAddress & uPointerSizeMask:
+              uMemoryDumpEndAddress -= uMemoryDumpEndAddress & uPointerSizeMask + uPointerSize; # increase to include end
+            # Recalculate size:
+            uMemoryDumpSize = uMemoryDumpEndAddress - uMemoryDumpStartAddress;
             oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
-                uMemoryDumpAddress, uMemoryDumpSize));
+                uMemoryDumpStartAddress, uMemoryDumpSize));
         if oPageHeapReport.sBlockType == "free-ed":
           # Page heap says the memory was freed:
           oBugReport.sBugTypeId = "UAF%s" % sViolationTypeId;
@@ -466,10 +495,10 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             if oCdbWrapper.bGenerateReportHTML:
               oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                   uAllocationStartAddress, uAllocationSize));
-
           else:
             raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
                 (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
+
   oBugReport.sBugDescription = sBugDescription + sViolationTypeNotes;
   oBugReport.sSecurityImpact = sSecurityImpact;
   dtxBugTranslations = ddtxBugTranslations.get(oBugReport.sBugTypeId, None);
