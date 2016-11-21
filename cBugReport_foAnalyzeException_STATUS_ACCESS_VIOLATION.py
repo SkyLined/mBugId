@@ -240,6 +240,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         sViolationTypeId = "E";
         sViolationTypeDescription = "executing";
     uAddress = long(sAddress.replace("`", ""), 16);
+  oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
   
   if sViolationTypeId == "E":
     # Hide the top stack frame if it is for the address at which the execute access violation happened:
@@ -260,7 +261,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     uOffset = abs(iOffset);
     if uOffset <= dxBugIdConfig["uMaxAddressOffset"]:
       oBugReport.sBugTypeId = "AV%s:%s%s" % (sViolationTypeId, sAddressId, fsGetOffsetDescription(iOffset));
-      oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
       break;
   else:
     if uAddress >= 0x800000000000:
@@ -466,7 +466,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             if oCdbWrapper.bGenerateReportHTML:
               oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                   uAllocationStartAddress, uAllocationSize));
-              oBugReport.atxMemoryRemarks.append(("Access violation", uAddress, None)); # TODO Find out size of access
+
           else:
             raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
                 (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
