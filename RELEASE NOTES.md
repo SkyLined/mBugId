@@ -14,6 +14,8 @@ Bug fixes
 + See the above limit to memory region dump size.
 + Fixed bug where if cdb died at a certain time during analysis, this was not
   handled correctly and BugId threw an incorrect assertion failure.
++ Fixed a bug where cdb would report a stack pointer having an unexpected value
+  that caused an assertion failure.
 
 
 2016-11-17
