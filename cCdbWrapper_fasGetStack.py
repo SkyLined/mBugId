@@ -49,6 +49,7 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
   # Remove irrelevant warnings, if any.
   asRemovedOutput = [];
   while asStackOutput and re.match("|".join(["^%s$" % s for s in [
+    r"WARNING: Stack overflow detected. The unwound frames are extracted from outside normal stack bounds\.",
     r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
     r"\*\*\* WARNING: Unable to verify checksum for .*",
   ]]), asStackOutput[0]):
