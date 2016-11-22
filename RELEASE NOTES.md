@@ -1,3 +1,10 @@
+2016-11-22
+==========
+Bug fixes
+---------
++ Fix UnboundLocalError in CPU usage detection that could happen when
+  application terminates.
+
 2016-11-21
 ==========
 Improvements
