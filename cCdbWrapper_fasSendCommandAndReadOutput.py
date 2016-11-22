@@ -40,8 +40,9 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
     bHandleSymbolLoadErrors = bHandleSymbolLoadErrors
   );
-  # Detect obvious errors executing the command. (this will not catch everything, but does help development)
-  if asOutput is not None and len(asOutput) > 0:
+  if not oCdbWrapper.bCdbRunning: return None;
+  if len(asOutput) > 0:
+    # Detect obvious errors executing the command. (this will not catch everything, but does help development)
     assert (
       not re.match(r"^\s*\^ .*$", asOutput[0])
       and (bIgnoreUnknownSymbolErrors or not asOutput[0].startswith("Couldn't resolve error at "))
