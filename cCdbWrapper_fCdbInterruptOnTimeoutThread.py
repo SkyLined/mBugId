@@ -27,7 +27,15 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
           # Let the StdIO thread know a break exception was sent so it knows to expected cdb to report one (otherwise
           # it would get reported as a bug!).
           oCdbWrapper.uCdbBreakExceptionsPending += 1;
-          oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT);
+          for x in xrange(4): # Try up to 5 times, handle errors the first 4 times.
+            try:
+              oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT);
+            except:
+              if not oCdbWrapper.bCdbRunning: return;
+              continue;
+            break;
+          else:
+            oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT); # 5th time; don't handle errors
           if bDebugOutput:
             print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
           break;
