@@ -4,6 +4,10 @@ Bug fixes
 ---------
 + Fix UnboundLocalError in CPU usage detection that could happen when
   application terminates.
++ Fixed a bug where cdb reported a stack overflow resulted in a stack extracted
+  from outside normal bounds, which caused an assertion failure.
++ Handle cdb termination while reading cdb stdout better.
++ Attempt to handle failure to send signal to cdb better.
 
 2016-11-21
 ==========
