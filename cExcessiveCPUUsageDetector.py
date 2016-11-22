@@ -95,6 +95,7 @@ class cExcessiveCPUUsageDetector(object):
     if bDebugOutputCalculation:
       print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
       print "| Application run time: %.3f->%.3f=%.3f" % (nPreviousRunTime, nCurrentRunTime, nRunTime);
+    uMaxCPUProcessId = None;
     for (uProcessId, dnCurrentCPUTime_by_uThreadId) in ddnCurrentCPUTime_by_uThreadId_by_uProcessId.items():
       if bDebugOutputCalculation:
         print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
@@ -117,13 +118,19 @@ class cExcessiveCPUUsageDetector(object):
             uMaxCPUThreadId = uThreadId;
         else:
           nCPUUsagePercent = None;
-        def fsFormat(nNumber):
-          return nNumber is None and " - " or ("%.3f" % nNumber);
-        if bDebugOutputCalculation: print "| %4X  %6s->%6s=%6s  %6s%%" % (
-          uThreadId,
-          fsFormat(nPreviousCPUTime), fsFormat(nCurrentCPUTime), fsFormat(nCPUTime),
-          fsFormat(nCPUUsagePercent),
-        );
+        if bDebugOutputCalculation:
+          fsFormat = lambda nNumber: nNumber is None and " - " or ("%.3f" % nNumber);
+          print "| %4X  %6s->%6s=%6s  %6s%%" % (
+            uThreadId,
+            fsFormat(nPreviousCPUTime), fsFormat(nCurrentCPUTime), fsFormat(nCPUTime),
+            fsFormat(nCPUUsagePercent),
+          );
+    if uMaxCPUProcessId is None:
+      if bDebugOutputCalculation:
+        print "|".ljust(120, "-");
+        print "| Insufficient data";
+        print "'".ljust(120, "-");
+      return None, None, None, None;
     if bDebugOutputCalculation:
       print "|".ljust(120, "-");
       print "| Total CPU usage: %d%%, max: %d%% for pid 0x%X, tid 0x%X" % \
@@ -148,6 +155,8 @@ class cExcessiveCPUUsageDetector(object):
         return; # Analysis was stopped because a new timeout was set.
       oExcessiveCPUUsageDetector.xCheckUsageTimeout = None;
       uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oExcessiveCPUUsageDetector.fxMaxCPUUsage();
+      if uMaxCPUProcessId is None:
+        return; # No data available.
       # If all threads in all processes combined have excessive CPU usage
       if nTotalCPUUsagePercent > dxBugIdConfig["nExcessiveCPUUsagePercent"]:
         # Find out which function is using excessive CPU time in the most active thread.
