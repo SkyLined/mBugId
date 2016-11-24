@@ -100,18 +100,12 @@ class cBugId(object):
       break;
   
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
-    assert oBugId.__bStarted is True, \
-        "You must call cBugId.fStart() before calling cBugId.fSetCheckForExcessiveCPUUsageTimeout()";
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
   def fxSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
-    assert oBugId.__bStarted is True, \
-        "You must call cBugId.fStart() before calling cBugId.fxSetTimeout()";
     return oBugId.__oCdbWrapper.fxSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, xTimeout):
-    assert oBugId.__bStarted is True, \
-        "You must call cBugId.fStart() before calling cBugId.fClearTimeout()";
     oBugId.__oCdbWrapper.fClearTimeout(xTimeout);
   
   def fnApplicationRunTime(oBugId):
