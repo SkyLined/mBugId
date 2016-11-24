@@ -24,7 +24,7 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
         sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
       if sErrorCode in dsTip_by_sErrorCode:
         sErrorMessage += "\r\n" + dsTip_by_sErrorCode[sErrorCode];
-      oCdbWrapper.fFailedToDebugApplicationHandler(sErrorMessage);
+      oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
       oCdbWrapper.fStop();
       return None;
     if oCdbWrapper.bCdbRunning:
