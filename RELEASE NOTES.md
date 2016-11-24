@@ -4,10 +4,12 @@ API changes
 -----------
 + All callbacks now get called with an additional first argument: oBugId, which
   is set to the relevant cBugId instance. This should make interacting with
-  BugId from these callbacks easier to implement and prevents race conditions
-  where a callback can be made in a separate thread before the cBugId
-  constructor is finished, leaving the callback without an instance of cBugId
-  to refer to.
+  BugId from these callbacks easier to implement.
++ You must explicitly call `cBugId.fStart()` to start debugging the
+  application. This should prevent race conditions where a thread can fire a
+  callback in a separate thread before the cBugId constructor is finished,
+  causing it to use an incomplete instance of cBugId and triggering various
+  errors.
 + Breakpoint callbacks now get called with two arguments: `oBugId`, as
   explained above and `uBreakpointId`, which contains the id of the breakpoint
   that was hit, as returned by `fuAddBreakpoint`.

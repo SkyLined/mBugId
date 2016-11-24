@@ -69,6 +69,7 @@ class cTest(object):
         fFinishedCallback = oTest.fFinishedHandler,
         fInternalExceptionCallback = oTest.fInternalExceptionHandler,
       );
+      oTest.oBugId.fStart();
       oTest.oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
     except Exception, oException:
       if not bFailed:

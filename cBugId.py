@@ -43,6 +43,7 @@ class cBugId(object):
     # finish.
     oBugId.__fExternalFinishedCallback = fFinishedCallback;
     oBugId.__oFinishedEvent = threading.Event();
+    oBugId.__bStarted = False;
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       oBugId = oBugId,
@@ -63,10 +64,18 @@ class cBugId(object):
       fInternalExceptionCallback = fInternalExceptionCallback,
     );
   
+  def fStart(oBugId):
+    oBugId.__bStarted = True;
+    oBugId.__oCdbWrapper.fStart();
+  
   def fStop(oBugId):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fStop()";
     oBugId.__oCdbWrapper.fStop();
   
   def fWait(oBugId):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fWait()";
     while 1:
       try:
         oBugId.__oFinishedEvent.wait();
@@ -75,18 +84,28 @@ class cBugId(object):
       break;
   
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fSetCheckForExcessiveCPUUsageTimeout()";
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
   def fxSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fxSetTimeout()";
     return oBugId.__oCdbWrapper.fxSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, xTimeout):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fClearTimeout()";
     oBugId.__oCdbWrapper.fClearTimeout(xTimeout);
   
   def fnApplicationRunTime(oBugId):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
     return oBugId.__oCdbWrapper.fnApplicationRunTime();
   
   def fbFinished(oBugId):
+    assert oBugId.__bStarted is True, \
+        "You must call cBugId.fStart() before calling cBugId.fbFinished()";
     oBugId.__oFinishedEvent.isSet();
   
   def __fInternalFinishedHandler(oBugId, oBugId2, oBugReport):

@@ -202,18 +202,22 @@ class cCdbWrapper(object):
     );
     
     # Create a thread that interacts with the debugger to debug the application
-    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper._fStartThread(cCdbWrapper_fCdbStdInOutThread);
+    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbStdInOutThread);
     # Create a thread that reads stderr output and shows it in the console
-    oCdbWrapper.oCdbStdErrThread = oCdbWrapper._fStartThread(cCdbWrapper_fCdbStdErrThread);
+    oCdbWrapper.oCdbStdErrThread = oCdbWrapper._foThread(cCdbWrapper_fCdbStdErrThread);
     # Create a thread that checks for a timeout to interrupt cdb when needed.
-    oCdbWrapper.oCdbInterruptOnTimeoutThread = oCdbWrapper._fStartThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
+    oCdbWrapper.oCdbInterruptOnTimeoutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCdbCleanupThread = oCdbWrapper._fStartThread(cCdbWrapper_fCdbCleanupThread);
+    oCdbWrapper.oCdbCleanupThread = oCdbWrapper._foThread(cCdbWrapper_fCdbCleanupThread);
   
-  def _fStartThread(oCdbWrapper, fActivity):
-    oThread = threading.Thread(target = oCdbWrapper._fThreadWrapper, args = (fActivity,));
-    oThread.start();
-    return oThread;
+  def fStart(oCdbWrapper):
+    oCdbWrapper.oCdbStdInOutThread.start();
+    oCdbWrapper.oCdbStdErrThread.start();
+    oCdbWrapper.oCdbInterruptOnTimeoutThread.start();
+    oCdbWrapper.oCdbCleanupThread.start();
+  
+  def _foThread(oCdbWrapper, fActivity):
+    return threading.Thread(target = oCdbWrapper._fThreadWrapper, args = (fActivity,));
   
   def _fThreadWrapper(oCdbWrapper, fActivity):
     try:
