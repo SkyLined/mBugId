@@ -22,8 +22,8 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
         print "@@@ application run time    : %.3f" % nApplicationRunTime;
         print "@@@ number of timeouts      : %d" % len(oCdbWrapper.axTimeouts);
       oCdbWrapper.oTimeoutsLock.acquire();
-      for (nTimeoutTime, fTimeoutCallback, axTimeoutCallbackArguments) in oCdbWrapper.axTimeouts: # Make a copy so modifcation during the loop does not affect it.
-        if nTimeoutTime <= nApplicationRunTime:
+      for (nTimeoutApplicationRunTime, fTimeoutCallback, axTimeoutCallbackArguments) in oCdbWrapper.axTimeouts: # Make a copy so modifcation during the loop does not affect it.
+        if nTimeoutApplicationRunTime <= nApplicationRunTime:
           # Let the StdIO thread know a break exception was sent so it knows to expected cdb to report one (otherwise
           # it would get reported as a bug!).
           oCdbWrapper.uCdbBreakExceptionsPending += 1;
@@ -37,10 +37,10 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
           else:
             oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT); # 5th time; don't handle errors
           if bDebugOutput:
-            print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
+            print "@@@ timeout for %.3f/%.3f => %s" % (nTimeoutApplicationRunTime - nApplicationRunTime, nTimeoutApplicationRunTime, repr(fTimeoutCallback));
           break;
         elif bDebugOutput:
-          print "@@@ sleep for %.3f/%.3f => %s" % (nTimeoutTime - nApplicationRunTime, nTimeoutTime, repr(fTimeoutCallback));
+          print "@@@ sleep for %.3f/%.3f => %s" % (nTimeoutApplicationRunTime - nApplicationRunTime, nTimeoutApplicationRunTime, repr(fTimeoutCallback));
       oCdbWrapper.oTimeoutsLock.release();
     finally:
       oCdbWrapper.oCdbLock.release();

@@ -45,6 +45,7 @@ class cBugId(object):
     oBugId.__oFinishedEvent = threading.Event();
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
+      oBugId = oBugId,
       sCdbISA = sCdbISA,
       asApplicationCommandLine = asApplicationCommandLine,
       auApplicationProcessIds = auApplicationProcessIds,
@@ -88,7 +89,7 @@ class cBugId(object):
   def fbFinished(oBugId):
     oBugId.__oFinishedEvent.isSet();
   
-  def __fInternalFinishedHandler(oBugId, oBugReport):
+  def __fInternalFinishedHandler(oBugId, oBugId2, oBugReport):
     oBugId.oBugReport = oBugReport;
     oBugId.__oFinishedEvent.set();
-    oBugId.__fExternalFinishedCallback and oBugId.__fExternalFinishedCallback(oBugReport);
+    oBugId.__fExternalFinishedCallback and oBugId.__fExternalFinishedCallback(oBugId, oBugReport);

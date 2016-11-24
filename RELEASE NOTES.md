@@ -1,3 +1,17 @@
+2016-11-23
+==========
+API changes
+-----------
++ All callbacks now get called with an additional first argument: oBugId, which
+  is set to the relevant cBugId instance. This should make interacting with
+  BugId from these callbacks easier to implement and prevents race conditions
+  where a callback can be made in a separate thread before the cBugId
+  constructor is finished, leaving the callback without an instance of cBugId
+  to refer to.
++ Breakpoint callbacks now get called with two arguments: `oBugId`, as
+  explained above and `uBreakpointId`, which contains the id of the breakpoint
+  that was hit, as returned by `fuAddBreakpoint`.
+
 2016-11-22
 ==========
 Bug fixes

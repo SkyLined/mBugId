@@ -103,7 +103,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           bApplicationWasPausedToAnalyzeAnException
         ):
           # ...report that the application is about to start running.
-          oCdbWrapper.fApplicationRunningCallback and oCdbWrapper.fApplicationRunningCallback();
+          oCdbWrapper.fApplicationRunningCallback and oCdbWrapper.fApplicationRunningCallback(oCdbWrapper.oBugId);
           bInitialApplicationRunningCallbackFired = True;
           bApplicationWasPausedToAnalyzeAnException = False;
         # Mark the time when the application was resumed.
@@ -231,7 +231,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       elif uBreakpointId is not None:
         # A breakpoint was hit; fire the callback
         fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
-        fBreakpointCallback();
+        fBreakpointCallback(oCdbWrapper.oBugId, uBreakpointId);
       elif sCreateExitProcess:
         # A process was created or terminated; keep track of running process ids.
         # Make sure the created/exited process is the current process.
@@ -278,7 +278,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           bReserveRAMAllocated = False;
         # Report that the application is paused for analysis...
         if oCdbWrapper.fExceptionDetectedCallback:
-          oCdbWrapper.fExceptionDetectedCallback(uExceptionCode, sExceptionDescription);
+          oCdbWrapper.fExceptionDetectedCallback(oCdbWrapper.oBugId, uExceptionCode, sExceptionDescription);
         # And potentially report that the application is resumed later...
         bApplicationWasPausedToAnalyzeAnException = True;
         # Create a bug report, if the exception is fatal.
@@ -298,15 +298,15 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       try:
         axTimeoutsToFire = [];
         for xTimeout in oCdbWrapper.axTimeouts:
-          (nTimeoutTime, fTimeoutCallback, axTimeoutCallbackArguments) = xTimeout;
-          if nTimeoutTime <= oCdbWrapper.nApplicationRunTime: # This timeout should be fired.
+          (nTimeoutApplicationRunTime, fTimeoutCallback, axTimeoutCallbackArguments) = xTimeout;
+          if nTimeoutApplicationRunTime <= oCdbWrapper.nApplicationRunTime: # This timeout should be fired.
             oCdbWrapper.axTimeouts.remove(xTimeout);
             axTimeoutsToFire.append((fTimeoutCallback, axTimeoutCallbackArguments));
-#           print "@@@ firing timeout %.1f seconds late: %s" % (oCdbWrapper.nApplicationRunTime - nTimeoutTime, repr(fTimeoutCallback));
+#           print "@@@ firing timeout %.1f seconds late: %s" % (oCdbWrapper.nApplicationRunTime - nTimeoutApplicationRunTime, repr(fTimeoutCallback));
       finally:
         oCdbWrapper.oTimeoutsLock.release();
       for (fTimeoutCallback, axTimeoutCallbackArguments) in axTimeoutsToFire:
-        fTimeoutCallback(*axTimeoutCallbackArguments);
+        fTimeoutCallback(oCdbWrapper.oBugId, *axTimeoutCallbackArguments);
     # Terminate cdb.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
     oCdbWrapper.fasSendCommandAndReadOutput("q");

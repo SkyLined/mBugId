@@ -31,6 +31,7 @@ except:
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
+    oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
@@ -64,6 +65,7 @@ class cCdbWrapper(object):
     # Called when there is a bug in BugId itself. Can be used to make sure BugId is working as expected. If you run
     # into a sitaution where this callback gets called, you can file a bug at https://github.com/SkyLined/BugId/issues
   ):
+    oCdbWrapper.oBugId = oBugId;
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
@@ -221,7 +223,7 @@ class cCdbWrapper(object):
       oThread = threading.Thread(target = oCdbWrapper._fThreadExceptionHandler, args = (oException, threading.currentThread()));
       oThread.start();
       if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oException);
+        oCdbWrapper.fInternalExceptionCallback(oCdbWrapper.oBugId, oException);
       else:
         raise;
   
@@ -259,7 +261,7 @@ class cCdbWrapper(object):
     if oCdbProcess.poll() is None:
       oKillException = oKillException or AssertionError("cdb did not die after killing it repeatedly")
       if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oKillException);
+        oCdbWrapper.fInternalExceptionCallback(oCdbWrapper.oBugId, oKillException);
       raise oKillException;
     # cdb finally died.
     oCdbWrapper.bCdbRunning = False;

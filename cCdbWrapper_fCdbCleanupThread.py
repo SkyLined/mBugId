@@ -49,6 +49,6 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
     fKillProcessesUntilTheyAreDead(oCdbWrapper.auProcessIds);
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
-  oCdbWrapper.fFinishedCallback and oCdbWrapper.fFinishedCallback(oCdbWrapper.oBugReport);
+  oCdbWrapper.fFinishedCallback and oCdbWrapper.fFinishedCallback(oCdbWrapper.oBugId, oCdbWrapper.oBugReport);
 
 

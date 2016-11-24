@@ -94,7 +94,7 @@ class cTest(object):
       oTest.bHasOutputLock = False;
     oConcurrentTestsSemaphore.release();
   
-  def fFinishedHandler(oTest, oBugReport):
+  def fFinishedHandler(oTest, oBugId, oBugReport):
     global bFailed, oOutputLock;
     try:
       if not bFailed:
@@ -141,7 +141,7 @@ class cTest(object):
       oTest.fFinished();
       oTest.bHandlingResult = False;
   
-  def fInternalExceptionHandler(oTest, oException):
+  def fInternalExceptionHandler(oTest, oBugId, oException):
     global bFailed;
     oTest.fFinished();
     if not bFailed:

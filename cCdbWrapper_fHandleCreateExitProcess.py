@@ -49,7 +49,7 @@ def cCdbWrapper_fHandleCreateExitProcess(oCdbWrapper, sCreateExit, uProcessId):
       cCdbWrapper_fHandleNewProcess(oCdbWrapper, uProcessId);
     oCdbWrapper.auProcessIds.remove(uProcessId);
     if oCdbWrapper.fApplicationExitCallback and (uProcessId in oCdbWrapper.auMainProcessIds):
-      oCdbWrapper.fApplicationExitCallback();
+      oCdbWrapper.fApplicationExitCallback(oCdbWrapper.oBugId);
     oCdbWrapper.uLastProcessId = uProcessId;
     fDebugOutputProcesses(oCdbWrapper, "* Terminated process %d/0x%X." % (uProcessId, uProcessId));
   else:
