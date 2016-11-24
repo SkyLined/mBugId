@@ -24,9 +24,9 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
         sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
       if sErrorCode in dsTip_by_sErrorCode:
         sErrorMessage += "\r\n" + dsTip_by_sErrorCode[sErrorCode];
-      #oCdbWrapper.fStop();
-      #return None;
-      raise AssertionError(sErrorMessage);
+      oCdbWrapper.fFailedToDebugApplicationHandler(sErrorMessage);
+      oCdbWrapper.fStop();
+      return None;
     if oCdbWrapper.bCdbRunning:
       # These errors only need to be handled if cdb is still running.
       oBadPDBFileError = re.match(r"^%s\s*$" % "|".join([

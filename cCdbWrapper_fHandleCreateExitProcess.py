@@ -11,9 +11,9 @@ def fDebugOutputProcesses(oCdbWrapper, sMessage, *auArguments):
   if dxBugIdConfig["bOutputProcesses"]: "@@@ %s" % asDebugOutput[0];
 
 def cCdbWrapper_fHandleNewProcess(oCdbWrapper, uProcessId):
-  # If cdb has created this process (i.e. it is not attaching to any process ids), this is the "main" process. If
-  # fApplicationExitCallback is provided, we need to detect when the main process exists.
-  if oCdbWrapper.fApplicationExitCallback and len(oCdbWrapper.auProcessIdsPendingAttach) == 0 and len(oCdbWrapper.auProcessIds) == 0:
+  # If cdb has created this process (i.e. it is not attaching to any process ids), the first process is the "main"
+  # process.
+  if len(oCdbWrapper.auProcessIdsPendingAttach) == 0 and len(oCdbWrapper.auProcessIds) == 0:
     assert len(oCdbWrapper.auMainProcessIds) == 0, "Only one main process can exist.";
     # Note: when attaching to processes, this list is created earlier as a copy of auProcessIdsPendingAttach.
     oCdbWrapper.auMainProcessIds = [uProcessId];
@@ -48,8 +48,8 @@ def cCdbWrapper_fHandleCreateExitProcess(oCdbWrapper, sCreateExit, uProcessId):
       # A new process was created and terminated immediately: handle creation first:
       cCdbWrapper_fHandleNewProcess(oCdbWrapper, uProcessId);
     oCdbWrapper.auProcessIds.remove(uProcessId);
-    if oCdbWrapper.fApplicationExitCallback and (uProcessId in oCdbWrapper.auMainProcessIds):
-      oCdbWrapper.fApplicationExitCallback(oCdbWrapper.oBugId);
+    if uProcessId in oCdbWrapper.auMainProcessIds and oCdbWrapper.fMainProcessTerminatedCallback:
+      oCdbWrapper.fMainProcessTerminatedCallback();
     oCdbWrapper.uLastProcessId = uProcessId;
     fDebugOutputProcesses(oCdbWrapper, "* Terminated process %d/0x%X." % (uProcessId, uProcessId));
   else:

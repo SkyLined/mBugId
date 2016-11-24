@@ -1,4 +1,4 @@
-2016-11-23
+2016-11-24
 ==========
 API changes
 -----------
@@ -6,14 +6,31 @@ API changes
   exception has occurred. This should make handling such exceptions easier for
   wrapper functions, as they no longer need to handle internal exception
   callbacks to get a reference to the exception.
-+ All callbacks now get called with an additional first argument: oBugId, which
-  is set to the relevant cBugId instance. This should make interacting with
-  BugId from these callbacks easier to implement.
++ Added `cBugId.sFailedToDebugApplicationErrorMessage`, which is normally None,
+  unless the application cannot be started or attached to, in which case it
+  contains a string describing the error.
++ Changed callbacks:
+  + `fFailedToDebugApplicationCallback`: called when the application cannot be
+    started or attached to. Arguments: (oBugId, sErrorMessage)
+  + `fApplicationRunningCallback`: called *only once* when the application is
+    started or resumed after attaching. The other calls to this callback seen
+    in previous versions have been replaced with calls to
+    `fApplicationResumedCallback` instead.
+  + `fApplicationSuspendedCallback`: called whenever the application is
+    suspended because of an exception, timeout or breakpoint. Replaces the
+    dubious `fApplictionExceptionCallback` seen in previous versions.
+  + `fApplicationResumedCallback`: called whenever the application is resumed
+    after having been suspended.
+  + `fMainProcessTerminatedCallback`: called when any of the application's main
+    processes terminate. Replaces `fApplicationExitCallback`.
 + You must explicitly call `cBugId.fStart()` to start debugging the
   application. This should prevent race conditions where a thread can fire a
   callback in a separate thread before the cBugId constructor is finished,
   causing it to use an incomplete instance of cBugId and triggering various
   errors.
++ All callbacks now get called with an additional first argument: oBugId, which
+  is set to the relevant cBugId instance. This should make interacting with
+  BugId from these callbacks easier to implement.
 + Breakpoint callbacks now get called with two arguments: `oBugId`, as
   explained above and `uBreakpointId`, which contains the id of the breakpoint
   that was hit, as returned by `fuAddBreakpoint`.

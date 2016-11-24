@@ -31,7 +31,6 @@ except:
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
-    oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
@@ -42,41 +41,36 @@ class cCdbWrapper(object):
     rImportantStdOutLines = None,
     rImportantStdErrLines = None,
     bGenerateReportHTML = False,
-    fApplicationRunningCallback = None,
-    # fApplicationRunningCallback is called when the application starts and after exception analysis is finished for
-    # continuable exceptions that are not considered a bug. In the later case, fExceptionDetectedCallback is called
-    # when the application is paused to do the analysis and fApplicationRunningCallback is called when the analysis
-    # is finished and the exception was not considered a bug to indicate the application has been resumed.
-    fExceptionDetectedCallback = None,
-    # fExceptionDetectedCallback is called when an exception is detected in the application that requires analysis.
-    # This callback can be used to pause any timeouts you may have set for the application, as the application is
-    # paused during analysis. You can resume these timeouts when fApplicationRunningCallback is called when the
-    # analysis is finished.
-    fApplicationExitCallback = None,
-    # Called when (any of) the application's "main" process(es) terminates. This is the first process created when you
-    # start an application using BugId, or any of the processes you asked BugId to attach to. This callback is not
-    # called when any process spawned by these "main" processes during debugging is terminated. This callback can be
-    # used to detect application termination, especially if you are debugging application that consist of multiple
-    # processes, such as Microsoft Edge.
-    fFinishedCallback = None,
-    # Called when BugId has finished debugging the application and either detected a bug or all the application's
-    # processes have terminated.
-    fInternalExceptionCallback = None,
-    # Called when there is a bug in BugId itself. Can be used to make sure BugId is working as expected. If you run
-    # into a sitaution where this callback gets called, you can file a bug at https://github.com/SkyLined/BugId/issues
+    fFailedToDebugApplicationCallback = None, # called when the application cannot be started by the debugger, or the
+                                              # debugger cannot attach to the given process ids. Arguments:
+                                              # (oBugId, sErrorMessage).
+    fApplicationRunningCallback = None,       # called when the application is started in the debugger, or the
+                                              # processes the debugger attached to have been resumed.
+    fApplicationSuspendedCallback = None,     # called when the application is suspended to handle an exception,
+                                              # timeout or breakpoint.
+    fApplicationResumedCallback = None,       # called after the application was suspended, right before the
+                                              # application is resumed again.
+    fMainProcessTerminatedCallback = None,    # called when (any of) the application's "main" processes terminate.
+                                              # When BugId starts an application, the first process created is the main
+                                              # process. When BugId to attaches to one or more processes, these are the
+                                              # main processes. This callback is not called when any child processes
+                                              # spawned by these main processes terminate.
+    fInternalExceptionCallback = None,        # called when there is a bug in BugId itself.
+    fFinishedCallback = None,                 # called when BugId is finished.
   ):
-    oCdbWrapper.oBugId = oBugId;
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
+    oCdbWrapper.fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
     oCdbWrapper.fApplicationRunningCallback = fApplicationRunningCallback;
-    oCdbWrapper.fExceptionDetectedCallback = fExceptionDetectedCallback;
-    oCdbWrapper.fApplicationExitCallback = fApplicationExitCallback;
-    oCdbWrapper.fFinishedCallback = fFinishedCallback;
+    oCdbWrapper.fApplicationSuspendedCallback = fApplicationSuspendedCallback;
+    oCdbWrapper.fApplicationResumedCallback = fApplicationResumedCallback;
+    oCdbWrapper.fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
     oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
+    oCdbWrapper.fFinishedCallback = fFinishedCallback;
     uSymbolOptions = sum([
       0x00000001, # SYMOPT_CASE_INSENSITIVE
       0x00000002, # SYMOPT_UNDNAME
@@ -122,12 +116,8 @@ class cCdbWrapper(object):
     oCdbWrapper.auProcessIds = [];
     oCdbWrapper.uCurrentProcessId = None; # The current process id in cdb's context
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
-    # When provided, fApplicationExitCallback is called when any of the applications "main" processes exits.
-    # If cdb is told to create a process, this first process is the main process. If cdb is attaching o processes, all
-    # processes it is attaching to are the main processes. auMainProcessIds keeps track of their ids, so BugId can
-    # detect when one of these exits.
-    if fApplicationExitCallback:
-      oCdbWrapper.auMainProcessIds = oCdbWrapper.auProcessIdsPendingAttach[:];
+    # Keep track of what the applications "main" processes are.
+    oCdbWrapper.auMainProcessIds = oCdbWrapper.auProcessIdsPendingAttach[:];
     if asApplicationCommandLine is not None:
       # If a process must be started, add it to the command line.
       assert not auApplicationProcessIds, "Cannot start a process and attach to processes at the same time";
@@ -227,7 +217,7 @@ class cCdbWrapper(object):
       oThread = threading.Thread(target = oCdbWrapper._fThreadExceptionHandler, args = (oException, threading.currentThread()));
       oThread.start();
       if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oCdbWrapper.oBugId, oException);
+        oCdbWrapper.fInternalExceptionCallback(oException);
       else:
         raise;
   
@@ -265,7 +255,7 @@ class cCdbWrapper(object):
     if oCdbProcess.poll() is None:
       oKillException = oKillException or AssertionError("cdb did not die after killing it repeatedly")
       if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oCdbWrapper.oBugId, oKillException);
+        oCdbWrapper.fInternalExceptionCallback(oKillException);
       raise oKillException;
     # cdb finally died.
     oCdbWrapper.bCdbRunning = False;

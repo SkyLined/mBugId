@@ -63,9 +63,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     oCdbWrapper.bExceptionHandlersHaveBeenSet = False;
     # Only fire fApplicationRunningCallback if the application was started for the first time or resumed after it was
     # paused to analyze an exception. 
-    bInitialApplicationRunningCallbackFired = False;
+    bApplicationRunningCallbackFired = False;
     bDebuggerNeedsToResumeAttachedProcesses = len(oCdbWrapper.auProcessIdsPendingAttach) > 0;
-    bApplicationWasPausedToAnalyzeAnException = False;
     # An bug report will be created when needed; it is returned at the end
     oBugReport = None;
     # Memory can be allocated to be freed later in case the system has run low on memory when an analysis needs to be
@@ -97,15 +96,15 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # cdb will no longer have a "current process", as the application will be running.
         oCdbWrapper.uCurrentProcessId = None;
         # Then attach to a process, or start or resume the application
-        if ( # If we've just started the application or we've attached to all processes and are about to resume them...
-          not bInitialApplicationRunningCallbackFired and len(oCdbWrapper.auProcessIdsPendingAttach) == 0
-        ) or ( # ... or if we've paused the application and are about to resume it ...
-          bApplicationWasPausedToAnalyzeAnException
-        ):
-          # ...report that the application is about to start running.
-          oCdbWrapper.fApplicationRunningCallback and oCdbWrapper.fApplicationRunningCallback(oCdbWrapper.oBugId);
-          bInitialApplicationRunningCallbackFired = True;
-          bApplicationWasPausedToAnalyzeAnException = False;
+        if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
+          # Report that the application is about to start running or be resumed.
+          if not bApplicationRunningCallbackFired:
+            if oCdbWrapper.fApplicationRunningCallback:
+              oCdbWrapper.fApplicationRunningCallback();
+            bApplicationRunningCallbackFired = True;
+          else:
+            if oCdbWrapper.fApplicationResumedCallback:
+              oCdbWrapper.fApplicationResumedCallback();
         # Mark the time when the application was resumed.
         asCdbTimeOutput = oCdbWrapper.fasSendCommandAndReadOutput(".time; $$ Get debugger time");
         if not oCdbWrapper.bCdbRunning: return;
@@ -135,7 +134,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-
+        if oCdbWrapper.fApplicationSuspendedCallback:
+          oCdbWrapper.fApplicationSuspendedCallback();
       # Find out what event caused the debugger break
       asLastEventOutput = oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ Get information about last event",
         bOutputIsInformative = True,
@@ -231,7 +231,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       elif uBreakpointId is not None:
         # A breakpoint was hit; fire the callback
         fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
-        fBreakpointCallback(oCdbWrapper.oBugId, uBreakpointId);
+        fBreakpointCallback(uBreakpointId);
       elif sCreateExitProcess:
         # A process was created or terminated; keep track of running process ids.
         # Make sure the created/exited process is the current process.
@@ -276,11 +276,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # This command is not relevant to the bug, so it is hidden in the cdb IO to prevent OOM.
           oCdbWrapper.fasSendCommandAndReadOutput("ad RAM; $$ Release RAM");
           bReserveRAMAllocated = False;
-        # Report that the application is paused for analysis...
-        if oCdbWrapper.fExceptionDetectedCallback:
-          oCdbWrapper.fExceptionDetectedCallback(oCdbWrapper.oBugId, uExceptionCode, sExceptionDescription);
-        # And potentially report that the application is resumed later...
-        bApplicationWasPausedToAnalyzeAnException = True;
         # Create a bug report, if the exception is fatal.
         oCdbWrapper.oBugReport = cBugReport.foCreateForException(oCdbWrapper, uExceptionCode, sExceptionDescription);
         if not oCdbWrapper.bCdbRunning: return;
@@ -306,7 +301,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       finally:
         oCdbWrapper.oTimeoutsLock.release();
       for (fTimeoutCallback, axTimeoutCallbackArguments) in axTimeoutsToFire:
-        fTimeoutCallback(oCdbWrapper.oBugId, *axTimeoutCallbackArguments);
+        fTimeoutCallback(*axTimeoutCallbackArguments);
     # Terminate cdb.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
     oCdbWrapper.fasSendCommandAndReadOutput("q");
