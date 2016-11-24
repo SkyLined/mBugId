@@ -42,6 +42,7 @@ class cBugId(object):
     # This event is used by the fWait function to wait for the process to
     # finish.
     oBugId.__fExternalFinishedCallback = fFinishedCallback;
+    oBugId.__fExternalInternalExceptionCallback = fInternalExceptionCallback;
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
     # Run the application in a debugger and catch exceptions.
@@ -60,8 +61,8 @@ class cBugId(object):
       fApplicationRunningCallback = fApplicationRunningCallback,
       fExceptionDetectedCallback = fExceptionDetectedCallback,
       fApplicationExitCallback = fApplicationExitCallback,
-      fFinishedCallback = oBugId.__fInternalFinishedHandler,
-      fInternalExceptionCallback = fInternalExceptionCallback,
+      fFinishedCallback = oBugId.__fFinishedHandler,
+      fInternalExceptionCallback = oBugId.__fInternalExceptionHandler,
     );
   
   def fStart(oBugId):
@@ -108,7 +109,11 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
     oBugId.__oFinishedEvent.isSet();
   
-  def __fInternalFinishedHandler(oBugId, oBugId2, oBugReport):
+  def __fFinishedHandler(oBugId, oBugId2, oBugReport):
     oBugId.oBugReport = oBugReport;
     oBugId.__oFinishedEvent.set();
-    oBugId.__fExternalFinishedCallback and oBugId.__fExternalFinishedCallback(oBugId, oBugReport);
+    oBugId.__fExternalFinishedCallback and oBugId.__fExternalFinishedCallback(oBugId2, oBugReport);
+
+  def __fInternalExceptionHandler(oBugId, oBugId2, oException):
+    oBugId.oInternalException = oException;
+    oBugId.__fExternalInternExceptionCallback and oBugId.__fExternalInternExceptionCallback(oBugId2, oException);

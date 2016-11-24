@@ -42,7 +42,6 @@ class cTest(object):
     oTest.sISA = sISA;
     oTest.asCommandLineArguments = asCommandLineArguments;
     oTest.sExpectedBugTypeId = sExpectedBugTypeId; # Can also be a tuple of valid values (e.g. PureCall/AppExit)
-    oTest.bInternalException = False;
     oTest.bHasOutputLock = False;
     oTest.bGenerateReportHTML = True;
   

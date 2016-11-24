@@ -2,6 +2,10 @@
 ==========
 API changes
 -----------
++ Added `cBugId.oInternalException`, which is normally None, unless an internal
+  exception has occurred. This should make handling such exceptions easier for
+  wrapper functions, as they no longer need to handle internal exception
+  callbacks to get a reference to the exception.
 + All callbacks now get called with an additional first argument: oBugId, which
   is set to the relevant cBugId instance. This should make interacting with
   BugId from these callbacks easier to implement.
