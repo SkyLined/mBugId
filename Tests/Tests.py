@@ -31,6 +31,7 @@ sReportsFolderName = FileSystem.fsPath(sBaseFolderPath, "Tests", "Reports");
 dsBinaries_by_sISA = {
   "x86": os.path.join(sLocalFolderPath, r"bin\Tests_x86.exe"),
   "x64": os.path.join(sLocalFolderPath, r"bin\Tests_x64.exe"),
+  "fail": os.path.join(sLocalFolderPath, r"bin\Binary_does_not_exist.exe"),
 };
 
 bFailed = False;
@@ -38,10 +39,11 @@ oOutputLock = threading.Lock();
 # If you see weird exceptions, try lowering the number of parallel tests:
 oConcurrentTestsSemaphore = threading.Semaphore(uSequentialTests);
 class cTest(object):
-  def __init__(oTest, sISA, asCommandLineArguments, sExpectedBugTypeId):
+  def __init__(oTest, sISA, asCommandLineArguments, sExpectedBugTypeId, sExpectedFailedToDebugApplicationErrorMessage = None):
     oTest.sISA = sISA;
     oTest.asCommandLineArguments = asCommandLineArguments;
     oTest.sExpectedBugTypeId = sExpectedBugTypeId; # Can also be a tuple of valid values (e.g. PureCall/AppExit)
+    oTest.sExpectedFailedToDebugApplicationErrorMessage = sExpectedFailedToDebugApplicationErrorMessage;
     oTest.bHasOutputLock = False;
     oTest.bGenerateReportHTML = True;
   
@@ -51,7 +53,10 @@ class cTest(object):
   def fRun(oTest):
     global bFailed, oOutputLock;
     oConcurrentTestsSemaphore.acquire();
-    sBinary = dsBinaries_by_sISA[oTest.sISA];
+    if oTest.sExpectedFailedToDebugApplicationErrorMessage:
+      sBinary = "this:cannot:be:run";
+    else:
+      sBinary = dsBinaries_by_sISA[oTest.sISA];
     asApplicationCommandLine = [sBinary] + oTest.asCommandLineArguments;
     if bDebugStartFinish:
       oOutputLock and oOutputLock.acquire();
@@ -100,11 +105,24 @@ class cTest(object):
       if not bFailed:
         oOutputLock and oOutputLock.acquire();
         oTest.bHasOutputLock = True;
-        if oTest.sExpectedBugTypeId:
+        if oTest.sExpectedFailedToDebugApplicationErrorMessage:
+          if oBugId.sFailedToDebugApplicationErrorMessage != oTest.sExpectedFailedToDebugApplicationErrorMessage:
+            print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
+            print "  Test should have reported a failure to debug the application.";
+            print "  Expected:    %s" % repr(oTest.sExpectedFailedToDebugApplicationErrorMessage);
+            print "  Reported:    %s" % repr(oBugId.sFailedToDebugApplicationErrorMessage);
+            bFailed = True;
+        elif oBugId.sFailedToDebugApplicationErrorMessage:
+            print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
+            print "  Test was unabled to debug the application:";
+            print "  Expected:    no error";
+            print "  Reported:    %s" % repr(oBugId.sFailedToDebugApplicationErrorMessage);
+        elif oTest.sExpectedBugTypeId:
           if not oBugReport:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
+            print "  Test should have reported a bug in the application.";
             print "  Expected:    %s" % repr(oTest.sExpectedBugTypeId);
-            print "  Got nothing";
+            print "  Reported:    no bug";
             bFailed = True;
           elif isinstance(oTest.sExpectedBugTypeId, tuple) and oBugReport.sBugTypeId in oTest.sExpectedBugTypeId:
             print "+ %s" % oTest;
@@ -112,13 +130,15 @@ class cTest(object):
             print "+ %s" % oTest;
           else:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
+            print "  Test reported a different bug than expected in the application.";
             print "  Expected:    %s" % oTest.sExpectedBugTypeId;
             print "  Reported:    %s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
             print "               %s" % (oBugReport.sBugDescription);
             bFailed = True;
         elif oBugReport:
           print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
-          print "  Expected no report";
+          print "  Test reported an unexpected bug in the application.";
+          print "  Expected:    no bug";
           print "  Reported:    %s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
           print "               %s" % (oBugReport.sBugDescription);
           bFailed = True;
@@ -171,6 +191,7 @@ if __name__ == "__main__":
     bGenerateReportHTML = True;
     aoTests.append(cTest(sys.argv[1], sys.argv[2:], None)); # Expect no exceptions.
   else:
+    aoTests.append(cTest("x86", [], None, 'Failed to start application "this:cannot:be:run": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA, ["Nop"], None)); # No exceptions, just a clean program exit.
       aoTests.append(cTest(sISA, ["CPUUsage"], "CPUUsage"));
