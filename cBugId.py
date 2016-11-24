@@ -149,8 +149,8 @@ class cBugId(object):
   def __fInternalExceptionHandler(oBugId, oException):
     # Save internal exception.
     oBugId.oInternalException = oException;
-    if oBugId.__fInternExceptionCallback:
-      oBugId.__fInternExceptionCallback(oBugId, oException);
+    if oBugId.__fInternalExceptionCallback:
+      oBugId.__fInternalExceptionCallback(oBugId, oException);
   
   def __fFinishedHandler(oBugId, oBugReport):
     # Save bug report, if any.
