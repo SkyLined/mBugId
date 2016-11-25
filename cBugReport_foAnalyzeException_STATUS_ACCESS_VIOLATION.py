@@ -320,8 +320,16 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                 uMemoryDumpStartAddress, uMemoryDumpSize));
         if oPageHeapReport.sBlockType == "free-ed":
-          # Page heap says the memory was freed:
-          oBugReport.sBugTypeId = "UAF%s" % sViolationTypeId;
+          # Page heap says the memory was freed: unfortunately, it does not tell us how big the block was, or exactly
+          # where in the allocated memory it was stored, but we know it must have been allocated as close to the end
+          # as possible, so the offset from the end of the allocated memory should be static unless the size of the
+          # block changes and/or the offset at which the code tries to read.
+          uOffsetFromEndOfAllocation = uAddress - oPageHeapReport.uAllocationEndAddress;
+          if uOffsetFromEndOfAllocation < 0:
+            oBugReport.sBugTypeId = "UAF%s[]~%s" % (sViolationTypeId, fsGetNumberDescription(-uOffsetFromEndOfAllocation));
+          else:
+            # The code tried to access data outside the bounds of the freed memory: double face-palm!
+            oBugReport.sBugTypeId = "OOBUAF%s[]%s" % (sViolationTypeId, fsGetOffsetDescription(uOffsetFromEndOfAllocation));
           sAddressDescription = "freed memory";
           sBugDescription = "Access violation while %s %s at 0x%X indicates a use-after-free." % \
               (sViolationTypeDescription, sAddressDescription, uAddress);

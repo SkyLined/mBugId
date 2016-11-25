@@ -243,8 +243,12 @@ if __name__ == "__main__":
       # depends on the build of the application and whether symbols are being used.
       aoTests.append(cTest(sISA, ["PureCall"], ("AppExit", "PureCall")));
       # Page heap does not appear to work for x86 tests on x64 platform.
-      aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "0"], "UAFR"));
-      aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "0"], "UAFW"));
+      aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "0"], "UAFR[]~4*N"));
+# Test binary should be recompiled to test this:
+#      aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "1"], "UAFW[]~4*N+3"));
+#      aoTests.append(cTest(sISA, ["UseAfterFree", "Read", "20", "20"], "OOBUAFR[]"));
+#      if bFullTestSuite:
+#        aoTests.append(cTest(sISA, ["UseAfterFree", "Write", "20", "31"], "OOBUAFW[]+4*N+1"));
       # These issues are not detected until they cause an access violation; there is no way to detect and report OOBRs before this happens.
       aoTests.append(cTest(sISA, ["BufferOverrun", "Heap", "Read", "20", "4"], "OOBR[4*N]"));
       if bFullTestSuite:
