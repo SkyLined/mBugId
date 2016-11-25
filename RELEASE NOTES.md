@@ -1,3 +1,9 @@
+2016-11-25
+==========
+Bug fixes
+---------
++ Fix missing variable in stack handling code.
+
 2016-11-24
 ==========
 API changes

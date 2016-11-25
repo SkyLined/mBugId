@@ -38,6 +38,9 @@ class cStack(object):
     
   @classmethod
   def foCreateFromAddress(cStack, oCdbWrapper, pAddress, uSize):
+    # Get information on all modules in the current process
+    doModules_by_sCdbId = oCdbWrapper.fdoGetModulesByCdbIdForCurrentProcess();
+    if not oCdbWrapper.bCdbRunning: return None;
     # Create the stack object
     uStackFramesCount = min(dxBugIdConfig["uMaxStackFramesCount"], uSize);
     asStack = oCdbWrapper.fasGetStack("dps 0x%X L0x%X" % (pAddress, uStackFramesCount + 1));
