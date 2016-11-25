@@ -73,19 +73,19 @@ class cPageHeapReport(object):
         "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
     oBlockAdressAndSizeMatch = re.match(              # line #4
         r"^\s+[0-9`a-f]+:"                            # space heap_header_address ":"
-        r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (heap_block_address) space (heap_block_size) space "-" }
-        r"\s+([0-9`a-f]+)\s+([0-9`a-f]+)"                 # space heap_pages_address space heap_pages_size
+        r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (sBlockStartAddress) space (sBlockSize) space "-" }
+        r"\s+([0-9`a-f]+)\s+([0-9`a-f]+)"             # space sAllocationStartAddress space sAllocationSize
         r"\s*$",                                      # [space]
         asPageHeapOutput[3]);
     assert oBlockAdressAndSizeMatch, \
         "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
     sBlockType = oBlockTypeMatch.group(1);
-    sBlockAddress, sBlockSize, sAllocationAddress, sTotalSize = oBlockAdressAndSizeMatch.groups();
-    uAllocationAddress = long(sAllocationAddress.replace("`", ""), 16);
-    uAllocationSize = long(sTotalSize.replace("`", ""), 16) - uPageSize; # Total size = allocation size + guard page size
-    uBlockAddress = sBlockAddress and long(sBlockAddress.replace("`", ""), 16);
+    sBlockStartAddress, sBlockSize, sAllocationStartAddress, sAllocationSize = oBlockAdressAndSizeMatch.groups();
+    uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
+    uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - uPageSize; # Total size = allocation size + guard page size
+    uBlockStartAddress = sBlockStartAddress and long(sBlockStartAddress.replace("`", ""), 16);
     uBlockSize = sBlockSize and long(sBlockSize.replace("`", ""), 16);
-    return cPageHeapReport(asPageHeapOutput, uPointerSize, sBlockType, uAllocationAddress, uAllocationSize, uBlockAddress, uBlockSize);
+    return cPageHeapReport(asPageHeapOutput, uPointerSize, sBlockType, uAllocationStartAddress, uAllocationSize, uBlockStartAddress, uBlockSize);
   
   def __init__(oPageHeapReport, asPageHeapOutput, uPointerSize, sBlockType, uAllocationStartAddress, uAllocationSize, \
       uBlockStartAddress, uBlockSize):
