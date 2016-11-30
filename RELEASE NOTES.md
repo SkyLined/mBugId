@@ -1,5 +1,20 @@
 2016-11-25
 ==========
+BugId changes
+-------------
++ The use-after-free BugId now contains the offset from the end of the memory
+  page in which the freed memory allocation was stored, at which the code
+  attempted to use the freed memory. For instance, if an application attempts
+  to read data at offset 4 in a freed 0x10 byte memory block, the BugId will
+  now be `UAFR[]~0xC`, as the end of the memory block aligns with the end of
+  the memory page and a read at offset 4 is 0xC bytes away from that end.
++ A use-after-free that is also out-of-bounds will now be reported as such
+  whenever possible. For instance, if an application attempts to read data at
+  offset 0x14 in a freed 0x10 byte memory block (i.e. beyond the end of the
+  freed memory block), the BugId will now be `OOBUAFR[]+0x4`, as the end of the
+  memory block aligns with the end of the memory page and a read at offset 0x14
+  is 0x4 bytes after that end.
+
 Bug fixes
 ---------
 + Fix missing variable in stack handling code.
