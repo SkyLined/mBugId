@@ -1,3 +1,11 @@
+2016-12-05
+==========
+API changes
+-----------
++ `cBugId` now exposes the `sOSISA` property, which represents the Operating
+  System's Instruction Set Architecture. It will be set to either "x86" or
+  "x64" according to the architecture the OS was designed for.
+
 2016-11-30
 ==========
 BugId changes

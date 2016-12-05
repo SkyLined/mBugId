@@ -17,9 +17,11 @@ for (sModule, sURL) in {
 
 from cCdbWrapper import cCdbWrapper;
 from sVersion import sVersion;
+from sOSISA import sOSISA;
 
 class cBugId(object):
   sVersion = sVersion;
+  sOSISA = sOSISA;
   # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
