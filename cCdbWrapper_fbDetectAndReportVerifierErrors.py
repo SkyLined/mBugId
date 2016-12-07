@@ -35,10 +35,11 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
       asRelevantLines.append(sLine);
       sValue, sDescription = oInformationMatch.groups();
       uValue = long(sValue, 16);
-      if sDescription == "Heap block": uVerifierStopHeapBlockStartAddress = uValue;
-      elif sDescription == "Block size": uVerifierStopHeapBlockSize = uValue;
-      elif sDescription == "Corrupted stamp": uCorruptedStamp = uValue;
-      elif sDescription == "Corruption address": uCorruptionAddress = uValue;
+      sDescription = sDescription.lower(); # Both "Corruption address" and "corruption address" are used :(
+      if sDescription == "heap block": uVerifierStopHeapBlockStartAddress = uValue;
+      elif sDescription == "block size": uVerifierStopHeapBlockSize = uValue;
+      elif sDescription == "corrupted stamp": uCorruptedStamp = uValue;
+      elif sDescription == "corruption address": uCorruptionAddress = uValue;
     else:
       assert sLine.strip().replace("=", "") == "", \
           "Unknown VERIFIER STOP message line: %s\r\n%s" % (repr(sLine), "\r\n".join(asLines));
