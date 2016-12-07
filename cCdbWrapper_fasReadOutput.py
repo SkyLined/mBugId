@@ -12,6 +12,18 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
   uIndex = 0;
   while uIndex < len(asLines):
     sLine = asLines[uIndex];
+    # The following errors can be inserted by the symbol loader at any point in the output. They have a CRLF at the
+    # end, so they may start anywhere in the output but will always run to the end of a line. The next line would have
+    # been a continuation of the current line, had this message not been inserted.  We can therefore remove the message
+    # from this line and concatinate the next line to reconstruct the output without this message. We then process this
+    # line again to remove any further such messages, as I don't think there is any reason why a single line might not
+    # contain more than one of these.
+    oSymbolLoadingError = re.match(r"\*\*\* ERROR: Symbol file could not be found\.  Defaulted to export symbols for .* \- $",
+    if oSymbolLoadingError:
+      assert uIndex + 1 < len(asLines), \
+          "Expected another line to follow the current one!?";
+      asLines[uIndex] = oSymbolLoadingError[:oSymbolLoadingError.start()] + asLines.pop(uIndex + 1);
+      continue;
     uSkipLines = 0;
     # Some of these errors can cause cdb to exit, so report them even if cdb is no longer running.
     oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
@@ -55,7 +67,6 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
           uSkipLines = 1;
         # Strip useless symbol warnings and errors:
         elif re.match(r"^%s\s*$" % "|".join([
-          r"\*\*\* ERROR: Symbol file could not be found\.  Defaulted to export symbols for .* \-",
           r"\*\*\* WARNING: Unable to verify checksum for .*",
           r"\*\*\* DBGHELP: SharedUserData \- virtual symbol module",
         ]), sLine):
