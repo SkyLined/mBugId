@@ -21,9 +21,11 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
       # next line to reconstruct the intended output line without this error. The line is then processed again to
       # remove any further such errors, as there is no reason why a single line might not contain more than one such
       # error.
-      assert uIndex + 1 < len(asLines), \
-          "Expected another line to follow the current one!?";
-      asLines[uIndex] = sLine[:oSymbolLoadingError.start()] + asLines.pop(uIndex + 1);
+      asLines[uIndex] = sLine[:oSymbolLoadingError.start()];
+      # If the command produces output, there may be another line after the current and these two should be
+      # concatinated:
+      if uIndex + 1 < len(asLines):
+        asLines[uIndex] += asLines.pop(uIndex + 1);
       continue;
     uSkipLines = 0;
     # Some of these errors can cause cdb to exit, so report them even if cdb is no longer running.
