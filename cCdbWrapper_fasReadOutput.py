@@ -21,16 +21,17 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
       # next line to reconstruct the intended output line without this error. The line is then processed again to
       # remove any further such errors, as there is no reason why a single line might not contain more than one such
       # error.
-      asLines[uIndex] = sLine[:oSymbolLoadingError.start()];
+      sLine = sLine[:oSymbolLoadingError.start()];
       if uIndex + 1 < len(asLines):
-        # If the command produces output, there should be another line after the current and these two should be
-        # concatinated to remove the CRLF introduced by the error:
-        asLines[uIndex] += asLines.pop(uIndex + 1);
+        # There is more output after the error, which should be concatinated to the current line as the error
+        # introduced the CRLF which broke the current line into two:
+        sLine += asLines.pop(uIndex + 1);
+        asLines[uIndex] = sLine;
+      elif sLine:
+        # There is no more output after the error, just use the current line as-is.
+        asLines[uIndex] = sLine;
       else:
-        # If the command does not produce output, there should not be another line after the current and the current
-        # line should be empty. The current line should be removed to remove the CRLF introduced by the error:
-        assert uIndex == 0 and asLines[uIndex] == "", \
-            "This should only happen if there is no output, but there is:\r\n%s" % "\r\n".join(asLines);
+        # There is no more output after the error and there was none before it; remove the line.
         asLines.pop(uIndex);
       continue;
     uSkipLines = 0;
