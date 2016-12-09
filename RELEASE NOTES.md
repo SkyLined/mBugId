@@ -1,3 +1,12 @@
+2016-12-07
+==========
+Bug fixes
+---------
++ Improve the way symbol loading errors are handled: they should now be handled
+  correctly even if they start in the middle of a line of output.
++ Fix information extraction for VERIFIER STOP messages to get the corruption
+  address correctly.
+
 2016-12-05
 ==========
 API changes
