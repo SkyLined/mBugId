@@ -191,8 +191,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     # value, but there is a chance that a byte was overwritten with the same value it has before, in which case it was
     # not saved. This can be detect if it is surrounded by bytes that did change value. This code reads the value of all
     # bytes between the first and last byte that we detected was corrupted:
-    asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
-    if asCorruptedBytes:
+    if oCorruptionDetector.bCorruptionDetected:
+      asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
       sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
       sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
     sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled";
