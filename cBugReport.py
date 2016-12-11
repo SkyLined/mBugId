@@ -174,14 +174,14 @@ class cBugReport(object):
       if oBugReport.sImportantOutputHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Potentially important application output",
-          "sCollapsed": "", # Not Collapsed
+          "sCollapsed": "Collapsible", # ...but not Collapsed
           "sContent": oBugReport.sImportantOutputHTML,
         });
       
       # Add stack block
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Stack",
-        "sCollapsed": "", # Not Collapsed
+        "sCollapsed": "Collapsible", # ...but not Collapsed
         "sContent": "<span class=\"Stack\">%s</span>" % sStackHTML
       });
       

@@ -4,6 +4,8 @@ Bug fixes
 ---------
 + Fix bug in handling of VERIFIER STOP messages where no corruption is detected
   by BugId itself.
++ Fix bug in HTML report where blocks where not collapsible and correct
+  spelling error.
 
 2016-12-09
 ==========

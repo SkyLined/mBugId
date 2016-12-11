@@ -101,11 +101,11 @@ sReportHTMLTemplate = ("""
       .Content {
         overflow-x: auto;
       }
-      .Collapsable > .Content,
+      .Collapsible > .Content,
       .Collapsed > .CollapsedPlaceholder {
         display: block;
       }
-      .Collapsable > .CollapsedPlaceholder,
+      .Collapsible > .CollapsedPlaceholder,
       .Collapsed > .Content {
         display: none;
       }
@@ -114,7 +114,7 @@ sReportHTMLTemplate = ("""
         vertical-align: top;
         border: 1px solid rgba(255, 251, 247, 1);
       }
-      .Collapsable .BlockHeaderIcon {
+      .Collapsible .BlockHeaderIcon {
         padding: 1px 0.8em 0 0;
       }
       .Collapsed .BlockHeaderIcon {
@@ -212,9 +212,9 @@ sReportHTMLTemplate = ("""
             bCollapsedPlaceholdersRemoved = false;
         oBlockHeaderElement.onclick = function () {
           oBlockElement.className = oBlockElement.className.replace(
-            /\\b(Collapsed|Collapsable)\\b/,
+            /\\b(Collapsed|Collapsible)\\b/,
             function (sCurrentClassName) {
-              return {"Collapsable": "Collapsed", "Collapsed": "Collapsable"}[sCurrentClassName];
+              return {"Collapsible": "Collapsed", "Collapsed": "Collapsible"}[sCurrentClassName];
             }
           );
           if (!bCollapsedPlaceholdersRemoved) {
@@ -236,7 +236,7 @@ sReportHTMLTemplate = ("""
     </script>
   </head>
   <body>
-    <div class="Block Collapsable">
+    <div class="Block Collapsible">
       <h1 class="BlockHeader">BugId %(sId)s @ %(sBugLocation)s summary<span class="BlockHeaderIcon"></span></h1>
       <div class="Content">
         <table>
