@@ -1,3 +1,10 @@
+2016-12-11
+==========
+Bug fixes
+---------
++ Fix bug in handling of VERIFIER STOP messages where no corruption is detected
+  by BugId itself.
+
 2016-12-09
 ==========
 Bug fixes
