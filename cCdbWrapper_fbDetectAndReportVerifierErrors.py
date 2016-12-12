@@ -30,7 +30,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         asRelevantLines.append(sLine);
       continue;
     # A VERIFIER STOP message has been detected, gather what information verifier provides:
-    oInformationMatch = re.match(r"\t([0-9A-F]+) : (.*?)\s*$", sLine);
+    oInformationMatch = re.match(r"^\t([0-9A-F]+) : (.*?)\s*$", sLine);
     if oInformationMatch:
       asRelevantLines.append(sLine);
       sValue, sDescription = oInformationMatch.groups();
