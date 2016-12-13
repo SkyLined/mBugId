@@ -59,6 +59,9 @@ class cExcessiveCPUUsageDetector(object):
         oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xCleanupTimeout);
         oExcessiveCPUUsageDetector.xCleanupTimeout = None;
         if bDebugOutput: print "@@@ Cleaning up excessive CPU usage breakpoints...";
+        if oExcessiveCPUUsageDetector.xWormRunTimeout:
+          oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
+          oExcessiveCPUUsageDetector.xWormRunTimeout = None;
         if oExcessiveCPUUsageDetector.uWormBreakpointId is not None:
           oCdbWrapper.fRemoveBreakpoint(oExcessiveCPUUsageDetector.uWormBreakpointId);
           oExcessiveCPUUsageDetector.uWormBreakpointId = None;
