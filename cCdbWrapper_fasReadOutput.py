@@ -15,7 +15,7 @@ def fasHandleCommonErrorsAndWarningsInOutput(oCdbWrapper, asLines, bHandleSymbol
     # The following error can be inserted by the symbol loader at any point in the output. It ends with a CRLF, so it
     # it will always run to the end of a line. The next line would have been a continuation of the current line, had
     # this error not been inserted.
-    oSymbolLoadingError = re.search(r"\*\*\* ERROR: Symbol file could not be found\.  Defaulted to export symbols for .* \- $", sLine);
+    oSymbolLoadingError = re.search(r"\*\*\* ERROR: Symbol file could not be found\.  Defaulted to export symbols for .*$", sLine);
     if oSymbolLoadingError:
       # We can remove this error from the output by taking the line up to the start of the error and concatinating the
       # next line to reconstruct the intended output line without this error. The line is then processed again to
