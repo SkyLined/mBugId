@@ -1,3 +1,20 @@
+2016-12-14
+==========
+Bug fixes
+---------
++ Handle more in-line cdb symbol loading error message formats.
++ Get module version information before reading it, as the old code would read
+  and use the initial `None` value before setting it to the correct value.
++ Fix a bug where excessive CPU usage detector would attempt to remove a 
+  breakpoint twice.
+
+2016-12-12
+==========
+Bug fixes
+---------
++ Fix bug where error messages that start in the middle of a line of output
+  were not detected and removed, as was claimed in previous fix on 12-09.
+
 2016-12-11
 ==========
 Bug fixes
