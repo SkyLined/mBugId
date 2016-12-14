@@ -21,7 +21,7 @@ class cModule(object):
       oModule._doFunction_by_sSymbol[sSymbol] = cFunction(oModule, sSymbol);
     return oModule._doFunction_by_sSymbol[sSymbol];
   
-  def fsGetInformationHTML(oModule, oCdbWrapper):
+  def fsGetVersionInformation(oModule, oCdbWrapper):
     # Gather version information and optionally returns output for use in HTML report.
     # Also sets oModule.sFileVersion if possible.
     asModuleInformationOutput = oCdbWrapper.fasSendCommandAndReadOutput(
