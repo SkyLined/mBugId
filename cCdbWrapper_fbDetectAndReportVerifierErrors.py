@@ -201,6 +201,7 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
         "sBugDescription should have been set";
     
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
+  if not oCdbWrapper.bCdbRunning: return None;
   if oCdbWrapper.bGenerateReportHTML:
     oBugReport.atxMemoryDumps.append(("Memory near heap block at 0x%X" % uMemoryDumpStartAddress, \
         uMemoryDumpStartAddress, uMemoryDumpSize));
