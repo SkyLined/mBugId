@@ -6,6 +6,42 @@ from fsGetNumberDescription import fsGetNumberDescription;
 from fsGetOffsetDescription import fsGetOffsetDescription;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
+# This code:
+# 1) limits memory dumps to reasonable sizes by moving the start and/or end address, while making sure the memory
+#    around the most interesting address is always in the dump, preferably near the middle.
+# 2) Rounds the start address down and the size up to align both with the pointer size of the ISA.
+def ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(uMostInterestingAddress, uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize): 
+  uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+  if uMemoryDumpSize > dxBugIdConfig["uMaxMemoryDumpSize"] * uPointerSize:
+    # Yes, we'll need to reduce the size of the memory dump; try to find out what parts are farthest away
+    # from the exception address and remove those. uMemoryDumpStartAddress and/or uMemoryDumpSize are updated.
+    uMemoryDumpSizeBeforeAddress = uMostInterestingAddress - uMemoryDumpStartAddress;
+    uMemoryDumpSizeAfterAddress = uMemoryDumpEndAddress - uMostInterestingAddress;
+    # Regardless of where we remove bytes from the dump, the size will become the maximum size:
+    uMemoryDumpSize = dxBugIdConfig["uMaxMemoryDumpSize"];
+    if uMemoryDumpSizeBeforeAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
+      # The size before the address is reasonable: by reducing the total size, we reduced the size after the
+      # address and the end address must be updated:
+      uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+    elif uMemoryDumpSizeAfterAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
+      # The size after the address is reasonable: reduce the size before the address by increasing the start
+      # address so that the dump still ends at the same address after having reduced its size:
+      uMemoryDumpStartAddress = uMemoryDumpEndAddress - dxBugIdConfig["uMaxMemoryDumpSize"];
+    else:
+      # The size before and after the address are both too large: increase the start address so that the dump
+      # will surround that address as best as possible and reduce the end address to match.
+      uMemoryDumpStartAddress = round(uMostInterestingAddress - dxBugIdConfig["uMaxMemoryDumpSize"] / 2);
+      uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
+  # Align start and end address to pointer size:
+  uPointerSizeMask = uPointerSize - 1;
+  uMemoryDumpStartAddress -= uMemoryDumpStartAddress & uPointerSizeMask; # decrease to align
+  uMemoryDumpSize = uMemoryDumpEndAddress - uMemoryDumpStartAddress;
+  uMemoryDumpNonAlignedSize = uMemoryDumpSize & uPointerSizeMask;
+  if uMemoryDumpNonAlignedSize:
+    uMemoryDumpSize += uPointerSize - uMemoryDumpNonAlignedSize; # increase to align.
+  # return updated, aligned start address and limited, algned size
+  return uMemoryDumpStartAddress, uMemoryDumpSize;
+
 # Some access violations may not be a bug:
 ddtxBugTranslations = {
   "AVE:Arbitrary": {
@@ -289,34 +325,10 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             # Check if we're not trying to dump a rediculous amount of memory:
             uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
             if not oCdbWrapper.bCdbRunning: return None;
-            uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
-            if uMemoryDumpSize > dxBugIdConfig["uMaxMemoryDumpSize"] * uPointerSize:
-              # Yes, we'll need to reduce the size of the memory dump; try to find out what parts are farthest away
-              # from the exception address and remove those. uMemoryDumpStartAddress and/or uMemoryDumpSize are updated.
-              uMemoryDumpSizeBeforeAddress = uAddress - uMemoryDumpStartAddress;
-              uMemoryDumpSizeAfterAddress = uMemoryDumpEndAddress - uAddress;
-              # Regardless of where we remove bytes from the dump, the size will become the maximum size:
-              uMemoryDumpSize = dxBugIdConfig["uMaxMemoryDumpSize"];
-              if uMemoryDumpSizeBeforeAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
-                # The size before the address is reasonable: by reducing the total size, we reduced the size after the
-                # address and the end address must be updated:
-                uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
-              elif uMemoryDumpSizeAfterAddress < dxBugIdConfig["uMaxMemoryDumpSize"] / 2:
-                # The size after the address is reasonable: reduce the size before the address by increasing the start
-                # address so that the dump still ends at the same address after having reduced its size:
-                uMemoryDumpStartAddress = uMemoryDumpEndAddress - dxBugIdConfig["uMaxMemoryDumpSize"];
-              else:
-                # The size before and after the address are both too large: increase the start address so that the dump
-                # will surround that address as best as possible and reduce the end address to match.
-                uMemoryDumpStartAddress = round(uAddress - dxBugIdConfig["uMaxMemoryDumpSize"] / 2);
-                uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
-            # Align start and end address to pointer size:
-            uPointerSizeMask = uPointerSize - 1;
-            uMemoryDumpStartAddress -= uMemoryDumpStartAddress & uPointerSizeMask; # decrease to include start
-            if uMemoryDumpEndAddress & uPointerSizeMask:
-              uMemoryDumpEndAddress -= uMemoryDumpEndAddress & uPointerSizeMask + uPointerSize; # increase to include end
-            # Recalculate size:
-            uMemoryDumpSize = uMemoryDumpEndAddress - uMemoryDumpStartAddress;
+            # Clamp start and end address
+            uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+              uAddress, uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize
+            );
             oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                 uMemoryDumpStartAddress, uMemoryDumpSize));
         if oPageHeapReport.sBlockType == "free-ed":
@@ -366,8 +378,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                   sBugDescription += (" An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
                       "beyond that block because it modified the page heap suffix pattern.") % \
                       (uStartAddress, uOffsetPastEndOfBlock, uOffsetPastEndOfBlock);
-                  if oCdbWrapper.bGenerateReportHTML:
-                    sMemoryDumpDescription = "memory corruption at 0x%X" % uStartAddress;
                   asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
               elif uAddress == oPageHeapReport.uAllocationEndAddress and uAddress > oPageHeapReport.uBlockEndAddress:
                 sBugDescription += " An earlier out-of-bounds access before this address may have happened without " \
@@ -501,8 +511,14 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
                 (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
             if oCdbWrapper.bGenerateReportHTML:
+              uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
+              if not oCdbWrapper.bCdbRunning: return None;
+              # Clamp size, potentially update start if size needs to shrink but end is not changed.
+              uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+                uAddress, uAllocationStartAddress, uAllocationSize
+              );
               oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
-                  uAllocationStartAddress, uAllocationSize));
+                  uMemoryDumpStartAddress, uMemoryDumpSize));
           else:
             raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
                 (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
