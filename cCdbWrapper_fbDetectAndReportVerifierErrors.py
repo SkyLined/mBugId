@@ -42,11 +42,11 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
       elif sDescription == "corruption address": uCorruptionAddress = uValue;
     else:
       assert sLine.strip().replace("=", "") == "", \
-          "Unknown VERIFIER STOP message line: %s\r\n%s" % (repr(sLine), "\r\n".join(asLines));
+          "Unknown VERIFIER STOP message line: %s\r\n%s" % (repr(sLine), "\r\n".join(asCdbOutput));
       break;
   else:
     assert uErrorNumber is None, \
-        "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asLines);
+        "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asCdbOutput);
     return False;
   if uErrorNumber == 0x303:
     # =======================================
