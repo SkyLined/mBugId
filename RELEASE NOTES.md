@@ -1,3 +1,13 @@
+2016-12-15
+==========
+Bug fixes
+---------
++ Align all memory dumps and limit their sizes to prevent errors and very large
+  HTML reports.
++ Don't assert if Verifier reports corruption at a higher address than the
+  corrupted byte with the lowest address we can find.
++ Fix wrong variable name error.
+
 2016-12-14
 ==========
 Bug fixes
