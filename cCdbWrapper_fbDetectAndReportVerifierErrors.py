@@ -149,9 +149,12 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     uCorruptionSize = uCorruptionEndAddress - uCorruptionStartAddress;
     if oCdbWrapper.bGenerateReportHTML:
       atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
-    assert uCorruptionAddress is None or uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
-        "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X\r\n%s" % \
-        (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress, "\r\n".join(asRelevantLines));
+# I believe verifier may not check various memory areas in order from lowest to highest address. So it may not report
+# the byte that got corrupted with the lowest address; therefore it may not make sense to compare what verifier
+# reported with what our corruption detector found:
+#    assert uCorruptionAddress is None or uCorruptionAddress == oCorruptionDetector.uCorruptionStartAddress, \
+#        "Verifier reported corruption at address 0x%X but BugId detected corruption at address 0x%X\r\n%s" % \
+#        (uCorruptionAddress, oCorruptionDetector.uCorruptionStartAddress, "\r\n".join(asRelevantLines));
     bCorruptionDetected = True;
   elif uCorruptionAddress:
     if oCdbWrapper.bGenerateReportHTML:
