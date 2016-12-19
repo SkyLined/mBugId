@@ -70,7 +70,7 @@ class cBugReport(object):
     uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
-      uStackFramesCount += dxBugIdConfig["uMinStackRecursionLoops"] * dxBugIdConfig["uMaxStackRecursionLoopSize"]
+      uStackFramesCount += (dxBugIdConfig["uMinStackRecursionLoops"] + 1) * dxBugIdConfig["uMaxStackRecursionLoopSize"]
     oProcess = cProcess.foCreate(oCdbWrapper);
     if not oCdbWrapper.bCdbRunning: return None;
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
