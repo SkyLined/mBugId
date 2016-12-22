@@ -1,3 +1,13 @@
+2016-12-22
+==========
+Improvements
+------------
++ Improve chances of detecting a recursive function call rather than a stack
+  exhaustion.
+Bug fixes
+---------
++ Add missing argument to function call in handling of AVs
+
 2016-12-15
 ==========
 Bug fixes
