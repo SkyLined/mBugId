@@ -515,7 +515,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               if not oCdbWrapper.bCdbRunning: return None;
               # Clamp size, potentially update start if size needs to shrink but end is not changed.
               uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-                uAddress, uAllocationStartAddress, uAllocationSize
+                uAddress, uPointerSize, uAllocationStartAddress, uAllocationSize
               );
               oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
                   uMemoryDumpStartAddress, uMemoryDumpSize));
