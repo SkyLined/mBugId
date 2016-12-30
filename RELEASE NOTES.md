@@ -1,3 +1,10 @@
+2016-12-30
+==========
+Bug fixes
+---------
++ While creating a large memory dump, a size calculation lead to a floating
+  point number instead of a long. This caused an exception and has been fixed.
+
 2016-12-22
 ==========
 Improvements
