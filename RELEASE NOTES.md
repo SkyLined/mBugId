@@ -4,6 +4,12 @@ Bug fixes
 ---------
 + While creating a large memory dump, a size calculation lead to a floating
   point number instead of a long. This caused an exception and has been fixed.
++ Report access violations close the the stack of the current thread as stack
+  related.
+
+Improvements
+------------
++ Updated tests.
 
 2016-12-22
 ==========
@@ -11,6 +17,7 @@ Improvements
 ------------
 + Improve chances of detecting a recursive function call rather than a stack
   exhaustion.
+
 Bug fixes
 ---------
 + Add missing argument to function call in handling of AVs
