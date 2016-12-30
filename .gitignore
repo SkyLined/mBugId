@@ -1,5 +1,7 @@
 \#*
 *.pyc
 *.suo
+*.VC.db
+*.VC.opendb
 Tests/tmp/
 Tests/Reports/
