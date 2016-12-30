@@ -1,5 +1,6 @@
 import re;
 from cCorruptionDetector import cCorruptionDetector;
+from cThreadEnvironmentBlock import cThreadEnvironmentBlock;
 from cPageHeapReport import cPageHeapReport;
 from dxBugIdConfig import dxBugIdConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
@@ -283,6 +284,11 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     if oBugReport and oBugReport.oStack and oBugReport.oStack.aoFrames and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAddress:
       oBugReport.oStack.aoFrames[0].bIsHidden = True;
   
+  uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
+  if not oCdbWrapper.bCdbRunning: return None;
+  uPageSize = oCdbWrapper.fuGetValue("@$pagesize");
+  if not oCdbWrapper.bCdbRunning: return;
+  
   dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oCdbWrapper.sCurrentISA];
   for (uSpecialAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
     sBugDescription = "Access violation while %s memory at 0x%X using %s." % \
@@ -323,8 +329,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               uPostFix = uAddress - oPageHeapReport.uBlockEndAddress + 1;
               uMemoryDumpSize += uPostFix;
             # Check if we're not trying to dump a rediculous amount of memory:
-            uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
-            if not oCdbWrapper.bCdbRunning: return None;
             # Clamp start and end address
             uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
               uAddress, uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize
@@ -411,117 +415,129 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
           };
           oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
       else:
-        asMemoryProtectionInformation = oCdbWrapper.fasSendCommandAndReadOutput(
-          "!vprot 0x%X; $$ Get memory protection information" % uAddress,
-          bOutputIsInformative = True,
-        );
-        if not oCdbWrapper.bCdbRunning: return None;
-        # BaseAddress:       00007df5ff5f0000
-        # AllocationBase:    00007df5ff5f0000
-        # AllocationProtect: 00000001  PAGE_NOACCESS
-        # RegionSize:        0000000001d34000
-        # State:             00002000  MEM_RESERVE
-        # Type:              00040000  MEM_MAPPED
-        
-        # BaseAddress:       0000000000000000
-        # AllocationBase:    0000000000000000
-        # RegionSize:        0000000022f60000
-        # State:             00010000  MEM_FREE
-        # Protect:           00000001  PAGE_NOACCESS
-        
-        # BaseAddress:       00007ffffffe0000
-        # AllocationBase:    00007ffffffe0000
-        # AllocationProtect: 00000002  PAGE_READONLY
-        # RegionSize:        0000000000010000
-        # State:             00002000  MEM_RESERVE
-        # Protect:           00000001  PAGE_NOACCESS
-        # Type:              00020000  MEM_PRIVATE
-        
-        # !vprot: extension exception 0x80004002
-        #     "QueryVirtual failed"
-        assert len(asMemoryProtectionInformation) > 0, \
-            "!vprot did not return any results.";
-        if re.match(r"^(%s)$" % "|".join([
-          "ERROR: !vprot: extension exception 0x80004002\.",
-          "!vprot: No containing memory region found",
-          "No export vprot found",
-        ]), asMemoryProtectionInformation[0]):
-          oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
-          sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAddress);
-          sSecurityImpact = "Potentially exploitable security issue, if the attacker can control the address or the memory at the address.";
+        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreate(oCdbWrapper);
+        uOffsetFromTopOfStack = uAddress - oThreadEnvironmentBlock.uStackTopAddress;
+        uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAddress;
+        if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= uPageSize:
+          oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetOffsetDescription(uOffsetFromTopOfStack));
+          sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes passed the top of the stack at 0x%X." % \
+              (sViolationTypeDescription, uAddress, uOffsetFromTopOfStack, uOffsetFromTopOfStack, oThreadEnvironmentBlock.uStackTopAddress);
+          sSecurityImpact = "Potentially exploitable security issue.";
+        elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= uPageSize:
+          oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetOffsetDescription(-uOffsetFromBottomOfStack));
+          sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
+              (sViolationTypeDescription, uAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
+          sSecurityImpact = "Potentially exploitable security issue.";
         else:
-          uAllocationStartAddress = None;
-          uAllocationProtectionFlags = None;
-          uAllocationSize = None;
-          uStateFlags = None;
-          uProtectionFlags = None;
-          uTypeFlags = None;
-          for sLine in asMemoryProtectionInformation:
-            oLineMatch = re.match(r"^(\w+):\s+([0-9a-f]+)(?:\s+\w+)?$", sLine);
-            assert oLineMatch, \
-                "Unrecognized memory protection information line: %s\r\n%s" % (sLine, "\r\n".join(asMemoryProtectionInformation));
-            sInfoType, sValue = oLineMatch.groups();
-            uValue = long(sValue, 16);
-            if sInfoType == "BaseAddress":
-              pass; # Appear to be the address rounded down to the nearest start of a page, i.e. not useful information.
-            elif sInfoType == "AllocationBase":
-              uAllocationStartAddress = uValue;
-            elif sInfoType == "AllocationProtect":
-              uAllocationProtectionFlags = uValue;
-            elif sInfoType == "RegionSize":
-              uAllocationSize = uValue;
-            elif sInfoType == "State":
-              uStateFlags = uValue;
-            elif sInfoType == "Protect":
-              uProtectionFlags = uValue;
-            elif sInfoType == "Type":
-              uTypeFlags = uValue;
-          if oCdbWrapper.bGenerateReportHTML:
-            oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
-            oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
-          if uStateFlags == 0x10000:
+          asMemoryProtectionInformation = oCdbWrapper.fasSendCommandAndReadOutput(
+            "!vprot 0x%X; $$ Get memory protection information" % uAddress,
+            bOutputIsInformative = True,
+          );
+          if not oCdbWrapper.bCdbRunning: return None;
+          # BaseAddress:       00007df5ff5f0000
+          # AllocationBase:    00007df5ff5f0000
+          # AllocationProtect: 00000001  PAGE_NOACCESS
+          # RegionSize:        0000000001d34000
+          # State:             00002000  MEM_RESERVE
+          # Type:              00040000  MEM_MAPPED
+          
+          # BaseAddress:       0000000000000000
+          # AllocationBase:    0000000000000000
+          # RegionSize:        0000000022f60000
+          # State:             00010000  MEM_FREE
+          # Protect:           00000001  PAGE_NOACCESS
+          
+          # BaseAddress:       00007ffffffe0000
+          # AllocationBase:    00007ffffffe0000
+          # AllocationProtect: 00000002  PAGE_READONLY
+          # RegionSize:        0000000000010000
+          # State:             00002000  MEM_RESERVE
+          # Protect:           00000001  PAGE_NOACCESS
+          # Type:              00020000  MEM_PRIVATE
+          
+          # !vprot: extension exception 0x80004002
+          #     "QueryVirtual failed"
+          assert len(asMemoryProtectionInformation) > 0, \
+              "!vprot did not return any results.";
+          if re.match(r"^(%s)$" % "|".join([
+            "ERROR: !vprot: extension exception 0x80004002\.",
+            "!vprot: No containing memory region found",
+            "No export vprot found",
+          ]), asMemoryProtectionInformation[0]):
             oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
-            sBugDescription = "Access violation while %s unallocated memory at 0x%X." % \
-                (sViolationTypeDescription, uAddress);
+            sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAddress);
             sSecurityImpact = "Potentially exploitable security issue, if the attacker can control the address or the memory at the address.";
-          elif uStateFlags == 0x2000: # MEM_RESERVE
-# These checks were added to make sure I understood exactly what was going on. However, it turns out that I don't
-# because these checks fail without me being able to understand why. So, I've decided to disable them and see what
-# happens. If you have more information that can help me make sense of this and improve it, let me know!
-#            assert uTypeFlags in [0x20000, 0x40000], \
-#                "Expected MEM_RESERVE memory to have type MEM_PRIVATE or MEM_MAPPED\r\n%s" % "\r\n".join(asMemoryProtectionInformation);
-#            # PAGE_READONLY !? Apparently...
-#            assert uProtectionFlags == 0x1 or uAllocationProtectionFlags in [0x1, 02], \
-#                "Expected MEM_RESERVE memory to have protection PAGE_NOACCESS or PAGE_READONLY\r\n%s" % "\r\n".join(asMemoryProtectionInformation);
-            oBugReport.sBugTypeId = "AV%s:Reserved" % sViolationTypeId;
-            sBugDescription = "Access violation while %s reserved but unallocated memory at 0x%X." % \
-                (sViolationTypeDescription, uAddress);
-            sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
-          elif uStateFlags == 0x1000: # MEM_COMMIT
-            dsMemoryProtectionsDescription_by_uFlags = {
-              0x01: "inaccessible",  0x02: "read-only",  0x04: "read- and writable",  0x08: "read- and writable",
-              0x10: "executable", 0x20: "read- and executable", 0x40: "full-access", 0x80: "full-access"
-            };
-            sMemoryProtectionsDescription = dsMemoryProtectionsDescription_by_uFlags.get(uAllocationProtectionFlags);
-            assert sMemoryProtectionsDescription, \
-                "Unexpected MEM_COMMIT memory to have protection value 0x%X\r\n%s" % \
-                 (uAllocationProtectionFlags, "\r\n".join(asMemoryProtectionInformation));
-            oBugReport.sBugTypeId = "AV%s:Arbitrary" % sViolationTypeId;
-            sBugDescription = "Access violation while %s %s memory at 0x%X." % \
-                (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
-            sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
-            if oCdbWrapper.bGenerateReportHTML:
-              uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
-              if not oCdbWrapper.bCdbRunning: return None;
-              # Clamp size, potentially update start if size needs to shrink but end is not changed.
-              uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-                uAddress, uPointerSize, uAllocationStartAddress, uAllocationSize
-              );
-              oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
-                  uMemoryDumpStartAddress, uMemoryDumpSize));
           else:
-            raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
-                (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
+            uAllocationStartAddress = None;
+            uAllocationProtectionFlags = None;
+            uAllocationSize = None;
+            uStateFlags = None;
+            uProtectionFlags = None;
+            uTypeFlags = None;
+            for sLine in asMemoryProtectionInformation:
+              oLineMatch = re.match(r"^(\w+):\s+([0-9a-f]+)(?:\s+\w+)?$", sLine);
+              assert oLineMatch, \
+                  "Unrecognized memory protection information line: %s\r\n%s" % (sLine, "\r\n".join(asMemoryProtectionInformation));
+              sInfoType, sValue = oLineMatch.groups();
+              uValue = long(sValue, 16);
+              if sInfoType == "BaseAddress":
+                pass; # Appear to be the address rounded down to the nearest start of a page, i.e. not useful information.
+              elif sInfoType == "AllocationBase":
+                uAllocationStartAddress = uValue;
+              elif sInfoType == "AllocationProtect":
+                uAllocationProtectionFlags = uValue;
+              elif sInfoType == "RegionSize":
+                uAllocationSize = uValue;
+              elif sInfoType == "State":
+                uStateFlags = uValue;
+              elif sInfoType == "Protect":
+                uProtectionFlags = uValue;
+              elif sInfoType == "Type":
+                uTypeFlags = uValue;
+            if oCdbWrapper.bGenerateReportHTML:
+              oBugReport.atxMemoryRemarks.append(("Memory allocation start", uAllocationStartAddress, None));
+              oBugReport.atxMemoryRemarks.append(("Memory allocation end", uAllocationStartAddress + uAllocationSize, None));
+            if uStateFlags == 0x10000:
+              oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
+              sBugDescription = "Access violation while %s unallocated memory at 0x%X." % \
+                  (sViolationTypeDescription, uAddress);
+              sSecurityImpact = "Potentially exploitable security issue, if the attacker can control the address or the memory at the address.";
+            elif uStateFlags == 0x2000: # MEM_RESERVE
+  # These checks were added to make sure I understood exactly what was going on. However, it turns out that I don't
+  # because these checks fail without me being able to understand why. So, I've decided to disable them and see what
+  # happens. If you have more information that can help me make sense of this and improve it, let me know!
+  #            assert uTypeFlags in [0x20000, 0x40000], \
+  #                "Expected MEM_RESERVE memory to have type MEM_PRIVATE or MEM_MAPPED\r\n%s" % "\r\n".join(asMemoryProtectionInformation);
+  #            # PAGE_READONLY !? Apparently...
+  #            assert uProtectionFlags == 0x1 or uAllocationProtectionFlags in [0x1, 02], \
+  #                "Expected MEM_RESERVE memory to have protection PAGE_NOACCESS or PAGE_READONLY\r\n%s" % "\r\n".join(asMemoryProtectionInformation);
+              oBugReport.sBugTypeId = "AV%s:Reserved" % sViolationTypeId;
+              sBugDescription = "Access violation while %s reserved but unallocated memory at 0x%X." % \
+                  (sViolationTypeDescription, uAddress);
+              sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
+            elif uStateFlags == 0x1000: # MEM_COMMIT
+              dsMemoryProtectionsDescription_by_uFlags = {
+                0x01: "inaccessible",  0x02: "read-only",  0x04: "read- and writable",  0x08: "read- and writable",
+                0x10: "executable", 0x20: "read- and executable", 0x40: "full-access", 0x80: "full-access"
+              };
+              sMemoryProtectionsDescription = dsMemoryProtectionsDescription_by_uFlags.get(uAllocationProtectionFlags);
+              assert sMemoryProtectionsDescription, \
+                  "Unexpected MEM_COMMIT memory to have protection value 0x%X\r\n%s" % \
+                   (uAllocationProtectionFlags, "\r\n".join(asMemoryProtectionInformation));
+              oBugReport.sBugTypeId = "AV%s:Arbitrary" % sViolationTypeId;
+              sBugDescription = "Access violation while %s %s memory at 0x%X." % \
+                  (sViolationTypeDescription, sMemoryProtectionsDescription, uAddress);
+              sSecurityImpact = "Potentially exploitable security issue, if the address is attacker controlled.";
+              if oCdbWrapper.bGenerateReportHTML:
+                # Clamp size, potentially update start if size needs to shrink but end is not changed.
+                uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+                  uAddress, uPointerSize, uAllocationStartAddress, uAllocationSize
+                );
+                oBugReport.atxMemoryDumps.append(("Memory near access violation at 0x%X" % uAddress, \
+                    uMemoryDumpStartAddress, uMemoryDumpSize));
+            else:
+              raise AssertionError("Unexpected memory state 0x%X\r\n%s" % \
+                  (uStateFlags, "\r\n".join(asMemoryProtectionInformation)));
 
   oBugReport.sBugDescription = sBugDescription + sViolationTypeNotes;
   oBugReport.sSecurityImpact = sSecurityImpact;
