@@ -200,6 +200,7 @@ if __name__ == "__main__":
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA, ["Nop"], None)); # No exceptions, just a clean program exit.
       aoTests.append(cTest(sISA, ["CPUUsage"], "CPUUsage"));
+      aoTests.append(cTest(sISA, ["DoubleFree", 0x10, 8], "DoubleFree[4*N]"));
       aoTests.append(cTest(sISA, ["MisalignedFree", 0x10, 8], "MisalignedFree[4*N]+4*N"));
       aoTests.append(cTest(sISA, ["AccessViolation", "Read", 1], "AVR:NULL+1"));
       if bFullTestSuite:

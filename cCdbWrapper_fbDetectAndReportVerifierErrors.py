@@ -138,6 +138,22 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     oCorruptionDetector.fbDetectCorruption(uHeapBlockStartAddress, [0xF0 for x in xrange(uHeapBlockSize)]);
     assert oCorruptionDetector.bCorruptionDetected, \
         "Cannot find any sign of corruption";
+  elif sMessage == "block already freed":
+    # ===========================================================
+    # VERIFIER STOP 00000007: pid 0x1358: block already freed
+    # 
+    #         02F71000 : Heap handle
+    #         152F016C : Heap block
+    #         000004C8 : Block size
+    #         00000000 :
+    # ===========================================================
+    # This verifier stop is not continuable. Process will be terminated
+    # when you use the `go' debugger command.
+    # ===========================================================
+    sBugTypeId = "DoubleFree[%s]" % (fsGetNumberDescription(uHeapBlockSize));
+    sBugDescription = "The application attempted to free a %d/0x%X byte heap block at address 0x%X twice" % \
+        (uHeapBlockSize, uHeapBlockSize, uHeapBlockStartAddress);
+    sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
   else:
     sBugTypeId = "HeapCorrupt[%s]" % (fsGetNumberDescription(uHeapBlockSize));
   # sBugDescription is not set if this is a memory corruption
