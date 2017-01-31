@@ -153,7 +153,8 @@ def cCdbWrapper_fbDetectAndReportVerifierErrors(oCdbWrapper, asCdbOutput):
     sBugTypeId = "DoubleFree[%s]" % (fsGetNumberDescription(uHeapBlockSize));
     sBugDescription = "The application attempted to free a %d/0x%X byte heap block at address 0x%X twice" % \
         (uHeapBlockSize, uHeapBlockSize, uHeapBlockStartAddress);
-    sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
+    sSecurityImpact = "Potentially exploitable security issue, if the attacker can force the application to " \
+        "allocate memory between the two frees";
   else:
     sBugTypeId = "HeapCorrupt[%s]" % (fsGetNumberDescription(uHeapBlockSize));
   # sBugDescription is not set if this is a memory corruption
