@@ -1,3 +1,9 @@
+2017-01-31
+==========
+Improvements
+------------
++ BugId now detects Double-frees correctly.
+
 2016-12-30
 ==========
 Bug fixes
