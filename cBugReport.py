@@ -260,9 +260,18 @@ class cBugReport(object):
           "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
         });
       
-      # Convert saved cdb IO HTML into one string and delete everything but the last line to free up some memory.
-      sCdbStdIOHTML = '<hr/>'.join(oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML);
-      oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML = oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML[-1:];
+      # Convert saved cdb IO HTML into one string and delete everythingto free up some memory.
+      try:
+        sCdbStdIOHTML = '<hr/>'.join(oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML);
+      except MemoryError:
+        try:
+          sCdbStdIOHTML = oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
+          while oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML:
+            sCdbStdIOHTML += "<hr/>";
+            sCdbStdIOHTML += oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
+        except MemoryError:
+          sCdbStdIOHTML = "Cannot be displayed: not enough memory :(";
+      oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML = [""]; # Has to have something IIRC.
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
         "sCollapsed": "Collapsed",
