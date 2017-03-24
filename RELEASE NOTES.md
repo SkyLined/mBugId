@@ -1,3 +1,16 @@
+2017-03-24
+==========
+Bug fixes
+---------
++ Fixed sign on access violations just below the stack.
+
+Improvements
+------------
++ Better Security impact suggestion for DoubleFree.
++ Added test reports back.
++ Handle OOM while generating HTML reports better by dropping some info rather
+  than crashing.
+
 2017-01-31
 ==========
 Improvements
