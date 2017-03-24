@@ -424,7 +424,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               (sViolationTypeDescription, uAddress, uOffsetFromTopOfStack, uOffsetFromTopOfStack, oThreadEnvironmentBlock.uStackTopAddress);
           sSecurityImpact = "Potentially exploitable security issue.";
         elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= uPageSize:
-          oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetOffsetDescription(-uOffsetFromBottomOfStack));
+          oBugReport.sBugTypeId = "AV%s[Stack]-%s" % (sViolationTypeId, fsGetOffsetDescription(-uOffsetFromBottomOfStack));
           sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
               (sViolationTypeDescription, uAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
           sSecurityImpact = "Potentially exploitable security issue.";
