@@ -137,7 +137,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-        if oCdbWrapper.fApplicationSuspendedCallback:
+        # If the application was not suspended on purpose to attach to another process, report it:
+        if len(oCdbWrapper.auProcessIdsPendingAttach) == 0 and oCdbWrapper.fApplicationSuspendedCallback:
           oCdbWrapper.fApplicationSuspendedCallback();
       # Find out what event caused the debugger break
       asLastEventOutput = oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ Get information about last event",
