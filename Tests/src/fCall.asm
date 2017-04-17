@@ -10,7 +10,7 @@ fCall PROC pAddress:PTR VOID
   IFDEF x86
     CALL pAddress
   ELSE
-    CALL RCX ; this may be stdcall, but VS insists on calling it as fastcall
+    CALL RCX ; stdcall on x86, __fastcall on x64
   ENDIF
   RET
 fCall ENDP

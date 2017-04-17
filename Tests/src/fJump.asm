@@ -10,7 +10,7 @@ fJump PROC, pAddress:PTR VOID
   IFDEF x86
     JMP pAddress
   ELSE
-    JMP RCX ; this may be stdcall, but VS insists on calling it as fastcall
+    JMP RCX ; stdcall on x86, __fastcall on x64
   ENDIF
   RET
 fJump ENDP
