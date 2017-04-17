@@ -1,5 +1,6 @@
 import datetime, re, time;
 from cBugReport import cBugReport;
+from cDebuggerExtension import cDebuggerExtension;
 from daxExceptionHandling import daxExceptionHandling;
 from dxBugIdConfig import dxBugIdConfig;
 from cCdbWrapper_fbDetectAndReportVerifierErrors import cCdbWrapper_fbDetectAndReportVerifierErrors;
@@ -57,6 +58,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # Turn off prompt information as it is not useful most of the time, but can clutter output.
     oCdbWrapper.fasSendCommandAndReadOutput(
         ".prompt_allow -dis -ea -reg -src -sym; $$ Set up the cdb prompt to be very minimal");
+    if not oCdbWrapper.bCdbRunning: return;
+    oCdbWrapper.oExtension = cDebuggerExtension.foLoad(oCdbWrapper);
     if not oCdbWrapper.bCdbRunning: return;
     
     # Exception handlers need to be set up.

@@ -71,6 +71,7 @@ class cCdbWrapper(object):
     oCdbWrapper.fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
     oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
     oCdbWrapper.fFinishedCallback = fFinishedCallback;
+    oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
     uSymbolOptions = sum([
       0x00000001, # SYMOPT_CASE_INSENSITIVE
       0x00000002, # SYMOPT_UNDNAME
