@@ -151,6 +151,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # - or -
       # |Last event: c74.10e8: Exit process 4:c74, code 0          
       # |  debugger time: Tue Aug 25 00:06:07.311 2015 (UTC + 2:00)
+      if (len(asLastEventOutput) > 0 and asLastEventOutput[0] == ""):
+        # Sometimes, for unknown reasons, output can start with a blank line: remove it.
+        asLastEventOutput.pop(0);
       assert len(asLastEventOutput) == 2, "Invalid .lastevent output:\r\n%s" % "\r\n".join(asLastEventOutput);
       oEventMatch = re.match(
         "^%s\s*$" % "".join([
