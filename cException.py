@@ -1,4 +1,5 @@
 import re;
+from cStack import cStack;
 from cStowedException import cStowedException;
 from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
 from dxBugIdConfig import dxBugIdConfig;
@@ -47,9 +48,25 @@ class cException(object):
     oException.sSecurityImpact = None;
   
   @classmethod
+  def foCreateFromMemory(cException, oCdbWrapper, uExceptionRecordAddress):
+    return cException.foCreateHelper(oCdbWrapper,
+      uExceptionRecordAddress = uExceptionRecordAddress,
+    );
+    
+  @classmethod
   def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, oStack):
+    return cException.foCreateHelper(oCdbWrapper, 
+      uCode = uCode,
+      sCodeDescription = sCodeDescription,
+      oStack = oStack,
+    );
+
+  @classmethod
+  def foCreateHelper(cException, oCdbWrapper, uExceptionRecordAddress = None, uCode = None, sCodeDescription = None, oStack = None):
+    if oStack is None:
+      oStack = cStack([]);
     asExceptionRecord = oCdbWrapper.fasSendCommandAndReadOutput(
-      ".exr -1; $$ Get exception record",
+      ".exr %s; $$ Get exception record" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
       bOutputIsInformative = True,
     );
     if not oCdbWrapper.bCdbRunning: return None;
@@ -79,12 +96,18 @@ class cException(object):
           sCdbExceptionAddress = sValue + (sDetails and " (%s)" % sDetails or "");
           oException.sAddressSymbol = sDetails;
         elif sName == "ExceptionCode":
-          assert uValue == uCode, \
-              "Exception record has an unexpected ExceptionCode value (0x%08X vs 0x%08X)\r\n%s" % \
-              (uValue, uCode, "\r\n".join(asExceptionRecord));
-          assert sDetails is None or sDetails == sCodeDescription, \
-              "Exception record has an unexpected ExceptionCode description (%s vs %s)\r\n%s" % \
-              (repr(sDetails), repr(sCodeDescription), "\r\n".join(asExceptionRecord));
+          if uCode:
+            assert uValue == uCode, \
+                "Exception record has an unexpected ExceptionCode value (0x%08X vs 0x%08X)\r\n%s" % \
+                (uValue, uCode, "\r\n".join(asExceptionRecord));
+          else:
+            oException.uCode = uValue;
+          if sCodeDescription:
+            assert sDetails is None or sDetails == sCodeDescription, \
+                "Exception record has an unexpected ExceptionCode description (%s vs %s)\r\n%s" % \
+                (repr(sDetails), repr(sCodeDescription), "\r\n".join(asExceptionRecord));
+          else:
+            oException.sCodeDescription = sDetails;
         elif sName == "ExceptionFlags":
           oException.uFlags = uValue;
         elif sName == "NumberParameters":
