@@ -84,6 +84,10 @@ VOID fStackRecursion() {
   alloca(0x1000);
   fStackRecursion();
 }
+// Use globals to store some things, so these variables don't get overwritten when the stack is smashed
+BYTE* gpAddress;
+ISAUINT guCounter;
+BOOL gbFreeHeap = FALSE;
 
 UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
   HANDLE hHeap = GetProcessHeap();
@@ -253,6 +257,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
       pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
       sMemoryType = _T("heap");
+      gbFreeHeap = TRUE;
     } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
       pMemory = (BYTE*)alloca(uMemoryBlockSize);
       sMemoryType = _T("stack");
@@ -269,13 +274,16 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing at offset %d/0x%IX to a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
-      for (BYTE* pAddress = pMemory + iOffset; pAddress < pMemory + iOffset + uAccessSize; pAddress++) {
-        *pAddress = BYTE_TO_WRITE;
+      for (gpAddress = pMemory + iOffset, guCounter = uAccessSize; guCounter--; gpAddress++) {
+        *gpAddress = BYTE_TO_WRITE;
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
     }
+    if (gbFreeHeap) {
+      HeapFree(hHeap, 0, pMemory);
+    };
   } else if (_tcsicmp(asArguments[1], _T("BufferOverrun")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 6) {
@@ -289,6 +297,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
       pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
       sMemoryType = _T("heap");
+      gbFreeHeap = TRUE;
     } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
       pMemory = (BYTE*)alloca(uMemoryBlockSize);
       sMemoryType = _T("stack");
@@ -305,13 +314,16 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing %d/0x%IX bytes beyond a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uOverrunSize, uOverrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
-      for (BYTE* pAddress = pMemory; pAddress < pMemory + uMemoryBlockSize + uOverrunSize; pAddress++) {
-        *pAddress = BYTE_TO_WRITE;
+      for (gpAddress = pMemory + uMemoryBlockSize, guCounter = uOverrunSize; guCounter--; gpAddress++) {
+        *gpAddress = BYTE_TO_WRITE;
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
     }
+    if (gbFreeHeap) {
+      HeapFree(hHeap, 0, pMemory);
+    };
   } else if (_tcsicmp(asArguments[1], _T("BufferUnderrun")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 6) {
@@ -325,6 +337,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
       pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
       sMemoryType = _T("heap");
+      gbFreeHeap = TRUE;
     } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
       pMemory = (BYTE*)alloca(uMemoryBlockSize);
       sMemoryType = _T("stack");
@@ -341,13 +354,16 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing %d/0x%IX bytes before a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uUnderrunSize, uUnderrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
-      for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrunSize; pAddress--) {
-        *pAddress = BYTE_TO_WRITE;
+      for (gpAddress = pMemory, guCounter = uUnderrunSize; guCounter--; gpAddress--) {
+        *gpAddress = BYTE_TO_WRITE;
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
       return 1;
     }
+    if (gbFreeHeap) {
+      HeapFree(hHeap, 0, pMemory);
+    };
   } else {
     _ftprintf(stderr, _T("Invalid test type %s\r\n"), asArguments[1]);
     return 1;
