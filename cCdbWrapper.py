@@ -31,7 +31,7 @@ except:
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
-    sCdbISA = None, # Which version of cdb should be used to debug this application?
+    sCdbISA = None, # Which version of cdb should be used to debug this application? ("x86" or "x64")
     asApplicationCommandLine = None,
     auApplicationProcessIds = None,
     asLocalSymbolPaths = None,
@@ -98,7 +98,12 @@ class cCdbWrapper(object):
     sCdbBinaryPath = dxBugIdConfig["sCdbBinaryPath_%s" % oCdbWrapper.sCdbISA];
     assert sCdbBinaryPath, "No %s cdb binary path found" % oCdbWrapper.sCdbISA;
     # Get the command line (without starting/attaching to a process)
-    asCommandLine = [sCdbBinaryPath, "-o", "-sflags", "0x%08X" % uSymbolOptions];
+    asCommandLine = [
+      sCdbBinaryPath,
+      "-o", # Debug any child processes spawned by the main processes as well.
+
+      "-sflags", "0x%08X" % uSymbolOptions # Set symbol loading options (See above for details)
+    ];
     if dxBugIdConfig["bEnableSourceCodeSupport"]:
       asCommandLine += ["-lines"];
     # Get a list of symbol paths, caches and servers to use:
