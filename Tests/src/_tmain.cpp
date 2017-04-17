@@ -199,7 +199,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     }
   } else if (_tcsicmp(asArguments[1], _T("UseAfterFree")) == 0) {
     /*                                                                        */
-    if (uArgumentsCount < 4) {
+    if (uArgumentsCount < 5) {
       _ftprintf(stderr, _T("Please provide a type of access (read, write), a UINT memory block size and an INT offset at which to access it.\r\n"));
       return 1;
     };
