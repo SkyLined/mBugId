@@ -6,16 +6,25 @@
 
 #define BYTE_TO_WRITE 0x41
 
+// Use Instruction Set Architecture (ISA) specific (unsigned) integers:
+#ifdef _WIN64
+  #define ISAINT signed __int64
+  #define ISAUINT signed __int64
+  #define String_2_ISAINT _tcstoi64
+  #define String_2_ISAUINT _tcstoui64
+#else
+  #define ISAINT INT
+  #define ISAUINT UINT
+  #define String_2_ISAINT _tcstol
+  #define String_2_ISAUINT _tcstoul
+#endif
+
 VOID* fpParsePointer(_TCHAR* sInput) {
-  UINT uBase = 10;
+  INT uBase = 10;
   if (sInput[0] == _T('0') && sInput[1] == _T('x')) {
     sInput += 2; uBase = 16;
   };
-#ifdef _WIN64
-  return (VOID*)_tcstoui64(sInput, NULL, uBase);
-#else
-  return (VOID*)_tcstoul(sInput, NULL, uBase);
-#endif
+  return (VOID*)String_2_ISAUINT(sInput, NULL, uBase);
 };
 DWORD fdwParseDWORD(_TCHAR* sInput) {
   UINT uBase = 10;
@@ -24,23 +33,23 @@ DWORD fdwParseDWORD(_TCHAR* sInput) {
   };
   return (DWORD)_tcstoul(sInput, NULL, uBase);
 };
-UINT fuParseNumber(_TCHAR* sInput) {
+ISAUINT fuParseNumber(_TCHAR* sInput) {
   UINT uBase = 10;
   if (sInput[0] == _T('0') && sInput[1] == _T('x')) {
     sInput += 2; uBase = 16;
   };
-  return (UINT)_tcstoul(sInput, NULL, uBase);
+  return String_2_ISAUINT(sInput, NULL, uBase);
 };
-INT fiParseNumber(_TCHAR* sInput) {
+ISAINT fiParseNumber(_TCHAR* sInput) {
   UINT uBase = 10;
-  INT iSignMultiplier = 1;
+  ISAINT iSignMultiplier = 1;
   if (sInput[0] == _T('-')) {
     sInput += 1; iSignMultiplier = -1;
   }
   if (sInput[0] == _T('0') && sInput[1] == _T('x')) {
     sInput += 2; uBase = 16;
   };
-  return iSignMultiplier * (INT)_tcstol(sInput, NULL, uBase);
+  return iSignMultiplier * String_2_ISAINT(sInput, NULL, uBase);
 };
 
 extern "C" {
@@ -190,16 +199,16 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide a type of access (read, write), a UINT memory block size and an INT offset at which to access it.\r\n"));
       return 1;
     };
-    UINT uSize = fuParseNumber(asArguments[3]);
-    INT iOffset = fiParseNumber(asArguments[4]);
+    ISAUINT uSize = fuParseNumber(asArguments[3]);
+    ISAINT iOffset = fiParseNumber(asArguments[4]);
     BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
     HeapFree(hHeap, 0, pMemory);
     if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
-      _ftprintf(stderr, _T("Reading at offset %d/0x%X from a %d/0x%X byte freed heap memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Reading at offset %d/0x%IX from a %d/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
       BYTE x = *(pMemory + iOffset);
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      _ftprintf(stderr, _T("Writing at offset %d/0x%X to a %d/0x%X byte freed heap memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Writing at offset %d/0x%IX to a %d/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
       *(pMemory + iOffset) = BYTE_TO_WRITE;
     } else {
@@ -212,10 +221,10 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide a UINT memory block size.\r\n"));
       return 1;
     };
-    UINT uMemoryBlockSize = fuParseNumber(asArguments[2]);
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[2]);
     BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
     HeapFree(hHeap, 0, (PVOID)pMemory);
-    _ftprintf(stderr, _T("Freeing a %d/0x%X byte freed heap memory block twice at 0x%p...\r\n"),
+    _ftprintf(stderr, _T("Freeing a %d/0x%IX byte freed heap memory block twice at 0x%p...\r\n"),
         uMemoryBlockSize, uMemoryBlockSize, pMemory);
     HeapFree(hHeap, 0, (PVOID)pMemory);
   } else if (_tcsicmp(asArguments[1], _T("MisalignedFree")) == 0) {
@@ -224,10 +233,10 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide a UINT memory block size and an INT offset at which to free it.\r\n"));
       return 1;
     };
-    UINT uMemoryBlockSize = fuParseNumber(asArguments[2]);
-    INT iOffset = fiParseNumber(asArguments[3]);
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[2]);
+    ISAINT iOffset = fiParseNumber(asArguments[3]);
     BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
-    _ftprintf(stderr, _T("Freeing offset %d/0x%X of a %d/0x%X byte heap memory block at 0x%p...\r\n"),
+    _ftprintf(stderr, _T("Freeing offset %d/0x%IX of a %d/0x%IX byte heap memory block at 0x%p...\r\n"),
         iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, pMemory);
     HeapFree(hHeap, 0, (PVOID)(pMemory + iOffset));
   } else if (_tcsicmp(asArguments[1], _T("OutOfBounds")) == 0) {
@@ -236,9 +245,9 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide type of memory (heap, stack), a type of access (read, write), a UINT memory block size, an INT offset at which to access it, and optionally a UINT number of bytes to access.\r\n"));
       return 1;
     };
-    UINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
-    INT iOffset = fiParseNumber(asArguments[5]);
-    UINT uAccessSize = uArgumentsCount < 7 ? 0 : fuParseNumber(asArguments[6]);
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
+    ISAINT iOffset = fiParseNumber(asArguments[5]);
+    ISAUINT uAccessSize = uArgumentsCount < 7 ? 0 : fuParseNumber(asArguments[6]);
     BYTE* pMemory;
     _TCHAR* sMemoryType = NULL;
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
@@ -252,13 +261,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     }
     if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
-      _ftprintf(stderr, _T("Reading at offset %d/0x%X from a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Reading at offset %d/0x%IX from a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory + iOffset; pAddress < pMemory + iOffset + uAccessSize; pAddress++) {
         BYTE x = *pAddress;
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
-      _ftprintf(stderr, _T("Writing at offset %d/0x%X to a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Writing at offset %d/0x%IX to a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory + iOffset; pAddress < pMemory + iOffset + uAccessSize; pAddress++) {
         *pAddress = BYTE_TO_WRITE;
@@ -273,8 +282,8 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide type of memory (heap, stack), a type of access (read, write), a UINT memory block size, and a UINT number of bytes to overrun it.\r\n"));
       return 1;
     };
-    UINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
-    UINT uOverrunSize = fuParseNumber(asArguments[5]);
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
+    ISAUINT uOverrunSize = fuParseNumber(asArguments[5]);
     BYTE* pMemory;
     _TCHAR* sMemoryType = NULL;
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
@@ -288,13 +297,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     }
     if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
-      _ftprintf(stderr, _T("Reading %d/0x%X bytes beyond a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Reading %d/0x%IX bytes beyond a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uOverrunSize, uOverrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress < pMemory + uMemoryBlockSize + uOverrunSize; pAddress++) {
         BYTE x = *pAddress;
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
-      _ftprintf(stderr, _T("Writing %d/0x%X bytes beyond a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Writing %d/0x%IX bytes beyond a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uOverrunSize, uOverrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress < pMemory + uMemoryBlockSize + uOverrunSize; pAddress++) {
         *pAddress = BYTE_TO_WRITE;
@@ -309,8 +318,8 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide type of memory (heap, stack), a type of access (read, write), a UINT memory block size, and a UINT number of bytes to underrun it.\r\n"));
       return 1;
     };
-    UINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
-    UINT uUnderrunSize = fuParseNumber(asArguments[5]);
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[4]);
+    ISAUINT uUnderrunSize = fuParseNumber(asArguments[5]);
     BYTE* pMemory;
     _TCHAR* sMemoryType = NULL;
     if (_tcsicmp(asArguments[2], _T("Heap")) == 0) {
@@ -324,13 +333,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     }
     if (_tcsicmp(asArguments[3], _T("Read")) == 0) {
-      _ftprintf(stderr, _T("Reading %d/0x%X bytes before a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Reading %d/0x%IX bytes before a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uUnderrunSize, uUnderrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrunSize; pAddress--) {
         BYTE x = *pAddress;
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
-      _ftprintf(stderr, _T("Writing %d/0x%X bytes before a %d/0x%X byte %s memory block at 0x%p...\r\n"),
+      _ftprintf(stderr, _T("Writing %d/0x%IX bytes before a %d/0x%IX byte %s memory block at 0x%p...\r\n"),
           uUnderrunSize, uUnderrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrunSize; pAddress--) {
         *pAddress = BYTE_TO_WRITE;
