@@ -3,6 +3,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <exception>
+#include <new>
 
 #define BYTE_TO_WRITE 0x41
 
@@ -105,6 +106,8 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("  StackExhaustion\r\n"));
     _tprintf(_T("  RecursiveCall\r\n"));
     _tprintf(_T("  C++\r\n"));
+    _tprintf(_T("  OOM [HeapAlloc|C++] SIZE\r\n"));
+    _tprintf(_T("    e.g. OOM HeapAlloc 0xC0000000\r\n"));
     _tprintf(_T("  Numbered NUMBER FLAGS\r\n"));
     _tprintf(_T("    e.g. Numbered 0x41414141 0x42424242\r\n"));
     _tprintf(_T("  AccessViolation [Call|Jmp|Read|Write] ADDRESS\r\n"));
@@ -168,6 +171,29 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
   } else if (_tcsicmp(asArguments[1], _T("C++")) == 0) {
     /*                                                                        */
     throw oException;
+  } else if (_tcsicmp(asArguments[1], _T("OOM")) == 0) {
+    /*                                                                        */
+    if (uArgumentsCount < 4) {
+      _ftprintf(stderr, _T("Please provide a way of allocating memory (HeapAlloc or C++) and a UINT memory block size to allocate for each heap block.\r\n"));
+      return 1;
+    };
+    BOOL bHeapAlloc = FALSE;
+    if (_tcsicmp(asArguments[2], _T("HeapAlloc")) == 0) {
+      bHeapAlloc = TRUE;
+    } else if (_tcsicmp(asArguments[2], _T("C++")) != 0) {
+      _ftprintf(stderr, _T("Please use HeapAlloc or C++, not %s\r\n"), asArguments[2]);
+      return 1;
+    };
+    ISAUINT uBlockSize = fuParseNumber(asArguments[3]);
+    while (1) {
+      if (bHeapAlloc) {
+        _ftprintf(stderr, _T("Allocating %d/0x%IX bytes of heap memory using HeapAlloc...\r\n"), uBlockSize, uBlockSize);
+        BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
+      } else {
+        _ftprintf(stderr, _T("Allocating %d/0x%IX bytes of heap memory using new BYTE[]...\r\n"), uBlockSize, uBlockSize);
+        BYTE* pMemory = new BYTE[uBlockSize];
+      };
+    };
   } else if (_tcsicmp(asArguments[1], _T("Numbered")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 4) {
@@ -196,7 +222,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read or Write, not %s\r\n"), asArguments[2]);
       return 1;
-    }
+    };
   } else if (_tcsicmp(asArguments[1], _T("UseAfterFree")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 5) {
