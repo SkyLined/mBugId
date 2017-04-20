@@ -181,7 +181,7 @@ class cStack(object):
               oCallModule = doModules_by_sCdbId[sCallModuleCdbId];
               oCallFunction = oCallModule.foGetOrCreateFunction(sCallSymbol);
               if oCallModule != oModule or oCallFunction != oFunction:
-                print "@@@ %s => %s!%s" % (sCdbSymbolOrAddress, sCallModuleCdbId, sCallSymbol);
+#                print "@@@ %s => %s!%s" % (sCdbSymbolOrAddress, sCallModuleCdbId, sCallSymbol);
                 uAddress = None;
                 sUnloadedModuleFileName = None;
                 oModule = oCallModule;
