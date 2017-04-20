@@ -17,7 +17,6 @@ from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
 from cProcess import cProcess;
-from asIrrelevantFunctions import asIrrelevantFunctions;
 from dxBugIdConfig import dxBugIdConfig;
 from FileSystem import FileSystem;
 from NTSTATUS import *;
@@ -117,16 +116,6 @@ class cBugReport(object):
     return oBugReport;
   
   def fPostProcess(oBugReport, oCdbWrapper):
-    # From the top, start hiding irrelevant frames until we run into one that's not irrelevant:
-    for oStackFrame in oBugReport.oStack.aoFrames:
-      oStackFrame.bIsHidden |= (
-        oStackFrame.sAddress in asIrrelevantFunctions
-        or oStackFrame.sSimplifiedAddress in asIrrelevantFunctions
-        or oStackFrame.sUniqueAddress in asIrrelevantFunctions
-      );
-      if not oStackFrame.bIsHidden:
-        break;
-    
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
     aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
