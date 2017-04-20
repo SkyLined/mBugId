@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/> 
+    <meta http-equiv="Content-Security-Policy" content="disown-opener; referrer no-referrer;"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:site" content="@berendjanwever"/>
+    <meta name="twitter:title" content="AVW@PoisonUninitialized ed2.249 @ tests_x86.exe!wmain"/>
+    <meta name="twitter:description" content="Access violation while writing memory at 0xE4E4E4E4 using a pointer that was not initialized."/>
+    <title>AVW@PoisonUninitialized ed2.249 @ tests_x86.exe!wmain</title>
+    <style>
+      * {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        border-spacing: 0;
+        border-collapse: collapse;
+        color: inherit;
+        background: transparent;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: inherit;
+      }
+      html {
+        overflow-y: scroll; /* prevent center jumping */
+        color: rgba(22, 19, 16, 1);
+        background: #E5E2DE;
+        font-weight: 400;
+        padding: 1em;
+        font-family: Monospace;
+      }
+      body {
+        margin: auto;
+        max-width: 80em;
+      }
+      h1, h2, h3, h4, h5 {
+        font-weight: 700;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+        margin-bottom: -1px;
+      }
+      :link {
+        border-bottom: 1px dotted rgba(0,0, 238, 0.25);
+      }
+      :link:hover, :link:active {
+        border-bottom: 1px solid rgba(0,0, 238, 1);
+      }
+      :visited {
+        border-bottom: 1px dotted rgba(85, 26, 139, 0.25);
+      }
+      :visited:hover, :visited:active {
+        border-bottom: 1px solid rgba(85, 26, 139, 1);
+      }
+      table {
+        border-spacing: 0;
+        border-collapse: collapse;
+      }
+      ul, ol {
+        padding-left: 2em;
+      }
+      h1 {
+        padding: 0.5em 1em 0.5em 1em;
+        color: rgba(255, 251, 247, 1);
+        background-color: rgba(22, 19, 16, 1);
+        font-size: 120%;
+        margin-bottom: 0.5em;
+      }
+      h2 {
+        font-size: 120%;
+      }
+      td:first-child {
+        white-space: pre;
+      }
+      td {
+        vertical-align: top;
+      }
+      sup, sub {
+        font-size: 50%;
+      }
+      hr {
+        border: dotted black;
+        border-width: 0 0 1pt 0;
+      }
+      .Block {
+        padding: 1em;
+        border: 1px solid rgba(22, 19, 16, 0.2);
+        border-radius: 0.5em;
+        background-color: rgba(255, 251, 247, 1);
+        box-shadow: 0 1em   2em rgba(22, 19, 16, 0.2),
+                    0 1em   1em rgba(22, 19, 16, 0.05),
+                    0 1em 0.5em rgba(22, 19, 16, 0.05);
+        margin-bottom: 1em;
+        display: block;
+      }
+      .Content {
+        overflow-x: auto;
+      }
+      .Collapsible > .Content,
+      .Collapsed > .CollapsedPlaceholder {
+        display: block;
+      }
+      .Collapsible > .CollapsedPlaceholder,
+      .Collapsed > .Content {
+        display: none;
+      }
+      .BlockHeaderIcon {
+        float: right;
+        vertical-align: top;
+        border: 1px solid rgba(255, 251, 247, 1);
+      }
+      .Collapsible .BlockHeaderIcon {
+        padding: 1px 0.8em 0 0;
+      }
+      .Collapsed .BlockHeaderIcon {
+        padding: 0.8em 0.8em 0 0;
+      }
+      .Footer {
+        padding: 1em;
+        text-align: center;
+      }
+      .Important {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .SecurityImpact {
+        background-color: rgba(255,0,0,0.2);
+      }
+      .CDBPrompt {
+        white-space: pre;
+      }
+      .CDBCommand {
+        font-weight: bold;
+        white-space: pre;
+      }
+      .CDBStdOut {
+        color: grey;
+        white-space: pre;
+      }
+      .CDBOrApplicationStdOut {
+        color: black;
+        white-space: pre;
+      }
+      .CDBStdErr {
+        color: maroon;
+        white-space: pre;
+      }
+      .CDBIgnoredException {
+        color: grey;
+        white-space: pre;
+      }
+      .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
+        white-space: pre;
+      }
+      .DisassemblyInformation {
+      }
+      .DisassemblyAddress {
+        color: grey;
+      }
+      .DisassemblyOpcode {
+        color: grey;
+      }
+      .DisassemblyInstruction {
+      }
+      .MemoryAddress {
+        color: grey;
+        padding-right: 0.5em;
+      }
+      .MemoryInaccessible {
+        color: grey;
+        text-align: center;
+      }
+      .MemoryBytes {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryChars {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointer {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointerSymbol {
+        padding-left: 0.5em;
+      }
+      .MemoryRemarks {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .StackFrameAddress {
+      }
+      .StackFrameNoSymbol {
+        font-style: italic;
+      }
+      .StackFrameIgnored {
+        color: silver;
+      }
+      .StackFrameHash {
+      }
+      .StackSource {
+        color: grey;
+      }
+    </style>
+    <script>
+      function fAddClickHandler(oBlockHeaderElement) {
+        var oBlockElement = oBlockHeaderElement.parentElement,
+            bCollapsedPlaceholdersRemoved = false;
+        oBlockHeaderElement.onclick = function () {
+          oBlockElement.className = oBlockElement.className.replace(
+            /\b(Collapsed|Collapsible)\b/,
+            function (sCurrentClassName) {
+              return {"Collapsible": "Collapsed", "Collapsed": "Collapsible"}[sCurrentClassName];
+            }
+          );
+          if (!bCollapsedPlaceholdersRemoved) {
+            // A copy of this list is needed as it is dynamic and we plan to remove elements.
+            var aoCollapsedPlaceholderElements = Array.prototype.slice.call(document.getElementsByClassName("CollapsedPlaceholder"));
+            for (var u = 0; u < aoCollapsedPlaceholderElements.length; u++) {
+              var oCollapsedPlaceholderElement = aoCollapsedPlaceholderElements[u];
+              oCollapsedPlaceholderElement.parentNode.removeChild(oCollapsedPlaceholderElement);
+            };
+          };
+        };
+      };
+      onload = function() {
+        var aoBlockHeaderElements = document.getElementsByClassName("BlockHeader");
+        for (var u = 0; u < aoBlockHeaderElements.length; u++) {
+          fAddClickHandler(aoBlockHeaderElements[u]);
+        };
+      };
+    </script>
+  </head>
+  <body>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">BugId AVW@PoisonUninitialized ed2.249 @ tests_x86.exe!wmain summary<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <table>
+          <tr><td>BugId:           </td><td><span class="Important"><b>AVW@PoisonUninitialized ed2.249</b></span></td></tr>
+          <tr><td>Location:        </td><td><span class="Important">tests_x86.exe!wmain</span></td></tr>
+          <tr><td>Description:     </td><td><span class="Important">Access violation while writing memory at 0xE4E4E4E4 using a pointer that was not initialized.</span></td></tr>
+          <tr><td>Version:         </td><td><b>Tests_x86.exe</b>: Wed Apr 19 21:08:37 2017 (58F7B5B5) (x86)</td></tr>
+<tr><td>Source: </td><td>p:\dev\cbugid\tests\src\_tmain.cpp @ 238</td></tr>
+          <tr><td>Security impact: </td><td><span class="SecurityImpact">Potentially exploitable security issue</span></td></tr>
+<tr><td>Command line: </td><td>['P:\\dev\\cBugId\\Tests\\bin\\Tests_x86.exe', 'AccessViolation', 'Write', '0xE4E4E4E4']</td></tr>
+        </table>
+        <br/>
+        <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>2017-04-20 14:29</b>. You may not use this
+        version of BugId for commercial purposes. Please contact the author if you wish to use BugId commercially.
+        Contact and licensing information can be found at the bottom of this report.
+      </div>
+    </div>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">Stack<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Stack"><ol><li><span class="StackFrameAddress Important">Tests_x86.exe!wmain + 0x91B</span> <span class="StackFrameHash">(id: ed2)</span> <span class="StackSource">[p:\dev\cbugid\tests\src\_tmain.cpp @ 238]</span></li><li><span class="StackFrameIgnored">Tests_x86.exe!invoke_main + 0x1D</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 79]</span></li><li><span class="StackFrameAddress Important">Tests_x86.exe!__scrt_common_main_seh + 0xF9</span> <span class="StackFrameHash">(id: 249)</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 253]</span></li><li><span class="StackFrameAddress">KERNEL32.DLL!BaseThreadInitThunk + 0x24</span></li><li><span class="StackFrameAddress">ntdll.dll!__RtlUserThreadStart + 0x2F</span></li><li><span class="StackFrameAddress">ntdll.dll!_RtlUserThreadStart + 0x1B</span></li></ol></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Registers<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Registers">eax=00000000 ebx=00b83000 ecx=e4e4e4e4 edx=05a566f8 esi=0018df14 edi=0018df1c<br/>eip=00171d0b esp=00d5f76c ebp=00d5f830 iopl=0         nv up ei pl zr na pe nc<br/>cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246<br/>fpcw=027F: rn 53 puozdi  fpsw=0000: top=0 cc=0000 --------  fptw=FFFF<br/>fopcode=0000  fpip=0000:0000002b  fpdp=0000:77d7e82c<br/>st0= 0.000000000000000000000e+0000  st1=-0.000000000000000736820e+2899<br/>st2= 0.000000000000000000000e+0000  st3= 0.000069152340125838840e-4865<br/>st4= 0.000000000000000000000e+0000  st5= 0.000000000000000000000e+0000<br/>st6= 0.000000000000000000000e+0000  st7=-0.000000000000000001050e+2947<br/>mm0=0000000000000000  mm1=0000000000000400<br/>mm2=0000000000000000  mm3=00007fff00000000<br/>mm4=0000000000000000  mm5=0000000000000000<br/>mm6=0000000000000000  mm7=0000000000000001<br/>xmm0=0 0 0 0<br/>xmm1=0 0 0 0<br/>xmm2=0 0 0 0<br/>xmm3=0 0 0 0<br/>xmm4=0 0 0 0<br/>xmm5=0 0 0 0<br/>xmm6=5.05111e-039 1.01939e-038 1.00102e-038 6.15311e-039<br/>xmm7=1.28919e-043 1.05612e-038 1.01939e-038 7.71431e-039<br/>dr0=00000000 dr1=00000000 dr2=00000000<br/>dr3=00000000 dr6=00000000 dr7=00000000<br/>Tests_x86!wmain+0x91b:<br/>00171d0b c60141          mov     byte ptr [ecx],41h         ds:002b:e4e4e4e4=??</span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 1 at Tests_x86.exe!wmain + 0x91B<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">00171caa </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171cab </span><span class="DisassemblyOpcode">6864581800      </span><span class="DisassemblyInstruction">push    offset Tests_x86!__xt_z+0x1714 (00185864)</span><br/><span class="DisassemblyAddress">00171cb0 </span><span class="DisassemblyOpcode">6a02            </span><span class="DisassemblyInstruction">push    2</span><br/><span class="DisassemblyAddress">00171cb2 </span><span class="DisassemblyOpcode">e808250000      </span><span class="DisassemblyInstruction">call    Tests_x86!__acrt_iob_func (001741bf)</span><br/><span class="DisassemblyAddress">00171cb7 </span><span class="DisassemblyOpcode">83c404          </span><span class="DisassemblyInstruction">add     esp,4</span><br/><span class="DisassemblyAddress">00171cba </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171cbb </span><span class="DisassemblyOpcode">e8f0f6ffff      </span><span class="DisassemblyInstruction">call    Tests_x86!fwprintf (001713b0)</span><br/><span class="DisassemblyAddress">00171cc0 </span><span class="DisassemblyOpcode">83c40c          </span><span class="DisassemblyInstruction">add     esp,0Ch</span><br/><span class="DisassemblyAddress">00171cc3 </span><span class="DisassemblyOpcode">8b4df4          </span><span class="DisassemblyInstruction">mov     ecx,dword ptr [ebp-0Ch]</span><br/><span class="DisassemblyAddress">00171cc6 </span><span class="DisassemblyOpcode">8a11            </span><span class="DisassemblyInstruction">mov     dl,byte ptr [ecx]</span><br/><span class="DisassemblyAddress">00171cc8 </span><span class="DisassemblyOpcode">8855a3          </span><span class="DisassemblyInstruction">mov     byte ptr [ebp-5Dh],dl</span><br/><span class="DisassemblyAddress">00171ccb </span><span class="DisassemblyOpcode">8b45f4          </span><span class="DisassemblyInstruction">mov     eax,dword ptr [ebp-0Ch]</span><br/><span class="DisassemblyAddress">00171cce </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171ccf </span><span class="DisassemblyOpcode">68a4581800      </span><span class="DisassemblyInstruction">push    offset Tests_x86!__xt_z+0x1754 (001858a4)</span><br/><span class="DisassemblyAddress">00171cd4 </span><span class="DisassemblyOpcode">6a02            </span><span class="DisassemblyInstruction">push    2</span><br/><span class="DisassemblyAddress">00171cd6 </span><span class="DisassemblyOpcode">e8e4240000      </span><span class="DisassemblyInstruction">call    Tests_x86!__acrt_iob_func (001741bf)</span><br/><span class="DisassemblyAddress">00171cdb </span><span class="DisassemblyOpcode">83c404          </span><span class="DisassemblyInstruction">add     esp,4</span><br/><span class="DisassemblyAddress">00171cde </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171cdf </span><span class="DisassemblyOpcode">e8ccf6ffff      </span><span class="DisassemblyInstruction">call    Tests_x86!fwprintf (001713b0)</span><br/><span class="DisassemblyAddress">00171ce4 </span><span class="DisassemblyOpcode">83c40c          </span><span class="DisassemblyInstruction">add     esp,0Ch</span><br/><span class="DisassemblyAddress">00171ce7 </span><span class="DisassemblyOpcode">eb57            </span><span class="DisassemblyInstruction">jmp     Tests_x86!wmain+0x950 (00171d40)</span><br/><span class="DisassemblyAddress">00171ce9 </span><span class="DisassemblyOpcode">68e0581800      </span><span class="DisassemblyInstruction">push    offset Tests_x86!__xt_z+0x1790 (001858e0)</span><br/><span class="DisassemblyAddress">00171cee </span><span class="DisassemblyOpcode">b904000000      </span><span class="DisassemblyInstruction">mov     ecx,4</span><br/><span class="DisassemblyAddress">00171cf3 </span><span class="DisassemblyOpcode">d1e1            </span><span class="DisassemblyInstruction">shl     ecx,1</span><br/><span class="DisassemblyAddress">00171cf5 </span><span class="DisassemblyOpcode">8b550c          </span><span class="DisassemblyInstruction">mov     edx,dword ptr [ebp+0Ch]</span><br/><span class="DisassemblyAddress">00171cf8 </span><span class="DisassemblyOpcode">8b040a          </span><span class="DisassemblyInstruction">mov     eax,dword ptr [edx+ecx]</span><br/><span class="DisassemblyAddress">00171cfb </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171cfc </span><span class="DisassemblyOpcode">e807410000      </span><span class="DisassemblyInstruction">call    Tests_x86!_wcsicmp (00175e08)</span><br/><span class="DisassemblyAddress">00171d01 </span><span class="DisassemblyOpcode">83c408          </span><span class="DisassemblyInstruction">add     esp,8</span><br/><span class="DisassemblyAddress">00171d04 </span><span class="DisassemblyOpcode">85c0            </span><span class="DisassemblyInstruction">test    eax,eax</span><br/><span class="DisassemblyAddress">00171d06 </span><span class="DisassemblyOpcode">7508            </span><span class="DisassemblyInstruction">jne     Tests_x86!wmain+0x920 (00171d10)</span><br/><span class="DisassemblyAddress">00171d08 </span><span class="DisassemblyOpcode">8b4df4          </span><span class="DisassemblyInstruction">mov     ecx,dword ptr [ebp-0Ch]</span><br/><span class="DisassemblyInformation">Tests_x86!wmain+0x91b [p:\dev\cbugid\tests\src\_tmain.cpp @ 238]:</span><br/><span class="DisassemblyAddress">00171d0b </span><span class="DisassemblyOpcode">c60141          </span><span class="DisassemblyInstruction Important">mov     byte ptr [ecx],41h</span> <span class="Important">// current instruction</span><br/><span class="DisassemblyAddress">00171d0e </span><span class="DisassemblyOpcode">eb30            </span><span class="DisassemblyInstruction">jmp     Tests_x86!wmain+0x950 (00171d40)</span><br/><span class="DisassemblyAddress">00171d10 </span><span class="DisassemblyOpcode">ba04000000      </span><span class="DisassemblyInstruction">mov     edx,4</span><br/><span class="DisassemblyAddress">00171d15 </span><span class="DisassemblyOpcode">d1e2            </span><span class="DisassemblyInstruction">shl     edx,1</span><br/><span class="DisassemblyAddress">00171d17 </span><span class="DisassemblyOpcode">8b450c          </span><span class="DisassemblyInstruction">mov     eax,dword ptr [ebp+0Ch]</span><br/><span class="DisassemblyAddress">00171d1a </span><span class="DisassemblyOpcode">8b0c10          </span><span class="DisassemblyInstruction">mov     ecx,dword ptr [eax+edx]</span><br/><span class="DisassemblyAddress">00171d1d </span><span class="DisassemblyOpcode">51              </span><span class="DisassemblyInstruction">push    ecx</span><br/><span class="DisassemblyAddress">00171d1e </span><span class="DisassemblyOpcode">68f0581800      </span><span class="DisassemblyInstruction">push    offset Tests_x86!__xt_z+0x17a0 (001858f0)</span><br/><span class="DisassemblyAddress">00171d23 </span><span class="DisassemblyOpcode">6a02            </span><span class="DisassemblyInstruction">push    2</span><br/><span class="DisassemblyAddress">00171d25 </span><span class="DisassemblyOpcode">e895240000      </span><span class="DisassemblyInstruction">call    Tests_x86!__acrt_iob_func (001741bf)</span><br/><span class="DisassemblyAddress">00171d2a </span><span class="DisassemblyOpcode">83c404          </span><span class="DisassemblyInstruction">add     esp,4</span><br/><span class="DisassemblyAddress">00171d2d </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00171d2e </span><span class="DisassemblyOpcode">e87df6ffff      </span><span class="DisassemblyInstruction">call    Tests_x86!fwprintf (001713b0)</span><br/><span class="DisassemblyAddress">00171d33 </span><span class="DisassemblyOpcode">83c40c          </span><span class="DisassemblyInstruction">add     esp,0Ch</span><br/><span class="DisassemblyAddress">00171d36 </span><span class="DisassemblyOpcode">b801000000      </span><span class="DisassemblyInstruction">mov     eax,1</span><br/><span class="DisassemblyAddress">00171d3b </span><span class="DisassemblyOpcode">e99e0b0000      </span><span class="DisassemblyInstruction">jmp     Tests_x86!wmain+0x14ee (001728de)</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 3 at Tests_x86.exe!__scrt_common_main_seh + 0xF9<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">00172dd2 </span><span class="DisassemblyOpcode">e80afdffff      </span><span class="DisassemblyInstruction">call    Tests_x86!__scrt_is_nonwritable_in_current_image (00172ae1)</span><br/><span class="DisassemblyAddress">00172dd7 </span><span class="DisassemblyOpcode">59              </span><span class="DisassemblyInstruction">pop     ecx</span><br/><span class="DisassemblyAddress">00172dd8 </span><span class="DisassemblyOpcode">84c0            </span><span class="DisassemblyInstruction">test    al,al</span><br/><span class="DisassemblyAddress">00172dda </span><span class="DisassemblyOpcode">740f            </span><span class="DisassemblyInstruction">je      Tests_x86!__scrt_common_main_seh+0xbe (00172deb)</span><br/><span class="DisassemblyAddress">00172ddc </span><span class="DisassemblyOpcode">57              </span><span class="DisassemblyInstruction">push    edi</span><br/><span class="DisassemblyAddress">00172ddd </span><span class="DisassemblyOpcode">6a02            </span><span class="DisassemblyInstruction">push    2</span><br/><span class="DisassemblyAddress">00172ddf </span><span class="DisassemblyOpcode">57              </span><span class="DisassemblyInstruction">push    edi</span><br/><span class="DisassemblyAddress">00172de0 </span><span class="DisassemblyOpcode">8b36            </span><span class="DisassemblyInstruction">mov     esi,dword ptr [esi]</span><br/><span class="DisassemblyAddress">00172de2 </span><span class="DisassemblyOpcode">8bce            </span><span class="DisassemblyInstruction">mov     ecx,esi</span><br/><span class="DisassemblyAddress">00172de4 </span><span class="DisassemblyOpcode">e853040000      </span><span class="DisassemblyInstruction">call    Tests_x86!_guard_check_icall (0017323c)</span><br/><span class="DisassemblyAddress">00172de9 </span><span class="DisassemblyOpcode">ffd6            </span><span class="DisassemblyInstruction">call    esi</span><br/><span class="DisassemblyAddress">00172deb </span><span class="DisassemblyOpcode">e817070000      </span><span class="DisassemblyInstruction">call    Tests_x86!__scrt_get_dyn_tls_dtor_callback (00173507)</span><br/><span class="DisassemblyAddress">00172df0 </span><span class="DisassemblyOpcode">8bf0            </span><span class="DisassemblyInstruction">mov     esi,eax</span><br/><span class="DisassemblyAddress">00172df2 </span><span class="DisassemblyOpcode">393e            </span><span class="DisassemblyInstruction">cmp     dword ptr [esi],edi</span><br/><span class="DisassemblyAddress">00172df4 </span><span class="DisassemblyOpcode">7413            </span><span class="DisassemblyInstruction">je      Tests_x86!__scrt_common_main_seh+0xdc (00172e09)</span><br/><span class="DisassemblyAddress">00172df6 </span><span class="DisassemblyOpcode">56              </span><span class="DisassemblyInstruction">push    esi</span><br/><span class="DisassemblyAddress">00172df7 </span><span class="DisassemblyOpcode">e8e5fcffff      </span><span class="DisassemblyInstruction">call    Tests_x86!__scrt_is_nonwritable_in_current_image (00172ae1)</span><br/><span class="DisassemblyAddress">00172dfc </span><span class="DisassemblyOpcode">59              </span><span class="DisassemblyInstruction">pop     ecx</span><br/><span class="DisassemblyAddress">00172dfd </span><span class="DisassemblyOpcode">84c0            </span><span class="DisassemblyInstruction">test    al,al</span><br/><span class="DisassemblyAddress">00172dff </span><span class="DisassemblyOpcode">7408            </span><span class="DisassemblyInstruction">je      Tests_x86!__scrt_common_main_seh+0xdc (00172e09)</span><br/><span class="DisassemblyAddress">00172e01 </span><span class="DisassemblyOpcode">ff36            </span><span class="DisassemblyInstruction">push    dword ptr [esi]</span><br/><span class="DisassemblyAddress">00172e03 </span><span class="DisassemblyOpcode">e8eb350000      </span><span class="DisassemblyInstruction">call    Tests_x86!_register_thread_local_exe_atexit_callback (001763f3)</span><br/><span class="DisassemblyAddress">00172e08 </span><span class="DisassemblyOpcode">59              </span><span class="DisassemblyInstruction">pop     ecx</span><br/><span class="DisassemblyAddress">00172e09 </span><span class="DisassemblyOpcode">e83a430000      </span><span class="DisassemblyInstruction">call    Tests_x86!__p___wargv (00177148)</span><br/><span class="DisassemblyAddress">00172e0e </span><span class="DisassemblyOpcode">8bf8            </span><span class="DisassemblyInstruction">mov     edi,eax</span><br/><span class="DisassemblyAddress">00172e10 </span><span class="DisassemblyOpcode">e82d430000      </span><span class="DisassemblyInstruction">call    Tests_x86!__p___argc (00177142)</span><br/><span class="DisassemblyAddress">00172e15 </span><span class="DisassemblyOpcode">8bf0            </span><span class="DisassemblyInstruction">mov     esi,eax</span><br/><span class="DisassemblyAddress">00172e17 </span><span class="DisassemblyOpcode">e8413c0000      </span><span class="DisassemblyInstruction">call    Tests_x86!_get_initial_wide_environment (00176a5d)</span><br/><span class="DisassemblyAddress">00172e1c </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">00172e1d </span><span class="DisassemblyOpcode">ff37            </span><span class="DisassemblyInstruction">push    dword ptr [edi]</span><br/><span class="DisassemblyAddress">00172e1f </span><span class="DisassemblyOpcode">ff36            </span><span class="DisassemblyInstruction">push    dword ptr [esi]</span><br/><span class="DisassemblyAddress">00172e21 </span><span class="DisassemblyOpcode">e8cae5ffff      </span><span class="DisassemblyInstruction Important">call    Tests_x86!wmain (001713f0)</span> <span class="Important">// call</span><br/><span class="DisassemblyInformation">Tests_x86!invoke_main+0x1d [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 253] [inlined in Tests_x86!__scrt_common_main_seh+0xf9 [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 253]]:</span><br/><span class="DisassemblyAddress">00172e26 </span><span class="DisassemblyOpcode">83c40c          </span><span class="DisassemblyInstruction Important">add     esp,0Ch</span> <span class="Important">// return address</span><br/><span class="DisassemblyAddress">00172e29 </span><span class="DisassemblyOpcode">8bf0            </span><span class="DisassemblyInstruction">mov     esi,eax</span><br/><span class="DisassemblyAddress">00172e2b </span><span class="DisassemblyOpcode">e873030000      </span><span class="DisassemblyInstruction">call    Tests_x86!__scrt_is_managed_app (001731a3)</span><br/><span class="DisassemblyAddress">00172e30 </span><span class="DisassemblyOpcode">84c0            </span><span class="DisassemblyInstruction">test    al,al</span><br/><span class="DisassemblyAddress">00172e32 </span><span class="DisassemblyOpcode">7506            </span><span class="DisassemblyInstruction">jne     Tests_x86!__scrt_common_main_seh+0x10d (00172e3a)</span><br/><span class="DisassemblyAddress">00172e34 </span><span class="DisassemblyOpcode">56              </span><span class="DisassemblyInstruction">push    esi</span><br/><span class="DisassemblyAddress">00172e35 </span><span class="DisassemblyOpcode">e8f1350000      </span><span class="DisassemblyInstruction">call    Tests_x86!exit (0017642b)</span><br/><span class="DisassemblyAddress">00172e3a </span><span class="DisassemblyOpcode">84db            </span><span class="DisassemblyInstruction">test    bl,bl</span><br/><span class="DisassemblyAddress">00172e3c </span><span class="DisassemblyOpcode">7505            </span><span class="DisassemblyInstruction">jne     Tests_x86!__scrt_common_main_seh+0x116 (00172e43)</span><br/><span class="DisassemblyAddress">00172e3e </span><span class="DisassemblyOpcode">e88b350000      </span><span class="DisassemblyInstruction">call    Tests_x86!_cexit (001763ce)</span><br/><span class="DisassemblyAddress">00172e43 </span><span class="DisassemblyOpcode">6a00            </span><span class="DisassemblyInstruction">push    0</span><br/><span class="DisassemblyAddress">00172e45 </span><span class="DisassemblyOpcode">6a01            </span><span class="DisassemblyInstruction">push    1</span><br/><span class="DisassemblyAddress">00172e47 </span><span class="DisassemblyOpcode">e83cfdffff      </span><span class="DisassemblyInstruction">call    Tests_x86!__scrt_uninitialize_crt (00172b88)</span><br/><span class="DisassemblyAddress">00172e4c </span><span class="DisassemblyOpcode">59              </span><span class="DisassemblyInstruction">pop     ecx</span><br/><span class="DisassemblyAddress">00172e4d </span><span class="DisassemblyOpcode">59              </span><span class="DisassemblyInstruction">pop     ecx</span><br/><span class="DisassemblyAddress">00172e4e </span><span class="DisassemblyOpcode">c745fcfeffffff  </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-4],0FFFFFFFEh</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Binary information<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="BinaryInformation"><h2 class="SubHeader">Tests_x86.exe</h2><br/><span class="BinaryInformation">    Loaded symbol image file: P:\dev\cBugId\Tests\bin\Tests_x86.exe</span><br/><span class="BinaryInformation">    Image path: Tests_x86.exe</span><br/><span class="BinaryInformation">    Image name: Tests_x86.exe</span><br/><span class="BinaryInformation">    Timestamp:        Wed Apr 19 21:08:37 2017 (58F7B5B5)</span><br/><span class="BinaryInformation">    CheckSum:         00000000</span><br/><span class="BinaryInformation">    ImageSize:        00023000</span><br/><span class="BinaryInformation">    Translations:     0000.04b0 0000.04e4 0409.04b0 0409.04e4</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Application and cdb output log<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="CDBOrApplicationStdOut">(434.27ac): Access violation - code c0000005 (first chance)</span><br/><span class="CDBOrApplicationStdOut">First chance exceptions are reported before any exception handling.</span><br/><span class="CDBOrApplicationStdOut">This exception may be expected and handled.</span><br/>(The above output was generated in 0.2 seconds)<br/><hr/><span class="CDBPrompt">0:000&gt; </span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Footer Block">
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Creative Commons License" style="vertical-align: middle; float: left;"
+            src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png"/>
+      </a>
+      This report was generated using <a href="https://github.com/SkyLined/BugId">BugId v2017-04-20 14:29</a>
+        by <a href="mailto:bugid@skylined.nl">SkyLined</a>.<br/>
+      BugId is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br/>
+      Please contact the author if you wish to use BugId commercially.
+    </div>
+  </body>
+</html>

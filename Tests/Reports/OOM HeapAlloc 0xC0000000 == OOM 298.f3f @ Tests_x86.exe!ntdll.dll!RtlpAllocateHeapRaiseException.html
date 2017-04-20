@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/> 
+    <meta http-equiv="Content-Security-Policy" content="disown-opener; referrer no-referrer;"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:site" content="@berendjanwever"/>
+    <meta name="twitter:title" content="OOM 298.f3f @ Tests_x86.exe!ntdll.dll!RtlpAllocateHeapRaiseException"/>
+    <meta name="twitter:description" content="An exception was raised because the program was unable to allocate enough memory"/>
+    <title>OOM 298.f3f @ Tests_x86.exe!ntdll.dll!RtlpAllocateHeapRaiseException</title>
+    <style>
+      * {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        border-spacing: 0;
+        border-collapse: collapse;
+        color: inherit;
+        background: transparent;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: inherit;
+      }
+      html {
+        overflow-y: scroll; /* prevent center jumping */
+        color: rgba(22, 19, 16, 1);
+        background: #E5E2DE;
+        font-weight: 400;
+        padding: 1em;
+        font-family: Monospace;
+      }
+      body {
+        margin: auto;
+        max-width: 80em;
+      }
+      h1, h2, h3, h4, h5 {
+        font-weight: 700;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+        margin-bottom: -1px;
+      }
+      :link {
+        border-bottom: 1px dotted rgba(0,0, 238, 0.25);
+      }
+      :link:hover, :link:active {
+        border-bottom: 1px solid rgba(0,0, 238, 1);
+      }
+      :visited {
+        border-bottom: 1px dotted rgba(85, 26, 139, 0.25);
+      }
+      :visited:hover, :visited:active {
+        border-bottom: 1px solid rgba(85, 26, 139, 1);
+      }
+      table {
+        border-spacing: 0;
+        border-collapse: collapse;
+      }
+      ul, ol {
+        padding-left: 2em;
+      }
+      h1 {
+        padding: 0.5em 1em 0.5em 1em;
+        color: rgba(255, 251, 247, 1);
+        background-color: rgba(22, 19, 16, 1);
+        font-size: 120%;
+        margin-bottom: 0.5em;
+      }
+      h2 {
+        font-size: 120%;
+      }
+      td:first-child {
+        white-space: pre;
+      }
+      td {
+        vertical-align: top;
+      }
+      sup, sub {
+        font-size: 50%;
+      }
+      hr {
+        border: dotted black;
+        border-width: 0 0 1pt 0;
+      }
+      .Block {
+        padding: 1em;
+        border: 1px solid rgba(22, 19, 16, 0.2);
+        border-radius: 0.5em;
+        background-color: rgba(255, 251, 247, 1);
+        box-shadow: 0 1em   2em rgba(22, 19, 16, 0.2),
+                    0 1em   1em rgba(22, 19, 16, 0.05),
+                    0 1em 0.5em rgba(22, 19, 16, 0.05);
+        margin-bottom: 1em;
+        display: block;
+      }
+      .Content {
+        overflow-x: auto;
+      }
+      .Collapsible > .Content,
+      .Collapsed > .CollapsedPlaceholder {
+        display: block;
+      }
+      .Collapsible > .CollapsedPlaceholder,
+      .Collapsed > .Content {
+        display: none;
+      }
+      .BlockHeaderIcon {
+        float: right;
+        vertical-align: top;
+        border: 1px solid rgba(255, 251, 247, 1);
+      }
+      .Collapsible .BlockHeaderIcon {
+        padding: 1px 0.8em 0 0;
+      }
+      .Collapsed .BlockHeaderIcon {
+        padding: 0.8em 0.8em 0 0;
+      }
+      .Footer {
+        padding: 1em;
+        text-align: center;
+      }
+      .Important {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .SecurityImpact {
+        background-color: rgba(255,0,0,0.2);
+      }
+      .CDBPrompt {
+        white-space: pre;
+      }
+      .CDBCommand {
+        font-weight: bold;
+        white-space: pre;
+      }
+      .CDBStdOut {
+        color: grey;
+        white-space: pre;
+      }
+      .CDBOrApplicationStdOut {
+        color: black;
+        white-space: pre;
+      }
+      .CDBStdErr {
+        color: maroon;
+        white-space: pre;
+      }
+      .CDBIgnoredException {
+        color: grey;
+        white-space: pre;
+      }
+      .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
+        white-space: pre;
+      }
+      .DisassemblyInformation {
+      }
+      .DisassemblyAddress {
+        color: grey;
+      }
+      .DisassemblyOpcode {
+        color: grey;
+      }
+      .DisassemblyInstruction {
+      }
+      .MemoryAddress {
+        color: grey;
+        padding-right: 0.5em;
+      }
+      .MemoryInaccessible {
+        color: grey;
+        text-align: center;
+      }
+      .MemoryBytes {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryChars {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointer {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointerSymbol {
+        padding-left: 0.5em;
+      }
+      .MemoryRemarks {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .StackFrameAddress {
+      }
+      .StackFrameNoSymbol {
+        font-style: italic;
+      }
+      .StackFrameIgnored {
+        color: silver;
+      }
+      .StackFrameHash {
+      }
+      .StackSource {
+        color: grey;
+      }
+    </style>
+    <script>
+      function fAddClickHandler(oBlockHeaderElement) {
+        var oBlockElement = oBlockHeaderElement.parentElement,
+            bCollapsedPlaceholdersRemoved = false;
+        oBlockHeaderElement.onclick = function () {
+          oBlockElement.className = oBlockElement.className.replace(
+            /\b(Collapsed|Collapsible)\b/,
+            function (sCurrentClassName) {
+              return {"Collapsible": "Collapsed", "Collapsed": "Collapsible"}[sCurrentClassName];
+            }
+          );
+          if (!bCollapsedPlaceholdersRemoved) {
+            // A copy of this list is needed as it is dynamic and we plan to remove elements.
+            var aoCollapsedPlaceholderElements = Array.prototype.slice.call(document.getElementsByClassName("CollapsedPlaceholder"));
+            for (var u = 0; u < aoCollapsedPlaceholderElements.length; u++) {
+              var oCollapsedPlaceholderElement = aoCollapsedPlaceholderElements[u];
+              oCollapsedPlaceholderElement.parentNode.removeChild(oCollapsedPlaceholderElement);
+            };
+          };
+        };
+      };
+      onload = function() {
+        var aoBlockHeaderElements = document.getElementsByClassName("BlockHeader");
+        for (var u = 0; u < aoBlockHeaderElements.length; u++) {
+          fAddClickHandler(aoBlockHeaderElements[u]);
+        };
+      };
+    </script>
+  </head>
+  <body>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">BugId OOM 298.f3f @ Tests_x86.exe!ntdll.dll!RtlpAllocateHeapRaiseException summary<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <table>
+          <tr><td>BugId:           </td><td><span class="Important"><b>OOM 298.f3f</b></span></td></tr>
+          <tr><td>Location:        </td><td><span class="Important">Tests_x86.exe!ntdll.dll!RtlpAllocateHeapRaiseException</span></td></tr>
+          <tr><td>Description:     </td><td><span class="Important">An exception was raised because the program was unable to allocate enough memory</span></td></tr>
+          <tr><td>Version:         </td><td><b>Tests_x86.exe</b>: Wed Apr 19 21:08:37 2017 (58F7B5B5) (x86)<br/><b>ntdll.dll</b>: 10.0.14393.479 (x86)</td></tr>
+
+          <tr><td>Security impact: </td><td>Denial of Service</td></tr>
+<tr><td>Command line: </td><td>['P:\\dev\\cBugId\\Tests\\bin\\Tests_x86.exe', 'OOM', 'HeapAlloc', '0xC0000000']</td></tr>
+        </table>
+        <br/>
+        <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>2017-04-20 14:29</b>. You may not use this
+        version of BugId for commercial purposes. Please contact the author if you wish to use BugId commercially.
+        Contact and licensing information can be found at the bottom of this report.
+      </div>
+    </div>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">Stack<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Stack"><ol><li><span class="StackFrameAddress Important">ntdll.dll!RtlpAllocateHeapRaiseException + 0x3B</span> <span class="StackFrameHash">(id: 298)</span></li><li><span class="StackFrameAddress Important">ntdll.dll!RtlpAllocateHeapInternal + 0x4C5B5 (this symbol may not be correct)</span> <span class="StackFrameHash">(id: f3f)</span></li><li><span class="StackFrameAddress">ntdll.dll!RtlAllocateHeap + 0x32</span></li><li><span class="StackFrameAddress">Tests_x86.exe!wmain + 0x6B2</span> <span class="StackSource">[p:\dev\cbugid\tests\src\_tmain.cpp @ 204]</span></li><li><span class="StackFrameIgnored">Tests_x86.exe!invoke_main + 0x1D</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 79]</span></li><li><span class="StackFrameAddress">Tests_x86.exe!__scrt_common_main_seh + 0xF9</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 253]</span></li><li><span class="StackFrameAddress">KERNEL32.DLL!BaseThreadInitThunk + 0x24</span></li><li><span class="StackFrameAddress">ntdll.dll!__RtlUserThreadStart + 0x2F</span></li><li><span class="StackFrameAddress">ntdll.dll!_RtlUserThreadStart + 0x1B</span></li></ol></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Registers<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Registers">eax=00cffa38 ebx=c0000000 ecx=c0000000 edx=01000006 esi=03570000 edi=00a7e000<br/>eip=77ddd686 esp=00cffa38 ebp=00cffa90 iopl=0         nv up ei pl zr na pe nc<br/>cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000246<br/>fpcw=027F: rn 53 puozdi  fpsw=0000: top=0 cc=0000 --------  fptw=FFFF<br/>fopcode=0000  fpip=0000:0000002b  fpdp=0000:77d7e82c<br/>st0= 0.000000000000000000000e+0000  st1=-0.000000000000000625410e+2586<br/>st2= 0.000000000000000000000e+0000  st3= 0.000069152340125838840e-4865<br/>st4= 0.000000000000000000000e+0000  st5= 0.000000000000000000000e+0000<br/>st6= 0.000000000000000000000e+0000  st7=-0.000000000000000000890e+2634<br/>mm0=0000000000000000  mm1=0000000000000400<br/>mm2=0000000000000000  mm3=00007fff00000000<br/>mm4=0000000000000000  mm5=0000000000000000<br/>mm6=0000000000000000  mm7=0000000000000001<br/>xmm0=0 0 0 0<br/>xmm1=0 0 0 0<br/>xmm2=0 0 0 0<br/>xmm3=0 0 0 0<br/>xmm4=0 0 0 0<br/>xmm5=0 0 0 0<br/>xmm6=5.05111e-039 1.01939e-038 1.00102e-038 6.15311e-039<br/>xmm7=1.28919e-043 1.05612e-038 1.01939e-038 7.71431e-039<br/>dr0=00000000 dr1=00000000 dr2=00000000<br/>dr3=00000000 dr6=00000000 dr7=00000000<br/>ntdll!RtlpAllocateHeapRaiseException+0x3b:<br/>77ddd686 8b4dfc          mov     ecx,dword ptr [ebp-4] ss:002b:00cffa8c=b0480ce7</span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 1 at ntdll.dll!RtlpAllocateHeapRaiseException + 0x3B<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">77ddd627 </span><span class="DisassemblyOpcode">324701          </span><span class="DisassemblyInstruction">xor     al,byte ptr [edi+1]</span><br/><span class="DisassemblyAddress">77ddd62a </span><span class="DisassemblyOpcode">3207            </span><span class="DisassemblyInstruction">xor     al,byte ptr [edi]</span><br/><span class="DisassemblyAddress">77ddd62c </span><span class="DisassemblyOpcode">884703          </span><span class="DisassemblyInstruction">mov     byte ptr [edi+3],al</span><br/><span class="DisassemblyAddress">77ddd62f </span><span class="DisassemblyOpcode">8b4650          </span><span class="DisassemblyInstruction">mov     eax,dword ptr [esi+50h]</span><br/><span class="DisassemblyAddress">77ddd632 </span><span class="DisassemblyOpcode">3107            </span><span class="DisassemblyInstruction">xor     dword ptr [edi],eax</span><br/><span class="DisassemblyAddress">77ddd634 </span><span class="DisassemblyOpcode">807de700        </span><span class="DisassemblyInstruction">cmp     byte ptr [ebp-19h],0</span><br/><span class="DisassemblyAddress">77ddd638 </span><span class="DisassemblyOpcode">740b            </span><span class="DisassemblyInstruction">je      ntdll!RtlZeroHeap+0x385 (77ddd645)</span><br/><span class="DisassemblyAddress">77ddd63a </span><span class="DisassemblyOpcode">ffb6c8000000    </span><span class="DisassemblyInstruction">push    dword ptr [esi+0C8h]</span><br/><span class="DisassemblyAddress">77ddd640 </span><span class="DisassemblyOpcode">e85b28f7ff      </span><span class="DisassemblyInstruction">call    ntdll!RtlLeaveCriticalSection (77d4fea0)</span><br/><span class="DisassemblyAddress">77ddd645 </span><span class="DisassemblyOpcode">c3              </span><span class="DisassemblyInstruction">ret</span><br/><span class="DisassemblyAddress">77ddd646 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd647 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd648 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd649 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd64a </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyInformation">ntdll!RtlpAllocateHeapRaiseException:</span><br/><span class="DisassemblyAddress">77ddd64b </span><span class="DisassemblyOpcode">8bff            </span><span class="DisassemblyInstruction">mov     edi,edi</span><br/><span class="DisassemblyAddress">77ddd64d </span><span class="DisassemblyOpcode">55              </span><span class="DisassemblyInstruction">push    ebp</span><br/><span class="DisassemblyAddress">77ddd64e </span><span class="DisassemblyOpcode">8bec            </span><span class="DisassemblyInstruction">mov     ebp,esp</span><br/><span class="DisassemblyAddress">77ddd650 </span><span class="DisassemblyOpcode">83ec58          </span><span class="DisassemblyInstruction">sub     esp,58h</span><br/><span class="DisassemblyAddress">77ddd653 </span><span class="DisassemblyOpcode">a1d442e277      </span><span class="DisassemblyInstruction">mov     eax,dword ptr [ntdll!__security_cookie (77e242d4)]</span><br/><span class="DisassemblyAddress">77ddd658 </span><span class="DisassemblyOpcode">33c5            </span><span class="DisassemblyInstruction">xor     eax,ebp</span><br/><span class="DisassemblyAddress">77ddd65a </span><span class="DisassemblyOpcode">8945fc          </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-4],eax</span><br/><span class="DisassemblyAddress">77ddd65d </span><span class="DisassemblyOpcode">8365b000        </span><span class="DisassemblyInstruction">and     dword ptr [ebp-50h],0</span><br/><span class="DisassemblyAddress">77ddd661 </span><span class="DisassemblyOpcode">8d45a8          </span><span class="DisassemblyInstruction">lea     eax,[ebp-58h]</span><br/><span class="DisassemblyAddress">77ddd664 </span><span class="DisassemblyOpcode">8365ac00        </span><span class="DisassemblyInstruction">and     dword ptr [ebp-54h],0</span><br/><span class="DisassemblyAddress">77ddd668 </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">77ddd669 </span><span class="DisassemblyOpcode">c745a8170000c0  </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-58h],0C0000017h</span><br/><span class="DisassemblyAddress">77ddd670 </span><span class="DisassemblyOpcode">c745b801000000  </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-48h],1</span><br/><span class="DisassemblyAddress">77ddd677 </span><span class="DisassemblyOpcode">894dbc          </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-44h],ecx</span><br/><span class="DisassemblyAddress">77ddd67a </span><span class="DisassemblyOpcode">c745b4202fd977  </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-4Ch],offset ntdll!RtlRaiseException (77d92f20)</span><br/><span class="DisassemblyAddress">77ddd681 </span><span class="DisassemblyOpcode">e89a58fbff      </span><span class="DisassemblyInstruction">call    ntdll!RtlRaiseException (77d92f20)</span><br/><span class="DisassemblyInformation">ntdll!RtlpAllocateHeapRaiseException+0x3b:</span><br/><span class="DisassemblyAddress">77ddd686 </span><span class="DisassemblyOpcode">8b4dfc          </span><span class="DisassemblyInstruction Important">mov     ecx,dword ptr [ebp-4]</span> <span class="Important">// current instruction</span><br/><span class="DisassemblyAddress">77ddd689 </span><span class="DisassemblyOpcode">33cd            </span><span class="DisassemblyInstruction">xor     ecx,ebp</span><br/><span class="DisassemblyAddress">77ddd68b </span><span class="DisassemblyOpcode">e8102ffaff      </span><span class="DisassemblyInstruction">call    ntdll!__security_check_cookie (77d805a0)</span><br/><span class="DisassemblyAddress">77ddd690 </span><span class="DisassemblyOpcode">8be5            </span><span class="DisassemblyInstruction">mov     esp,ebp</span><br/><span class="DisassemblyAddress">77ddd692 </span><span class="DisassemblyOpcode">5d              </span><span class="DisassemblyInstruction">pop     ebp</span><br/><span class="DisassemblyAddress">77ddd693 </span><span class="DisassemblyOpcode">c3              </span><span class="DisassemblyInstruction">ret</span><br/><span class="DisassemblyAddress">77ddd694 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd695 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd696 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd697 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">77ddd698 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyInformation">ntdll!RtlpCheckBusyBlockTail:</span><br/><span class="DisassemblyAddress">77ddd699 </span><span class="DisassemblyOpcode">8bff            </span><span class="DisassemblyInstruction">mov     edi,edi</span><br/><span class="DisassemblyAddress">77ddd69b </span><span class="DisassemblyOpcode">55              </span><span class="DisassemblyInstruction">push    ebp</span><br/><span class="DisassemblyAddress">77ddd69c </span><span class="DisassemblyOpcode">8bec            </span><span class="DisassemblyInstruction">mov     ebp,esp</span><br/><span class="DisassemblyAddress">77ddd69e </span><span class="DisassemblyOpcode">51              </span><span class="DisassemblyInstruction">push    ecx</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 2 at ntdll.dll!RtlpAllocateHeapInternal + 0x4C5B5 (this symbol may not be correct)<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">77da209b </span><span class="DisassemblyOpcode">03d2            </span><span class="DisassemblyInstruction">add     edx,edx</span><br/><span class="DisassemblyAddress">77da209d </span><span class="DisassemblyOpcode">e9da3bfbff      </span><span class="DisassemblyInstruction">jmp     ntdll!RtlpAllocateHeapInternal+0x13c (77d55c7c)</span><br/><span class="DisassemblyAddress">77da20a2 </span><span class="DisassemblyOpcode">8b45ec          </span><span class="DisassemblyInstruction">mov     eax,dword ptr [ebp-14h]</span><br/><span class="DisassemblyAddress">77da20a5 </span><span class="DisassemblyOpcode">8bf9            </span><span class="DisassemblyInstruction">mov     edi,ecx</span><br/><span class="DisassemblyAddress">77da20a7 </span><span class="DisassemblyOpcode">52              </span><span class="DisassemblyInstruction">push    edx</span><br/><span class="DisassemblyAddress">77da20a8 </span><span class="DisassemblyOpcode">8b55f8          </span><span class="DisassemblyInstruction">mov     edx,dword ptr [ebp-8]</span><br/><span class="DisassemblyAddress">77da20ab </span><span class="DisassemblyOpcode">2bd8            </span><span class="DisassemblyInstruction">sub     ebx,eax</span><br/><span class="DisassemblyAddress">77da20ad </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">77da20ae </span><span class="DisassemblyOpcode">51              </span><span class="DisassemblyInstruction">push    ecx</span><br/><span class="DisassemblyAddress">77da20af </span><span class="DisassemblyOpcode">51              </span><span class="DisassemblyInstruction">push    ecx</span><br/><span class="DisassemblyAddress">77da20b0 </span><span class="DisassemblyOpcode">8bce            </span><span class="DisassemblyInstruction">mov     ecx,esi</span><br/><span class="DisassemblyAddress">77da20b2 </span><span class="DisassemblyOpcode">e8c350fdff      </span><span class="DisassemblyInstruction">call    ntdll!RtlpSetupExtendedBlock (77d7717a)</span><br/><span class="DisassemblyAddress">77da20b7 </span><span class="DisassemblyOpcode">8b4de8          </span><span class="DisassemblyInstruction">mov     ecx,dword ptr [ebp-18h]</span><br/><span class="DisassemblyAddress">77da20ba </span><span class="DisassemblyOpcode">8bd6            </span><span class="DisassemblyInstruction">mov     edx,esi</span><br/><span class="DisassemblyAddress">77da20bc </span><span class="DisassemblyOpcode">57              </span><span class="DisassemblyInstruction">push    edi</span><br/><span class="DisassemblyAddress">77da20bd </span><span class="DisassemblyOpcode">6a02            </span><span class="DisassemblyInstruction">push    2</span><br/><span class="DisassemblyAddress">77da20bf </span><span class="DisassemblyOpcode">50              </span><span class="DisassemblyInstruction">push    eax</span><br/><span class="DisassemblyAddress">77da20c0 </span><span class="DisassemblyOpcode">8945fc          </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-4],eax</span><br/><span class="DisassemblyAddress">77da20c3 </span><span class="DisassemblyOpcode">e80b730300      </span><span class="DisassemblyInstruction">call    ntdll!RtlpCallInterceptRoutine (77dd93d3)</span><br/><span class="DisassemblyAddress">77da20c8 </span><span class="DisassemblyOpcode">85c0            </span><span class="DisassemblyInstruction">test    eax,eax</span><br/><span class="DisassemblyAddress">77da20ca </span><span class="DisassemblyOpcode">0f89503bfbff    </span><span class="DisassemblyInstruction">jns     ntdll!RtlpAllocateHeapInternal+0xe0 (77d55c20)</span><br/><span class="DisassemblyAddress">77da20d0 </span><span class="DisassemblyOpcode">ff75fc          </span><span class="DisassemblyInstruction">push    dword ptr [ebp-4]</span><br/><span class="DisassemblyAddress">77da20d3 </span><span class="DisassemblyOpcode">6a00            </span><span class="DisassemblyInstruction">push    0</span><br/><span class="DisassemblyAddress">77da20d5 </span><span class="DisassemblyOpcode">56              </span><span class="DisassemblyInstruction">push    esi</span><br/><span class="DisassemblyAddress">77da20d6 </span><span class="DisassemblyOpcode">e8a563fbff      </span><span class="DisassemblyInstruction">call    ntdll!RtlFreeHeap (77d58480)</span><br/><span class="DisassemblyAddress">77da20db </span><span class="DisassemblyOpcode">c745fc00000000  </span><span class="DisassemblyInstruction">mov     dword ptr [ebp-4],0</span><br/><span class="DisassemblyAddress">77da20e2 </span><span class="DisassemblyOpcode">e9bb3bfbff      </span><span class="DisassemblyInstruction">jmp     ntdll!RtlpAllocateHeapInternal+0x162 (77d55ca2)</span><br/><span class="DisassemblyAddress">77da20e7 </span><span class="DisassemblyOpcode">8b4de4          </span><span class="DisassemblyInstruction">mov     ecx,dword ptr [ebp-1Ch]</span><br/><span class="DisassemblyAddress">77da20ea </span><span class="DisassemblyOpcode">85c9            </span><span class="DisassemblyInstruction">test    ecx,ecx</span><br/><span class="DisassemblyAddress">77da20ec </span><span class="DisassemblyOpcode">7502            </span><span class="DisassemblyInstruction">jne     ntdll!RtlpAllocateHeapInternal+0x4c5b0 (77da20f0)</span><br/><span class="DisassemblyAddress">77da20ee </span><span class="DisassemblyOpcode">8bcb            </span><span class="DisassemblyInstruction">mov     ecx,ebx</span><br/><span class="DisassemblyAddress">77da20f0 </span><span class="DisassemblyOpcode">e856b50300      </span><span class="DisassemblyInstruction Important">call    ntdll!RtlpAllocateHeapRaiseException (77ddd64b)</span> <span class="Important">// call</span><br/><span class="DisassemblyInformation">ntdll!RtlpAllocateHeapInternal+0x4c5b5:</span><br/><span class="DisassemblyAddress">77da20f5 </span><span class="DisassemblyOpcode">e9263bfbff      </span><span class="DisassemblyInstruction Important">jmp     ntdll!RtlpAllocateHeapInternal+0xe0 (77d55c20)</span> <span class="Important">// return address</span><br/><span class="DisassemblyAddress">77da20fa </span><span class="DisassemblyOpcode">64a130000000    </span><span class="DisassemblyInstruction">mov     eax,dword ptr fs:[00000030h]</span><br/><span class="DisassemblyAddress">77da2100 </span><span class="DisassemblyOpcode">f6804002000001  </span><span class="DisassemblyInstruction">test    byte ptr [eax+240h],1</span><br/><span class="DisassemblyAddress">77da2107 </span><span class="DisassemblyOpcode">0f95c1          </span><span class="DisassemblyInstruction">setne   cl</span><br/><span class="DisassemblyAddress">77da210a </span><span class="DisassemblyOpcode">f7464400000001  </span><span class="DisassemblyInstruction">test    dword ptr [esi+44h],1000000h</span><br/><span class="DisassemblyAddress">77da2111 </span><span class="DisassemblyOpcode">0f94c0          </span><span class="DisassemblyInstruction">sete    al</span><br/><span class="DisassemblyAddress">77da2114 </span><span class="DisassemblyOpcode">84c8            </span><span class="DisassemblyInstruction">test    al,cl</span><br/><span class="DisassemblyAddress">77da2116 </span><span class="DisassemblyOpcode">0f84143bfbff    </span><span class="DisassemblyInstruction">je      ntdll!RtlpAllocateHeapInternal+0xf0 (77d55c30)</span><br/><span class="DisassemblyAddress">77da211c </span><span class="DisassemblyOpcode">f7c200000061    </span><span class="DisassemblyInstruction">test    edx,61000000h</span><br/><span class="DisassemblyAddress">77da2122 </span><span class="DisassemblyOpcode">0f95c1          </span><span class="DisassemblyInstruction">setne   cl</span><br/><span class="DisassemblyAddress">77da2125 </span><span class="DisassemblyOpcode">0fbae21c        </span><span class="DisassemblyInstruction">bt      edx,1Ch</span><br/><span class="DisassemblyAddress">77da2129 </span><span class="DisassemblyOpcode">0f93c0          </span><span class="DisassemblyInstruction">setae   al</span><br/><span class="DisassemblyAddress">77da212c </span><span class="DisassemblyOpcode">84c8            </span><span class="DisassemblyInstruction">test    al,cl</span><br/><span class="DisassemblyAddress">77da212e </span><span class="DisassemblyOpcode">0f85fc3afbff    </span><span class="DisassemblyInstruction">jne     ntdll!RtlpAllocateHeapInternal+0xf0 (77d55c30)</span><br/><span class="DisassemblyAddress">77da2134 </span><span class="DisassemblyOpcode">837df405        </span><span class="DisassemblyInstruction">cmp     dword ptr [ebp-0Ch],5</span><br/><span class="DisassemblyAddress">77da2138 </span><span class="DisassemblyOpcode">0f84f23afbff    </span><span class="DisassemblyInstruction">je      ntdll!RtlpAllocateHeapInternal+0xf0 (77d55c30)</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Binary information<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="BinaryInformation"><h2 class="SubHeader">Tests_x86.exe</h2><br/><span class="BinaryInformation">    Loaded symbol image file: P:\dev\cBugId\Tests\bin\Tests_x86.exe</span><br/><span class="BinaryInformation">    Image path: Tests_x86.exe</span><br/><span class="BinaryInformation">    Image name: Tests_x86.exe</span><br/><span class="BinaryInformation">    Timestamp:        Wed Apr 19 21:08:37 2017 (58F7B5B5)</span><br/><span class="BinaryInformation">    CheckSum:         00000000</span><br/><span class="BinaryInformation">    ImageSize:        00023000</span><br/><span class="BinaryInformation">    Translations:     0000.04b0 0000.04e4 0409.04b0 0409.04e4</span><br/><br/><h2 class="SubHeader">ntdll.dll</h2><br/><span class="BinaryInformation">    Loaded symbol image file: C:\WINDOWS\SYSTEM32\ntdll.dll</span><br/><span class="BinaryInformation">    Image path: ntdll.dll</span><br/><span class="BinaryInformation">    Image name: ntdll.dll</span><br/><span class="BinaryInformation">    Timestamp:        Fri Nov 11 08:00:48 2016 (58256CA0)</span><br/><span class="BinaryInformation">    CheckSum:         001883CE</span><br/><span class="BinaryInformation">    ImageSize:        00183000</span><br/><span class="BinaryInformation">    File version:     10.0.14393.479</span><br/><span class="BinaryInformation">    Product version:  10.0.14393.479</span><br/><span class="BinaryInformation">    File flags:       0 (Mask 3F)</span><br/><span class="BinaryInformation">    File OS:          40004 NT Win32</span><br/><span class="BinaryInformation">    File type:        2.0 Dll</span><br/><span class="BinaryInformation">    File date:        00000000.00000000</span><br/><span class="BinaryInformation">    Translations:     0409.04b0</span><br/><span class="BinaryInformation">    CompanyName:      Microsoft Corporation</span><br/><span class="BinaryInformation">    ProductName:      Microsoft&#171; Windows&#171; Operating System</span><br/><span class="BinaryInformation">    InternalName:     ntdll.dll</span><br/><span class="BinaryInformation">    OriginalFilename: ntdll.dll</span><br/><span class="BinaryInformation">    ProductVersion:   10.0.14393.479</span><br/><span class="BinaryInformation">    FileVersion:      10.0.14393.479 (rs1_release.161110-2025)</span><br/><span class="BinaryInformation">    FileDescription:  NT Layer DLL</span><br/><span class="BinaryInformation">    LegalCopyright:   &#8976; Microsoft Corporation. All rights reserved.</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Application and cdb output log<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="CDBOrApplicationStdOut">(1b94.300): Unknown exception - code c0000017 (first chance)</span><br/><span class="CDBOrApplicationStdOut">(1b94.300): Unknown exception - code c0000017 (!!! second chance !!!)</span><br/>(The above output was generated in 0.1 seconds)<br/><hr/><span class="CDBPrompt">0:000&gt; </span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Footer Block">
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Creative Commons License" style="vertical-align: middle; float: left;"
+            src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png"/>
+      </a>
+      This report was generated using <a href="https://github.com/SkyLined/BugId">BugId v2017-04-20 14:29</a>
+        by <a href="mailto:bugid@skylined.nl">SkyLined</a>.<br/>
+      BugId is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br/>
+      Please contact the author if you wish to use BugId commercially.
+    </div>
+  </body>
+</html>

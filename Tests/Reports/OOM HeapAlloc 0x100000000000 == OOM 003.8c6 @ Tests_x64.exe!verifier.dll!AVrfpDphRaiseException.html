@@ -1,0 +1,316 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/> 
+    <meta http-equiv="Content-Security-Policy" content="disown-opener; referrer no-referrer;"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:site" content="@berendjanwever"/>
+    <meta name="twitter:title" content="OOM 003.8c6 @ Tests_x64.exe!verifier.dll!AVrfpDphRaiseException"/>
+    <meta name="twitter:description" content="An exception was raised because the program was unable to allocate enough memory"/>
+    <title>OOM 003.8c6 @ Tests_x64.exe!verifier.dll!AVrfpDphRaiseException</title>
+    <style>
+      * {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        border-spacing: 0;
+        border-collapse: collapse;
+        color: inherit;
+        background: transparent;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: inherit;
+      }
+      html {
+        overflow-y: scroll; /* prevent center jumping */
+        color: rgba(22, 19, 16, 1);
+        background: #E5E2DE;
+        font-weight: 400;
+        padding: 1em;
+        font-family: Monospace;
+      }
+      body {
+        margin: auto;
+        max-width: 80em;
+      }
+      h1, h2, h3, h4, h5 {
+        font-weight: 700;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+        margin-bottom: -1px;
+      }
+      :link {
+        border-bottom: 1px dotted rgba(0,0, 238, 0.25);
+      }
+      :link:hover, :link:active {
+        border-bottom: 1px solid rgba(0,0, 238, 1);
+      }
+      :visited {
+        border-bottom: 1px dotted rgba(85, 26, 139, 0.25);
+      }
+      :visited:hover, :visited:active {
+        border-bottom: 1px solid rgba(85, 26, 139, 1);
+      }
+      table {
+        border-spacing: 0;
+        border-collapse: collapse;
+      }
+      ul, ol {
+        padding-left: 2em;
+      }
+      h1 {
+        padding: 0.5em 1em 0.5em 1em;
+        color: rgba(255, 251, 247, 1);
+        background-color: rgba(22, 19, 16, 1);
+        font-size: 120%;
+        margin-bottom: 0.5em;
+      }
+      h2 {
+        font-size: 120%;
+      }
+      td:first-child {
+        white-space: pre;
+      }
+      td {
+        vertical-align: top;
+      }
+      sup, sub {
+        font-size: 50%;
+      }
+      hr {
+        border: dotted black;
+        border-width: 0 0 1pt 0;
+      }
+      .Block {
+        padding: 1em;
+        border: 1px solid rgba(22, 19, 16, 0.2);
+        border-radius: 0.5em;
+        background-color: rgba(255, 251, 247, 1);
+        box-shadow: 0 1em   2em rgba(22, 19, 16, 0.2),
+                    0 1em   1em rgba(22, 19, 16, 0.05),
+                    0 1em 0.5em rgba(22, 19, 16, 0.05);
+        margin-bottom: 1em;
+        display: block;
+      }
+      .Content {
+        overflow-x: auto;
+      }
+      .Collapsible > .Content,
+      .Collapsed > .CollapsedPlaceholder {
+        display: block;
+      }
+      .Collapsible > .CollapsedPlaceholder,
+      .Collapsed > .Content {
+        display: none;
+      }
+      .BlockHeaderIcon {
+        float: right;
+        vertical-align: top;
+        border: 1px solid rgba(255, 251, 247, 1);
+      }
+      .Collapsible .BlockHeaderIcon {
+        padding: 1px 0.8em 0 0;
+      }
+      .Collapsed .BlockHeaderIcon {
+        padding: 0.8em 0.8em 0 0;
+      }
+      .Footer {
+        padding: 1em;
+        text-align: center;
+      }
+      .Important {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .SecurityImpact {
+        background-color: rgba(255,0,0,0.2);
+      }
+      .CDBPrompt {
+        white-space: pre;
+      }
+      .CDBCommand {
+        font-weight: bold;
+        white-space: pre;
+      }
+      .CDBStdOut {
+        color: grey;
+        white-space: pre;
+      }
+      .CDBOrApplicationStdOut {
+        color: black;
+        white-space: pre;
+      }
+      .CDBStdErr {
+        color: maroon;
+        white-space: pre;
+      }
+      .CDBIgnoredException {
+        color: grey;
+        white-space: pre;
+      }
+      .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
+        white-space: pre;
+      }
+      .DisassemblyInformation {
+      }
+      .DisassemblyAddress {
+        color: grey;
+      }
+      .DisassemblyOpcode {
+        color: grey;
+      }
+      .DisassemblyInstruction {
+      }
+      .MemoryAddress {
+        color: grey;
+        padding-right: 0.5em;
+      }
+      .MemoryInaccessible {
+        color: grey;
+        text-align: center;
+      }
+      .MemoryBytes {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryChars {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointer {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .MemoryPointerSymbol {
+        padding-left: 0.5em;
+      }
+      .MemoryRemarks {
+        background-color: rgba(255,255,0,0.3);
+      }
+      .StackFrameAddress {
+      }
+      .StackFrameNoSymbol {
+        font-style: italic;
+      }
+      .StackFrameIgnored {
+        color: silver;
+      }
+      .StackFrameHash {
+      }
+      .StackSource {
+        color: grey;
+      }
+    </style>
+    <script>
+      function fAddClickHandler(oBlockHeaderElement) {
+        var oBlockElement = oBlockHeaderElement.parentElement,
+            bCollapsedPlaceholdersRemoved = false;
+        oBlockHeaderElement.onclick = function () {
+          oBlockElement.className = oBlockElement.className.replace(
+            /\b(Collapsed|Collapsible)\b/,
+            function (sCurrentClassName) {
+              return {"Collapsible": "Collapsed", "Collapsed": "Collapsible"}[sCurrentClassName];
+            }
+          );
+          if (!bCollapsedPlaceholdersRemoved) {
+            // A copy of this list is needed as it is dynamic and we plan to remove elements.
+            var aoCollapsedPlaceholderElements = Array.prototype.slice.call(document.getElementsByClassName("CollapsedPlaceholder"));
+            for (var u = 0; u < aoCollapsedPlaceholderElements.length; u++) {
+              var oCollapsedPlaceholderElement = aoCollapsedPlaceholderElements[u];
+              oCollapsedPlaceholderElement.parentNode.removeChild(oCollapsedPlaceholderElement);
+            };
+          };
+        };
+      };
+      onload = function() {
+        var aoBlockHeaderElements = document.getElementsByClassName("BlockHeader");
+        for (var u = 0; u < aoBlockHeaderElements.length; u++) {
+          fAddClickHandler(aoBlockHeaderElements[u]);
+        };
+      };
+    </script>
+  </head>
+  <body>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">BugId OOM 003.8c6 @ Tests_x64.exe!verifier.dll!AVrfpDphRaiseException summary<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <table>
+          <tr><td>BugId:           </td><td><span class="Important"><b>OOM 003.8c6</b></span></td></tr>
+          <tr><td>Location:        </td><td><span class="Important">Tests_x64.exe!verifier.dll!AVrfpDphRaiseException</span></td></tr>
+          <tr><td>Description:     </td><td><span class="Important">An exception was raised because the program was unable to allocate enough memory</span></td></tr>
+          <tr><td>Version:         </td><td><b>Tests_x64.exe</b>: Wed Apr 19 21:08:41 2017 (58F7B5B9) (x64)<br/><b>verifier.dll</b>: 10.0.14393.0 (x64)</td></tr>
+
+          <tr><td>Security impact: </td><td>Denial of Service</td></tr>
+<tr><td>Command line: </td><td>['P:\\dev\\cBugId\\Tests\\bin\\Tests_x64.exe', 'OOM', 'HeapAlloc', '0x100000000000']</td></tr>
+        </table>
+        <br/>
+        <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>2017-04-20 14:29</b>. You may not use this
+        version of BugId for commercial purposes. Please contact the author if you wish to use BugId commercially.
+        Contact and licensing information can be found at the bottom of this report.
+      </div>
+    </div>
+    <div class="Block Collapsible">
+      <h1 class="BlockHeader">Stack<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Stack"><ol><li><span class="StackFrameAddress Important">verifier.dll!AVrfpDphRaiseException + 0x43</span> <span class="StackFrameHash">(id: 003)</span></li><li><span class="StackFrameAddress Important">verifier.dll!AVrfDebugPageHeapAllocate + 0x3D1</span> <span class="StackFrameHash">(id: 8c6)</span></li><li><span class="StackFrameAddress">ntdll.dll!RtlDebugAllocateHeap + 0x3BF65 (this symbol may not be correct)</span></li><li><span class="StackFrameAddress">ntdll.dll!RtlpAllocateHeap + 0x83FBC (this symbol may not be correct)</span></li><li><span class="StackFrameAddress">ntdll.dll!RtlpAllocateHeapInternal + 0x727</span></li><li><span class="StackFrameAddress">Tests_x64.exe!wmain + 0x749</span> <span class="StackSource">[p:\dev\cbugid\tests\src\_tmain.cpp @ 204]</span></li><li><span class="StackFrameIgnored">Tests_x64.exe!invoke_main + 0x22</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 79]</span></li><li><span class="StackFrameAddress">Tests_x64.exe!__scrt_common_main_seh + 0x11D</span> <span class="StackSource">[f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 253]</span></li><li><span class="StackFrameAddress">KERNEL32.DLL!BaseThreadInitThunk + 0x14</span></li><li><span class="StackFrameAddress">ntdll.dll!RtlUserThreadStart + 0x21</span></li></ol></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Registers<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Registers">rax=0000000000001000 rbx=000001bc664f1000 rcx=0000000000000101<br/>rdx=0000000000001000 rsi=0000100000000000 rdi=000001bc664f9750<br/>rip=00007fff0b7d1de3 rsp=0000002e2eb2f490 rbp=000001bc664f0000<br/> r8=0000100000000050  r9=0000002e2ede8000 r10=00007fff1bed80c9<br/>r11=000001bcc0000017 r12=0000000001000000 r13=0000000000000000<br/>r14=0000000001000006 r15=0000000000000000<br/>iopl=0         nv up ei pl nz na po nc<br/>cs=0033  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000204<br/>fpcw=027F    fpsw=0000    fptw=0000<br/>st0= 0.000147143136077738450e-2899  st1= 0.000057758922255058150e-4917<br/>st2= 0.000000062624051107320e-4933  st3= 0.000000000000000000000e+0000<br/>st4= 0.000000000000000000000e+0000  st5= 0.000000000000000000000e+0000<br/>st6= 0.000000000506112794780e+0149  st7= 0.000006957592660982730e-4933<br/>mm0=00007fff1bff85dc  mm1=00007fff1bff85dc<br/>mm2=0000000400000000  mm3=0000000000000000<br/>mm4=0000000000000000  mm5=0000000000000000<br/>mm6=0000000011000100  mm7=000001bc67640000<br/>xmm0=0 0 0 0<br/>xmm1=0 0 0 0<br/>xmm2=0 0 0 0<br/>xmm3=6.22177e-043 1.0767e+024 0 0<br/>xmm4=5.73972e-042 1.12104e-043 5.73972e-042 1.34525e-043<br/>xmm5=0 2.35099e-038 0 0<br/>xmm6=0 0 0 0<br/>xmm7=0 0 0 0<br/>xmm8=0 0 0 0<br/>xmm9=0 0 0 0<br/>xmm10=0 0 0 0<br/>xmm11=0 0 0 0<br/>xmm12=0 0 0 0<br/>xmm13=0 0 0 0<br/>xmm14=0 0 0 0<br/>xmm15=0 0 0 0<br/>dr0=0000000000000000 dr1=0000000000000000 dr2=0000000000000000<br/>dr3=0000000000000000 dr6=0000000000000000 dr7=0000000000000000<br/>verifier!AVrfpDphRaiseException+0x43:<br/>00007fff`0b7d1de3 488b8c24c0000000 mov     rcx,qword ptr [rsp+0C0h] ss:0000002e`2eb2f550=00001916412b726a</span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 1 at verifier.dll!AVrfpDphRaiseException + 0x43<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">00007fff`0b7d1d8b </span><span class="DisassemblyOpcode">4883c458        </span><span class="DisassemblyInstruction">add     rsp,58h</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d8f </span><span class="DisassemblyOpcode">c3              </span><span class="DisassemblyInstruction">ret</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d90 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d91 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d92 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d93 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d94 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d95 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d96 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d97 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d98 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d99 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9a </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9b </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9c </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9d </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9e </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1d9f </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyInformation">verifier!AVrfpDphRaiseException:</span><br/><span class="DisassemblyAddress">00007fff`0b7d1da0 </span><span class="DisassemblyOpcode">4881ecd8000000  </span><span class="DisassemblyInstruction">sub     rsp,0D8h</span><br/><span class="DisassemblyAddress">00007fff`0b7d1da7 </span><span class="DisassemblyOpcode">488b0552450300  </span><span class="DisassemblyInstruction">mov     rax,qword ptr [verifier!_security_cookie (00007fff`0b806300)]</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dae </span><span class="DisassemblyOpcode">4833c4          </span><span class="DisassemblyInstruction">xor     rax,rsp</span><br/><span class="DisassemblyAddress">00007fff`0b7d1db1 </span><span class="DisassemblyOpcode">48898424c0000000 </span><span class="DisassemblyInstruction">mov     qword ptr [rsp+0C0h],rax</span><br/><span class="DisassemblyAddress">00007fff`0b7d1db9 </span><span class="DisassemblyOpcode">894c2420        </span><span class="DisassemblyInstruction">mov     dword ptr [rsp+20h],ecx</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dbd </span><span class="DisassemblyOpcode">488d05dcffffff  </span><span class="DisassemblyInstruction">lea     rax,[verifier!AVrfpDphRaiseException (00007fff`0b7d1da0)]</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dc4 </span><span class="DisassemblyOpcode">33c9            </span><span class="DisassemblyInstruction">xor     ecx,ecx</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dc6 </span><span class="DisassemblyOpcode">4889442430      </span><span class="DisassemblyInstruction">mov     qword ptr [rsp+30h],rax</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dcb </span><span class="DisassemblyOpcode">894c2424        </span><span class="DisassemblyInstruction">mov     dword ptr [rsp+24h],ecx</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dcf </span><span class="DisassemblyOpcode">48894c2428      </span><span class="DisassemblyInstruction">mov     qword ptr [rsp+28h],rcx</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dd4 </span><span class="DisassemblyOpcode">894c2438        </span><span class="DisassemblyInstruction">mov     dword ptr [rsp+38h],ecx</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dd8 </span><span class="DisassemblyOpcode">488d4c2420      </span><span class="DisassemblyInstruction">lea     rcx,[rsp+20h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d1ddd </span><span class="DisassemblyOpcode">ff159d550200    </span><span class="DisassemblyInstruction">call    qword ptr [verifier!_imp_RtlRaiseException (00007fff`0b7f7380)]</span><br/><span class="DisassemblyInformation">verifier!AVrfpDphRaiseException+0x43:</span><br/><span class="DisassemblyAddress">00007fff`0b7d1de3 </span><span class="DisassemblyOpcode">488b8c24c0000000 </span><span class="DisassemblyInstruction Important">mov     rcx,qword ptr [rsp+0C0h]</span> <span class="Important">// current instruction</span><br/><span class="DisassemblyAddress">00007fff`0b7d1deb </span><span class="DisassemblyOpcode">4833cc          </span><span class="DisassemblyInstruction">xor     rcx,rsp</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dee </span><span class="DisassemblyOpcode">e89d390200      </span><span class="DisassemblyInstruction">call    verifier!_security_check_cookie (00007fff`0b7f5790)</span><br/><span class="DisassemblyAddress">00007fff`0b7d1df3 </span><span class="DisassemblyOpcode">4881c4d8000000  </span><span class="DisassemblyInstruction">add     rsp,0D8h</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dfa </span><span class="DisassemblyOpcode">c3              </span><span class="DisassemblyInstruction">ret</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dfb </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dfc </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dfd </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dfe </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1dff </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1e00 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1e01 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1e02 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d1e03 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyInformation">verifier!AVrfpDphPointerFromHandle:</span><br/><span class="DisassemblyAddress">00007fff`0b7d1e04 </span><span class="DisassemblyOpcode">48894c2408      </span><span class="DisassemblyInstruction">mov     qword ptr [rsp+8],rcx</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Disassembly of stack frame 2 at verifier.dll!AVrfDebugPageHeapAllocate + 0x3D1<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="Disassembly"><span class="DisassemblyAddress">00007fff`0b7d3fd6 </span><span class="DisassemblyOpcode">488bd7          </span><span class="DisassemblyInstruction">mov     rdx,rdi</span><br/><span class="DisassemblyAddress">00007fff`0b7d3fd9 </span><span class="DisassemblyOpcode">488bcb          </span><span class="DisassemblyInstruction">mov     rcx,rbx</span><br/><span class="DisassemblyAddress">00007fff`0b7d3fdc </span><span class="DisassemblyOpcode">e8dbe2ffff      </span><span class="DisassemblyInstruction">call    verifier!AVrfpDphSetProtectionsAfterUse (00007fff`0b7d22bc)</span><br/><span class="DisassemblyAddress">00007fff`0b7d3fe1 </span><span class="DisassemblyOpcode">488b4b08        </span><span class="DisassemblyInstruction">mov     rcx,qword ptr [rbx+8]</span><br/><span class="DisassemblyAddress">00007fff`0b7d3fe5 </span><span class="DisassemblyOpcode">ff1555330200    </span><span class="DisassemblyInstruction">call    qword ptr [verifier!_imp_RtlEnterCriticalSection (00007fff`0b7f7340)]</span><br/><span class="DisassemblyAddress">00007fff`0b7d3feb </span><span class="DisassemblyOpcode">488bd7          </span><span class="DisassemblyInstruction">mov     rdx,rdi</span><br/><span class="DisassemblyAddress">00007fff`0b7d3fee </span><span class="DisassemblyOpcode">488bcb          </span><span class="DisassemblyInstruction">mov     rcx,rbx</span><br/><span class="DisassemblyAddress">00007fff`0b7d3ff1 </span><span class="DisassemblyOpcode">e832e9ffff      </span><span class="DisassemblyInstruction">call    verifier!AVrfpDphCoalesceNodeIntoAvailable (00007fff`0b7d2928)</span><br/><span class="DisassemblyAddress">00007fff`0b7d3ff6 </span><span class="DisassemblyOpcode">488b4b08        </span><span class="DisassemblyInstruction">mov     rcx,qword ptr [rbx+8]</span><br/><span class="DisassemblyAddress">00007fff`0b7d3ffa </span><span class="DisassemblyOpcode">ff1548330200    </span><span class="DisassemblyInstruction">call    qword ptr [verifier!_imp_RtlLeaveCriticalSection (00007fff`0b7f7348)]</span><br/><span class="DisassemblyAddress">00007fff`0b7d4000 </span><span class="DisassemblyOpcode">40f6c501        </span><span class="DisassemblyInstruction">test    bpl,1</span><br/><span class="DisassemblyAddress">00007fff`0b7d4004 </span><span class="DisassemblyOpcode">7528            </span><span class="DisassemblyInstruction">jne     verifier!AVrfDebugPageHeapAllocate+0x3ae (00007fff`0b7d402e)</span><br/><span class="DisassemblyAddress">00007fff`0b7d4006 </span><span class="DisassemblyOpcode">488b9350010000  </span><span class="DisassemblyInstruction">mov     rdx,qword ptr [rbx+150h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d400d </span><span class="DisassemblyOpcode">4c8bce          </span><span class="DisassemblyInstruction">mov     r9,rsi</span><br/><span class="DisassemblyAddress">00007fff`0b7d4010 </span><span class="DisassemblyOpcode">400fb6cd        </span><span class="DisassemblyInstruction">movzx   ecx,bpl</span><br/><span class="DisassemblyAddress">00007fff`0b7d4014 </span><span class="DisassemblyOpcode">458bc6          </span><span class="DisassemblyInstruction">mov     r8d,r14d</span><br/><span class="DisassemblyAddress">00007fff`0b7d4017 </span><span class="DisassemblyOpcode">480bcb          </span><span class="DisassemblyInstruction">or      rcx,rbx</span><br/><span class="DisassemblyAddress">00007fff`0b7d401a </span><span class="DisassemblyOpcode">e8c9120000      </span><span class="DisassemblyInstruction">call    verifier!AVrfpDphNormalHeapAllocate (00007fff`0b7d52e8)</span><br/><span class="DisassemblyAddress">00007fff`0b7d401f </span><span class="DisassemblyOpcode">4c8bf8          </span><span class="DisassemblyInstruction">mov     r15,rax</span><br/><span class="DisassemblyAddress">00007fff`0b7d4022 </span><span class="DisassemblyOpcode">4885c0          </span><span class="DisassemblyInstruction">test    rax,rax</span><br/><span class="DisassemblyAddress">00007fff`0b7d4025 </span><span class="DisassemblyOpcode">7407            </span><span class="DisassemblyInstruction">je      verifier!AVrfDebugPageHeapAllocate+0x3ae (00007fff`0b7d402e)</span><br/><span class="DisassemblyAddress">00007fff`0b7d4027 </span><span class="DisassemblyOpcode">f0ff0512b30300  </span><span class="DisassemblyInstruction">lock inc dword ptr [verifier!AVrfpDphBlockDistribution (00007fff`0b80f340)]</span><br/><span class="DisassemblyAddress">00007fff`0b7d402e </span><span class="DisassemblyOpcode">4584e4          </span><span class="DisassemblyInstruction">test    r12b,r12b</span><br/><span class="DisassemblyAddress">00007fff`0b7d4031 </span><span class="DisassemblyOpcode">751e            </span><span class="DisassemblyInstruction">jne     verifier!AVrfDebugPageHeapAllocate+0x3d1 (00007fff`0b7d4051)</span><br/><span class="DisassemblyAddress">00007fff`0b7d4033 </span><span class="DisassemblyOpcode">33c9            </span><span class="DisassemblyInstruction">xor     ecx,ecx</span><br/><span class="DisassemblyAddress">00007fff`0b7d4035 </span><span class="DisassemblyOpcode">48878b60010000  </span><span class="DisassemblyInstruction">xchg    rcx,qword ptr [rbx+160h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d403c </span><span class="DisassemblyOpcode">4d85ff          </span><span class="DisassemblyInstruction">test    r15,r15</span><br/><span class="DisassemblyAddress">00007fff`0b7d403f </span><span class="DisassemblyOpcode">7510            </span><span class="DisassemblyInstruction">jne     verifier!AVrfDebugPageHeapAllocate+0x3d1 (00007fff`0b7d4051)</span><br/><span class="DisassemblyAddress">00007fff`0b7d4041 </span><span class="DisassemblyOpcode">41f6c604        </span><span class="DisassemblyInstruction">test    r14b,4</span><br/><span class="DisassemblyAddress">00007fff`0b7d4045 </span><span class="DisassemblyOpcode">740a            </span><span class="DisassemblyInstruction">je      verifier!AVrfDebugPageHeapAllocate+0x3d1 (00007fff`0b7d4051)</span><br/><span class="DisassemblyAddress">00007fff`0b7d4047 </span><span class="DisassemblyOpcode">b9170000c0      </span><span class="DisassemblyInstruction">mov     ecx,0C0000017h</span><br/><span class="DisassemblyAddress">00007fff`0b7d404c </span><span class="DisassemblyOpcode">e84fddffff      </span><span class="DisassemblyInstruction Important">call    verifier!AVrfpDphRaiseException (00007fff`0b7d1da0)</span> <span class="Important">// call</span><br/><span class="DisassemblyInformation">verifier!AVrfDebugPageHeapAllocate+0x3d1:</span><br/><span class="DisassemblyAddress">00007fff`0b7d4051 </span><span class="DisassemblyOpcode">498bc7          </span><span class="DisassemblyInstruction Important">mov     rax,r15</span> <span class="Important">// return address</span><br/><span class="DisassemblyAddress">00007fff`0b7d4054 </span><span class="DisassemblyOpcode">4c8d5c2450      </span><span class="DisassemblyInstruction">lea     r11,[rsp+50h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d4059 </span><span class="DisassemblyOpcode">498b5b30        </span><span class="DisassemblyInstruction">mov     rbx,qword ptr [r11+30h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d405d </span><span class="DisassemblyOpcode">498b6b38        </span><span class="DisassemblyInstruction">mov     rbp,qword ptr [r11+38h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d4061 </span><span class="DisassemblyOpcode">498b7340        </span><span class="DisassemblyInstruction">mov     rsi,qword ptr [r11+40h]</span><br/><span class="DisassemblyAddress">00007fff`0b7d4065 </span><span class="DisassemblyOpcode">498be3          </span><span class="DisassemblyInstruction">mov     rsp,r11</span><br/><span class="DisassemblyAddress">00007fff`0b7d4068 </span><span class="DisassemblyOpcode">415f            </span><span class="DisassemblyInstruction">pop     r15</span><br/><span class="DisassemblyAddress">00007fff`0b7d406a </span><span class="DisassemblyOpcode">415e            </span><span class="DisassemblyInstruction">pop     r14</span><br/><span class="DisassemblyAddress">00007fff`0b7d406c </span><span class="DisassemblyOpcode">415d            </span><span class="DisassemblyInstruction">pop     r13</span><br/><span class="DisassemblyAddress">00007fff`0b7d406e </span><span class="DisassemblyOpcode">415c            </span><span class="DisassemblyInstruction">pop     r12</span><br/><span class="DisassemblyAddress">00007fff`0b7d4070 </span><span class="DisassemblyOpcode">5f              </span><span class="DisassemblyInstruction">pop     rdi</span><br/><span class="DisassemblyAddress">00007fff`0b7d4071 </span><span class="DisassemblyOpcode">c3              </span><span class="DisassemblyInstruction">ret</span><br/><span class="DisassemblyAddress">00007fff`0b7d4072 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d4073 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d4074 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span><br/><span class="DisassemblyAddress">00007fff`0b7d4075 </span><span class="DisassemblyOpcode">cc              </span><span class="DisassemblyInstruction">int     3</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Binary information<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="BinaryInformation"><h2 class="SubHeader">Tests_x64.exe</h2><br/><span class="BinaryInformation">    Loaded symbol image file: P:\dev\cBugId\Tests\bin\Tests_x64.exe</span><br/><span class="BinaryInformation">    Image path: Tests_x64.exe</span><br/><span class="BinaryInformation">    Image name: Tests_x64.exe</span><br/><span class="BinaryInformation">    Timestamp:        Wed Apr 19 21:08:41 2017 (58F7B5B9)</span><br/><span class="BinaryInformation">    CheckSum:         00000000</span><br/><span class="BinaryInformation">    ImageSize:        00028000</span><br/><span class="BinaryInformation">    Translations:     0000.04b0 0000.04e4 0409.04b0 0409.04e4</span><br/><br/><h2 class="SubHeader">verifier.dll</h2><br/><span class="BinaryInformation">    Loaded symbol image file: C:\WINDOWS\System32\verifier.dll</span><br/><span class="BinaryInformation">    Image path: C:\WINDOWS\System32\verifier.dll</span><br/><span class="BinaryInformation">    Image name: verifier.dll</span><br/><span class="BinaryInformation">    Timestamp:        Sat Jul 16 04:21:03 2016 (57899A0F)</span><br/><span class="BinaryInformation">    CheckSum:         00062029</span><br/><span class="BinaryInformation">    ImageSize:        0006E000</span><br/><span class="BinaryInformation">    File version:     10.0.14393.0</span><br/><span class="BinaryInformation">    Product version:  10.0.14393.0</span><br/><span class="BinaryInformation">    File flags:       0 (Mask 3F)</span><br/><span class="BinaryInformation">    File OS:          40004 NT Win32</span><br/><span class="BinaryInformation">    File type:        2.0 Dll</span><br/><span class="BinaryInformation">    File date:        00000000.00000000</span><br/><span class="BinaryInformation">    Translations:     0409.04b0</span><br/><span class="BinaryInformation">    CompanyName:      Microsoft Corporation</span><br/><span class="BinaryInformation">    ProductName:      Microsoft&#171; Windows&#171; Operating System</span><br/><span class="BinaryInformation">    InternalName:     verifier.dll</span><br/><span class="BinaryInformation">    OriginalFilename: verifier.dll</span><br/><span class="BinaryInformation">    ProductVersion:   10.0.14393.0</span><br/><span class="BinaryInformation">    FileVersion:      10.0.14393.0 (rs1_release.160715-1616)</span><br/><span class="BinaryInformation">    FileDescription:  Standard application verifier provider dll</span><br/><span class="BinaryInformation">    LegalCopyright:   &#8976; Microsoft Corporation. All rights reserved.</span></span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Block Collapsed">
+      <h1 class="BlockHeader">Application and cdb output log<span class="BlockHeaderIcon"></span></h1>
+      <div class="Content">
+        <span class="CDBOrApplicationStdOut">(1374.a50): Unknown exception - code c0000017 (first chance)</span><br/><span class="CDBOrApplicationStdOut">(1374.a50): Unknown exception - code c0000017 (!!! second chance !!!)</span><br/>(The above output was generated in 0.2 seconds)<br/><hr/><span class="CDBPrompt">0:000&gt; </span>
+      </div>
+      <div class="CollapsedPlaceholder">&#x21D3; click on the title of a section to open or close it.</div>
+    </div>
+
+    <div class="Footer Block">
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        <img alt="Creative Commons License" style="vertical-align: middle; float: left;"
+            src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png"/>
+      </a>
+      This report was generated using <a href="https://github.com/SkyLined/BugId">BugId v2017-04-20 14:29</a>
+        by <a href="mailto:bugid@skylined.nl">SkyLined</a>.<br/>
+      BugId is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">
+        Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br/>
+      Please contact the author if you wish to use BugId commercially.
+    </div>
+  </body>
+</html>
