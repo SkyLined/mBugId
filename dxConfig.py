@@ -1,13 +1,6 @@
 from dsCdbBinaryPath_sISA import dsCdbBinaryPath_sISA;
-# Load base config file
-try:
-  from dxConfig import dxConfig;
-except:
-  dxConfig = {};
-# Add BugId group if it doesn't exist.
-dxBugIdConfig = dxConfig.setdefault("cBugId", {});
 # Add default values where no values have been supplied:
-for (sName, xValue) in {
+dxConfig = {
   ### cdb/kill binary settings
   "sCdbBinaryPath_x86": dsCdbBinaryPath_sISA.get("x86"),
   "sCdbBinaryPath_x64": dsCdbBinaryPath_sISA.get("x64"),
@@ -24,7 +17,7 @@ for (sName, xValue) in {
                                         # to be a pointer to that address + an offset.
   "uArchitectureIndependentBugIdBits": 0, # 0 to disable or 8, 6, 32, ... to enable architecture agnostic sizes
                                         # and offsets in BugIds. For X > 0, and Y = X/8, the bug id will show numbers
-                                        # that are larger than Y as "Y*N+R", where R is the remainder of the number
+                                        # that are larger than Y as "Yn+R", where R is the remainder of the number
                                         # modulo Y.
                                         # For example: when testing both 32-bit and 64-bit versions of an application,
                                         # you may get different bug ids for the same access violation bug, because the
@@ -32,10 +25,10 @@ for (sName, xValue) in {
                                         # to 32 (X = 32, Y = 4), the uniqueness of the offsets and sizes is reduced to
                                         # the point where you should get the same bug ids:
                                         #  0,  1,  2,  3      => "0", "1", "2", "3",
-                                        #  4,  8, 12, 16, ... => "4*N"
-                                        #  5,  9, 13, 17, ... => "4*N+1"
-                                        #  6, 10, 14, 18, ... => "4*N+2"
-                                        #  7, 11, 15, 19, ... => "4*N+3"
+                                        #  4,  8, 12, 16, ... => "4n"
+                                        #  5,  9, 13, 17, ... => "4n+1"
+                                        #  6, 10, 14, 18, ... => "4n+2"
+                                        #  7, 11, 15, 19, ... => "4n+3"
   "uHeapCorruptedBytesHashChars": 4,    # Put a hash of the values of modified bytes in the id. Can be useful when
                                         # attempting to modify some input that triggers the heap corruption in order to
                                         # find out if this affects the corruption: if this ends up modifying the values
@@ -106,7 +99,7 @@ for (sName, xValue) in {
   ],                                    # cdb to use only the Microsoft symbol server.
   "bDeferredSymbolLoads": True,         # True means enable SYMOPT_DEFERRED_LOADS in cdb, see Debugger help for details.
   "bUse_NT_SYMBOL_PATH": True,          # Set to True to have BugId use _NT_SYMBOL_PATH for symbol caches and servers.
-                                        # Set to False to have BugId ignore it and only use values from dxBugIdConfig
+                                        # Set to False to have BugId ignore it and only use values from dxConfig
                                         # and the arguments provided to cBugId.
   ### Source code settings
   "bEnableSourceCodeSupport": True,     # Tell cdb to load source line symbols or not.
@@ -156,22 +149,8 @@ for (sName, xValue) in {
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
   ### Page heap
-  "bForcePageHeap": False,              # If True, each process that BugId attaches to, creates, or which is created
-                                        # during debugging will have page heap automatically enabled with the flags set
-                                        # in `uPageHeapFlags` below. BugId works best with page heap enabled, but this
-                                        # may cause problems with certain applications. In such cases it should be
-                                        # disabled using gflags.exe and by changing this setting to false.
-  "uDisablePageHeapFlags": 0,           # BugId automatically disables these settings in all processes (default 0)
-  "uEnablePageHeapFlags": 0x2109870,    # BugId automatically enables these settings in all processes (the default,
-                                        # 0x02109870, enables these settings:
-                                        # 0x00000010 Enable heap tail checking (htc).
-                                        # 0x00000020 Enable heap free checking (hfc).
-                                        # 0x00000040 Enable heap parameter checking (hpc).
-                                        # 0x00000800 Enable heap tagging (htg).
-                                        # 0x00001000 Create a user-mode stack trace DB (ust).
-                                        # 0x00008000 Enable heap tagging by DLL (htd).
-                                        # 0x00100000 Enable critical system breaks (scb).
-                                        # 0x02000000 Put heap allocations at the end of pages (hpa).
-}.items():
-  if sName not in dxBugIdConfig:
-    dxBugIdConfig[sName] = xValue;
+  "bEnsurePageHeap": True,              # If True, each process that BugId attaches to, creates, or which is created
+                                        # during debugging will be checked to make sure page heap is enabled.
+                                        # If page heap is not enabled as expected, an error is reported through the
+                                        # error callback.
+};

@@ -1,6 +1,6 @@
-import re, threading, time;
+import re, threading;
 from cBugReport import cBugReport;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 bDebugOutput = False;
 bDebugOutputCalculation = False;
@@ -83,7 +83,7 @@ class cExcessiveCPUUsageDetector(object):
     oExcessiveCPUUsageDetector.fGetUsageData();
     oExcessiveCPUUsageDetector.oLock.acquire();
     try:
-      nTimeout = dxBugIdConfig["nExcessiveCPUUsageCheckInterval"];
+      nTimeout = dxConfig["nExcessiveCPUUsageCheckInterval"];
       oExcessiveCPUUsageDetector.xCheckUsageTimeout = oCdbWrapper.fxSetTimeout(
         nTime = nTimeout,
         fCallback = oExcessiveCPUUsageDetector.fCheckUsage,
@@ -168,12 +168,12 @@ class cExcessiveCPUUsageDetector(object):
       if uMaxCPUProcessId is None:
         return; # No data available.
       # If all threads in all processes combined have excessive CPU usage
-      if nTotalCPUUsagePercent > dxBugIdConfig["nExcessiveCPUUsagePercent"]:
+      if nTotalCPUUsagePercent > dxConfig["nExcessiveCPUUsagePercent"]:
         # Find out which function is using excessive CPU time in the most active thread.
         oExcessiveCPUUsageDetector.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
       else:
         # No thread suspected of excessive CPU usage: measure CPU usage over another interval.
-        nTimeout = dxBugIdConfig["nExcessiveCPUUsageCheckInterval"];
+        nTimeout = dxConfig["nExcessiveCPUUsageCheckInterval"];
         oExcessiveCPUUsageDetector.xCheckUsageTimeout = oCdbWrapper.fxSetTimeout(
           nTime = nTimeout,
           fCallback = oExcessiveCPUUsageDetector.fCheckUsage,
@@ -248,7 +248,7 @@ class cExcessiveCPUUsageDetector(object):
     assert oExcessiveCPUUsageDetector.uWormBreakpointId is not None, \
         "Could not create breakpoint at 0x%X" % oExcessiveCPUUsageDetector.uLastInstructionPointer;
     oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(
-        nTime = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"],
+        nTime = dxConfig["nExcessiveCPUUsageWormRunTime"],
         fCallback = oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout,
     );
   
@@ -319,7 +319,7 @@ class cExcessiveCPUUsageDetector(object):
       # Start a new timeout for the function that is now executing.
       oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.xWormRunTimeout);
       oExcessiveCPUUsageDetector.xWormRunTimeout = oCdbWrapper.fxSetTimeout(
-        nTime = dxBugIdConfig["nExcessiveCPUUsageWormRunTime"],
+        nTime = dxConfig["nExcessiveCPUUsageWormRunTime"],
         fCallback = oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout,
       );
     finally:
@@ -327,7 +327,7 @@ class cExcessiveCPUUsageDetector(object):
 
   def fSetBugBreakpointAfterTimeout(oExcessiveCPUUsageDetector):
     # Ideally, we'd check here to make sure the application has actually been using CPU for
-    # dxBugIdConfig["nExcessiveCPUUsageWormRunTime"] seconds since the last breakpoint was hit: if there were many
+    # dxConfig["nExcessiveCPUUsageWormRunTime"] seconds since the last breakpoint was hit: if there were many
     # breakpoints, this will not be the case. Doing so should improve the reliability of the result.
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
     if bDebugOutput: print "@@@ Worm run timeout: setting excessive CPU usage bug breakpoint...";
@@ -398,7 +398,7 @@ class cExcessiveCPUUsageDetector(object):
       # Report a bug
       sBugTypeId = "CPUUsage";
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
-          (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxBugIdConfig["nExcessiveCPUUsageCheckInterval"]);
+          (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckInterval"]);
       sSecurityImpact = None;
       if not oCdbWrapper.bCdbRunning: return;
       oCdbWrapper.oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
@@ -414,7 +414,7 @@ class cExcessiveCPUUsageDetector(object):
     sTimeType = None;
     if bDebugOutputGetUsageData:
       print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
-    for uProcessId in oCdbWrapper.auProcessIds:
+    for uProcessId in oCdbWrapper.doProcess_by_uId.keys():
       if bDebugOutputGetUsageData:
         print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
         print "| %4s  %6s  %s" % ("tid", "time", "source line");

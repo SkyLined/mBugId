@@ -1,36 +1,5 @@
 import re;
 
-# Some C++ exceptions may indicate an out-of-memory bug.
-ddtxBugTranslations_by_uExceptionCode = {
-  0xe06d7363: { # This entry was created before the code determined the exception class name...
-    "OOM": (
-      "The process triggered a C++ exception to indicate it was unable to allocate enough memory",
-      None,
-      [
-        [
-          "KERNELBASE.dll!RaiseException",
-          "msvcrt.dll!_CxxThrowException",
-          "jscript9.dll!Js::Throw::OutOfMemory",
-        ],
-      ],
-    ),
-  },
-};
-ddtxBugTranslations_by_sExceptionCallName = {
-  "std::bad_alloc": {
-    "OOM": (
-      "The process triggered a std::bad_alloc C++ exception to indicate it was unable to allocate enough memory",
-      None,
-      [
-        [
-          "KERNELBASE.dll!RaiseException",
-          "msvcrt.dll!_CxxThrowException",
-        ],
-      ],
-    ),
-  },
-};
-
 def cBugReport_foAnalyzeException_Cpp(oBugReport, oCdbWrapper, oException):
   # Attempt to get the symbol of the virtual function table of the object that was thrown and add that the the type id:
   assert len(oException.auParameters) >= 3, \
@@ -49,15 +18,8 @@ def cBugReport_foAnalyzeException_Cpp(oBugReport, oCdbWrapper, oException):
     if sExceptionObjectVFTablePointerSymbol is None: break;
     sExceptionObjectSymbol = sExceptionObjectVFTablePointerSymbol.rstrip("::`vftable'");
     if "!" not in sExceptionObjectSymbol:
-      # No symbol information available, just an address
-      dtxBugTranslations = ddtxBugTranslations_by_uExceptionCode.get(oException.uCode);
-      if dtxBugTranslations:
-        oBugReport = oBugReport.foTranslate(dtxBugTranslations);
       break;
     sModuleCdbId, sExceptionClassName = sExceptionObjectSymbol.split("!", 1);
     oBugReport.sBugTypeId += ":%s" % sExceptionClassName;
-    dtxBugTranslations = ddtxBugTranslations_by_sExceptionCallName.get(sExceptionClassName);
-    if dtxBugTranslations:
-      oBugReport = oBugReport.foTranslate(dtxBugTranslations);
     break;
   return oBugReport;

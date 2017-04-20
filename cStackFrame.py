@@ -1,8 +1,8 @@
 import hashlib, math;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 class cStackFrame(object):
-  def __init__(oStackFrame,
+  def __init__(oStackFrame, 
       oStack,
       uNumber,
       sCdbSymbolOrAddress,
@@ -10,7 +10,7 @@ class cStackFrame(object):
       uAddress,
       sUnloadedModuleFileName,
       oModule, uModuleOffset, 
-      oFunction, uFunctionOffset,
+      oFunction, iFunctionOffset,
       sSourceFilePath, uSourceFileLineNumber,
   ):
     oStackFrame.oStack = oStack;
@@ -23,7 +23,7 @@ class cStackFrame(object):
     oStackFrame.oModule = oModule;
     oStackFrame.uModuleOffset = uModuleOffset;
     oStackFrame.oFunction = oFunction;
-    oStackFrame.uFunctionOffset = uFunctionOffset;
+    oStackFrame.iFunctionOffset = iFunctionOffset;
     oStackFrame.sSourceFilePath = sSourceFilePath;
     oStackFrame.uSourceFileLineNumber = uSourceFileLineNumber;
     oStackFrame.oPreviousFrame = uNumber > 0 and oStack.aoFrames[uNumber - 1] or None;
@@ -33,12 +33,14 @@ class cStackFrame(object):
     oStackFrame.bIsHidden = uReturnAddress is None;
     if oFunction:
       oStackFrame.sAddress = oFunction.sName;
-      if uFunctionOffset:
-        oStackFrame.sAddress += " %s 0x%X" % (uFunctionOffset > 0 and "+" or "-", abs(uFunctionOffset));
-        if uFunctionOffset not in xrange(dxBugIdConfig["uMaxFunctionOffset"]):
+      if iFunctionOffset is None:
+        oStackFrame.sAddress += " + ? (the exact offset is not known)";
+      elif iFunctionOffset:
+        oStackFrame.sAddress += " %s 0x%X" % (iFunctionOffset > 0 and "+" or "-", abs(iFunctionOffset));
+        if iFunctionOffset not in xrange(dxConfig["uMaxFunctionOffset"]):
           # The offset is negative or very large: this may not be the correct symbol. If it is, the offset is very likely
           # to change between builds. The offset should not be part of the id and a warning about the symbol is added.
-          oStackFrame.sAddress += " (this may not be correct)";
+          oStackFrame.sAddress += " (this symbol may not be correct)";
       oStackFrame.sSimplifiedAddress = oFunction.sSimplifiedName;
       oStackFrame.sUniqueAddress = oFunction.sUniqueName;
     elif oModule:
@@ -64,4 +66,4 @@ class cStackFrame(object):
     else:
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
-      oStackFrame.sId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
+      oStackFrame.sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];

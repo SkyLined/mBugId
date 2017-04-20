@@ -18,10 +18,18 @@ for (sModule, sURL) in {
 from cCdbWrapper import cCdbWrapper;
 from sVersion import sVersion;
 from sOSISA import sOSISA;
+from dxConfig import dxConfig;
 
 class cBugId(object):
   sVersion = sVersion;
   sOSISA = sOSISA;
+  dxConfig = dxConfig; # Expose so external scripts can modify
+  
+  @staticmethod
+  def fsVersionCheck(): # Expose so external script can check.
+    from fsVersionCheck import fsVersionCheck;
+    return fsVersionCheck();
+  
   # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
@@ -41,6 +49,7 @@ class cBugId(object):
     fMainProcessTerminatedCallback = None,
     fInternalExceptionCallback = None,
     fFinishedCallback = None,
+    fPageHeapNotEnabledCallback = None,
   ):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
     # This event is used by the fWait function to wait for the process to
@@ -52,15 +61,16 @@ class cBugId(object):
     oBugId.__fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
     oBugId.__fInternalExceptionCallback = fInternalExceptionCallback;
     oBugId.__fFinishedCallback = fFinishedCallback;
+    oBugId.__fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
     # If debugging fails, this is set to a string that describes the reason why:
     oBugId.sFailedToDebugApplicationErrorMessage = None;
-    # If an internal exception happens, this is set to the Exception object:
-    oBugId.oInternalException = None;
     # If a bug was found, this is set to the bug report:
     oBugId.oBugReport = None;
+    # If an internal exception occurs, this is set to True:
+    oBugId.bInternalExceptionOccured = False;
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
@@ -80,6 +90,7 @@ class cBugId(object):
       fMainProcessTerminatedCallback = oBugId.__fMainProcessTerminatedHandler,
       fInternalExceptionCallback = oBugId.__fInternalExceptionHandler,
       fFinishedCallback = oBugId.__fFinishedHandler,
+      fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledCallback,
     );
   
   def fStart(oBugId):
@@ -144,15 +155,15 @@ class cBugId(object):
     if oBugId.__fExceptionDetectedCallback:
       oBugId.__fExceptionDetectedCallback(oBugId);
   
-  def __fMainProcessTerminatedHandler(oBugId):
+  def __fMainProcessTerminatedHandler(oBugId, uProcessId, sBinaryName):
     if oBugId.__fMainProcessTerminatedCallback:
-      oBugId.__fMainProcessTerminatedCallback(oBugId);
+      oBugId.__fMainProcessTerminatedCallback(oBugId, uProcessId, sBinaryName);
   
-  def __fInternalExceptionHandler(oBugId, oException):
-    # Save internal exception.
-    oBugId.oInternalException = oException;
-    if oBugId.__fInternalExceptionCallback:
-      oBugId.__fInternalExceptionCallback(oBugId, oException);
+  def __fInternalExceptionHandler(oBugId, oException, oTraceBack):
+    oBugId.bInternalExceptionOccured = True;
+    if not oBugId.__fInternalExceptionCallback:
+      raise oException;
+    oBugId.__fInternalExceptionCallback(oBugId, oException, oTraceBack);
   
   def __fFinishedHandler(oBugId, oBugReport):
     # Save bug report, if any.
@@ -160,4 +171,8 @@ class cBugId(object):
     oBugId.__oFinishedEvent.set();
     if oBugId.__fFinishedCallback:
       oBugId.__fFinishedCallback(oBugId, oBugReport);
-
+  
+  def __fPageHeapNotEnabledCallback(oBugId, sErrorDetails):
+    assert oBugId.__fPageHeapNotEnabledCallback, \
+      sErrorDetails;
+    oBugId.__fPageHeapNotEnabledCallback(oBugId, sErrorDetails);

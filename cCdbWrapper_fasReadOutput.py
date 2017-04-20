@@ -1,5 +1,5 @@
 import re, time;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 from FileSystem import FileSystem;
 
 dsTip_by_sErrorCode = {
@@ -96,8 +96,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
   sLine = "";
   asLines = [];
   bAddOutputToHTML = oCdbWrapper.bGenerateReportHTML and (
-    dxBugIdConfig["bShowAllCdbCommandsInReport"]
-    or (bOutputIsInformative and dxBugIdConfig["bShowInformativeCdbCommandsInReport"])
+    dxConfig["bShowAllCdbCommandsInReport"]
+    or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"])
     or bOutputCanContainApplicationOutput
   );
   bAddImportantLinesToHTML = oCdbWrapper.bGenerateReportHTML and (
@@ -112,7 +112,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       pass; # ignored.
     elif sChar in ("\n", ""):
       if sChar == "\n" or sLine:
-        if dxBugIdConfig["bOutputStdOut"]:
+        if dxConfig["bOutputStdOut"]:
           print "cdb>%s" % repr(sLine)[1:-1];
         if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
           # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
@@ -142,7 +142,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           nRunTime = time.clock() - nStartTime;
           oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "(The above output was generated in %.1f seconds)<br/>" % nRunTime;
         oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-        if dxBugIdConfig["bOutputStdOut"]:
+        if dxConfig["bOutputStdOut"]:
           print "cdb>%s" % repr(sLine)[1:-1];
         if oCdbWrapper.bGenerateReportHTML:
           # The prompt is always stored in a new block of I/O

@@ -1,24 +1,20 @@
 import re;
 from cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
-from cBugReport_foAnalyzeException_STATUS_BREAKPOINT import cBugReport_foAnalyzeException_STATUS_BREAKPOINT;
-from cBugReport_foAnalyzeException_STATUS_INVALID_HANDLE import cBugReport_foAnalyzeException_STATUS_INVALID_HANDLE;
 from cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION;
 from cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION;
 from cBugReport_foAnalyzeException_STATUS_NO_MEMORY import cBugReport_foAnalyzeException_STATUS_NO_MEMORY;
 from cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN;
 from cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
 from cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
-from cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT import cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT;
-from cBugReport_foTranslate import cBugReport_foTranslate;
 from cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
 from cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
 from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
-from cProcess import cProcess;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 from FileSystem import FileSystem;
+from foTranslateBug import foTranslateBug;
 from NTSTATUS import *;
 from HRESULT import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
@@ -28,31 +24,27 @@ from sReportHTMLTemplate import sReportHTMLTemplate;
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
   STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
-  STATUS_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_BREAKPOINT,
-  STATUS_INVALID_HANDLE: cBugReport_foAnalyzeException_STATUS_INVALID_HANDLE,
   STATUS_FAIL_FAST_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION,
   STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
   STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
   STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
   STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
-  STATUS_WX86_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_WX86_BREAKPOINT,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, oProcess, oStack):
+  def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, sProcessBinaryName, oStack):
     oBugReport.oCdbWrapper = oCdbWrapper;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
-    oBugReport.oProcess = oProcess;
+    oBugReport.sProcessBinaryName = sProcessBinaryName;
     oBugReport.oStack = oStack;
     oBugReport.atxMemoryRemarks = [];
-    oBugReport.atxMemoryDumps = [];
+    oBugReport.__dtxMemoryDumps = {};
     oBugReport.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
     if oCdbWrapper.bGenerateReportHTML:
       oBugReport.sImportantOutputHTML = oCdbWrapper.sImportantOutputHTML;
-    oBugReport.sProcessBinaryName = oBugReport.oProcess.sBinaryName;
     oBugReport.asExceptionSpecificBlocksHTML = [];
     # This information is gathered later, when it turns out this bug needs to be reported:
     oBugReport.sStackId = None;
@@ -61,17 +53,22 @@ class cBugReport(object):
     oBugReport.sBugSourceLocation = None;
     oBugReport.sReportHTML = None;
   
-  def foTranslate(oBugReport, dtxTranslations):
-    return cBugReport_foTranslate(oBugReport, dtxTranslations);
+  def fAddMemoryDump(oBugReport, uStartAddress, uEndAddress, sDescription):
+    assert uStartAddress not in oBugReport.__dtxMemoryDumps, \
+        "Trying to dump the same memory twice";
+    assert uStartAddress < uEndAddress, \
+        "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
+    uSize = uEndAddress - uStartAddress;
+    assert uSize < 0x1000, \
+        "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uStartAddress, uSize, uEndAddress);
+    oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
   def foCreateForException(cBugReport, oCdbWrapper, uExceptionCode, sExceptionDescription):
-    uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
+    uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
-      uStackFramesCount += (dxBugIdConfig["uMinStackRecursionLoops"] + 1) * dxBugIdConfig["uMaxStackRecursionLoopSize"]
-    oProcess = cProcess.foCreate(oCdbWrapper);
-    if not oCdbWrapper.bCdbRunning: return None;
+      uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
     if not oCdbWrapper.bCdbRunning: return None;
     oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, oStack);
@@ -79,12 +76,13 @@ class cBugReport(object):
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
     if oException is None: return None;
     # Create a preliminary error report.
+    sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
     oBugReport = cBugReport(
       oCdbWrapper = oCdbWrapper,
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
-      oProcess = oProcess,
+      sProcessBinaryName = sProcessBinaryName,
       oStack = oStack,
     );
     # Perform exception specific analysis:
@@ -92,28 +90,25 @@ class cBugReport(object):
     if foAnalyzeException:
       oBugReport = foAnalyzeException(oBugReport, oCdbWrapper, oException);
       if not oCdbWrapper.bCdbRunning: return None;
-      if not oBugReport:
-        # This exception is not a bug, continue the application.
-        return None;
-    return oBugReport;
+    return foTranslateBug(oBugReport);
   
   @classmethod
   def foCreate(cBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact):
-    uStackFramesCount = dxBugIdConfig["uMaxStackFramesCount"];
-    oProcess = cProcess.foCreate(oCdbWrapper);
+    uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if not oCdbWrapper.bCdbRunning: return None;
     oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
     if not oCdbWrapper.bCdbRunning: return None;
     # Create a preliminary error report.
+    sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
     oBugReport = cBugReport(
       oCdbWrapper = oCdbWrapper,
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
-      oProcess = oProcess,
+      sProcessBinaryName = sProcessBinaryName,
       oStack = oStack,
     );
-    return oBugReport;
+    return foTranslateBug(oBugReport);
   
   def fPostProcess(oBugReport, oCdbWrapper):
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
@@ -193,20 +188,16 @@ class cBugReport(object):
         });
       
       # Add relevant memory blocks in order if needed
-      auAddresses = set();
-      for (sDescription, uStartAddress, uSize) in oBugReport.atxMemoryDumps:
-        auAddresses.add(uStartAddress);
-      for uAddress in sorted(list(auAddresses)):
-        for (sDescription, uStartAddress, uSize) in oBugReport.atxMemoryDumps:
-          if uStartAddress == uAddress:
-            sMemoryDumpHTML = cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uSize)
-            if not oCdbWrapper.bCdbRunning: return None;
-            if sMemoryDumpHTML:
-              asBlocksHTML.append(sBlockHTMLTemplate % {
-                "sName": sDescription,
-                "sCollapsed": "Collapsed",
-                "sContent": "<span class=\"Memory\">%s</span>" % sMemoryDumpHTML,
-              });
+      for uStartAddress in sorted(oBugReport.__dtxMemoryDumps.keys()):
+        (uEndAddress, sDescription) = oBugReport.__dtxMemoryDumps[uStartAddress];
+        sMemoryDumpHTML = cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uEndAddress)
+        if not oCdbWrapper.bCdbRunning: return None;
+        if sMemoryDumpHTML:
+          asBlocksHTML.append(sBlockHTMLTemplate % {
+            "sName": sDescription,
+            "sCollapsed": "Collapsed",
+            "sContent": "<span class=\"Memory\">%s</span>" % sMemoryDumpHTML,
+          });
       
       # Create and add disassembly blocks if needed:
       uLastInstructionPointer = None;
@@ -284,13 +275,13 @@ class cBugReport(object):
       };
     
     # See if a dump should be saved
-    if dxBugIdConfig["bSaveDump"]:
+    if dxConfig["bSaveDump"]:
       # We'd like a dump file name base on the BugId, but the later may contain characters that are not valid in a file name
       sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
       # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
       sValidDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
-      sOverwriteFlag = dxBugIdConfig["bOverwriteDump"] and "/o" or "";
+      sOverwriteFlag = dxConfig["bOverwriteDump"] and "/o" or "";
       oCdbWrapper.fasSendCommandAndReadOutput( \
           ".dump %s /ma \"%s\"; $$ Save dump to file" % (sOverwriteFlag, sValidDumpFileName));
       if not oCdbWrapper.bCdbRunning: return;

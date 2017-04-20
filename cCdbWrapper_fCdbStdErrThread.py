@@ -1,4 +1,4 @@
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
   sLine = "";
@@ -10,10 +10,13 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
       if sChar == "\n" or sLine:
         if oCdbWrapper.bGenerateReportHTML:
           sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
-          oCdbWrapper.asCdbStdIOBlocksHTML[-1] += sLineHTML;
+          if len(oCdbWrapper.asCdbStdIOBlocksHTML) == 0:
+            oCdbWrapper.asCdbStdIOBlocksHTML.append(sLineHTML);
+          else:
+            oCdbWrapper.asCdbStdIOBlocksHTML[-1] += sLineHTML;
           if oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine):
             oCdbWrapper.sImportantOutputHTML += sLineHTML;
-        if dxBugIdConfig["bOutputStdErr"]:
+        if dxConfig["bOutputStdErr"]:
           print "cdb:stderr>%s" % repr(sLine)[1:-1];
       if sChar == "":
         break;

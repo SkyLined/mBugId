@@ -38,8 +38,6 @@ class cThreadEnvironmentBlock(object):
         uStackTopAddress = long(sValue, 16);
       elif sName == "StackLimit":
         uStackBottomAddress = long(sValue, 16);
-    uPageSize = oCdbWrapper.fuGetValue("@$pagesize");
-    if not oCdbWrapper.bCdbRunning: return;
     return cThreadEnvironmentBlock(
       uAddress = uTEBAddress,
       uStackTopAddress = uStackTopAddress,

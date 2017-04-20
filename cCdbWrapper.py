@@ -1,4 +1,4 @@
-import itertools, re, subprocess, threading, time;
+import itertools, re, subprocess, sys, threading, time;
 from cCdbWrapper_faoGetModulesForFileNameInCurrentProcess import cCdbWrapper_faoGetModulesForFileNameInCurrentProcess;
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
@@ -9,8 +9,8 @@ from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOn
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
 from cCdbWrapper_fdoGetModulesByCdbIdForCurrentProcess import cCdbWrapper_fdoGetModulesByCdbIdForCurrentProcess;
-from cCdbWrapper_fHandleCreateExitProcess import cCdbWrapper_fHandleCreateExitProcess;
-from cCdbWrapper_ftxGetProcessIdAndBinaryNameForCurrentProcess import cCdbWrapper_ftxGetProcessIdAndBinaryNameForCurrentProcess;
+from cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess import cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess;
+from cCdbWrapper_foSetCurrentProcessAfterApplicationRan import cCdbWrapper_foSetCurrentProcessAfterApplicationRan;
 from cCdbWrapper_ftxSplitSymbolOrAddress import cCdbWrapper_ftxSplitSymbolOrAddress;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
@@ -19,7 +19,7 @@ from cCdbWrapper_f_Timeout import cCdbWrapper_fxSetTimeout, cCdbWrapper_fClearTi
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 from sOSISA import sOSISA;
 try:
   from Kill import fKillProcessesUntilTheyAreDead;
@@ -56,6 +56,7 @@ class cCdbWrapper(object):
                                               # main processes. This callback is not called when any child processes
                                               # spawned by these main processes terminate.
     fInternalExceptionCallback = None,        # called when there is a bug in BugId itself.
+    fPageHeapNotEnabledCallback = None,       # called when page heap is not enabled for a particular binary.
     fFinishedCallback = None,                 # called when BugId is finished.
   ):
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
@@ -70,22 +71,23 @@ class cCdbWrapper(object):
     oCdbWrapper.fApplicationResumedCallback = fApplicationResumedCallback;
     oCdbWrapper.fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
     oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
+    oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     oCdbWrapper.fFinishedCallback = fFinishedCallback;
     oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
     uSymbolOptions = sum([
       0x00000001, # SYMOPT_CASE_INSENSITIVE
       0x00000002, # SYMOPT_UNDNAME
-      0x00000004 * (dxBugIdConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_DEFERRED_LOAD
+      0x00000004 * (dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_DEFERRED_LOAD
 #     0x00000008, # SYMOPT_NO_CPP
-      0x00000010 * (dxBugIdConfig["bEnableSourceCodeSupport"] and 1 or 0), # SYMOPT_LOAD_LINES
+      0x00000010 * (dxConfig["bEnableSourceCodeSupport"] and 1 or 0), # SYMOPT_LOAD_LINES
 #     0x00000020, # SYMOPT_OMAP_FIND_NEAREST
 #     0x00000040, # SYMOPT_LOAD_ANYTHING
 #     0x00000080, # SYMOPT_IGNORE_CVREC
-      0x00000100 * (not dxBugIdConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_NO_UNQUALIFIED_LOADS
+      0x00000100 * (not dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_NO_UNQUALIFIED_LOADS
       0x00000200, # SYMOPT_FAIL_CRITICAL_ERRORS
 #     0x00000400, # SYMOPT_EXACT_SYMBOLS
       0x00000800, # SYMOPT_ALLOW_ABSOLUTE_SYMBOLS
-      0x00001000 * (not dxBugIdConfig["bUse_NT_SYMBOL_PATH"] and 1 or 0), # SYMOPT_IGNORE_NT_SYMPATH
+      0x00001000 * (not dxConfig["bUse_NT_SYMBOL_PATH"] and 1 or 0), # SYMOPT_IGNORE_NT_SYMPATH
       0x00002000, # SYMOPT_INCLUDE_32BIT_MODULES 
 #     0x00004000, # SYMOPT_PUBLICS_ONLY
 #     0x00008000, # SYMOPT_NO_PUBLICS
@@ -96,7 +98,7 @@ class cCdbWrapper(object):
 #     0x80000000, # SYMOPT_DEBUG (don't set here: will be switched on and off later as needed)
     ]);
     # Get the cdb binary path
-    sCdbBinaryPath = dxBugIdConfig["sCdbBinaryPath_%s" % oCdbWrapper.sCdbISA];
+    sCdbBinaryPath = dxConfig["sCdbBinaryPath_%s" % oCdbWrapper.sCdbISA];
     assert sCdbBinaryPath, "No %s cdb binary path found" % oCdbWrapper.sCdbISA;
     # Get the command line (without starting/attaching to a process)
     asCommandLine = [
@@ -105,23 +107,25 @@ class cCdbWrapper(object):
 
       "-sflags", "0x%08X" % uSymbolOptions # Set symbol loading options (See above for details)
     ];
-    if dxBugIdConfig["bEnableSourceCodeSupport"]:
+    if dxConfig["bEnableSourceCodeSupport"]:
       asCommandLine += ["-lines"];
     # Get a list of symbol paths, caches and servers to use:
     asLocalSymbolPaths = asLocalSymbolPaths or [];
     if asSymbolCachePaths is None:
-      asSymbolCachePaths = dxBugIdConfig["asDefaultSymbolCachePaths"];
+      asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"];
     # If not symbols should be used, or no symbol paths are provided, don't use them:
     if asSymbolServerURLs is None:
-      asSymbolServerURLs = dxBugIdConfig["asDefaultSymbolServerURLs"];
+      asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"];
     oCdbWrapper.bUsingSymbolServers = asSymbolServerURLs;
     # Construct the cdb symbol path if one is needed and add it as an argument.
     sSymbolsPath = ";".join(asLocalSymbolPaths + ["cache*%s" % x for x in asSymbolCachePaths] + ["srv*%s" % x for x in asSymbolServerURLs]);
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
-    oCdbWrapper.auProcessIds = [];
-    oCdbWrapper.uCurrentProcessId = None; # The current process id in cdb's context
+    oCdbWrapper.doProcess_by_uId = {};
+    oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
+    oCdbWrapper.auProcessIdsPendingDelete = []; # There should only ever be one in this list, but that is not enforced.
+    oCdbWrapper.bApplicationTerminated = False; # Will be set to True once the last process is terminated.
     # Keep track of what the applications "main" processes are.
     oCdbWrapper.auMainProcessIds = oCdbWrapper.auProcessIdsPendingAttach[:];
     if asApplicationCommandLine is not None:
@@ -138,14 +142,13 @@ class cCdbWrapper(object):
       for x in asCommandLine
     ];
     # Show the command line if requested.
-    if dxBugIdConfig["bOutputCommandLine"]:
+    if dxConfig["bOutputCommandLine"]:
       print "* Starting %s" % " ".join(asCommandLine);
     # Initialize some variables
     oCdbWrapper.sCurrentISA = None; # During exception handling, this is set to the ISA for the code that caused it.
     if bGenerateReportHTML:
       oCdbWrapper.asCdbStdIOBlocksHTML = [""]; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
     oCdbWrapper.oBugReport = None; # Set to a bug report if a bug was detected in the application
-    oCdbWrapper.uLastProcessId = None; # Set to the id of the last process to be reported as terminated by cdb.
     oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
     if bGenerateReportHTML:
@@ -219,53 +222,36 @@ class cCdbWrapper(object):
     try:
       fActivity(oCdbWrapper);
     except Exception, oException:
-      # Start another thread to clean up after the exception was handled.
-      oThread = threading.Thread(target = oCdbWrapper._fThreadExceptionHandler, args = (oException, threading.currentThread()));
-      oThread.start();
-      if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oException);
-      else:
-        raise;
-  
-  def _fThreadExceptionHandler(oCdbWrapper, oException, oExceptionThread):
-    # Wait for the exception thread to terminate and then clean up.
-    oExceptionThread.join();
-    oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-    if not oCdbProcess:
-      oCdbWrapper.bCdbRunning = False;
-      return;
-    if oCdbProcess.poll() is not None:
-      oCdbWrapper.bCdbRunning = False;
-      return;
-    oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-    # cdb is still running: try to terminate cdb the normal way.
-    try:
-      oCdbProcess.terminate();
-    except:
-      pass;
-    else:
-      oCdbWrapper.bCdbRunning = False;
-      return;
-    if oCdbProcess.poll() is not None:
-      oCdbWrapper.bCdbRunning = False;
-      return;
-    # cdb is still running: try to terminate cdb the hard way.
-    oKillException = None;
-    try:
-      fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
-    except Exception, oException:
-      oKillException = oException;
-    else:
-      oCdbWrapper.bCdbRunning = False;
-    # if cdb is *still* running, report and raise an internal exception.
-    if oCdbProcess.poll() is None:
-      oKillException = oKillException or AssertionError("cdb did not die after killing it repeatedly")
-      if oCdbWrapper.fInternalExceptionCallback:
-        oCdbWrapper.fInternalExceptionCallback(oKillException);
-      raise oKillException;
-    # cdb finally died.
-    oCdbWrapper.bCdbRunning = False;
-    return;
+      cException, oException, oTraceBack = sys.exc_info();
+      try:
+        oCdbWrapper.fInternalExceptionCallback(oException, oTraceBack);
+      finally:
+        oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
+        if not oCdbProcess:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        if oCdbProcess.poll() is not None:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
+        # cdb is still running: try to terminate cdb the normal way.
+        try:
+          oCdbProcess.terminate();
+        except:
+          pass;
+        else:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        if oCdbProcess.poll() is not None:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        # cdb is still running: try to terminate cdb the hard way.
+        fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
+        # Make sure cdb finally died.
+        assert oCdbProcess.poll() is not None, \
+            "cdb did not die after killing it repeatedly";
+        oCdbWrapper.bCdbRunning = False;
+        return;
   
   def fStop(oCdbWrapper):
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
@@ -310,8 +296,10 @@ class cCdbWrapper(object):
     # Both arguments are optional
     sSelectCommand = "";
     asSelected = [];
-    if uProcessId is not None and uProcessId != oCdbWrapper.uCurrentProcessId:
+    if uProcessId is not None and uProcessId != oCdbWrapper.oCurrentProcess.uId:
       # Only do this if the current process is not the one we need.
+      assert uProcessId in oCdbWrapper.doProcess_by_uId, \
+          "Unknown process id %d/0x%X" % uProcessId;
       sSelectCommand += "|~[0x%X]s;" % uProcessId;
       asSelected.append("process");
     if uThreadId is not None:
@@ -330,7 +318,7 @@ class cCdbWrapper(object):
         assert re.match(srIgnoredErrors, sLine), \
             "Unexpected select process/thread output:\r\n%s" % "\r\n".join(asSelectOutput);
       if uProcessId is not None:
-        oCdbWrapper.uCurrentProcessId = uProcessId;
+        oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
   # Excessive CPU usage
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
     oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
@@ -365,11 +353,8 @@ class cCdbWrapper(object):
   def fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments);
   
-  def fHandleCreateExitProcess(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fHandleCreateExitProcess(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def ftxGetProcessIdAndBinaryNameForCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_ftxGetProcessIdAndBinaryNameForCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);
+  def foSetCurrentProcessAfterApplicationRan(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_foSetCurrentProcessAfterApplicationRan(oCdbWrapper, *axArguments, **dxArguments);
   
   def faoGetModulesForFileNameInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_faoGetModulesForFileNameInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);
@@ -391,3 +376,6 @@ class cCdbWrapper(object):
   
   def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);
+  
+  def fEnsurePageHeapIsEnabledInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);

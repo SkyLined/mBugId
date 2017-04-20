@@ -1,8 +1,8 @@
 import re;
 
-def cCdbWrapper_fauGetBytes(oCdbWrapper, uAddress, uSize):
+def cCdbWrapper_fauGetBytes(oCdbWrapper, uAddress, uSize, sComment):
   auBytes = [];
-  asBytesOutput = oCdbWrapper.fasSendCommandAndReadOutput("db 0x%X L0x%X" % (uAddress, uSize));
+  asBytesOutput = oCdbWrapper.fasSendCommandAndReadOutput("db /c20 0x%X L0x%X; $ %s" % (uAddress, uSize, sComment));
   if not oCdbWrapper.bCdbRunning: return;
   uLineNumber = 0;
   for sLine in asBytesOutput:
@@ -18,5 +18,5 @@ def cCdbWrapper_fauGetBytes(oCdbWrapper, uAddress, uSize):
       else:
         auBytes.append(int(sByte, 16));
   assert len(auBytes) == uSize, \
-      "Internal error: got %d bytes, but expected %d\r\n%s" % (len(auBytes), uSize, "\r\n".join(asBytesOutput));
+      "Internal error: expected %d bytes, got %s\r\n%s" % (uSize, repr(auBytes), "\r\n".join(asBytesOutput));
   return auBytes;

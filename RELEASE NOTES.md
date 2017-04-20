@@ -1,3 +1,101 @@
+2017-04-20
+==========
+Changes to BugIds
+-----------------
++ Access violations at a magic address (e.g. NULL, Poison) now use `@` rather
+  than `:`, as in `AVR@NULL`.
++ Use after frees are now likely to have block size and offset information, as
+  in `UAFR[0x20]+4`. See below for details.
++ Architecture independent sizes and offset use `n` rather than `*N`, as in
+  `AVR@NULL+4n`
+
+Bug fixes
+---------
++ Handle (==ignore) more irrelevant cdb warnings and errors.
++ No longer report suspended application each time cdb is attaching to
+  additional processes beyond the first.
++ Handle (==ignore) blank first lines in event details output.
++ Make stack buffer overflow test reliable by using globals rather than (stack
+  based) locals for pointer and counter. This prevents the pointer and counter
+  from being modified by the overflow.
++ Make heap buffer overflow test reliable by explicitly freeing heap blocks in
+  order to force detection of heap corruption.
++ STATUS_NO_MEMORY bug reports accidentally had a tuple in the bug description,
+  this is now a string.
++ Find correct heap block address in VERIFIER STOP for double frees; a bug
+  in verifier causes it to output a pointer to a structure that contains this
+  address, rather than the address itself. The correct address will now be
+  extracted from this structure.
++ Various minor bug fixes.
+
+New features
+------------
++ Use after frees are now reported with block size and offset when this
+  information is available. Page heap marks the virtual allocation inaccessible
+  after the heap block has been freed, but it still contains this information.
+  By making the virtual allocation (temporarily) accessible, it can be read and
+  used in the BugId.
++ Add debugger extension to allow BugId to change virtual allocation access
+  protection in order to read inaccessible memory. This is used to read
+  information from freed memory blocks marked inaccessible by page heap.
++ Add new version update and check code. You can call `cBugId.fsCheckVersion`,
+  which will grab the latest version number from GitHub and check it against
+  the local version. It will return a human readable string explaining if you
+  are up-to-date or not.
++ Replace `bForcePageHeap` with `bEnsurePageHeap`, as enforcing it was not
+  actually possible AFAICT. If set to True, cBugId checks if page heap is
+  enabled in every process it debugs. If it is not, it calls
+  `fPageHeapNotEnabledCallback` or an exception is thrown, as explained below.
+  Also `uDisablePageHeapFlags` and `uEnablePageHeapFlags` are no longer used.
++ Add the `fPageHeapNotEnabledCallback` argument to the cBugId constructor. It
+  is called when cBugId detect page heap is not enabled for a process. If not
+  set, or set to None, an assertion is raised instead when this happens. If it
+  is set, BugId will continue to run after this callback. This allows you to
+  ignore this problem if you need to.
++ Attempt to improve symbols in call stack by checking if there is a direct
+  call instruction immediately before the return address of every stack frame.
+  If there is, use the symbol being called in that instruction, rather than the
+  symbol for the code currently being executed in that frame. In this case, we
+  will no longer know the "offset" in the function of the code being executed,
+  as we only know the symbol. However, I've never found any use for this
+  offset, and the symbols retrieved this way have shown to be more useful in
+  many cases.
+
+Improvements
+------------
++ Better illegal instruction security impact description
++ rename `dxBugIdConfig.py` to `dxConfig.py` and expose as `cBugId.dxConfig`
++ The `fInternalExceptionCallback` argument to the cBugId constructor is now
+  called with an additional arguments if an exception happens. In addition to
+  the exception object, a traceback object is added, which can be used to
+  construct a stack trace for the exception.
++ `cBugId.oInternalException` is replaced by `cBugId.bInternalExceptionOccured`,
+  which is False by default and set to True when an exception occurs.
++ The `fMainProcessTerminatedCallback` argument to the cBugId constructor is
+   now called with two additional arguments: the process id and the name of the
+   binary for the process.
++ All bug translation code has been moved into the `BugTranslation` folder.
+  This also contains all bug translations, grouped into separate files.
++ Grab pointer and memory page size for each process once (when they are
+  created), rather than every time they are needed. These values should be
+  static for each process and doing this should improve speed.
++ Attempt to improve stowed exception handling. This is still largely untested
+  and probably needs a lot more testing and fixing.
++ `ftsGetHeapBlockAndOffsetIdAndDescription` is used everywhere, which should
+  ensure heap block sizes and offsets in ids and descriptions are uniform.
++ Various improvements to inline documentation.
++ Various minor improvements to code quality and readability.
++ Removed some old debug output code.
+
+Changes to Tests
+---------------------
++ Better ISA specific numbers in tests
++ Added OOM test using HeapAlloc and C++ new operator.
++ Added stdout output to all tests.
++ Moved more tests to the full test suite, to speed to quick tests.
++ Dump stack trace on exception.
++ Changed arguments of many tests for better test coverage.
+
 2017-03-24
 ==========
 Bug fixes

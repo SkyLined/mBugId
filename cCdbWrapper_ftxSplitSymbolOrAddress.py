@@ -29,7 +29,7 @@ def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules
   oModule = None;
   uModuleOffset = None;
   oFunction = None;
-  uFunctionOffset = None;
+  iFunctionOffset = None;
   if sAddress:
     uAddress = long(sAddress.replace("`", ""), 16);
   elif sUnloadedModuleFileName:
@@ -47,7 +47,7 @@ def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules
     oModule = doModules_by_sCdbId[sModuleCdbId];
     if sSymbol:
       oFunction = oModule.foGetOrCreateFunction(sSymbol);
-      uFunctionOffset = sSymbolOffset and long(sSymbolOffset.replace("`", ""), 16) or 0;
+      iFunctionOffset = sSymbolOffset and long(sSymbolOffset.replace("`", ""), 16) or 0;
     elif sModuleOffset:
       uModuleOffset = long(sModuleOffset.replace("`", ""), 16);
     else:
@@ -55,5 +55,5 @@ def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules
   return (
     uAddress,
     sUnloadedModuleFileName, oModule, uModuleOffset,
-    oFunction, uFunctionOffset
+    oFunction, iFunctionOffset
   );

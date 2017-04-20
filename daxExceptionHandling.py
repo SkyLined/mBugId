@@ -1,6 +1,6 @@
 from NTSTATUS import *;
 from HRESULT import *;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 daxExceptionHandling = {
   "sxe": [ # break on first chance exceptions
@@ -41,4 +41,4 @@ daxExceptionHandling = {
 };
 
 # C++ Exceptions are either handled as second chance exceptions, or ignored completely.
-daxExceptionHandling[dxBugIdConfig["bIgnoreCPPExceptions"] and "sxi" or "sxd"].append(CPP_EXCEPTION_CODE);
+daxExceptionHandling[dxConfig["bIgnoreCPPExceptions"] and "sxi" or "sxd"].append(CPP_EXCEPTION_CODE);

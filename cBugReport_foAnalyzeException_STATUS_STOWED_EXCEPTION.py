@@ -10,13 +10,11 @@ def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oCdbWrappe
       "Unexpected number of WinRT language exception parameters (%d vs 2)" % len(oException.auParameters);
   pStowedExceptionsAddresses = oException.auParameters[0];
   uStowedExceptionsCount = oException.auParameters[1];
-  assert uStowedExceptionsCount <= 1, \
-      "Unexpected number of WinRT language exception stowed exceptions (%d vs 1)" % uStowedExceptionsCount;
-  # Get the stowed exception and replace information in the bug report:
-  oStowedException = cStowedException.foCreate(oCdbWrapper, pStowedExceptionsAddresses);
-  oBugReport.sBugTypeId = oStowedException.sTypeId;
-  oBugReport.sBugDescription = oStowedException.sDescription;
-  oBugReport.sSecurityImpact = oStowedException.sSecurityImpact;
-  oBugReport.oProcess = cProcess.foCreate(oCdbWrapper);
-  oBugReport.oStack = cStack.foCreateFromAddress(oCdbWrapper, oStowedException.pStackTrace, oStowedException.uStackTraceSize);
+  # Get the stowed exceptions and replace information in the bug report:
+  aoStowedExceptions = cStowedException.faoCreate(oCdbWrapper, pStowedExceptionsAddresses, uStowedExceptionsCount);
+  oBugReport.sBugTypeId = "[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
+  oBugReport.sBugDescription = ", ".join([oStowedException.sDescription for oStowedException in aoStowedExceptions]);
+  oBugReport.sSecurityImpact = ", ".join([oStowedException.sSecurityImpact for oStowedException in aoStowedExceptions]);
+  oBugReport.sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
+  oBugReport.oStack = cStack.foCreateFromAddress(oCdbWrapper, aoStowedExceptions[0].pStackTrace, aoStowedExceptions[0].uStackTraceSize);
   return oBugReport;

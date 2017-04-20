@@ -1,5 +1,5 @@
 import re, threading;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bOutputIsInformative = False,
@@ -13,12 +13,12 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
   if oCdbWrapper.bGenerateReportHTML:
     bAddCommandToHTML = oCdbWrapper.bGenerateReportHTML and (
-      dxBugIdConfig["bShowAllCdbCommandsInReport"] or (
-        (bOutputIsInformative and dxBugIdConfig["bShowInformativeCdbCommandsInReport"])
+      dxConfig["bShowAllCdbCommandsInReport"] or (
+        (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"])
         and not bShowOnlyCommandOutput
       )
     ) 
-  if dxBugIdConfig["bOutputStdIn"]:
+  if dxConfig["bOutputStdIn"]:
     print "cdb<%s" % repr(sCommand)[1:-1];
   try:
     oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);

@@ -1,5 +1,4 @@
 import re;
-from dxBugIdConfig import dxBugIdConfig;
 
 def fbByteHasRemarks(oBugReport, uAddress):
   for (sRemark, uRemarkStartAddress, uRemarkSize) in oBugReport.atxMemoryRemarks:
@@ -69,11 +68,10 @@ def fasGetRemarksForRange(oBugReport, uAddress, uSize):
       asRemarksForRange.append(sFormat % sRemark);
   return asRemarksForRange;
 
-def cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uSize):
-  uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
+def cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uEndAddress):
+  uPointerSize = oCdbWrapper.oCurrentProcess.uPointerSize;
   if not oCdbWrapper.bCdbRunning: return None;
   uAlignedStartAddress = uStartAddress - (uStartAddress % uPointerSize);
-  uEndAddress = uStartAddress + uSize;
   uAlignedEndAddress = uEndAddress + uPointerSize - 1 - ((uEndAddress - 1) % uPointerSize);
   uAlignedSize = uAlignedEndAddress - uAlignedStartAddress;
   asMemoryTableHTML = [];

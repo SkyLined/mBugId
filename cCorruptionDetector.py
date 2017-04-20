@@ -1,11 +1,11 @@
 import hashlib;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 
 class cCorruptionDetector(object):
     # Can be used to check for memory corruption
-  def __init__(oCorruptionDetector, oCdbWrapper):
-    oCorruptionDetector.oCdbWrapper = oCdbWrapper;
+  def __init__(oCorruptionDetector, oVirtualAllocation):
+    oCorruptionDetector.oVirtualAllocation = oVirtualAllocation;
     oCorruptionDetector.dsCorruptedBytesHex_by_uAddress = {};
     oCorruptionDetector.bCorruptionDetected = False;
     oCorruptionDetector.uCorruptionStartAddress = None; # first corrupted byte as detected by fDetectCorruption
@@ -13,8 +13,11 @@ class cCorruptionDetector(object):
     oCorruptionDetector.uCorruptionEndAddress = None; # first non-corrupted byte after corruption
   
   def fbDetectCorruption(oCorruptionDetector, uStartAddress, axExpectedBytes):
+    oVirtualAllocation = oCorruptionDetector.oVirtualAllocation;
+    uStartOffset = uStartAddress - oVirtualAllocation.uBaseAddress;
     aauExpectedBytes = [isinstance(xExpectedBytes, list) and xExpectedBytes or [xExpectedBytes] for xExpectedBytes in axExpectedBytes];
-    auBytes = oCorruptionDetector.oCdbWrapper.fauGetBytes(uStartAddress, len(axExpectedBytes));
+    auBytes = oVirtualAllocation.fauGetBytesAtOffset(uStartOffset, len(axExpectedBytes));
+    if not oVirtualAllocation.oCdbWrapper.bCdbRunning: return;
     for uOffset in xrange(len(axExpectedBytes)):
       uAddress = uStartAddress + uOffset;
       auExpectedBytes = aauExpectedBytes[uOffset];
@@ -60,10 +63,11 @@ class cCorruptionDetector(object):
     ];
   
   def fsCorruptionId(oCorruptionDetector):
+    oCdbWrapper = oCorruptionDetector.oVirtualAllocation.oCdbWrapper;
     uCorruptionLength = oCorruptionDetector.uCorruptionEndAddress - oCorruptionDetector.uCorruptionStartAddress;
     sId = "~%s" % fsGetNumberDescription(uCorruptionLength);
-    if dxBugIdConfig["uHeapCorruptedBytesHashChars"]:
+    if dxConfig["uHeapCorruptedBytesHashChars"]:
       oHasher = hashlib.md5();
       oHasher.update("".join(oCorruptionDetector.fasCorruptedBytes()));
-      sId += "#%s" % oHasher.hexdigest()[:dxBugIdConfig["uHeapCorruptedBytesHashChars"]];
+      sId += "#%s" % oHasher.hexdigest()[:dxConfig["uHeapCorruptedBytesHashChars"]];
     return sId;

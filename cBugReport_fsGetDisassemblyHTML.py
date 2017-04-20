@@ -1,5 +1,5 @@
 import re;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
   # If this line starts with an address and opcode, make those semi-transparent.
@@ -15,10 +15,14 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
   return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
   
 def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
-  # See dxBugIdConfig for a description of these "magic" values.
-  uDisassemblyBytesBefore = dxBugIdConfig["uDisassemblyInstructionsBefore"] * dxBugIdConfig["uDisassemblyAverageInstructionSize"] + \
-      dxBugIdConfig["uDisassemblyAlignmentBytes"];
-  uDisassemblyBytesAfter = dxBugIdConfig["uDisassemblyInstructionsAfter"] * dxBugIdConfig["uDisassemblyAverageInstructionSize"];
+  # See dxConfig.py for a description of these "magic" values.
+  uDisassemblyBytesBefore = \
+      dxConfig["uDisassemblyInstructionsBefore"] \
+      * dxConfig["uDisassemblyAverageInstructionSize"] \
+      + dxConfig["uDisassemblyAlignmentBytes"];
+  uDisassemblyBytesAfter = \
+      dxConfig["uDisassemblyInstructionsAfter"] \
+      * dxConfig["uDisassemblyAverageInstructionSize"];
   # Get disassembly around code in which exception happened. This may not be possible if the instruction pointer points to unmapped memory.
   asHTML = [];
   if uDisassemblyBytesBefore > 0:
@@ -32,7 +36,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
     );
     if not oCdbWrapper.bCdbRunning: return None;
     # Limit number of instructions
-    asBeforeDisassembly = asBeforeDisassembly[-dxBugIdConfig["uDisassemblyInstructionsBefore"]:];
+    asBeforeDisassembly = asBeforeDisassembly[-dxConfig["uDisassemblyInstructionsBefore"]:];
     if asBeforeDisassembly:
       # Optionally highlight and describe instruction before the address:
       if sBeforeAddressInstructionDescription:
@@ -67,7 +71,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
         sAtAddressDisassemblyHTML += " <span class=\"Important\">// %s</span>" % sAtAddressInstructionDescription;
       asHTML.append(sAtAddressDisassemblyHTML);
       # Limit the number of instructions, taking into account we already processed one:
-      asAfterDisassembly = asAddressAtAndAfterDisassembly[:dxBugIdConfig["uDisassemblyInstructionsAfter"] - 1];
+      asAfterDisassembly = asAddressAtAndAfterDisassembly[:dxConfig["uDisassemblyInstructionsAfter"] - 1];
       asHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asAfterDisassembly];
     elif asHTML:
       asHTML.append("(further disassembly not possible)");

@@ -1,5 +1,5 @@
 import hashlib;
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
@@ -38,16 +38,16 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       sAddressHTML = "<span class=\"%s\">%s</span>" % \
           (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
       asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
-  if len(asStackFrameIds) > dxBugIdConfig["uStackHashFramesCount"]:
+  if len(asStackFrameIds) > dxConfig["uStackHashFramesCount"]:
     # For certain bugs, such as recursive function calls, ids may have been generated for more functions than the value
     # in uStackHashFramesCount. In this case, the last ids are hashes into one id to reduce the number of hashes:
     oHasher = hashlib.md5();
     asCombinedIds = [];
-    while len(asStackFrameIds) >= dxBugIdConfig["uStackHashFramesCount"]:
+    while len(asStackFrameIds) >= dxConfig["uStackHashFramesCount"]:
       sId = asStackFrameIds.pop();
       asCombinedIds.append(sId);
       oHasher.update(sId);
-    sCombinedId = oHasher.hexdigest()[:dxBugIdConfig["uMaxStackFrameHashChars"]];
+    sCombinedId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
     asStackFrameIds.append(sCombinedId);
     if oCdbWrapper.bGenerateReportHTML:
       asNotesHTML += ["The stack frames with ids %s and %s where combined into one id %s." % \

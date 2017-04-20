@@ -2,7 +2,6 @@ import re;
 from cStack import cStack;
 from cStowedException import cStowedException;
 from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
-from dxBugIdConfig import dxBugIdConfig;
 from NTSTATUS import *;
 
 def fsAddressData(oStackFrameOrException):
@@ -19,9 +18,9 @@ def fsAddressData(oStackFrameOrException):
         abs(oStackFrameOrException.uModuleOffset)
     ) or "",
     oStackFrameOrException.oFunction and oStackFrameOrException.oFunction.sSymbol or "-",
-    oStackFrameOrException.uFunctionOffset and "%s0x%X" % (
-        oStackFrameOrException.uFunctionOffset < 0 and "-" or "+",
-        abs(oStackFrameOrException.uFunctionOffset)
+    oStackFrameOrException.iFunctionOffset and "%s0x%X" % (
+        oStackFrameOrException.iFunctionOffset < 0 and "-" or "+",
+        abs(oStackFrameOrException.iFunctionOffset)
     ) or "",
   )
 
@@ -38,7 +37,7 @@ class cException(object):
     oException.oModule = None;
     oException.uModuleOffset = None;
     oException.oFunction = None;
-    oException.uFunctionOffset = None;
+    oException.iFunctionOffset = None;
     
     oException.uFlags = None;
     oException.auParameters = None;
@@ -149,7 +148,7 @@ class cException(object):
       (
         oException.uAddress,
         oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
-        oException.oFunction, oException.uFunctionOffset
+        oException.oFunction, oException.iFunctionOffset
       ) = oCdbWrapper.ftxSplitSymbolOrAddress(oException.sAddressSymbol, doModules_by_sCdbId);
       sCdbSymbolOrAddress = oException.sAddressSymbol;
       if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
@@ -161,7 +160,7 @@ class cException(object):
       sCdbSymbolOrAddress = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
     if not oStack.aoFrames:
       # Failed to get stack, use information from exception and the current return adderss to reconstruct the top frame.
-      uReturnAddress = oCdbWrapper.fuGetValue("@$ra");
+      uReturnAddress = oCdbWrapper.oCurrentProcess.fuGetValue("@$ra");
       if not oCdbWrapper.bCdbRunning: return;
       oStack.fCreateAndAddStackFrame(
         uNumber = 0,
@@ -170,7 +169,7 @@ class cException(object):
         uAddress = oException.uAddress,
         sUnloadedModuleFileName = oException.sUnloadedModuleFileName,
         oModule = oException.oModule, uModuleOffset = oException.uModuleOffset,
-        oFunction = oException.oFunction, uFunctionOffset = oException.uFunctionOffset,
+        oFunction = oException.oFunction, iFunctionOffset = oException.iFunctionOffset,
         # No source information.
       );
     else:
@@ -190,8 +189,8 @@ class cException(object):
             oException.uAddress -= 1;
           elif oException.uModuleOffset is not None:
             oException.uModuleOffset -= 1;
-          elif oException.uFunctionOffset is not None:
-            oException.uFunctionOffset -= 1;
+          elif oException.iFunctionOffset is not None:
+            oException.iFunctionOffset -= 1;
           else:
             raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
         # Under all circumstances one expects there to be a stack frame for the exception (i.e. the stack frame has
