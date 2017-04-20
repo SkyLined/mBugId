@@ -27,13 +27,13 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       # Turn cdb output into formatted HTML. It is separated into blocks, one for the initial cdb output and one for each
       # command executed.
       sCdbStdIOHTML = '<hr/>'.join(oCdbWrapper.asCdbStdIOBlocksHTML);
+      oCdbWrapper.asCdbStdIOBlocksHTML = [""];
       asBlocksHTML = [];
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
         "sCollapsed": "Collapsed",
         "sContent": sCdbStdIOHTML
       });
-      del oCdbWrapper.asCdbStdIOBlocksHTML;
       # Create HTML details
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
