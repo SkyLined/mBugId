@@ -1,4 +1,5 @@
-from dxBugIdConfig import dxBugIdConfig;
+from dxConfig import dxConfig;
+
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
 dtsFastFailErrorInformation_by_uCode = {
@@ -38,39 +39,6 @@ auErrorCodesForWhichAStackDumpIsUseful = [
   4, #BadStack
 ];
 
-# Some fast fail exceptions may indicate other bugs:
-ddtxBugTranslations_by_sFastFailCodeId = {
-  "AppExit": {
-    "PureCall": (
-      "Pure virtual function call (R6025)",
-      "This is a potentially exploitable security issue",
-      [
-        [ # MSVCRT
-          "*!abort",
-          "*!_purecall",
-        ],
-        [
-          "*!abort",
-          "*!purecall",
-        ],
-      ],
-    ),
-    None: (
-      None,
-      None,
-      [
-        [ # Edge - these appear every now and then, I think they can safely be ignored.
-          "EMODEL.dll!wil::details::ReportFailure",
-          "EMODEL.dll!wil::details::ReportFailure_Hr",
-          "EMODEL.dll!wil::details::in1diag3::FailFast_Hr",
-          "EMODEL.dll!LCIEStartAsTabProcess",
-        ],
-      ],
-    ),
-  },
-};
-
-
 def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWrapper, oException):
   # Parameter[0] = fail fast code
   assert len(oException.auParameters) == 1, \
@@ -78,29 +46,21 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
   uFastFailCode = oException.auParameters[0];
   sFastFailCodeId, sFastFailCodeDescription, sSecurityImpact = dtsFastFailErrorInformation_by_uCode.get( \
       uFastFailCode, ("Unknown", "unknown code", "May be a security issue"));
-  sOriginalBugTypeId = oBugReport.sBugTypeId;
-  dtxBugTranslations = ddtxBugTranslations_by_sFastFailCodeId.get(sFastFailCodeId);
-  if dtxBugTranslations:
-    oBugReport = oBugReport.foTranslate(dtxBugTranslations);
-  # If the bug was not translated, continue to treat it as a fast fail call:
-  if oBugReport and oBugReport.sBugTypeId == sOriginalBugTypeId:
-    oBugReport.sBugTypeId = sFastFailCodeId;
-    if sFastFailCodeDescription.startswith("FAST_FAIL_"):
-      oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)" % \
-          (oException.uCode, uFastFailCode, sFastFailCodeDescription);
-    else:
-      oBugReport.sBugDescription = sFastFailCodeDescription;
-    oBugReport.sSecurityImpact = sSecurityImpact;
+  oBugReport.sBugTypeId = sFastFailCodeId;
+  if sFastFailCodeDescription.startswith("FAST_FAIL_"):
+    oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)" % \
+        (oException.uCode, uFastFailCode, sFastFailCodeDescription);
+  else:
+    oBugReport.sBugDescription = sFastFailCodeDescription;
+  oBugReport.sSecurityImpact = sSecurityImpact;
   if oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
-    uStackPointer = oCdbWrapper.fuGetValue("@$csp");
+    uStackPointer = oCdbWrapper.oCurrentProcess.fuGetValue("@$csp");
     if not oCdbWrapper.bCdbRunning: return;
-    uPointerSize = oCdbWrapper.fuGetValue("@$ptrsize");
-    if not oCdbWrapper.bCdbRunning: return None;
     # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
     oBugReport.fAddMemoryDump(
       uStackPointer,
-      uStackPointer + dxBugIdConfig["uStackDumpSize"] * uPointerSize,
+      uStackPointer + dxConfig["uStackDumpSize"] * oCdbWrapper.oCurrentProcess.uPointerSize,
       "Stack",
     );
-    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, uPointerSize));
+    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oCdbWrapper.oCurrentProcess.uPointerSize));
   return oBugReport;
