@@ -87,6 +87,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         asCdbOutput = asIntialCdbOutput;
         asIntialCdbOutput = None;
       else:
+        ### Run timeout callbacks ######################################################################################
         # Execute any pending timeout callbacks (this can happen when the interrupt on timeout thread has interrupted
         # the application or whenever the application is paused for another exception - the interrupt on timeout thread
         # is just there to make sure the application gets interrupted to do so when needed: otherwise the timeout may not
