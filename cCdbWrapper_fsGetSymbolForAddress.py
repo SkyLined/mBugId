@@ -4,7 +4,6 @@ def cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, sAddress):
   oCdbWrapper.fasSendCommandAndReadOutput('.printf "%%y\\n", %s; $$ Get symbol warmup' % sAddress);
   asSymbolResult = oCdbWrapper.fasSendCommandAndReadOutput( \
       '.printf "%%y\\n", %s;lmi a %s; $$ Get symbol' % (sAddress, sAddress));
-  if not oCdbWrapper.bCdbRunning: return;
   # Output for a NULL pointer:
   #   >00000000
   #   >start    end        module name

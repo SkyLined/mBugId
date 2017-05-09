@@ -26,10 +26,11 @@ def fsAddressData(oStackFrameOrException):
 
 
 class cException(object):
-  def __init__(oException, asCdbLines, uCode, sCodeDescription):
+  def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
     oException.asCdbLines = asCdbLines; # This is here merely to be able to debug issues - it is not used.
     oException.uCode = uCode;
     oException.sCodeDescription = sCodeDescription;
+    oException.bApplicationCannotHandleException = bApplicationCannotHandleException;
     
     oException.uAddress = None;
     oException.sAddressSymbol = None; # See below
@@ -50,26 +51,38 @@ class cException(object):
   def foCreateFromMemory(cException, oCdbWrapper, uExceptionRecordAddress):
     return cException.foCreateHelper(oCdbWrapper,
       uExceptionRecordAddress = uExceptionRecordAddress,
+      bApplicationCannotHandleException = False,
     );
     
   @classmethod
-  def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, oStack):
+  def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, oStack, bApplicationCannotHandleException):
     return cException.foCreateHelper(oCdbWrapper, 
       uCode = uCode,
       sCodeDescription = sCodeDescription,
       oStack = oStack,
+      bApplicationCannotHandleException = bApplicationCannotHandleException,
     );
 
   @classmethod
-  def foCreateHelper(cException, oCdbWrapper, uExceptionRecordAddress = None, uCode = None, sCodeDescription = None, oStack = None):
+  def foCreateHelper(cException, oCdbWrapper,
+      # Either
+        uExceptionRecordAddress = None,
+      # Or
+        uCode = None,
+        sCodeDescription = None,
+        oStack = None,
+      # Always
+      bApplicationCannotHandleException = None
+  ):
     if oStack is None:
       oStack = cStack([]);
+    assert bApplicationCannotHandleException is not None, \
+        "bApplicationCannotHandleException is required!";
     asExceptionRecord = oCdbWrapper.fasSendCommandAndReadOutput(
       ".exr %s; $$ Get exception record" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return None;
-    oException = cException(asExceptionRecord, uCode, sCodeDescription);
+    oException = cException(asExceptionRecord, uCode, sCodeDescription, bApplicationCannotHandleException);
     # Sample output:
     # |ExceptionAddress: 00007ff6b0f81204 (Tests_x64!fJMP+0x0000000000000004)
     # |   ExceptionCode: c0000005 (Access violation)
@@ -144,12 +157,11 @@ class cException(object):
 
     # Compare stack with exception information
     if oException.sAddressSymbol:
-      doModules_by_sCdbId = oCdbWrapper.fdoGetModulesByCdbIdForCurrentProcess();
       (
         oException.uAddress,
         oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
         oException.oFunction, oException.iFunctionOffset
-      ) = oCdbWrapper.ftxSplitSymbolOrAddress(oException.sAddressSymbol, doModules_by_sCdbId);
+      ) = oCdbWrapper.oCurrentProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
       sCdbSymbolOrAddress = oException.sAddressSymbol;
       if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
         # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,
@@ -161,7 +173,6 @@ class cException(object):
     if not oStack.aoFrames:
       # Failed to get stack, use information from exception and the current return adderss to reconstruct the top frame.
       uReturnAddress = oCdbWrapper.oCurrentProcess.fuGetValue("@$ra");
-      if not oCdbWrapper.bCdbRunning: return;
       oStack.fCreateAndAddStackFrame(
         uNumber = 0,
         sCdbSymbolOrAddress = sCdbSymbolOrAddress,

@@ -1,12 +1,27 @@
 import re, threading;
+from cCdbStoppedException import cCdbStoppedException;
 from dxConfig import dxConfig;
+
+# It appears cdb can sometimes buffer output from the application and output it after the prompt is shown. This would
+# cause this application output to be treated as part of the output of whatever command we are trying to execute if we
+# don't handle such situations. The solutions I employ is to add two commands before and after the actual command that
+# output markers that we can detect. These markers can be used to ignore output that is not part of the output for the
+# command.
+sStartOfCommandOutputMarker = "<\x01[\x02{";
+sEndOfCommandOutputMarker = "}\x02]\x01>";
+# The command that outputs the marker should not contain the marker itself: any cdb output that echos the command would
+# otherwise output the marker and may lead to incorrect parsing of data. This encodes the marker in the command:
+sPrintStartMarkerCommand ='.printf "%s\\r\\n", %s;' % ("%c" * len(sStartOfCommandOutputMarker), ", ".join(["0x%X" % ord(s) for s in sStartOfCommandOutputMarker]));
+sPrintEndMarkerCommand ='.printf "%s\\r\\n", %s;' % ("%c" * len(sEndOfCommandOutputMarker), ", ".join(["0x%X" % ord(s) for s in sEndOfCommandOutputMarker]));
 
 def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bOutputIsInformative = False,
     bShowOnlyCommandOutput = False,
     bOutputCanContainApplicationOutput = False,
     bHandleSymbolLoadErrors = True,
-    bIgnoreUnknownSymbolErrors = False,
+    bIgnoreOutput = False,
+    srIgnoreErrors = False,
+    bUseMarkers = True,
 ):
   # Commands can only be execute from within the cCdbWrapper.fCdbStdInOutThread call.
   assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
@@ -20,12 +35,18 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     ) 
   if dxConfig["bOutputStdIn"]:
     print "cdb<%s" % repr(sCommand)[1:-1];
+  if bIgnoreOutput:
+    bUseMarkers = False;
+  else:
+    sCommand = " ".join([s.rstrip(";") + ";" for s in [
+      sPrintStartMarkerCommand, sCommand, sPrintEndMarkerCommand
+    ]]);
   try:
     oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
   except Exception, oException:
     oCdbWrapper.bCdbRunning = False;
-    return None;
-  if oCdbWrapper.bGenerateReportHTML:
+    raise cCdbStoppedException();
+  if oCdbWrapper.bGenerateReportHTML and oCdbWrapper.asCdbStdIOBlocksHTML is not None:
     if bAddCommandToHTML:
       # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
       oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "<span class=\"CDBCommand\">%s</span><br/>" % \
@@ -35,19 +56,12 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
       # has become irrelevant.
       oCdbWrapper.asCdbStdIOBlocksHTML.pop(-1);
   # The following command will always add a new output block with the new cdb prompt, regardless of bDoNotSaveIO.
-  asOutput = oCdbWrapper.fasReadOutput(
+  return oCdbWrapper.fasReadOutput(
     bOutputIsInformative = bOutputIsInformative,
     bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
-    bHandleSymbolLoadErrors = bHandleSymbolLoadErrors
+    bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
+    bIgnoreOutput = bIgnoreOutput,
+    srIgnoreErrors = srIgnoreErrors,
+    sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
+    sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
   );
-  if not oCdbWrapper.bCdbRunning: return None;
-  if len(asOutput) > 0:
-    # Detect obvious errors executing the command. (this will not catch everything, but does help development)
-    assert (
-      not re.match(r"^\s*\^ .*$", asOutput[0])
-      and (bIgnoreUnknownSymbolErrors or not asOutput[0].startswith("Couldn't resolve error at "))
-    ), (
-      "There was a problem executing the command %s:\r\n%s" % \
-      (repr(sCommand), "\r\n".join([repr(sLine) for sLine in asOutput]))
-    );
-  return asOutput;

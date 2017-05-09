@@ -34,7 +34,6 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
           (uStartAddress, uDisassemblyBytesBefore, uStartAddress, uAddress - 1),
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return None;
     # Limit number of instructions
     asBeforeDisassembly = asBeforeDisassembly[-dxConfig["uDisassemblyInstructionsBefore"]:];
     if asBeforeDisassembly:
@@ -54,7 +53,6 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
           (uAddress, uDisassemblyBytesAfter, uAddress, uDisassemblyBytesAfter),
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return None;
     if asAddressAtAndAfterDisassembly:
       assert len(asAddressAtAndAfterDisassembly) >= 2, \
           "Unexpected short disassembly output:\r\n%s" % "\r\n".join(asAddressAtAndAfterDisassembly);

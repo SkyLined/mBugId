@@ -3,7 +3,6 @@ import re;
 def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
   # Select the right process.
   oCdbWrapper.fSelectProcess(uProcessId);
-  if not oCdbWrapper.bCdbRunning: return;
   # Put breakpoint only on relevant thread if provided.
   if uThreadId is not None:
     sCommand = ".if (@$tid != 0x%X) {gh;}%s;" % (uThreadId, sCommand is not None and " .else {%s};" % sCommand or "");
@@ -18,11 +17,8 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     '.printf "Adding breakpoint %d at %%ly:\\r\\n", 0x%X;' % (uBreakpointId, uAddress),
     bShowOnlyCommandOutput = True,
   );
-  if not oCdbWrapper.bCdbRunning: return;
   asBreakpointResult = oCdbWrapper.fasSendCommandAndReadOutput("%s; $$ Set breakpoint" % sBreakpointCommand);
-  if not oCdbWrapper.bCdbRunning: return;
   oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
-  if not oCdbWrapper.bCdbRunning: return;
   # It could be that a previous breakpoint existed at the given location, in which case that breakpoint id is used
   # by cdb instead. This must be detected so we can return the correct breakpoint id to the caller and match the
   # callback to the right breakpoint as well.
@@ -50,11 +46,9 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
       '.printf "  Breakpoint %d was recycled for this address\\r\\n";' % uBreakpointId,
       bShowOnlyCommandOutput = True
     );
-    if not oCdbWrapper.bCdbRunning: return;
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);
-  if not oCdbWrapper.bCdbRunning: return;
   oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
   oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId] = uAddress;
   oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId] = uProcessId;
@@ -73,9 +67,6 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
     '.printf "Removing breakpoint %d:\\r\\n";' % uBreakpointId,
     bShowOnlyCommandOutput = True,
   );
-  if not oCdbWrapper.bCdbRunning: return;
   asClearBreakpoint = oCdbWrapper.fasSendCommandAndReadOutput('bp%d "gh"; $$ Remove breakpoint' % uBreakpointId);
-  if not oCdbWrapper.bCdbRunning: return;
   oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
-  if not oCdbWrapper.bCdbRunning: return;
   del oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];

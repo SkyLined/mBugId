@@ -1,4 +1,5 @@
 import re;
+from BugTranslations import fApplyBugTranslationsToBugReport;
 from cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
 from cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION;
@@ -7,6 +8,7 @@ from cBugReport_foAnalyzeException_STATUS_NO_MEMORY import cBugReport_foAnalyzeE
 from cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN;
 from cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
 from cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
+from cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION;
 from cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
 from cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
 from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
@@ -14,7 +16,6 @@ from cException import cException;
 from cStack import cStack;
 from dxConfig import dxConfig;
 from FileSystem import FileSystem;
-from foTranslateBug import foTranslateBug;
 from NTSTATUS import *;
 from HRESULT import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
@@ -30,21 +31,21 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
   STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
+  WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact, sProcessBinaryName, oStack):
-    oBugReport.oCdbWrapper = oCdbWrapper;
+  def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, oStack):
+    oBugReport.oProcess = oProcess;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
-    oBugReport.sProcessBinaryName = sProcessBinaryName;
     oBugReport.oStack = oStack;
     oBugReport.atxMemoryRemarks = [];
     oBugReport.__dtxMemoryDumps = {};
     oBugReport.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
-    if oCdbWrapper.bGenerateReportHTML:
-      oBugReport.sImportantOutputHTML = oCdbWrapper.sImportantOutputHTML;
+    if oProcess.oCdbWrapper.bGenerateReportHTML:
+      oBugReport.sImportantOutputHTML = oProcess.oCdbWrapper.sImportantOutputHTML;
     oBugReport.asExceptionSpecificBlocksHTML = [];
     # This information is gathered later, when it turns out this bug needs to be reported:
     oBugReport.sStackId = None;
@@ -59,56 +60,49 @@ class cBugReport(object):
     assert uStartAddress < uEndAddress, \
         "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
     uSize = uEndAddress - uStartAddress;
-    assert uSize < 0x1000, \
+    assert uSize <= 0x1000, \
         "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uStartAddress, uSize, uEndAddress);
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
-  def foCreateForException(cBugReport, oCdbWrapper, uExceptionCode, sExceptionDescription):
+  def foCreateForException(cBugReport, oCdbWrapper, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
       uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
-    oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
-    if not oCdbWrapper.bCdbRunning: return None;
-    oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, oStack);
-    if not oCdbWrapper.bCdbRunning: return None;
+    oStack = cStack.foCreate(oCdbWrapper.oCurrentProcess, uStackFramesCount);
+    oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, oStack, bApplicationCannotHandleException);
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
     if oException is None: return None;
     # Create a preliminary error report.
-    sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
     oBugReport = cBugReport(
-      oCdbWrapper = oCdbWrapper,
+      oProcess = oCdbWrapper.oCurrentProcess,
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
-      sProcessBinaryName = sProcessBinaryName,
       oStack = oStack,
     );
     # Perform exception specific analysis:
     foAnalyzeException = dfoAnalyzeException_by_uExceptionCode.get(oException.uCode);
     if foAnalyzeException:
       oBugReport = foAnalyzeException(oBugReport, oCdbWrapper, oException);
-      if not oCdbWrapper.bCdbRunning: return None;
-    return foTranslateBug(oBugReport);
+    fApplyBugTranslationsToBugReport(oBugReport);
+    return oBugReport;
   
   @classmethod
   def foCreate(cBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
-    if not oCdbWrapper.bCdbRunning: return None;
-    oStack = cStack.foCreate(oCdbWrapper, uStackFramesCount);
-    if not oCdbWrapper.bCdbRunning: return None;
+    oStack = cStack.foCreate(oCdbWrapper.oCurrentProcess, uStackFramesCount);
     # Create a preliminary error report.
-    sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
     oBugReport = cBugReport(
-      oCdbWrapper = oCdbWrapper,
+      oProcess = oCdbWrapper.oCurrentProcess,
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
-      sProcessBinaryName = sProcessBinaryName,
       oStack = oStack,
     );
-    return foTranslateBug(oBugReport);
+    fApplyBugTranslationsToBugReport(oBugReport);
+    return oBugReport;
   
   def fPostProcess(oBugReport, oCdbWrapper):
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
@@ -117,23 +111,13 @@ class cBugReport(object):
     if oBugReport.sSecurityImpact is None:
       oBugReport.sSecurityImpact = "Denial of Service";
     
-    # Find cModule for main process binary (i.e. the .exe)
-    aoProcessBinaryModules = oCdbWrapper.faoGetModulesForFileNameInCurrentProcess(oBugReport.sProcessBinaryName);
-    if not oCdbWrapper.bCdbRunning: return None;
-    assert len(aoProcessBinaryModules) > 0, "Cannot find binary %s module" % oBugReport.sProcessBinaryName;
-    # Add main process binary version information to bug report. If the binary is loaded as a module multiple times
-    # in the process, the first should be the binary that was executed.
-    oMainModule = aoProcessBinaryModules[0];
-    
     # If bug binary and main binary are not the same, gather information for both of them:
-    aoRelevantModules = [oMainModule];
-    # Find cModule for bug binary (i.e. the module in which the bug is located)
-    oBugModule = None;
+    aoRelevantModules = [oBugReport.oProcess.oMainModule];
+    # Find the Module in which the bug is reported and add it to the relevant list if it's not there already.
     for oRelevantStackFrame in aoRelevantStackFrames:
       if oRelevantStackFrame.oModule:
-        oBugModule = oRelevantStackFrame.oModule;
-        if oBugModule != oMainModule:
-          aoRelevantModules.append(oBugModule);
+        if oRelevantStackFrame.oModule != oBugReport.oProcess.oMainModule:
+          aoRelevantModules.append(oRelevantStackFrame.oModule);
         break;
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
     if oCdbWrapper.bGenerateReportHTML:
@@ -143,8 +127,7 @@ class cBugReport(object):
     oBugReport.asVersionInformation = [];
     for oModule in aoRelevantModules:
       # This function populates the version properties of the oModule object and returns HTML if a report is needed.
-      sBinaryInformationHTML = oModule.fsGetVersionInformation(oCdbWrapper);
-      if not oCdbWrapper.bCdbRunning: return None;
+      sBinaryInformationHTML = oModule.sInformationHTML;
       oBugReport.asVersionInformation.append(
           "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
       if oCdbWrapper.bGenerateReportHTML:
@@ -179,7 +162,6 @@ class cBugReport(object):
           "rM 0x%X; $$ Get register information" % (0x1 + 0x4 + 0x8 + 0x10 + 0x20 + 0x40),
           bOutputIsInformative = True,
         );
-        if not oCdbWrapper.bCdbRunning: return None;
         sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
@@ -191,7 +173,6 @@ class cBugReport(object):
       for uStartAddress in sorted(oBugReport.__dtxMemoryDumps.keys()):
         (uEndAddress, sDescription) = oBugReport.__dtxMemoryDumps[uStartAddress];
         sMemoryDumpHTML = cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uEndAddress)
-        if not oCdbWrapper.bCdbRunning: return None;
         if sMemoryDumpHTML:
           asBlocksHTML.append(sBlockHTMLTemplate % {
             "sName": sDescription,
@@ -214,21 +195,12 @@ class cBugReport(object):
             sAtAddressInstructionDescription = "return address";
           sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oFrame.uInstructionPointer, \
               sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
-          if not oCdbWrapper.bCdbRunning: return None;
           if sFrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (uFrameNumber, oFrame.sAddress),
               "sCollapsed": "Collapsed",
               "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
-      
-      # Find cModule for main process binary (i.e. the .exe)
-      aoProcessBinaryModules = oCdbWrapper.faoGetModulesForFileNameInCurrentProcess(oBugReport.sProcessBinaryName);
-      if not oCdbWrapper.bCdbRunning: return None;
-      assert len(aoProcessBinaryModules) > 0, "Cannot find binary %s module" % oBugReport.sProcessBinaryName;
-      # Add main process binary version information to bug report. If the binary is loaded as a module multiple times
-      # in the process, the first should be the binary that was executed.
-      oMainModule = aoProcessBinaryModules[0];
       
       # Add relevant binaries information to cBugReport and HTML report.
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
@@ -242,22 +214,32 @@ class cBugReport(object):
       
       # Convert saved cdb IO HTML into one string and delete everythingto free up some memory.
       try:
-        sCdbStdIOHTML = '<hr/>'.join(oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML);
+        sCdbStdIOHTML = "<hr/>".join(oCdbWrapper.asCdbStdIOBlocksHTML),
+        oCdbWrapper.asCdbStdIOBlocksHTML = None;
       except MemoryError:
+        sCdbStdIOHTML = "";
         try:
-          sCdbStdIOHTML = oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
-          while oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML:
+          while oCdbWrapper.asCdbStdIOBlocksHTML:
             sCdbStdIOHTML += "<hr/>";
-            sCdbStdIOHTML += oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
+            sCdbStdIOHTML += oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
         except MemoryError:
-          sCdbStdIOHTML = "Cannot be displayed: not enough memory :(";
-      oBugReport.oCdbWrapper.asCdbStdIOBlocksHTML = [""]; # Has to have something IIRC.
+          sCdbStdIOHTML += "<hr/>(Partial output: not enough memory to complete)";
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
         "sCollapsed": "Collapsed",
-        "sContent": sCdbStdIOHTML
+        "sContent": sCdbStdIOHTML,
       });
-      # Stick everything together.
+      # Stick the HTML of all blocks together.
+      try:
+        sBlocks = "\r\n".join(asBlocksHTML);
+        asBlocksHTML = None;
+      except MemoryError:
+        sBlocks = "";
+        try:
+          while asBlocksHTML:
+            sBlocks += asBlocksHTML.pop(0);
+        except MemoryError:
+          sBlocks += "\r\n<hr/>(Partial output: not enough memory to complete)";
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
@@ -267,12 +249,15 @@ class cBugReport(object):
             "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
         "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
             "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
-        "sOptionalCommandLine": oBugReport.oCdbWrapper.asApplicationCommandLine and \
-            "<tr><td>Command line: </td><td>%s</td></tr>" % oBugReport.oCdbWrapper.asApplicationCommandLine or "",
-        "sBlocks": "\r\n".join(asBlocksHTML),
-        "sCdbStdIO": sCdbStdIOHTML,
+        "sOptionalCommandLine": oCdbWrapper.asApplicationCommandLine and \
+            "<tr><td>Command line: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationCommandLine or "",
+        "sBlocks": sBlocks,
         "sBugIdVersion": sVersion,
       };
+    
+    # Remove the process object from the bug report and add the process binary name; we only provide basic types.
+    oBugReport.sProcessBinaryName = oBugReport.oProcess.sBinaryName;
+    del oBugReport.oProcess;
     
     # See if a dump should be saved
     if dxConfig["bSaveDump"]:
@@ -284,4 +269,3 @@ class cBugReport(object):
       sOverwriteFlag = dxConfig["bOverwriteDump"] and "/o" or "";
       oCdbWrapper.fasSendCommandAndReadOutput( \
           ".dump %s /ma \"%s\"; $$ Save dump to file" % (sOverwriteFlag, sValidDumpFileName));
-      if not oCdbWrapper.bCdbRunning: return;

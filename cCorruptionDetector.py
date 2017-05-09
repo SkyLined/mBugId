@@ -17,7 +17,6 @@ class cCorruptionDetector(object):
     uStartOffset = uStartAddress - oVirtualAllocation.uBaseAddress;
     aauExpectedBytes = [isinstance(xExpectedBytes, list) and xExpectedBytes or [xExpectedBytes] for xExpectedBytes in axExpectedBytes];
     auBytes = oVirtualAllocation.fauGetBytesAtOffset(uStartOffset, len(axExpectedBytes));
-    if not oVirtualAllocation.oCdbWrapper.bCdbRunning: return;
     for uOffset in xrange(len(axExpectedBytes)):
       uAddress = uStartAddress + uOffset;
       auExpectedBytes = aauExpectedBytes[uOffset];

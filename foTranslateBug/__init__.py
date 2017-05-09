@@ -1,1 +1,0 @@
-from foTranslateBug import foTranslateBug;

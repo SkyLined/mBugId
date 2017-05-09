@@ -5,13 +5,14 @@ dtsTypeId_and_sSecurityImpact_by_uExceptionCode = {
   # uException Code                 # sTypeId                 # sSecurityImpact
   STATUS_WX86_SINGLE_STEP:          ("SingleStep",            None),
   STATUS_WX86_BREAKPOINT:           ("Breakpoint",            None),
-  0x40080201:                       ("WRTOriginate",          None),
+  WRT_ORIGINATE_ERROR_EXCEPTION:    ("WRTOriginate",          None),
   0x406D1388:                       ("ThreadName",            None),
   STATUS_GUARD_PAGE_VIOLATION:      ("GuardPage",             "May be a security issue, but probably not exploitable"),
   STATUS_DATATYPE_MISALIGNMENT:     ("DataMisalign",          "May be a security issue"),
   STATUS_BREAKPOINT:                ("Breakpoint",            None),
   STATUS_SINGLE_STEP:               ("SingleStep",            None),
   E_OUTOFMEMORY:                    ("OOM",                   None),
+  ERROR_NOT_ENOUGH_MEMORY:          ("OOM",                   None),
   STATUS_NOT_IMPLEMENTED:           ("PureCall",              "May be a security issue"),
   STATUS_ACCESS_VIOLATION:          ("AV",                    "May be a security issue"), # Special cased if exception parameters are available
   STATUS_IN_PAGE_ERROR:             ("InPageIO",              None),

@@ -35,9 +35,11 @@ dxConfig = {
                                         # that are written to the heap, the BugId will change with it. It may also
                                         # result in many different BugIds for the same bug if the bytes written depend
                                         # on things not in the input that triggered the bug, e.g. timing.
-  "uMaxFunctionOffset": 0xFFF,          # How big an offset from a function symbol do you expect in your application?
-                                        # Anything within this range is considered to be a valid symbol, anything
-                                        # further from the symbol is marked as dubious.
+  "uMaxExportFunctionOffset": 0x30,     # When using export symbols, anything but a direct hit is not reliable; the
+                                        # higher an offset gets, the less reliable it is. You can choose the cut off
+                                        # point using this option: any offset up to and including this number is
+                                        # considered to be valid, any larger offset is not considerd valid and will
+                                        # be converted into module + offset instead.
   ### Stack hash settings
   "uStackHashFramesCount": 2,           # How many stack frames are hashed for the crash id?
   "uMaxStackFrameHashChars": 3,         # How many characters of hash to use in the id for each stack frame.
@@ -68,22 +70,17 @@ dxConfig = {
                                         # be enough to include relevant information, but not so much that it causes a
                                         # "Range error" in cdb. e.g. attempting to dump 0x6034C pointers will fail.
   ### HTML Report Stack settings
-  "uMaxStackFramesCount": 20,           # How many stack frames are retreived for analysis?
+  "uMaxStackFramesCount": 40,           # How many stack frames are retreived for analysis?
   "uMinStackRecursionLoops": 3,         # How many recursive functions call loops are needed to assume a stack overflow
                                         # is caused by such a loop?
-  "uMaxStackRecursionLoopSize": 50,     # The maximum number of functions expected to be in a loop (less increases
+  "uMaxStackRecursionLoopSize": 100,    # The maximum number of functions expected to be in a loop (less increases
                                         # analysis speed, but might miss-analyze a recursion loop involving many
                                         # functions as a simple stack exhaustion). I've seen 43 functions in one loop.
   ### Symbol loading settings
-  "bMakeSureSymbolsAreLoaded": False,   # True enables extra checks when getting a stack that symbols are loaded. This
-                                        # Is done by enabling noizy symbols, getting the stack to make sure the
-                                        # required symbols are loaded, then reloading all modules to check if the cdb
-                                        # outputs any errors for symbols that coult not be loaded because the symbol
-                                        # file is corrupt. If so, the symbols is deleted and the modules are reloaded
-                                        # in an attempt to download a correct copy of the symbols.
-                                        # This slows down analysis significantly, but improves results when you often
-                                        # find you are getting no symbols in BugId because symbol file are corrupt.
-  "uMaxSymbolLoadingRetries": 1,        # Enable additional checks when getting a stack that can detect and fix errors
+  "bDeleteCorruptSymbols": True,        # Allow BugId to try to delete symbol files that cdb claims are corrupted (but
+                                        # only if a symbol server URL is provided). This may allow BugId to re-download
+                                        # files.
+  "uMaxSymbolLoadingRetries": 1,        # Allow BugId to reload modules in order to attempt to re-download
                                         # in symbol loading caused by corrupted pdb files. This turns on "noisy symbol
                                         # loading" which may provide useful information to fix symbol loading errors.
                                         # It has a large impact on performance, so you may want to disable it by setting

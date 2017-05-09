@@ -66,19 +66,15 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     oCdbWrapper.fasSendCommandAndReadOutput( \
         ".prompt_allow +dis +ea; $$ Enable disassembly and address in cdb prompt");
     # Do this twice in case the first time requires loading symbols, which can output junk that makes parsing ouput difficult.
-    if not oCdbWrapper.bCdbRunning: return None;
     oCdbWrapper.fasSendCommandAndReadOutput( \
         "~s; $$ Show disassembly and optional symbol loading stuff");
-    if not oCdbWrapper.bCdbRunning: return None;
     asLastInstructionAndAddress = oCdbWrapper.fasSendCommandAndReadOutput(
       "~s; $$ Show disassembly",
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return None;
     # Revert to not showing disassembly and address:
     oCdbWrapper.fasSendCommandAndReadOutput( \
         ".prompt_allow -dis -ea; $$ Revert to clean cdb prompt");
-    if not oCdbWrapper.bCdbRunning: return None;
     # Sample output:
     # |00007ffd`420b213e 488b14c2        mov     rdx,qword ptr [rdx+rax*8] ds:00007df5`ffb60000=????????????????
     # or
@@ -170,7 +166,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     # This is not a special marker or NULL, so it must be an invalid pointer
     # Get information about the memory region:
     oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oCdbWrapper, uAccessViolationAddress);
-    if not oCdbWrapper.bCdbRunning: return None;
     if oPageHeapAllocation:
       oBugReport.atxMemoryRemarks.extend(oPageHeapAllocation.fatxMemoryRemarks());
       fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
@@ -179,7 +174,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         oPageHeapAllocation, \
         oCdbWrapper.oCurrentProcess.uPointerSize, oCdbWrapper.bGenerateReportHTML,
       );
-      if not oCdbWrapper.bCdbRunning: return None;
       if oCdbWrapper.bGenerateReportHTML:
         sPageHeapOutputHTML = sBlockHTMLTemplate % {
           "sName": "Page heap output for address 0x%X" % uAccessViolationAddress,
@@ -191,7 +185,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
     else:
       oVirtualAllocation = cVirtualAllocation.foGetForAddress(oCdbWrapper, uAccessViolationAddress);
-      if not oCdbWrapper.bCdbRunning: return None;
       # See is page heap has more details on the address at which the access violation happened:
       if not oVirtualAllocation:
         oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;

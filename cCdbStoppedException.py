@@ -1,0 +1,2 @@
+class cCdbStoppedException(Exception):
+  pass;

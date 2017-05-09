@@ -1,0 +1,1 @@
+from fApplyBugTranslationsToBugReport import fApplyBugTranslationsToBugReport;

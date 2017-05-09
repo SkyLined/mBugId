@@ -2,8 +2,9 @@ import re;
 
 def cCdbWrapper_fauGetBytes(oCdbWrapper, uAddress, uSize, sComment):
   auBytes = [];
-  asBytesOutput = oCdbWrapper.fasSendCommandAndReadOutput("db /c20 0x%X L0x%X; $ %s" % (uAddress, uSize, sComment));
-  if not oCdbWrapper.bCdbRunning: return;
+  assert ";" not in sComment, \
+      "Comments cannot have a semi-colon: %s" % repr(sComment);
+  asBytesOutput = oCdbWrapper.fasSendCommandAndReadOutput("db /c20 0x%X L0x%X; $$ %s" % (uAddress, uSize, sComment));
   uLineNumber = 0;
   for sLine in asBytesOutput:
     uLineNumber += 1;

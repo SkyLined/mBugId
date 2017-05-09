@@ -4,7 +4,6 @@ class cThreadEnvironmentBlock(object):
   @staticmethod
   def foCreate(oCdbWrapper):
     asPageHeapOutput = oCdbWrapper.fasSendCommandAndReadOutput("!teb", bOutputIsInformative = True);
-    if not oCdbWrapper.bCdbRunning: return;
     assert asPageHeapOutput, "Missing TEB info output";
     # Sample output:
     # |0:000> !teb

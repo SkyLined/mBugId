@@ -1,5 +1,7 @@
-import hashlib, math;
+import hashlib, math, re;
 from dxConfig import dxConfig;
+
+cRegExp = type(re.compile("a"));
 
 class cStackFrame(object):
   def __init__(oStackFrame, 
@@ -37,10 +39,6 @@ class cStackFrame(object):
         oStackFrame.sAddress += " + ? (the exact offset is not known)";
       elif iFunctionOffset:
         oStackFrame.sAddress += " %s 0x%X" % (iFunctionOffset > 0 and "+" or "-", abs(iFunctionOffset));
-        if iFunctionOffset not in xrange(dxConfig["uMaxFunctionOffset"]):
-          # The offset is negative or very large: this may not be the correct symbol. If it is, the offset is very likely
-          # to change between builds. The offset should not be part of the id and a warning about the symbol is added.
-          oStackFrame.sAddress += " (this symbol may not be correct)";
       oStackFrame.sSimplifiedAddress = oFunction.sSimplifiedName;
       oStackFrame.sUniqueAddress = oFunction.sUniqueName;
     elif oModule:
@@ -67,3 +65,32 @@ class cStackFrame(object):
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
       oStackFrame.sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
+
+  def fbMatchesSymbol(oStackFrame, sSymbol):
+    if sSymbol == None:
+      # None means this frame should not have a symbol, if it does have a symbol, it does not match.
+      return not oStackFrame.sSimplifiedAddress;
+    # This frame should have a symbol, if it does not have a symbol, it does not match.
+    if not oStackFrame.sSimplifiedAddress:
+      return False;
+    if isinstance(sSymbol, cRegExp):
+      # Regular expression match:
+      return sSymbol.match(oStackFrame.sSimplifiedAddress) is not None;
+    assert isinstance(sSymbol, str), \
+      "symbol must be a string or a regular expression object, got %s:%s" % (type(sSymbol).__name__, repr(sSymbol));
+      
+    if sSymbol == "*":
+      # "*" means this frame can have any symbol in any module.
+      return True;
+    if sSymbol[:2] == "*!":
+      # "*!xxx" means this frame should match the given function symbol in any module.
+      tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
+      # Compare the function names:
+      return len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[1].lower() == sSymbol[2:].lower();
+    if sSymbol[-2:] == "!*":
+      # "xxx!*" means this frame should match any function in the given module.
+      tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
+      # Compare the function names:
+      return len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[0].lower() == sSymbol[:-2].lower();
+    # Match entire simplified address:
+    return oStackFrame.sSimplifiedAddress.lower() == sSymbol.lower();

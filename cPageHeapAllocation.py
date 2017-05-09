@@ -9,7 +9,6 @@ class cPageHeapAllocation(object):
       "!heap -p -a 0x%X; $$ Get page heap information" % uAddress,
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return;
     # Sample output:
     # |    address 0e948ffc found in
     # |    _DPH_HEAP_ROOT @ 48b1000

@@ -1,4 +1,22 @@
 import threading;
+
+"""
+                          __                     _____________                  
+            ,,,     _,siSS**SSis,_        ,-.   /             |                 
+           :O()   ,SP*'`      `'*YS,     |   `-|  O    BugId  |                 
+            ```  dS'  _    |    _ 'Sb   ,'      \_____________|                 
+      ,,,       dP     \,-` `-<`    Yb _&/                                      
+     :O()      ,S`  \,' \      \    `Sis|ssssssssssssssssss,        ,,,         
+      ```      (S   (   | --====)    SSS|SSSSSSSSSSSSSSSSSSD        ()O:        
+               'S,  /', /      /     S?*/******************'        ```         
+                Yb    _/'-_ _-<._   dP `                                        
+  _______________YS,       |      ,SP_________________________________________  
+                  `Sbs,_      _,sdS`                                            
+                    `'*YSSssSSY*'`                   https://bugid.skylined.nl  
+                          ``                                                    
+                                                                                
+""";
+
 for (sModule, sURL) in {
   "FileSystem": "https://github.com/SkyLined/FileSystem/",
   "Kill": "https://github.com/SkyLined/Kill/",
@@ -7,7 +25,7 @@ for (sModule, sURL) in {
     __import__(sModule, globals(), locals(), [], -1);
   except ImportError:
     print "*" * 80;
-    print "BugId depends on %s, which you can download at:" % sModule;
+    print "cBugId depends on %s, which you can download at:" % sModule;
     print "    %s" % sURL;
     print "After downloading, please save the code in the folder \"%s\"," % sModule;
     print "\"modules\\%s\" or any other location where it can be imported." % sModule;
@@ -69,8 +87,6 @@ class cBugId(object):
     oBugId.sFailedToDebugApplicationErrorMessage = None;
     # If a bug was found, this is set to the bug report:
     oBugId.oBugReport = None;
-    # If an internal exception occurs, this is set to True:
-    oBugId.bInternalExceptionOccured = False;
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
@@ -90,7 +106,7 @@ class cBugId(object):
       fMainProcessTerminatedCallback = oBugId.__fMainProcessTerminatedHandler,
       fInternalExceptionCallback = oBugId.__fInternalExceptionHandler,
       fFinishedCallback = oBugId.__fFinishedHandler,
-      fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledCallback,
+      fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledHandler,
     );
   
   def fStart(oBugId):
@@ -160,7 +176,6 @@ class cBugId(object):
       oBugId.__fMainProcessTerminatedCallback(oBugId, uProcessId, sBinaryName);
   
   def __fInternalExceptionHandler(oBugId, oException, oTraceBack):
-    oBugId.bInternalExceptionOccured = True;
     if not oBugId.__fInternalExceptionCallback:
       raise oException;
     oBugId.__fInternalExceptionCallback(oBugId, oException, oTraceBack);
@@ -172,7 +187,10 @@ class cBugId(object):
     if oBugId.__fFinishedCallback:
       oBugId.__fFinishedCallback(oBugId, oBugReport);
   
-  def __fPageHeapNotEnabledCallback(oBugId, sErrorDetails):
-    assert oBugId.__fPageHeapNotEnabledCallback, \
-      sErrorDetails;
-    oBugId.__fPageHeapNotEnabledCallback(oBugId, sErrorDetails);
+  def __fPageHeapNotEnabledHandler(oBugId, uProcessId, sBinaryName, bPreventable):
+    if oBugId.__fPageHeapNotEnabledCallback:
+      oBugId.__fPageHeapNotEnabledCallback(oBugId, uProcessId, sBinaryName, bPreventable);
+    else:
+      # This is fatal if it's preventable and there is no callback handler
+      assert not bPreventable, \
+        "Full page heap is not enabled for %s in process %d/0x%X." % (sBinaryName, uProcessId, uProcessId);

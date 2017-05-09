@@ -1,7 +1,6 @@
 import re;
 from cStowedException import cStowedException;
-from cProcess import cProcess;
-from cStack import cStack;
+#from cStack import cStack;
 
 def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oCdbWrapper, oException):
   # Parameter[0] = paStowedExceptionInformationArray;
@@ -12,9 +11,8 @@ def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oCdbWrappe
   uStowedExceptionsCount = oException.auParameters[1];
   # Get the stowed exceptions and replace information in the bug report:
   aoStowedExceptions = cStowedException.faoCreate(oCdbWrapper, pStowedExceptionsAddresses, uStowedExceptionsCount);
-  oBugReport.sBugTypeId = "[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
+  oBugReport.sBugTypeId = "Stowed[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
   oBugReport.sBugDescription = ", ".join([oStowedException.sDescription for oStowedException in aoStowedExceptions]);
-  oBugReport.sSecurityImpact = ", ".join([oStowedException.sSecurityImpact for oStowedException in aoStowedExceptions]);
-  oBugReport.sProcessBinaryName = oCdbWrapper.oCurrentProcess.sBinaryName;
-  oBugReport.oStack = cStack.foCreateFromAddress(oCdbWrapper, aoStowedExceptions[0].pStackTrace, aoStowedExceptions[0].uStackTraceSize);
+  oBugReport.sSecurityImpact = ", ".join([oStowedException.sSecurityImpact for oStowedException in aoStowedExceptions if oStowedException.sSecurityImpact]) or None;
+#  oBugReport.oStack = cStack.foCreateFromAddress(oCdbWrapper.oCurrentProcess, aoStowedExceptions[0].pStackTrace, aoStowedExceptions[0].uStackTraceSize);
   return oBugReport;

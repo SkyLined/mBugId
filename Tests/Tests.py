@@ -6,7 +6,6 @@ sys.path.extend([os.path.join(sBaseFolderPath, x) for x in ["", "modules"]]);
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
 bDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
 uSequentialTests = 32;      # Run multiple tests simultaniously, values >32 will probably not work.
-if bDebugIO: uSequentialTests = 1; # prevent UI mess
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
@@ -36,7 +35,7 @@ dsBinaries_by_sISA = {
 bFailed = False;
 oOutputLock = threading.Lock();
 # If you see weird exceptions, try lowering the number of parallel tests:
-oConcurrentTestsSemaphore = threading.Semaphore(uSequentialTests);
+oConcurrentTestsSemaphore = None;
 
 class cTest(object):
   def __init__(oTest, sISA, axCommandLineArguments, sExpectedBugTypeId, sExpectedFailedToDebugApplicationErrorMessage = None):
@@ -51,12 +50,14 @@ class cTest(object):
     oTest.sExpectedFailedToDebugApplicationErrorMessage = sExpectedFailedToDebugApplicationErrorMessage;
     oTest.bHasOutputLock = False;
     oTest.bGenerateReportHTML = True;
+    oTest.fErrorCallback = None;
   
   def __str__(oTest):
     return "%s =%s=> %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, repr(oTest.sExpectedBugTypeId));
   
-  def fRun(oTest):
+  def fRun(oTest, fErrorCallback):
     global bFailed, oOutputLock;
+    oTest.fErrorCallback = fErrorCallback;
     oConcurrentTestsSemaphore.acquire();
     if oTest.sExpectedFailedToDebugApplicationErrorMessage:
       sBinary = "this:cannot:be:run";
@@ -90,10 +91,14 @@ class cTest(object):
         print "  Exception:   %s" % repr(oException);
         oOutputLock and oOutputLock.release();
         oTest.bHasOutputLock = False;
+        fErrorCallback();
         raise;
   
   def fWait(oTest):
     hasattr(oTest, "oBugId") and oTest.oBugId.fWait();
+  
+  def fStop(oTest):
+    hasattr(oTest, "oBugId") and oTest.oBugId.fStop();
   
   def fFinished(oTest):
     if bDebugStartFinish:
@@ -110,13 +115,14 @@ class cTest(object):
       if not bFailed:
         oOutputLock and oOutputLock.acquire();
         oTest.bHasOutputLock = True;
+        bThisTestFailed = False;
         if oTest.sExpectedFailedToDebugApplicationErrorMessage:
           if oBugId.sFailedToDebugApplicationErrorMessage != oTest.sExpectedFailedToDebugApplicationErrorMessage:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
             print "  Test should have reported a failure to debug the application.";
             print "  Expected:    %s" % repr(oTest.sExpectedFailedToDebugApplicationErrorMessage);
             print "  Reported:    %s" % repr(oBugId.sFailedToDebugApplicationErrorMessage);
-            bFailed = True;
+            bThisTestFailed = True;
         elif oBugId.sFailedToDebugApplicationErrorMessage:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
             print "  Test was unabled to debug the application:";
@@ -128,7 +134,7 @@ class cTest(object):
             print "  Test should have reported a bug in the application.";
             print "  Expected:    %s" % repr(oTest.sExpectedBugTypeId);
             print "  Reported:    no bug";
-            bFailed = True;
+            bThisTestFailed = True;
           elif isinstance(oTest.sExpectedBugTypeId, tuple) and oBugReport.sBugTypeId in oTest.sExpectedBugTypeId:
             print "+ %s" % oTest;
           elif isinstance(oTest.sExpectedBugTypeId, str) and oBugReport.sBugTypeId == oTest.sExpectedBugTypeId:
@@ -139,16 +145,19 @@ class cTest(object):
             print "  Expected:    %s" % oTest.sExpectedBugTypeId;
             print "  Reported:    %s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
             print "               %s" % (oBugReport.sBugDescription);
-            bFailed = True;
+            bThisTestFailed = True;
         elif oBugReport:
           print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
           print "  Test reported an unexpected bug in the application.";
           print "  Expected:    no bug";
           print "  Reported:    %s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
           print "               %s" % (oBugReport.sBugDescription);
-          bFailed = True;
+          bThisTestFailed = True;
         else:
           print "+ %s" % oTest;
+        bFailed = bThisTestFailed;
+        if bThisTestFailed:
+          oTest.fErrorCallback();
         oOutputLock and oOutputLock.release();
         oTest.bHasOutputLock = False;
       if oTest.bGenerateReportHTML and oBugReport:
@@ -176,7 +185,7 @@ class cTest(object):
         oTest.bHasOutputLock = True;
       bFailed = True;
       print "@" * 80;
-      print "- An internal exception has occured:";
+      print "- An internal exception has occured in test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
       print "  %s" % repr(oException);
       print "  Stack:";
       txStack = traceback.extract_tb(oTraceBack);
@@ -193,24 +202,41 @@ class cTest(object):
       print "@" * 80;
       oOutputLock and oOutputLock.release();
       oTest.bHasOutputLock = False;
+      if bThisTestFailed:
+        oTest.fErrorCallback();
       raise;
 
 if __name__ == "__main__":
   aoTests = [];
-  bFullTestSuite = len(sys.argv) > 1 and sys.argv[1] == "--full";
-  bGenerateReportHTML = bFullTestSuite;
-  if not bFullTestSuite:
-    # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
-    # Disabling symbols should speed things up considerably.
-    cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
-  if len(sys.argv) > 1 and not bFullTestSuite:
-    # Test is user supplied, output I/O
+  asArgs = sys.argv[1:];
+  bFullTestSuite = False;
+  bGenerateReportHTML = False;
+  while asArgs:
+    if asArgs[0] == "--full": 
+      bFullTestSuite = True;
+      bGenerateReportHTML = True;
+    elif asArgs[0] == "--debug": 
+      bDebugIO = True;
+      bGenerateReportHTML = True;
+    else:
+      break;
+    asArgs.pop(0);
+  if asArgs:
+    bDebugIO = True; # Single test: output stdio
+    bGenerateReportHTML = True;
+  if bDebugIO:
+    uSequentialTests = 1; # prevent UI mess by running tests sequential
     cBugId.dxConfig["bOutputStdIn"] = \
         cBugId.dxConfig["bOutputStdOut"] = \
         cBugId.dxConfig["bOutputStdErr"] = True;
-    bGenerateReportHTML = True;
-    aoTests.append(cTest(sys.argv[1], sys.argv[2:], None)); # Expect no exceptions.
+  oConcurrentTestsSemaphore = threading.Semaphore(uSequentialTests);
+  if asArgs:
+    aoTests.append(cTest(asArgs[0], asArgs[1:], None)); # Expect no exceptions.
   else:
+    if not bFullTestSuite:
+      # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
+      # Disabling symbols should speed things up considerably.
+      cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
     aoTests.append(cTest("x86", [], None, 'Failed to start application "this:cannot:be:run": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA,    ["Nop"],                                                  None)); # No exceptions, just a clean program exit.
@@ -237,6 +263,9 @@ if __name__ == "__main__":
       uTooMuchRam = sISA == "x64" and 0x100000000000 or 0xC0000000;
       aoTests.append(cTest(sISA,    ["OOM", "HeapAlloc", uTooMuchRam],                        "OOM"));
       aoTests.append(cTest(sISA,    ["OOM", "C++", uTooMuchRam],                              "OOM"));
+      # WRT
+      aoTests.append(cTest(sISA,    ["WRTOriginate", "0x87654321", "message"],                "Stowed[0x87654321]"));
+      aoTests.append(cTest(sISA,    ["WRTLanguage",  "0x87654321", "message"],                "Stowed[0x87654321@cIUnknown]"));
       # Double free
       aoTests.append(cTest(sISA,    ["DoubleFree",                1],                         "DoubleFree[1]"));
       if bFullTestSuite:
@@ -325,7 +354,7 @@ if __name__ == "__main__":
       # stack cookie but not run off the end of the stack requires a bit of dark magic. I've only tested these values
       # on x64!
       uSmash = sISA == "x64" and 0x200 or 0x100;
-      aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, uSmash],       "OOBW[Stack]"));
+      aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, uSmash],       "OOBW@Stack"));
       # The OS does not allocate a guard page at the top of the stack. Subsequently, there may be a writable allocation
       # there, and a large enough stack overflow will write way past the end of the stack before causing an AV. This
       # causes a different BugId, so this test is not reliable at the moment.
@@ -371,11 +400,14 @@ if __name__ == "__main__":
               aoTests.append(cTest(sISA,  ["AccessViolation", "Call", uBaseAddress],            "AVE@%s" % sAddressId));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],            "AVE@%s" % sAddressId));
   print "* Starting tests...";
+  def fErrorCallback():
+    for oTest in aoTests:
+      oTest.fStop();
   for oTest in aoTests:
     if bFailed:
       break;
     oTest.bGenerateReportHTML = bGenerateReportHTML;
-    oTest.fRun();
+    oTest.fRun(fErrorCallback);
   for oTest in aoTests:
     oTest.fWait();
   

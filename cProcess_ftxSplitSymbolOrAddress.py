@@ -1,6 +1,8 @@
 import re;
+import cModule;
 
-def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules_by_sCdbId):
+def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
+  oCdbWrapper = oProcess.oCdbWrapper;
   oMatch = re.match(r"^\s*%s\s*$" % (
     r"(?:"                                # either {
       r"(0x[0-9A-F`]+)"                   #   ("0x" address)
@@ -44,9 +46,9 @@ def cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, sSymbolOrAddress, doModules
     if uModuleOffset: uAddress += uModuleOffset;
     if uSymbolOffset: uAddress += uSymbolOffset;
   else:
-    oModule = doModules_by_sCdbId[sModuleCdbId];
+    oModule = oProcess.foGetOrCreateModuleForCdbId(sModuleCdbId);
     if sSymbol:
-      oFunction = oModule.foGetOrCreateFunction(sSymbol);
+      oFunction = oModule.foGetOrCreateFunctionForSymbol(sSymbol);
       iFunctionOffset = sSymbolOffset and long(sSymbolOffset.replace("`", ""), 16) or 0;
     elif sModuleOffset:
       uModuleOffset = long(sModuleOffset.replace("`", ""), 16);

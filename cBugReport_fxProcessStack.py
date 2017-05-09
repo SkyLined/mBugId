@@ -1,5 +1,6 @@
 import hashlib;
 from dxConfig import dxConfig;
+from SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
@@ -14,8 +15,13 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
       sOptionalSourceHTML = "";
       if oStackFrame.sSourceFilePath:
         sSourceFilePathAndLineNumber = "%s @ %d" % (oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        sOptionalSourceHTML = " <span class=\"StackSource\">[%s]</span>" % \
-            oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
+        sSourceCodeLinkURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
+        if sSourceCodeLinkURL:
+          sOptionalSourceHTML = " <span class=\"StackSource\">[<a href=\"%s\" target=\"_blank\">%s</a>]</span>" % \
+              (oCdbWrapper.fsHTMLEncode(sSourceCodeLinkURL), oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber));
+        else:
+          sOptionalSourceHTML = " <span class=\"StackSource\">[%s]</span>" % \
+              oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
     if oStackFrame.bIsHidden:
       # This frame is hidden (because it is irrelevant to the crash)
       if oCdbWrapper.bGenerateReportHTML:
@@ -60,13 +66,13 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
     if oRelevantStackFrame.sSimplifiedAddress:
       oBugReport.sBugLocation = oRelevantStackFrame.sSimplifiedAddress;
       if (
-        oBugReport.sProcessBinaryName and (
+        oBugReport.oProcess and (
           not oRelevantStackFrame.oModule or
-          oRelevantStackFrame.oModule.sBinaryName != oBugReport.sProcessBinaryName
+          oRelevantStackFrame.oModule != oBugReport.oProcess.oMainModule
         )
       ):
         # Exception happened in a module, not the process' binary: add process' binary name:
-        oBugReport.sBugLocation = "%s!%s" % (oBugReport.sProcessBinaryName, oBugReport.sBugLocation);
+        oBugReport.sBugLocation = "%s!%s" % (oBugReport.oProcess.sBinaryName, oBugReport.sBugLocation);
       if oRelevantStackFrame.sSourceFilePath:
         oBugReport.sBugSourceLocation = "%s @ %d" % \
             (oRelevantStackFrame.sSourceFilePath, oRelevantStackFrame.uSourceFileLineNumber);

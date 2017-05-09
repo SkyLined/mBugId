@@ -12,7 +12,6 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
   if oCdbWrapper.bUsingSymbolServers and dxConfig["bMakeSureSymbolsAreLoaded"]:
     asSymbolLoadStackOutput = oCdbWrapper.fasSendCommandAndReadOutput( \
         ".symopt+ 0x80000000;%s;.symopt- 0x80000000; $$ Get stack with debug symbols enabled" % sGetStackCommand);
-    if not oCdbWrapper.bCdbRunning: return None;
     if dxConfig["uMaxSymbolLoadingRetries"] > 0:
       # Try to reload all modules and symbols. The symbol loader will not reload all symbols, but only those symbols that
       # were loaded before or those it attempted to load before, but failed. The symbol loader will output all kinds of
@@ -27,7 +26,6 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
         # and try again to see if they have been fixed.
         asLastSymbolReloadOutput = oCdbWrapper.fasSendCommandAndReadOutput( \
             ".symopt+ 0x80000000;.reload /v;.symopt- 0x80000000; $$ Reload symbols for all modules");
-        if not oCdbWrapper.bCdbRunning: return None;
         bErrorsDuringLoading = False;
         for sLine in asLastSymbolReloadOutput:
           # If there were any errors, make sure we try loading again.
@@ -45,7 +43,6 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
     "%s; $$ Get stack" % sGetStackCommand,
     bOutputIsInformative = True,
   );
-  if not oCdbWrapper.bCdbRunning: return None;
   # Remove irrelevant warnings, if any.
   asRemovedOutput = [];
   while asStackOutput and re.match("|".join(["^%s$" % s for s in [

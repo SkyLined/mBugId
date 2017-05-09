@@ -23,7 +23,6 @@ class cVirtualAllocation(object):
       "!vprot 0x%X; $$ Get memory protection information" % uAddress,
       bOutputIsInformative = True,
     );
-    if not oCdbWrapper.bCdbRunning: return None;
     # BaseAddress:       00007df5ff5f0000
     # AllocationBase:    00007df5ff5f0000
     # AllocationProtect: 00000001  PAGE_NOACCESS

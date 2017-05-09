@@ -5,7 +5,6 @@ def cCdbWrapper_fuGetValue(oCdbWrapper, sValue):
     # This is a register or pseudo-register: it's much faster to get these using the "r" command than printing them
     # as is done for other values:
     asValueResult = oCdbWrapper.fasSendCommandAndReadOutput('r %s; $$ Get register value' % sValue);
-    if not oCdbWrapper.bCdbRunning: return;
     assert len(asValueResult) == 1, \
         "Expected only one line in value result:\r\n%s" % "\r\n".join(asValueResult);
     sValueResult = asValueResult[0];
@@ -15,10 +14,11 @@ def cCdbWrapper_fuGetValue(oCdbWrapper, sValue):
       return long(sValueResult[len(sValue):], 16);
     except:
       raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sValueResult[len(sValue):]), sValue, "\r\n".join(asValueResult)));
-  asValueResult = oCdbWrapper.fasSendCommandAndReadOutput('.printf "%%p\\n", %s; $$ Get value' % sValue,
-      bIgnoreUnknownSymbolErrors = True);
-  if not oCdbWrapper.bCdbRunning: return;
-  if len(asValueResult) > 1 and asValueResult[-1].startswith("Ambiguous symbol error at '"):
+  asValueResult = oCdbWrapper.fasSendCommandAndReadOutput(
+    '.printf "%%p\\n", %s; $$ Get value' % sValue,
+    srIgnoreErrors = r"^Couldn't resolve error at .*$",
+  );
+  if asValueResult is None:
     return None;
   uValueAtIndex = 0;
   if len(asValueResult) == 2 and asValueResult[0].startswith("Unable to read dynamic function table entry at "):

@@ -11,9 +11,8 @@ class cDebuggerExtension(object):
   def foLoad(oCdbWrapper):
     sDebuggerExtensionDLLPath = gdsDebuggerExtensionDLLPath_by_sCdbISA[oCdbWrapper.sCdbISA];
     asLoadOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      '.load "%s"' % sDebuggerExtensionDLLPath.replace("\\", "\\\\").replace('"', '\\"')
+      '.load "%s"' % sDebuggerExtensionDLLPath.replace("\\", "\\\\").replace('"', '\\"'),
     );
-    if not oCdbWrapper.bCdbRunning: return;
     assert not asLoadOutput, \
         "Failed to load debugger extension %s:\r\n%s" % (sDebuggerExtensionDLLPath, "\r\n".join(asLoadOutput));
     return cDebuggerExtension(oCdbWrapper);
@@ -23,10 +22,11 @@ class cDebuggerExtension(object):
   
   def fuSetVirtualAllocationProtection(oDebuggerExtension, uAddress, uSize, uProtection, sComment):
     oCdbWrapper = oDebuggerExtension.oCdbWrapper;
+    assert ";" not in sComment, \
+        "Comments cannot have a semi-colon: %s" % repr(sComment);
     asProtectResult = oCdbWrapper.fasSendCommandAndReadOutput(
-      "!Protect 0x%X 0x%X 0x%X; $ %s" % (uAddress, uSize, uProtection, sComment)
+      "!Protect 0x%X 0x%X 0x%X; $$ %s" % (uAddress, uSize, uProtection, sComment),
     );
-    if not oCdbWrapper.bCdbRunning: return;
     assert len(asProtectResult) > 0, \
         "!Protect did not return any results.";
     if len(asProtectResult) == 1 and re.match(r"^Protect: (OpenProcess|VirtualProtectEx) failed with error code \d+$", asProtectResult[0]):

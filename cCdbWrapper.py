@@ -1,5 +1,4 @@
 import itertools, re, subprocess, sys, threading, time;
-from cCdbWrapper_faoGetModulesForFileNameInCurrentProcess import cCdbWrapper_faoGetModulesForFileNameInCurrentProcess;
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasSendCommandAndReadOutput import cCdbWrapper_fasSendCommandAndReadOutput;
@@ -8,26 +7,18 @@ from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
-from cCdbWrapper_fdoGetModulesByCdbIdForCurrentProcess import cCdbWrapper_fdoGetModulesByCdbIdForCurrentProcess;
 from cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess import cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess;
-from cCdbWrapper_foSetCurrentProcessAfterApplicationRan import cCdbWrapper_foSetCurrentProcessAfterApplicationRan;
-from cCdbWrapper_ftxSplitSymbolOrAddress import cCdbWrapper_ftxSplitSymbolOrAddress;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
 from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
 from cCdbWrapper_f_Timeout import cCdbWrapper_fxSetTimeout, cCdbWrapper_fClearTimeout;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
+from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from dxConfig import dxConfig;
+from Kill import fKillProcessesUntilTheyAreDead;
 from sOSISA import sOSISA;
-try:
-  from Kill import fKillProcessesUntilTheyAreDead;
-except:
-  print "*" * 80;
-  print "BugId depends on Kill, which you can download at https://github.com/SkyLined/Kill/";
-  print "*" * 80;
-  raise;
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
@@ -121,13 +112,14 @@ class cCdbWrapper(object):
     sSymbolsPath = ";".join(asLocalSymbolPaths + ["cache*%s" % x for x in asSymbolCachePaths] + ["srv*%s" % x for x in asSymbolServerURLs]);
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
+    # Cache which binaries have page heap enabled. Used by cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess
+    oCdbWrapper.asBinaryNamesWithPageHeapEnabled = [];
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
     oCdbWrapper.auProcessIdsPendingDelete = []; # There should only ever be one in this list, but that is not enforced.
-    oCdbWrapper.bApplicationTerminated = False; # Will be set to True once the last process is terminated.
     # Keep track of what the applications "main" processes are.
-    oCdbWrapper.auMainProcessIds = oCdbWrapper.auProcessIdsPendingAttach[:];
+    oCdbWrapper.aoMainProcesses = [];
     if asApplicationCommandLine is not None:
       # If a process must be started, add it to the command line.
       assert not auApplicationProcessIds, "Cannot start a process and attach to processes at the same time";
@@ -308,7 +300,6 @@ class cCdbWrapper(object):
     if sSelectCommand:
       sSelectCommand += " $$ Select %s" % " and ".join(asSelected);
       asSelectOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
-      if not oCdbWrapper.bCdbRunning: return;
       srIgnoredErrors = r"^(\*\*\* )?(%s)$" % "|".join([
         r"WARNING: Unable to verify checksum for .*",
         r"ERROR: Module load completed but symbols could not be loaded for .*",
@@ -353,26 +344,17 @@ class cCdbWrapper(object):
   def fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments);
   
-  def foSetCurrentProcessAfterApplicationRan(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_foSetCurrentProcessAfterApplicationRan(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def faoGetModulesForFileNameInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_faoGetModulesForFileNameInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fdoGetModulesByCdbIdForCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fdoGetModulesByCdbIdForCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);
-  
   def fasGetStack(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasGetStack(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def ftxSplitSymbolOrAddress(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_ftxSplitSymbolOrAddress(oCdbWrapper, *axArguments, **dxArguments);
   
   def fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments);
   
   def fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments);
+  
+  def fsGetUnicodeString(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fsGetUnicodeString(oCdbWrapper, *axArguments, **dxArguments);
   
   def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);

@@ -23,6 +23,7 @@ daxExceptionHandling = {
     STATUS_STACK_OVERFLOW,
     STATUS_WX86_BREAKPOINT,
     STATUS_WAKE_SYSTEM_DEBUGGER,
+    WRT_ORIGINATE_ERROR_EXCEPTION,
   ],
   "sxd": [ # break on second chance exceptions
     STATUS_INTEGER_DIVIDE_BY_ZERO,

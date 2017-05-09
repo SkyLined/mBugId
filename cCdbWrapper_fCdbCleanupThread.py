@@ -1,11 +1,5 @@
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
-try:
-  from Kill import fKillProcessesUntilTheyAreDead;
-except:
-  print "*" * 80;
-  print "BugId depends on Kill, which you can download at https://github.com/SkyLined/Kill/";
-  print "*" * 80;
-  raise;
+from Kill import fKillProcessesUntilTheyAreDead;
 
 def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
