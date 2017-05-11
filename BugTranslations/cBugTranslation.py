@@ -1,9 +1,12 @@
-NOT_PROVIDED = {};
+import re;
 
+cRegExp = type(re.compile(""));
+
+NOT_PROVIDED = {};
 
 class cBugTranslation(object):
   def __init__(oBugTranslation,
-    sOriginalBugTypeId, # Bug Type id as originally reported for this bug.
+    sOriginalBugTypeId = NOT_PROVIDED, # Bug Type id as originally reported for this bug.
     asOriginalTopStackFrameSymbols = NOT_PROVIDED, # The top frames on the stack as originally reported for this bug.
     aasOriginalTopStackFrameSymbols = NOT_PROVIDED, # Multiple variations of the above
     sTranslatedBugTypeId = NOT_PROVIDED, # The Bug Type id that should be given to this bug if it matches.
@@ -12,6 +15,9 @@ class cBugTranslation(object):
     aasAdditionalIrrelevantStackFrameSymbols = NOT_PROVIDED,
   ):
     oBugTranslation.sOriginalBugTypeId = sOriginalBugTypeId;
+    assert sOriginalBugTypeId is NOT_PROVIDED or isinstance(sOriginalBugTypeId, str) or isinstance(sOriginalBugTypeId, cRegExp), \
+        "sOriginalBugTypeId must be a str of a regular expression object, not %s:%s" % \
+        (type(sOriginalBugTypeId).__name__, repr(sOriginalBugTypeId));
     if aasOriginalTopStackFrameSymbols is not NOT_PROVIDED:
       assert asOriginalTopStackFrameSymbols is NOT_PROVIDED, \
           "asOriginalTopStackFrameSymbols XOR aasOriginalTopStackFrameSymbols";
@@ -48,34 +54,50 @@ class cBugTranslation(object):
     oBugTranslation.sTranslatedSecurityImpact = sTranslatedSecurityImpact;
 
   def fbApplyToBugReport(oBugTranslation, oBugReport):
-    # See if we have a matching bug type:
-    if oBugReport.sBugTypeId != oBugTranslation.sOriginalBugTypeId:
-      return False;
-    # See if we have matching top stack frames:
-    if oBugTranslation.aasOriginalTopStackFrameSymbols is NOT_PROVIDED:
-      bTranslated = False;
-    else:
+    bTranslated = False;
+    # If this translation is specific to certain bug types, check if it should be applied:
+    if oBugTranslation.sOriginalBugTypeId is not NOT_PROVIDED:
+      if oBugReport.sBugTypeId is None:
+#        print "@@@ -%s: None" % repr(oBugTranslation.sOriginalBugTypeId);
+        return False;
+      elif isinstance(oBugTranslation.sOriginalBugTypeId, str):
+        if oBugReport.sBugTypeId != oBugTranslation.sOriginalBugTypeId:
+#          print "@@@ -%s: %s" % (repr(oBugTranslation.sOriginalBugTypeId), oBugReport.sBugTypeId);
+          return False;
+#        print "@@@ +%s" % repr(oBugTranslation.sOriginalBugTypeId);
+      else:
+        if not oBugTranslation.sOriginalBugTypeId.match(oBugReport.sBugTypeId):
+#          print "@@@ -%s: %s" % (repr(oBugTranslation.sOriginalBugTypeId.pattern), oBugReport.sBugTypeId);
+          return False;
+#        print "@@@ %s" % repr(oBugTranslation.sOriginalBugTypeId.pattern);
+    # If this translation is specific to certain top stack frames, check if it should be applied:
+    if oBugTranslation.aasOriginalTopStackFrameSymbols is not NOT_PROVIDED:
       for asOriginalTopStackFrameSymbols in oBugTranslation.aasOriginalTopStackFrameSymbols:
-        if oBugReport.oStack.fbTopFramesMatchSymbols(asOriginalTopStackFrameSymbols, bHideIfMatched = True):
+        if oBugReport.oStack.fbTopFramesMatchSymbols(asOriginalTopStackFrameSymbols, sHideWithReason = "this frame was used to translate this bug"):
+          # Yes, and the top stack frames are hidden, so we've already translated it:
+#          print "@@@ top frames";
+          bTranslated = True;
           break;
       else:
         return False;
-      bTranslated = True;
-    # It's a match: translate bug:
-    if oBugTranslation.sTranslatedBugTypeId is not NOT_PROVIDED:
-      oBugReport.sBugTypeId = oBugTranslation.sTranslatedBugTypeId;
-      bTranslated = True;
-    if oBugTranslation.sTranslatedBugDescription is not NOT_PROVIDED:
-      oBugReport.sBugDescription = oBugTranslation.sTranslatedBugDescription;
-      bTranslated = True;
-    if oBugTranslation.sTranslatedSecurityImpact is not NOT_PROVIDED:
-      oBugReport.sSecurityImpact = oBugTranslation.sTranslatedSecurityImpact;
-      bTranslated = True;
-    # Optionally hide some more irrelevant frames:
+    # If more top frames may be irrelevant, see if they are there and hide them:
     for asAdditionalIrrelevantStackFrameSymbols in oBugTranslation.aasAdditionalIrrelevantStackFrameSymbols:
       # Note that these should be ordered from longest to shortest array ^^^
       # This is done in the cBugTranslation constructor.
-      if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, bHideIfMatched = True):
+      if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, sHideWithReason = "this frame is irrelevant to this bug"):
+#        print "@@@ hidden frames";
         bTranslated = True;
         break;
+    # If the bug type should be translated, do so:
+    if oBugTranslation.sTranslatedBugTypeId is not NOT_PROVIDED:
+      oBugReport.sBugTypeId = oBugTranslation.sTranslatedBugTypeId;
+      bTranslated = True;
+    # If the bug description should be translated, do so:
+    if oBugTranslation.sTranslatedBugDescription is not NOT_PROVIDED:
+      oBugReport.sBugDescription = oBugTranslation.sTranslatedBugDescription;
+      bTranslated = True;
+    # If the security impact should be translated, do so:
+    if oBugTranslation.sTranslatedSecurityImpact is not NOT_PROVIDED:
+      oBugReport.sSecurityImpact = oBugTranslation.sTranslatedSecurityImpact;
+      bTranslated = True;
     return bTranslated;

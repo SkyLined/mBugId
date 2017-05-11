@@ -1,10 +1,16 @@
 from cBugTranslation import cBugTranslation;
 
-# Breakpoint (hide irrelevant frames only)
-aoBugTranslations = [];
-aoBugTranslations.append(cBugTranslation(
-  sOriginalBugTypeId = "Breakpoint",
-  asOriginalTopStackFrameSymbols = [
-    "KERNELBASE.dll!DebugBreak",
-  ],
-));
+aoBugTranslations = [
+  # The following frames are always irrelevant to bugs:
+  cBugTranslation(
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "kernelbase.dll!DebugBreak",
+      ], [
+        "kernelbase.dll!RaiseException",
+      ], [
+        "kernelbase.dll!RaiseFailFastException",
+      ],
+    ],
+  ),
+];

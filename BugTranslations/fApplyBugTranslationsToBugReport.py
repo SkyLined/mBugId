@@ -10,6 +10,7 @@ from kernelbase import aoBugTranslations as aoBugTranslations_kernelbase;
 from MSIE import aoBugTranslations as aoBugTranslations_MSIE;
 from ntdll import aoBugTranslations as aoBugTranslations_ntdll;
 from RTC import aoBugTranslations as aoBugTranslations_RTC;
+from verifier import aoBugTranslations as aoBugTranslations_verifier;
 
 aoBugTranslations = (
   aoBugTranslations_ASan
@@ -24,6 +25,7 @@ aoBugTranslations = (
   + aoBugTranslations_MSIE
   + aoBugTranslations_ntdll
   + aoBugTranslations_RTC
+  + aoBugTranslations_verifier
 );
 
 def fApplyBugTranslationsToBugReport(oBugReport):
