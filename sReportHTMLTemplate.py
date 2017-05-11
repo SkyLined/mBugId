@@ -192,17 +192,24 @@ sReportHTMLTemplate = ("""
       .MemoryRemarks {
         background-color: rgba(255,255,0,0.3);
       }
-      .StackFrameAddress {
+      .StackFrame {
       }
-      .StackFrameNoSymbol {
-        font-style: italic;
-      }
-      .StackFrameIgnored {
+      .StackFrameInline {
         color: silver;
       }
-      .StackFrameHash {
+      .StackFrameHidden {
+        color: silver;
       }
-      .StackSource {
+      .StackFramePartOfId {
+        background-color: rgba(255,255,0,0.3);
+        font-weight: bold;
+      }
+      .StackFrameWithoutSymbol {
+        font-style: italic;
+      }
+      .StackFrameNotes {
+      }
+      .StackFrameSource {
         color: grey;
       }
     </style>

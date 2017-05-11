@@ -58,8 +58,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # Read the initial cdb output related to starting/attaching to the first process.
     asIntialCdbOutput = oCdbWrapper.fasReadOutput();
     # Turn off prompt information as it is not useful most of the time, but can clutter output.
-    oCdbWrapper.fasSendCommandAndReadOutput(
-        ".prompt_allow -dis -ea -reg -src -sym; $$ Set up the cdb prompt to be very minimal");
+    oCdbWrapper.fasSendCommandAndReadOutput(".prompt_allow -dis -ea -reg -src -sym; $$ Display only the prompt");
+    # Make sure the cdb prompt is on a new line after the application has been run:
+    oCdbWrapper.fasSendCommandAndReadOutput('.pcmd -s ".echo"; $$ Output a CRLF after running the application');
     # Load the debugger extension
     oCdbWrapper.oExtension = cDebuggerExtension.foLoad(oCdbWrapper);
     
@@ -140,17 +141,23 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             bAttachingToOrStartingApplication = False;
         else:
           oCdbWrapper.fApplicationResumedCallback();
+        ### Check if page heap is enabled in all processes if requested ################################################
+        if dxConfig["bEnsurePageHeap"]:
+          for oProcess in oCdbWrapper.doProcess_by_uId.values():
+            if not oProcess.bTerminated:
+              oProcess.fEnsurePageHeapIsEnabled();
         ### Discard cached information about processes #################################################################
-        # There will no longer be a current process.
-        oCdbWrapper.oCurrentProcess = None;
-        for oProcess in list(oCdbWrapper.doProcess_by_uId.values()):
+        for oProcess in oCdbWrapper.doProcess_by_uId.values():
           # All processes will no longer be new.
           oProcess.bNew = False;
           # All processes that were terminated should be removed from the list of known processes:
           if oProcess.bTerminated:
             del oCdbWrapper.doProcess_by_uId[oProcess.uId];
-          # Any cached information about modules loaded in the process should be discarded
-          oProcess.fClearCache();
+          else:
+            # Any cached information about modules loaded in the process should be discarded
+            oProcess.fClearCache();
+        # There will no longer be a current process.
+        oCdbWrapper.oCurrentProcess = None;
         ### Reserve RAM if requested ###################################################################################
         # If requested, reserve some memory in cdb that can be released later to make analysis under low memory conditions
         # more likely to succeed.
@@ -201,9 +208,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-        # If the application was not suspended on purpose to attach to another process, report it:
-        if not bAttachingToOrStartingApplication:
-          oCdbWrapper.fApplicationSuspendedCallback();
+        # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. It
+        # does apparently trigger an error that prevents subsequent commands from being executed. As a result, the 
+        # .printf that outputs the end marker is not executed and fasReadOutput throws an exception. If whatever is
+        # causing this only affects the first command executed at this point, this issue may be resolved by executing
+        # .lastevent twice and ignoring the output the first time: if you ignore the output, no markers are printed and
+        # the exception is not thrown. If you can read this, apparently it worked!
+        oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ dummy", bIgnoreOutput = True);
       ### An exception was detected ####################################################################################
       # Find out what event caused the debugger break
       asLastEventOutput = oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ Get information about last event",
@@ -259,6 +270,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       uExceptionCode = sExceptionCode and long(sExceptionCode, 16);
       bApplicationCannotHandleException = sChance == "second";
       uBreakpointId = sBreakpointId and long(sBreakpointId);
+      # If the application was not suspended on purpose to attach to another process, report it:
+      if not bAttachingToOrStartingApplication:
+        if uBreakpointId is not None:
+          sReason = "breakpoint hit";
+        elif uExceptionCode is not None:
+          sReason = "%s chance exception 0x%08X" % (sChance, uExceptionCode);
+        elif sCreateExitProcess == "Create":
+          sReason = "new process";
+        else:
+          sReason = "process terminated";
+        oCdbWrapper.fApplicationSuspendedCallback(sReason);
       ### See if this was an ignored exception #########################################################################
       if uProcessId in duIgnoreNextExceptionCode_by_uProcessId:
         if uExceptionCode == duIgnoreNextExceptionCode_by_uProcessId.pop(uProcessId):
@@ -289,7 +311,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       ### Determine the current process ################################################################################
       if uProcessId not in oCdbWrapper.doProcess_by_uId:
         # Create a new process object and make it the current process.
-        oCdbWrapper.doProcess_by_uId[uProcessId] = oCdbWrapper.oCurrentProcess = cProcess.foCreateForCurrentProcess(oCdbWrapper, uProcessId);
+        oCdbWrapper.doProcess_by_uId[uProcessId] = oCdbWrapper.oCurrentProcess = cProcess(oCdbWrapper, uProcessId);
         assert oCdbWrapper.oCurrentProcess.uId == uProcessId, \
             "Expected the current process to be %d/0x%X but got %d/0x%X" % \
             (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.uId, oCdbWrapper.oCurrentProcess.uId);
@@ -310,10 +332,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
               '.printf "Started process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
               bShowOnlyCommandOutput = True,
             );
-          
-        # If requested by the user, make sure page heap is running in the new processes
-        if dxConfig["bEnsurePageHeap"]:
-          oCdbWrapper.fEnsurePageHeapIsEnabledInCurrentProcess();
         # Make sure child processes of the new process are debugged as well.
         oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes");
         if sCreateExitProcess == "Create":

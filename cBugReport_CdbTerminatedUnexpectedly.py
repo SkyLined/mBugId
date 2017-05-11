@@ -24,16 +24,6 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.asVersionInformation = ["BugId: %s" % sVersion];
     
     if oCdbWrapper.bGenerateReportHTML:
-      # Turn cdb output into formatted HTML. It is separated into blocks, one for the initial cdb output and one for each
-      # command executed.
-      sCdbStdIOHTML = '<hr/>'.join(oCdbWrapper.asCdbStdIOBlocksHTML);
-      oCdbWrapper.asCdbStdIOBlocksHTML = [""];
-      asBlocksHTML = [];
-      asBlocksHTML.append(sBlockHTMLTemplate % {
-        "sName": "Application and cdb output log",
-        "sCollapsed": "Collapsed",
-        "sContent": sCdbStdIOHTML
-      });
       # Create HTML details
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
@@ -45,6 +35,10 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
         "sOptionalCommandLine": "",
         "sBugIdVersion": sVersion,
-        "sBlocks": "\r\n".join(asBlocksHTML),
-        "sCdbStdIO": sCdbStdIOHTML,
+        "sBlocks": sBlockHTMLTemplate % {
+          "sName": "Application and cdb output log",
+          "sCollapsed": "Collapsed",
+          "sContent": oCdbWrapper.sCdbIOHTML
+        },
+        "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
       };

@@ -6,7 +6,7 @@ option casemap :none
 
 .code
 
-fJump PROC, pAddress:PTR VOID
+fJump PROC pAddress:PTR VOID
   IFDEF x86
     JMP pAddress
   ELSE

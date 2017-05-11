@@ -106,7 +106,7 @@ class cBugReport(object):
   
   def fPostProcess(oBugReport, oCdbWrapper):
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
-    aoRelevantStackFrames, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
+    aoStackFramesPartOfId, sStackHTML = cBugReport_fxProcessStack(oBugReport, oCdbWrapper);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
     if oBugReport.sSecurityImpact is None:
       oBugReport.sSecurityImpact = "Denial of Service";
@@ -114,10 +114,10 @@ class cBugReport(object):
     # If bug binary and main binary are not the same, gather information for both of them:
     aoRelevantModules = [oBugReport.oProcess.oMainModule];
     # Find the Module in which the bug is reported and add it to the relevant list if it's not there already.
-    for oRelevantStackFrame in aoRelevantStackFrames:
-      if oRelevantStackFrame.oModule:
-        if oRelevantStackFrame.oModule != oBugReport.oProcess.oMainModule:
-          aoRelevantModules.append(oRelevantStackFrame.oModule);
+    for oStackFrame in aoStackFramesPartOfId:
+      if oStackFrame.oModule:
+        if oStackFrame.oModule != oBugReport.oProcess.oMainModule:
+          aoRelevantModules.append(oStackFrame.oModule);
         break;
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
     if oCdbWrapper.bGenerateReportHTML:
@@ -181,26 +181,21 @@ class cBugReport(object):
           });
       
       # Create and add disassembly blocks if needed:
-      uLastInstructionPointer = None;
-      for oFrame in aoRelevantStackFrames:
-        # Inlined functions do not add a new location to disassemble.
-        if uLastInstructionPointer != oFrame.uInstructionPointer:
-          uLastInstructionPointer = oFrame.uInstructionPointer;
-          uFrameNumber = oFrame.uNumber + 1; # Make it base 1, rather than 0
-          if oFrame.uNumber == 0:
-            sBeforeAddressInstructionDescription = None;
-            sAtAddressInstructionDescription = "current instruction";
-          else:
-            sBeforeAddressInstructionDescription = "call";
-            sAtAddressInstructionDescription = "return address";
-          sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oFrame.uInstructionPointer, \
-              sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
-          if sFrameDisassemblyHTML:
-            asBlocksHTML.append(sBlockHTMLTemplate % {
-              "sName": "Disassembly of stack frame %d at %s" % (uFrameNumber, oFrame.sAddress),
-              "sCollapsed": "Collapsed",
-              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
-            });
+      for oFrame in aoStackFramesPartOfId:
+        if oFrame.uIndex == 0:
+          sBeforeAddressInstructionDescription = None;
+          sAtAddressInstructionDescription = "current instruction";
+        else:
+          sBeforeAddressInstructionDescription = "call";
+          sAtAddressInstructionDescription = "return address";
+        sFrameDisassemblyHTML = cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oFrame.uInstructionPointer, \
+            sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
+        if sFrameDisassemblyHTML:
+          asBlocksHTML.append(sBlockHTMLTemplate % {
+            "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
+            "sCollapsed": "Collapsed",
+            "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
+          });
       
       # Add relevant binaries information to cBugReport and HTML report.
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
@@ -211,23 +206,11 @@ class cBugReport(object):
           "sCollapsed": "Collapsed",
           "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
         });
-      
-      # Convert saved cdb IO HTML into one string and delete everythingto free up some memory.
-      try:
-        sCdbStdIOHTML = "<hr/>".join(oCdbWrapper.asCdbStdIOBlocksHTML),
-        oCdbWrapper.asCdbStdIOBlocksHTML = None;
-      except MemoryError:
-        sCdbStdIOHTML = "";
-        try:
-          while oCdbWrapper.asCdbStdIOBlocksHTML:
-            sCdbStdIOHTML += "<hr/>";
-            sCdbStdIOHTML += oCdbWrapper.asCdbStdIOBlocksHTML.pop(0);
-        except MemoryError:
-          sCdbStdIOHTML += "<hr/>(Partial output: not enough memory to complete)";
+      # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
         "sCollapsed": "Collapsed",
-        "sContent": sCdbStdIOHTML,
+        "sContent": oCdbWrapper.sCdbIOHTML,
       });
       # Stick the HTML of all blocks together.
       try:

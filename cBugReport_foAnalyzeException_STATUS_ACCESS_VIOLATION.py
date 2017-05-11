@@ -138,10 +138,9 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   
   if sViolationTypeId == "E":
     # Hide the top stack frame if it is for the address at which the execute access violation happened:
-    if oBugReport and oBugReport.oStack \
-        and oBugReport.oStack.aoFrames \
+    if oBugReport and oBugReport.oStack and oBugReport.oStack.aoFrames \
         and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAccessViolationAddress:
-      oBugReport.oStack.aoFrames[0].bIsHidden = True;
+      oBugReport.oStack.aoFrames[0].sIsHiddenBecause = "called address";
   
   dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oCdbWrapper.sCurrentISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():

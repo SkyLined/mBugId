@@ -56,7 +56,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       pass; # ignored.
     elif sChar in ("\n", ""):
       if sChar == "\n" or sLine:
-        if dxConfig["bOutputStdOut"]:
+        if dxConfig["bOutputStdIO"]:
           print "cdb>%s" % repr(sLine)[1:-1];
         # Failure to attach will terminate cdb. This needs to be special cased:
         oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
@@ -78,32 +78,25 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           # chance exceptions.
           pass; 
         elif not bIgnoreOutput:
-          if bAddOutputToHTML and oCdbWrapper.asCdbStdIOBlocksHTML is not None:
-            while 1:
-              try:
-                sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
-                sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
-                # Add the line to the current block of I/O
-                oCdbWrapper.asCdbStdIOBlocksHTML[-1] += sLineHTML;
-                # Optionally add the line to the important output
-                if bAddImportantLinesToHTML and oCdbWrapper.rImportantStdOutLines.match(sLine):
-                  oCdbWrapper.sImportantOutputHTML += sLineHTML;
-                break;
-              except MemoryError:
-                if len(oCdbWrapper.asCdbStdIOBlocksHTML) < 2: raise;
-                oCdbWrapper.asCdbStdIOBlocksHTML[0] = "(First lines removed because BugId ran out of memory)";
-                oCdbWrapper.asCdbStdIOBlocksHTML.pop(1);
+          if bAddOutputToHTML:
+            sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
+            sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
+            # Add the line to the current block of I/O
+            oCdbWrapper.sCdbIOHTML += sLineHTML;
+            # Optionally add the line to the important output
+            if bAddImportantLinesToHTML and oCdbWrapper.rImportantStdOutLines.match(sLine):
+              oCdbWrapper.sImportantOutputHTML += sLineHTML;
           asLines.append(sLine);
           # Strip useless symbol warnings and errors:
           if sIgnoredLine is not None:
             bStartOfCommandOutput = sStartOfCommandOutputMarker and sIgnoredLine.endswith(sStartOfCommandOutputMarker);
             if bStartOfCommandOutput:
               sIgnoredLine = sIgnoredLine[:-len(sStartOfCommandOutputMarker)]; # Remove the marker from the line;
-            if sIgnoredLine:
-              if sIgnoredLine == sLine:
-                print "IGNORED %s" % repr(sIgnoredLine);
-              else:
-                print "IGNORED %s in %s" % (repr(sIgnoredLine), repr(sLine));
+#            if sIgnoredLine:
+#              if sIgnoredLine == sLine:
+#                print "IGNORED %s" % repr(sIgnoredLine);
+#              else:
+#                print "IGNORED %s in %s" % (repr(sIgnoredLine), repr(sLine));
             if bStartOfCommandOutput:
               sReturnedLine = ""; # Start collecting lines to return to the caller.
               sIgnoredLine = None; # Stop ignoring lines
@@ -113,13 +106,13 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             if bEndOfCommandOutput:
               sReturnedLine = sReturnedLine[:-len(sEndOfCommandOutputMarker)]; # Remove the marker from the line;
             if sReturnedLine:
-              if rAlwaysIgnoredLines.match(sReturnedLine):
-                if sReturnedLine == sLine:
-                  print "IGNORED %s" % repr(sReturnedLine);
-                elif sIgnoredLine:
-                  print "IGNORED %s in %s" % (repr(sReturnedLine), repr(sLine));
-              else:
+              if not rAlwaysIgnoredLines.match(sReturnedLine):
                 asReturnedLines.append(sReturnedLine);
+#              else:
+#                if sReturnedLine == sLine:
+#                  print "IGNORED %s" % repr(sReturnedLine);
+#                elif sIgnoredLine:
+#                  print "IGNORED %s in %s" % (repr(sReturnedLine), repr(sLine));
             if bEndOfCommandOutput:
               sEndOfCommandOutputMarker = None; # Stop looking for the marker.
               sReturnedLine = None; # Stop collecting lines to return to the caller.
@@ -144,7 +137,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       oPromptMatch = re.match("^\d+:\d+(:x86)?> $", sLine);
       if oPromptMatch:
         oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-        if dxConfig["bOutputStdOut"]:
+        if dxConfig["bOutputStdIO"]:
           print "cdb>%s" % repr(sLine)[1:-1];
         if not bIgnoreOutput:
           assert not sStartOfCommandOutputMarker, \
@@ -152,13 +145,14 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           # If there is an error during execution of the command, the end marker will not be output. In this case, see
           # if it is an expected and ignored error, or thrown an assertion:
           assert not sEndOfCommandOutputMarker or (srIgnoreErrors and len(asReturnedLines) == 1 and re.match(srIgnoreErrors, asReturnedLines[0])), \
-              "The command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asReturnedLines]);
-          if bAddOutputToHTML:
-            nRunTime = time.clock() - nStartTime;
-            oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "(The above output was generated in %.1f seconds)<br/>" % nRunTime;
-          if oCdbWrapper.bGenerateReportHTML:
-            # The prompt is always stored in a new block of I/O
-            oCdbWrapper.asCdbStdIOBlocksHTML.append("<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine));
+              "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
+# This is only useful when trying to find out how to speed things up.
+#          if bAddOutputToHTML:
+#            nRunTime = time.clock() - nStartTime;
+#            oCdbWrapper.sCdbIOHTML += "(The above output was generated in %.1f seconds)<br/>" % nRunTime;
+        if oCdbWrapper.bGenerateReportHTML:
+          # The prompt is always stored in a new block of I/O
+          oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
         break;
   if bIgnoreOutput:
     return;

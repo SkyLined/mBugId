@@ -62,9 +62,9 @@ ISAINT fiParseNumber(_TCHAR* sInput) {
 extern "C" {
   VOID __stdcall fCall(VOID*);
   VOID __stdcall fJump(VOID*);
-  VOID __stdcall fIllegalInstruction();
-  VOID __stdcall fIntergerOverflow();
-  VOID __stdcall fPrivilegedInstruction();
+  VOID __stdcall fIllegalInstruction(VOID*);
+  VOID __stdcall fIntegerOverflow(VOID*);
+  VOID __stdcall fPrivilegedInstruction(VOID*);
 }
 
 // C++ exception
@@ -91,7 +91,7 @@ class cPureCall : cPureCallBase {
 // For use with WRTLanguage errors
 class cIUnknown : IUnknown {
   private:
-    ISAUINT uRefCounter;
+    ULONG uRefCounter;
   public:
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, PVOID* ppv) {
       if (ppv == NULL) return E_INVALIDARG;
@@ -99,7 +99,7 @@ class cIUnknown : IUnknown {
       if (riid != IID_IUnknown) {
         GUID guid = (GUID)riid;
         _tprintf(_T("Cannot instantiate %08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X\r\n"),
-            (DWORD)guid.Data1,
+            (UINT)guid.Data1,
             (WORD)guid.Data2,
             (WORD)guid.Data3,
             (BYTE)guid.Data4[0],
@@ -128,10 +128,27 @@ class cIUnknown : IUnknown {
     };
 };
 
-VOID fStackRecursion() {
+VOID fStackRecursionFunction1(ISAUINT);
+VOID fStackRecursionFunction2(ISAUINT);
+ISAUINT guStackRecursionCounter = 0;
+
+VOID fStackRecursion(ISAUINT uFunctionsInLoop) {
+  fStackRecursionFunction1(uFunctionsInLoop);
+};
+VOID fStackRecursionFunction1(ISAUINT uFunctionsInLoop) {
   alloca(0x1000);
-  fStackRecursion();
-}
+  guStackRecursionCounter++;
+  if (uFunctionsInLoop > 1 && guStackRecursionCounter % uFunctionsInLoop == 0) {
+    fStackRecursionFunction2(uFunctionsInLoop);
+  } else {
+    fStackRecursionFunction1(uFunctionsInLoop);
+  };
+};
+VOID fStackRecursionFunction2(ISAUINT uFunctionsInLoop) {
+  alloca(0x1000);
+  guStackRecursionCounter++;
+  fStackRecursionFunction1(uFunctionsInLoop);
+};
 
 // Use globals to store some things, so these variables don't get overwritten when the stack is smashed
 BYTE* gpAddress;
@@ -148,6 +165,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("  Breakpoint\r\n"));
     _tprintf(_T("  CPUUsage\r\n"));
     _tprintf(_T("  IntegerDivideByZero\r\n"));
+    _tprintf(_T("  IntegerOverflow\r\n"));
     _tprintf(_T("  IllegalInstruction\r\n"));
     _tprintf(_T("  PrivilegedInstruction\r\n"));
     _tprintf(_T("  PureCall\r\n"));
@@ -207,14 +225,18 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _ftprintf(stderr, _T("Dividing by zero...\r\n"));
     volatile UINT uN = 0;
     uN = 0 / uN;
+  } else if (_tcsicmp(asArguments[1], _T("IntegerOverflow")) == 0) {
+    /*                                                                        */
+    _ftprintf(stderr, _T("Triggering integer overflow...\r\n"));
+    fIntegerOverflow(NULL);
   } else if (_tcsicmp(asArguments[1], _T("IllegalInstruction")) == 0) {
     /*                                                                        */
     _ftprintf(stderr, _T("Executing illegal instruction...\r\n"));
-    fIllegalInstruction();
+    fIllegalInstruction(NULL);
   } else if (_tcsicmp(asArguments[1], _T("PrivilegedInstruction")) == 0) {
     /*                                                                        */
     _ftprintf(stderr, _T("Executing privileged instruction...\r\n"));
-    fPrivilegedInstruction();
+    fPrivilegedInstruction(NULL);
   } else if (_tcsicmp(asArguments[1], _T("PureCall")) == 0) {
     /*                                                                        */
     _ftprintf(stderr, _T("Triggering pure virtual function call...\r\n"));
@@ -226,14 +248,17 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     };
     ISAUINT uChunkSize = fuParseNumber(asArguments[2]);
-    while (1) {
-      _ftprintf(stderr, _T("Allocating %Id/0x%IX bytes of stack memory...\r\n"), uChunkSize, uChunkSize);
-      alloca(uChunkSize);
-    };
+    _ftprintf(stderr, _T("Repeatedly allocating %Id/0x%IX bytes of stack memory...\r\n"), uChunkSize, uChunkSize);
+    while (1) alloca(uChunkSize);
   } else if (_tcsicmp(asArguments[1], _T("RecursiveCall")) == 0) {
     /*                                                                        */
-    _ftprintf(stderr, _T("Calling function recursively...\r\n"));
-    fStackRecursion();
+    if (uArgumentsCount < 3) {
+      _ftprintf(stderr, _T("Please provide a UINT number of calls in the cursion loop.\r\n"));
+      return 1;
+    };
+    ISAUINT uFunctionsInLoop = fuParseNumber(asArguments[2]);
+    _ftprintf(stderr, _T("Calling %d functions recursively...\r\n"), uFunctionsInLoop);
+    fStackRecursion(uFunctionsInLoop);
   } else if (_tcsicmp(asArguments[1], _T("C++")) == 0) {
     /*                                                                        */
     _ftprintf(stderr, _T("Throwing C++ exception...\r\n"));
@@ -364,8 +389,8 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       _ftprintf(stderr, _T("Reading from address 0x%p...\r\n"), pAddress);
       BYTE x = *(BYTE*)pAddress;
-      _ftprintf(stderr, _T("Writing to address 0x%p...\r\n"), pAddress);
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
+      _ftprintf(stderr, _T("Writing to address 0x%p...\r\n"), pAddress);
       *(BYTE*)pAddress = BYTE_TO_WRITE;
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read or Write, not %s\r\n"), asArguments[2]);

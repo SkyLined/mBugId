@@ -1,6 +1,7 @@
 import os, re;
 from cModule import cModule;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
+from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -12,10 +13,7 @@ class cProcess(object):
     oProcess.bNew = True; # Will be set to False by .fCdbStdInOutThread once application is run again.
     oProcess.bTerminated = False; # Will be set to True by .foSetCurrentProcessAfterApplicationRan once process is terminated
     oProcess.__doModules_by_sCdbId = {};
-  
-  @staticmethod
-  def foCreateForCurrentProcess(oCdbWrapper, uProcessId):
-    return cProcess(oCdbWrapper, uProcessId);
+    oProcess.bPageHeapEnabled = None; # We do not know yet.
   
   @property
   def oMainModule(oProcess):
@@ -66,7 +64,7 @@ class cProcess(object):
     #     PPEB_LDR_DATA Ldr;
     uImageBaseAddressAddress = uPEBAddress + 2 * oProcess.uPointerSize;
     uImageBaseAddress = oCdbWrapper.fuGetValue("poi(0x%X)" % uImageBaseAddressAddress);
-    asModuleCdbIdOutput = oCdbWrapper.fasSendCommandAndReadOutput("lmn a 0x%X; $$ Get module cdb ids" % uImageBaseAddress);
+    asModuleCdbIdOutput = oCdbWrapper.fasSendCommandAndReadOutput("lmn a 0x%X; $$ Get module cdb id" % uImageBaseAddress);
     # Sample output:
     # |0:007> lmn a 7ff6a8870000
     # |start             end                 module name
@@ -131,3 +129,6 @@ class cProcess(object):
   
   def ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
     return cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress);
+  
+  def fEnsurePageHeapIsEnabled(oProcess):
+    return cProcess_fEnsurePageHeapIsEnabled(oProcess);

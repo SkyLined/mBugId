@@ -6,7 +6,7 @@ cRegExp = type(re.compile("a"));
 class cStackFrame(object):
   def __init__(oStackFrame, 
       oStack,
-      uNumber,
+      uIndex,
       sCdbSymbolOrAddress,
       uInstructionPointer, uReturnAddress,
       uAddress,
@@ -16,7 +16,7 @@ class cStackFrame(object):
       sSourceFilePath, uSourceFileLineNumber,
   ):
     oStackFrame.oStack = oStack;
-    oStackFrame.uNumber = uNumber;
+    oStackFrame.uIndex = uIndex;
     oStackFrame.sCdbSymbolOrAddress = sCdbSymbolOrAddress;
     oStackFrame.uInstructionPointer = uInstructionPointer;
     oStackFrame.uReturnAddress = uReturnAddress;
@@ -28,11 +28,13 @@ class cStackFrame(object):
     oStackFrame.iFunctionOffset = iFunctionOffset;
     oStackFrame.sSourceFilePath = sSourceFilePath;
     oStackFrame.uSourceFileLineNumber = uSourceFileLineNumber;
-    oStackFrame.oPreviousFrame = uNumber > 0 and oStack.aoFrames[uNumber - 1] or None;
-    # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). The bIsHidden flag is
-    # set for such frames to "hide" them. Frames that do not have a return address are inline frames and also not
-    # considered relevant.
-    oStackFrame.bIsHidden = uReturnAddress is None;
+    # Frames that do not have a return address are inline frames.
+    oStackFrame.bIsInline = uReturnAddress is None;
+    # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). These can be hidden
+    # by giving a reason for doing so.
+    oStackFrame.sIsHiddenBecause = None;
+    # Stack frames that are part of the BugId will be marked as such:
+    oStackFrame.bIsPartOfId = False;
     if oFunction:
       oStackFrame.sAddress = oFunction.sName;
       if iFunctionOffset is None:
@@ -59,38 +61,48 @@ class cStackFrame(object):
       oStackFrame.sAddress = "0x%X" % uAddress;
       oStackFrame.sSimplifiedAddress = None;
       oStackFrame.sUniqueAddress = None;
-    if oStackFrame.sUniqueAddress is None:
-      oStackFrame.sId = None;
-    else:
+    oStackFrame.__sId = None;
+  
+  @property
+  def sId(oStackFrame):
+    if oStackFrame.__sId is None and not oStackFrame.bIsInline and oStackFrame.sUniqueAddress is not None:
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
-      oStackFrame.sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
-
+      oStackFrame.__sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
+    return oStackFrame.__sId;
+  
   def fbMatchesSymbol(oStackFrame, sSymbol):
     if sSymbol == None:
       # None means this frame should not have a symbol, if it does have a symbol, it does not match.
-      return not oStackFrame.sSimplifiedAddress;
+      bMatch = oStackFrame.sSimplifiedAddress is None;
+#      print "@@@ %s %s %s" % (sSymbol, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
+      return bMatch;
     # This frame should have a symbol, if it does not have a symbol, it does not match.
-    if not oStackFrame.sSimplifiedAddress:
+    if oStackFrame.sSimplifiedAddress is None:
+#      print "@@@ %s %s %s" % (sSymbol, "!=", oStackFrame.sSimplifiedAddress);
       return False;
     if isinstance(sSymbol, cRegExp):
       # Regular expression match:
-      return sSymbol.match(oStackFrame.sSimplifiedAddress) is not None;
-    assert isinstance(sSymbol, str), \
-      "symbol must be a string or a regular expression object, got %s:%s" % (type(sSymbol).__name__, repr(sSymbol));
-      
-    if sSymbol == "*":
-      # "*" means this frame can have any symbol in any module.
-      return True;
-    if sSymbol[:2] == "*!":
-      # "*!xxx" means this frame should match the given function symbol in any module.
-      tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
-      # Compare the function names:
-      return len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[1].lower() == sSymbol[2:].lower();
-    if sSymbol[-2:] == "!*":
-      # "xxx!*" means this frame should match any function in the given module.
-      tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
-      # Compare the function names:
-      return len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[0].lower() == sSymbol[:-2].lower();
-    # Match entire simplified address:
-    return oStackFrame.sSimplifiedAddress.lower() == sSymbol.lower();
+      bMatch = sSymbol.match(oStackFrame.sSimplifiedAddress) is not None;
+#      print "@@@ %s %s %s" % (sSymbol.pattern, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
+    else:
+      assert isinstance(sSymbol, str), \
+        "symbol must be a string or a regular expression object, got %s:%s" % (type(sSymbol).__name__, repr(sSymbol));
+      if sSymbol == "*":
+        # "*" means this frame can have any symbol in any module.
+        bMatch = True;
+      elif sSymbol[:2] == "*!":
+        # "*!xxx" means this frame should match the given function symbol in any module.
+        tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
+        # Compare the function names:
+        bMatch = len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[1].lower() == sSymbol[2:].lower();
+      elif sSymbol[-2:] == "!*":
+        # "xxx!*" means this frame should match any function in the given module.
+        tsSimplifiedAddress = oStackFrame.sSimplifiedAddress.split("!", 1);
+        # Compare the module names:
+        bMatch = len(tsSimplifiedAddress) == 2 and tsSimplifiedAddress[0].lower() == sSymbol[:-2].lower();
+      else:
+        # Match entire simplified address:
+        bMatch = oStackFrame.sSimplifiedAddress.lower() == sSymbol.lower();
+#      print "@@@ %s %s %s" % (sSymbol, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
+    return bMatch;

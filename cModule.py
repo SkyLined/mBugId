@@ -1,4 +1,4 @@
-import re;
+import os, re;
 from cFunction import cFunction;
 
 class cModule(object):
@@ -63,7 +63,7 @@ class cModule(object):
   def __fParseListModuleFirstLines(oModule, asListModuleOutput):
     assert re.match("^start\s+end\s+module name\s*$", asListModuleOutput[0]), \
         "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(asListModuleOutput);
-    oStartAndEndAddressMatch = re.match(
+    oAddressesAndSymbolStatusMatch = re.match(
       r"^\s*%s\s*$" % "\s+".join([
         r"([0-9a-f`]+)",                              # (start_address)
         r"([0-9a-f`]+)",                              # (end_address)
@@ -74,9 +74,9 @@ class cModule(object):
       asListModuleOutput[1],
       re.I
     );
-    assert oStartAndEndAddressMatch, \
+    assert oAddressesAndSymbolStatusMatch, \
         "Unexpected list module output on line 2:\r\n%s" % "\r\n".join(asListModuleOutput);
-    (sStartAddress, sEndAddress, sCdbId, sSymbolStatus) = oStartAndEndAddressMatch.groups();
+    (sStartAddress, sEndAddress, sCdbId, sSymbolStatus) = oAddressesAndSymbolStatusMatch.groups();
     oModule.__uStartAddress = long(sStartAddress.replace("`", ""), 16);
     oModule.__uEndAddress = long(sEndAddress.replace("`", ""), 16);
     oModule.__bSymbolsAvailable = {
@@ -90,13 +90,13 @@ class cModule(object):
   
   @property
   def sBinaryName(oModule):
-    if oModule.__sBinaryName is None:
+    if oModule.__sTimestamp is None: # sTimeStamp is always set by __fGetBinaryInformation
       oModule.__fGetBinaryInformation();
     return oModule.__sBinaryName;
   
   @property
   def sFileVersion(oModule):
-    if oModule.__sFileVersion is None:
+    if oModule.__sTimestamp is None: # sTimeStamp is always set by __fGetBinaryInformation
       oModule.__fGetBinaryInformation();
     return oModule.__sFileVersion;
   @property
@@ -173,12 +173,12 @@ class cModule(object):
         asModuleInformationTableRowsHTML.append(
           '<tr><td>%s</td><td>%s</td></tr>' % (oCdbWrapper.fsHTMLEncode(sName), oCdbWrapper.fsHTMLEncode(sValue)),
         );
-    oModule.__sBinaryName = dsValue_by_sName.get("OriginalFilename") or dsValue_by_sName["Image name"];
+    oModule.__sBinaryName = "Image path" in dsValue_by_sName and os.path.basename(dsValue_by_sName["Image path"]) or None;
     oModule.__sFileVersion = dsValue_by_sName.get("File version");
     oModule.__sTimestamp = dsValue_by_sName["Timestamp"];
     if oCdbWrapper.bGenerateReportHTML:
       oModule.__sInformationHTML = "".join([
-        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.__sBinaryName),
+        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.__sBinaryName or "<unknown binary>"),
         "<table>",
       ] + asModuleInformationTableRowsHTML + [
         "</table>",

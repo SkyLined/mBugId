@@ -16,10 +16,9 @@ class cStack(object):
   def __init__(oStack):
     oStack.aoFrames = [];
     oStack.bPartialStack = True;
-    oStack.uHashFramesCount = dxConfig["uStackHashFramesCount"];
   
-  def fCreateAndAddStackFrame(oStack,
-    uNumber,
+  def foCreateAndAddStackFrame(oStack,
+    uIndex,
     sCdbSymbolOrAddress,
     uInstructionPointer, uReturnAddress,
     uAddress,
@@ -29,12 +28,12 @@ class cStack(object):
     sSourceFilePath = None, uSourceFileLineNumber = None,
   ):
     # frames must be created in order:
-    assert uNumber == len(oStack.aoFrames), \
-        "Unexpected frame number %d vs %d" % (uNumber, len(oStack.aoFrames));
+    assert uIndex == len(oStack.aoFrames), \
+        "Unexpected frame index %d vs %d" % (uIndex, len(oStack.aoFrames));
     uMaxStackFramesCount = dxConfig["uMaxStackFramesCount"];
     oStackFrame = cStackFrame(
       oStack,
-      uNumber,
+      uIndex,
       sCdbSymbolOrAddress,
       uInstructionPointer, uReturnAddress,
       uAddress,
@@ -44,36 +43,25 @@ class cStack(object):
       sSourceFilePath, uSourceFileLineNumber,
     );
     oStack.aoFrames.append(oStackFrame);
+    return oStackFrame;
   
-  def fbTopFramesMatchSymbols(oStack, asSymbols, bHideIfMatched = False):
+  def fbTopFramesMatchSymbols(oStack, asSymbols, sHideWithReason = None):
     uFrameIndex = 0;
-    while uFrameIndex < len(oStack.aoFrames) and oStack.aoFrames[uFrameIndex].bIsHidden:
+    while uFrameIndex < len(oStack.aoFrames) and (oStack.aoFrames[uFrameIndex].sIsHiddenBecause is not None):
       uFrameIndex += 1;
     if len(asSymbols) > len(oStack.aoFrames) - uFrameIndex:
+      print "@@@ not enough frames";
       return False; # There are not enough non-hidden frames to match this translation
     uStartFrameIndex = uFrameIndex;
     for sSymbol in asSymbols:
-      sSymbolDbg = sSymbol;
-      if not isinstance(sSymbol, str):
-        sSymbolDbg = sSymbol.pattern;
       if not oStack.aoFrames[uFrameIndex].fbMatchesSymbol(sSymbol):
         return False;
       uFrameIndex += 1;
-    if bHideIfMatched:
+    if sHideWithReason is not None:
       uEndFrameIndex = uFrameIndex;
       for uFrameIndex in xrange(uStartFrameIndex, uEndFrameIndex):
-        oStack.aoFrames[uFrameIndex].bIsHidden = True;
+        oStack.aoFrames[uFrameIndex].sIsHiddenBecause = sHideWithReason;
     return True;
-  
-  def fHideStackFrames(oStack, uCount):
-    uFrameIndex = 0;
-    while uFrameIndex < len(oStack.aoFrames) and oStack.aoFrames[uFrameIndex].bIsHidden:
-      uFrameIndex += 1;
-    while uCount:
-      assert uFrameIndex < len(oStack.aoFrames), \
-          "Cannot hide more frames than exist in the stack!";
-      aoFrames[uFrameIndex].bIsHidden = true;
-      uCount -= 1;
   
   @classmethod
   def foCreateFromAddress(cStack, oProcess, pAddress, uSize):
@@ -85,10 +73,10 @@ class cStack(object):
     oStack = cStack(asStack);
     # Here are some lines you might expect to parse:
     # |TODO put something here...
-    uFrameNumber = 0;
+    uFrameIndex = 0;
     uInstructionPointer = None; # Unknown for first frame.
     for sLine in asStack:
-      if uFrameNumber == uStackFramesCount:
+      if uFrameIndex == uStackFramesCount:
         break;
       oMatch = re.match(r"^\s*%s\s*$" % (
         r"[0-9A-F`]+" r"\s+"                    #   stack_address whitespace
@@ -105,8 +93,8 @@ class cStack(object):
       ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
       uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
       uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
-      oStack.fCreateAndAddStackFrame(
-        uNumber = uFrameNumber,
+      oStackFrame = oStack.foCreateAndAddStackFrame(
+        uIndex = uFrameIndex,
         sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
         uInstructionPointer = uInstructionPointer,
         uReturnAddress = uReturnAddress,
@@ -116,10 +104,11 @@ class cStack(object):
         oFunction = oFunction, iFunctionOffset = iFunctionOffset,
         sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
       );
-      if uReturnAddress: # Last frame's return address is next frame's instruction pointer.
+      if uReturnAddress:
+        # Last frame's return address is next frame's instruction pointer.
         uInstructionPointer = uReturnAddress;
-      uFrameNumber += 1;
-    oStack.bPartialStack = uFrameNumber == uStackFramesCount;
+      uFrameIndex += 1;
+    oStack.bPartialStack = uFrameIndex == uStackFramesCount;
     return oStack;
   
   @classmethod
@@ -151,11 +140,11 @@ class cStack(object):
       ], "Unknown stack header: %s\r\n%s" % (repr(asStackOutput[0]), "\r\n".join(asStackOutput));
       oStack = cStack();
       uFrameInstructionPointer = InstructionPointer;
-      uFrameNumber = 0;
+      uFrameIndex = 0;
       for sLine in asStackOutput[1:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
           continue;
-        if uFrameNumber == uStackFramesCount:
+        if uFrameIndex == uStackFramesCount:
           break;
         oMatch = re.match(r"^\s*%s\s*$" % (
           r"([0-9a-f]+)" r"\s+"                   # (frame_number) whitespace
@@ -170,10 +159,10 @@ class cStack(object):
         r"(?: \[(.+) @ (\d+)\])?"                 # [ "[" (source_file_path) " @ " (line_number) "]" ]
         ), sLine, re.I);
         assert oMatch, "Unknown stack output: %s\r\n%s" % (repr(sLine), "\r\n".join(asStackOutput));
-        (sFrameNumber, sReturnAddress, sCdbSymbolOrAddress, sSourceFilePath, sSourceFileLineNumber) = oMatch.groups();
+        (sFrameIndex, sReturnAddress, sCdbSymbolOrAddress, sSourceFilePath, sSourceFileLineNumber) = oMatch.groups();
         # We may have already parsed this before, but we had to restart because of symbol loading issues. In this
         # case, we can continue to the next.
-        if int(sFrameNumber, 16) < uFrameNumber:
+        if int(sFrameIndex, 16) < uFrameIndex:
           continue;
         uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
         (
@@ -252,8 +241,8 @@ class cStack(object):
             oFunction = None;
             iFunctionOffset = None;
         uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
-        oStack.fCreateAndAddStackFrame(
-          uNumber = uFrameNumber,
+        oStackFrame = oStack.foCreateAndAddStackFrame(
+          uIndex = uFrameIndex,
           sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
           uInstructionPointer = uFrameInstructionPointer,
           uReturnAddress = uReturnAddress,
@@ -263,11 +252,12 @@ class cStack(object):
           oFunction = oFunction, iFunctionOffset = iFunctionOffset,
           sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
         );
-        if uReturnAddress: # Last frame's return address is next frame's instruction pointer.
+        if uReturnAddress:
+          # Last frame's return address is next frame's instruction pointer.
           uFrameInstructionPointer = uReturnAddress;
-        uFrameNumber += 1;
+        uFrameIndex += 1;
       else:
         # No symbol loading problems found: we are done.
         break;
-    oStack.bPartialStack = uFrameNumber == uStackFramesCount;
+    oStack.bPartialStack = uFrameIndex == uStackFramesCount;
     return oStack;

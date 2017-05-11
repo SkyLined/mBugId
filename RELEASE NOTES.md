@@ -1,4 +1,4 @@
-2017-05-09
+2017-05-11
 ==========
 Changes to BugIds
 -----------------
@@ -14,7 +14,16 @@ Changes to BugIds
   handled and reported as `IncorrectHeap[size]`, where `size` is the size of
   the relevant heap block.
 + Windows Run-Time errors are now reported as `WRTOriginate` and `WRTLanguage`,
-  depending on their exact type.
+  depending on their exact type. This is only true for non-stowed exceptions.
+  However, BugId ignores the first-chance exception cause by these errors to
+  allow the application to handle them. If the application does not handle
+  them, they appear to always be thrown as a stowed exception next, so you may
+  not actually see these in BugId, but rather the stowed exceptions they cause.
++ The code that tried to determine if a stack exhaustion was caused by a
+  recursive function call appears to have been broken, yielding bad results.
+  This code has been improved, so the BugIds should be different in a good way.
+  Also, the way stack hashes beyond the desired maximum number are combined
+  into one has been modified, which may also change BugIds for such crashes.
 
 Changes to cBugId API and dxConfig
 ----------------------------------
@@ -24,6 +33,10 @@ Changes to cBugId API and dxConfig
 + `bInternalExceptionOccured` no longer exists; code using cBugId should add a
   handler for `fInternalExceptionCallback` to track whether an internal
   exception occurs themselves.
++ `fApplicationSuspendedCallback` is now called with two arguments: the first
+  is still the cBugId instance, the second argument is a string describing the
+  reason why the application was suspended. This string can be used to inform
+  if the reason for the application being suspended.
 + `fPageHeapNotEnabledCallback` is a new callback the is called whenever cBugId
   detects that page heap is not enabled for a particular binary. The handler
   is called with three arguments:
@@ -54,6 +67,15 @@ Changes to cBugId API and dxConfig
 + `uMaxFunctionOffset` in `dxConfig` has been replaced with
   `uMaxExportFunctionOffset`. The effect is the same, but it no only affects
   export symbols.
++ `fStdErrOutputCallback` is a new callback that is called whenever the 
+  application or cdb output a line of text to stderr. The callback handler is
+  called with the cBugId instance as its first argument and the line of text in
+  the second. This can be used to show or store all stderr output.
++ `bOutputStdOut` and `bOutputStdIn` have been replaced with `bOutputStdIO`, as
+  I found it really only makes sense to show both and having them behind one
+  setting makes changing it easier.
++ If no `fFailedToDebugApplicationCallback` is provided, cBugId will now assert
+  when it fails to debug an application.
 + The default `uMaxStackFramesCount` value was increased from 20 to 40 and the
   default `uMaxStackRecursionLoopSize` value was increased from 50 to 100 to
   reflect increased code complexity in some of the targets I have been fuzzing.
@@ -97,9 +119,12 @@ Other new features
   instruction right before the return address. This should match the function
   name provided by cdb. If it does not, use the former, as this is more
   accurate. This is currently only implemented for direct (0xE8) calls.
++ Inline functions are marked as such in HTML reports.
 
 Bug fixes
 ---------
++ The way BugId determines if a stack exception is caused by a recursive
+  function call has been improved (it was effectively broken before).
 + Do not assert if the size of a dumped memory region is exactly the maximum
   size; only if it's larger.
 + Handle (==ignore) more irrelevant cdb warnings and errors.
@@ -158,22 +183,39 @@ Improvements
   command being executed.
 + Lincense image in HTML reports is no longer loaded from a URL on the internet,
   but included as a `data:` url.
++ The way BugId tracks which frames to hide and which frames to consider
+  relevant to a bug and use in the stack hash has been improved. This
+  specifically improves the BugId for recursive function calls. It also adds
+  information about the reason why a function was hidden to the HTML report,
+  which may be useful if you do not understand why this is happening.
++ The way BugId stores commands send to cdb and the output received from cdb
+  for the HTML report has been modified to be more reliable.
 + Various improvements to inline documentation.
 + Various improvements to cdb stdio thread code.
 + Various minor improvements to code quality and readability.
-+ Removed some old debug output code.
++ Removed some dead code and commented out debug output code.
 
 Changes to Tests
 ---------------------
++ Stack hashes are now checked as part of the tests. This should allow me to
+  detect when a code change modifies stack hashes and result in more stable
+  stack hashes across different versions of cBugId.
++ Changed asm code in order to always create a stack frame, which makes it
+  easier for cdb to determine the correct stack frames (but it's still not
+  perfect).
 + Better ISA specific numbers in tests
 + Added OOM test using HeapAlloc and C++ new operator.
 + Added FailFast test.
 + Added WRTOriginate test.
 + Added WRTLanguage test.
++ Improved recursive function call test to allow loops of various sizes.
++ Added Integer overflow test.
 + Added stdout output to all tests.
 + Moved more tests to the full test suite, to speed to quick tests.
 + Dump stack trace on exception.
 + Changed arguments of many tests for better test coverage.
++ Show time it takes to complete test, so you can optimize the number of
+  parallel tests to increase testing speed.
 
 2017-03-24
 ==========

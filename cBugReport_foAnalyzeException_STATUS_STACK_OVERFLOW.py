@@ -7,66 +7,86 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oCdbWrapper,
   oBugReport.sBugTypeId = "StackExhaustion";
   oBugReport.sBugDescription = "The process exhausted available stack memory";
   oBugReport.sSecurityImpact = None;
-  bLoopFound = False;
+  uRecursionStartIndex = None;
+  uRecursionLoopSize = None;
+  uRecursionLoopCount = None;
   for uFirstLoopStartIndex in xrange(len(oStack.aoFrames) - 1):
-#    print "*" * 80;
-#    print "Start index: %d" % uFirstLoopStartIndex;
+    #print "*" * 80;
+    #print "Start frame: %d %s" % (uFirstLoopStartIndex, oStack.aoFrames[uFirstLoopStartIndex].sAddress);
     # Find out how large at most a loop can be and still be repeated often enough for detection in the remaining stack:
     uRemainingStackSize = len(oStack.aoFrames) - uFirstLoopStartIndex;
     uMaxLoopSize = long(uRemainingStackSize / dxConfig["uMinStackRecursionLoops"]);
     for uLoopSize in xrange(1, min(uMaxLoopSize, dxConfig["uMaxStackRecursionLoopSize"])):
-#      print "  Loop size: %d" % uLoopSize;
-      for uLoopNumber in xrange(1, dxConfig["uMinStackRecursionLoops"]):
-#        print "    Loop number: %d" % uLoopNumber;
-        uLoopStartIndex = uFirstLoopStartIndex + uLoopNumber * uLoopSize;
-#        print "    Loop start index: %d" % uLoopStartIndex;
-        bLoopNotFound = False;
+      #print "  Checking for loops of size: %d starting at frame %d" % (uLoopSize, uFirstLoopStartIndex);
+      uLoopCount = 0;
+      while uFirstLoopStartIndex + uLoopCount * uLoopSize < len(oStack.aoFrames):
+        uNthLoopStartIndex = uFirstLoopStartIndex + uLoopCount * uLoopSize;
         for uFrameIndexInLoop in xrange(uLoopSize):
-#          print "      Frame number: %d" % uFrameIndexInLoop;
           oFirstLoopFrameAtIndex = oStack.aoFrames[uFirstLoopStartIndex + uFrameIndexInLoop];
-          oNthLoopFrameAtIndex = oStack.aoFrames[uLoopStartIndex + uFrameIndexInLoop];
-#          print "        %s %s %s " % (oFirstLoopFrameAtIndex.sAddress, \
-#              oFirstLoopFrameAtIndex.sAddress == oNthLoopFrameAtIndex.sAddress and "==" or "!=", oNthLoopFrameAtIndex.sAddress);
+          oNthLoopFrameAtIndex = oStack.aoFrames[uNthLoopStartIndex + uFrameIndexInLoop];
+          #print "    %d %s %s %d %s " % (
+          #  uFirstLoopStartIndex + uFrameIndexInLoop, oFirstLoopFrameAtIndex.sAddress, \
+          #  oFirstLoopFrameAtIndex.sAddress == oNthLoopFrameAtIndex.sAddress and "==" or "!=",
+          #  uNthLoopStartIndex + uFrameIndexInLoop, oNthLoopFrameAtIndex.sAddress
+          #);
           if oFirstLoopFrameAtIndex.sAddress != oNthLoopFrameAtIndex.sAddress:
-#            print "      LOOP FRAME MISMATCH";
-            bLoopNotFound = True;
             break;
-        if bLoopNotFound:
-#          print "      LOOP REPEAT MISMATCH";
-          break;
-      else:
-        bLoopFound = True;
-        # A loop was found in the stack
-        # Obviously a loop has no end and the stack will not be complete so the start of the loop may be unknown. This
-        # means there is no obvious way to decide which of the functions involved in the loop is the first or last.
-        # In order to create a stack id and to compare two loops, a way to pick a frame as the "first" in the loop
-        # is needed that will yield the same results every time. This is currently done by creating a strings
-        # concatinating the simplified addresses of all frames in order for each possible "first" frame.
-        duStartOffset_by_sSimplifiedAddresses = {};
-        for uStartOffset in xrange(uLoopSize):
-          sSimplifiedAddresses = "".join([
-            oStack.aoFrames[uFirstLoopStartIndex + uStartOffset + uIndex].sSimplifiedAddress or "(unknown)"
-            for uIndex in xrange(0, uLoopSize)
-          ]);
-          duStartOffset_by_sSimplifiedAddresses[sSimplifiedAddresses] = uStartOffset;
-        # These strings are now sorted alphabetically and the first one is picked.
-        sFirstSimplifiedAddresses = sorted(duStartOffset_by_sSimplifiedAddresses.keys())[0];
-        # The associated start offset is added to the start index of the first loop.
-        uStartOffset = duStartOffset_by_sSimplifiedAddresses[sFirstSimplifiedAddresses];
-        uFirstLoopStartIndex += uStartOffset;
-        # All top frames up until the "first" frame in the first loop are hidden:
-        for oHiddenFrame in oStack.aoFrames[:uFirstLoopStartIndex]:
-          oHiddenFrame.bIsHidden = True;
-        # All frames in the loop are part of the hash:
-        oStack.uHashFramesCount = uLoopSize;
-        # The bug id and description are adjusted to explain the recursive function call as its cause.
-        oBugReport.sBugTypeId = "RecursiveCall";
-        if uLoopSize == 1:
-          oBugReport.sBugDescription = "A recursive function call exhausted available stack memory";
         else:
-          oBugReport.sBugDescription = "A recursive function call involving %d functions exhausted available stack memory" % uLoopSize;
+          uLoopCount += 1;
+          #if uLoopCount == 1:
+          #  print "      Found a loop of %d frames repeated once starting at frame %d." % (uLoopSize, uFirstLoopStartIndex);
+          #else:
+          #  print "      Found a loop of %d frames repeated %d times starting at frame %d." % (uLoopSize, uLoopCount, uFirstLoopStartIndex);
+          continue;
+        # No more loops
         break;
-    if bLoopFound:
-      break;
-    uFirstLoopStartIndex += 1;
+      if uLoopCount < dxConfig["uMinStackRecursionLoops"]:
+        pass; #print "  - Not enough loops found";
+      elif uRecursionLoopCount is not None and uLoopCount * uLoopSize <= uRecursionLoopCount * uRecursionLoopSize:
+        pass; #print "  - Loops contain less frames than or as many frames as best recursion found so far.";
+        # We found enough loops to assume this is a stack recursion issue and this loop includes more frames than
+        # any loop we have found so far, so this is a better result.
+      else:
+        # print "  + Found a new best recursion!";
+        uRecursionStartIndex = uFirstLoopStartIndex;
+        uRecursionLoopSize = uLoopSize;
+        uRecursionLoopCount = uLoopCount;
+  if uRecursionStartIndex is not None:
+    # Enough loops were found in the stack to assume this is a recursive function call
+    # Obviously a loop has no end and the stack will not be complete so the start of the loop may be unknown. This
+    # means there is no obvious way to decide which of the functions involved in the loop is the first or last.
+    # In order to create a stack id and to compare two loops, a way to pick a frame as the "first" in the loop
+    # is needed that will yield the same results every time. This is currently done by creating a strings
+    # concatinating the simplified addresses of all frames in order for each possible "first" frame.
+    duStartOffset_by_sSimplifiedAddresses = {};
+    for uStartOffset in xrange(uRecursionLoopSize):
+      sSimplifiedAddresses = "".join([
+        oStack.aoFrames[uRecursionStartIndex + uStartOffset + uIndex].sSimplifiedAddress or "(unknown)"
+        for uIndex in xrange(0, uRecursionLoopSize)
+      ]);
+      duStartOffset_by_sSimplifiedAddresses[sSimplifiedAddresses] = uStartOffset;
+    # These strings are now sorted alphabetically and the first one is picked.
+    sFirstSimplifiedAddresses = sorted(duStartOffset_by_sSimplifiedAddresses.keys())[0];
+    # The associated start offset is added to the start index of the first loop.
+    uStartOffset = duStartOffset_by_sSimplifiedAddresses[sFirstSimplifiedAddresses];
+    uRecursionStartIndex += uStartOffset;
+    # Hide all frames at the top of the stack up until the first loop, and mark all frames in the loop as being
+    # part of the BugId:
+    for oFrame in oStack.aoFrames:
+      if oFrame.uIndex < uRecursionStartIndex:
+        # All top frames up until the "first" frame in the first loop are hidden:
+        oFrame.sIsHiddenBecause = "This call is not part of the detected recursion loops";
+        oFrame.bIsPartOfId = False;
+      elif oFrame.uIndex < uRecursionStartIndex + uRecursionLoopSize:
+        # All frames in the loop are part of the hash if they are not inline frames and have an id:
+        oFrame.bIsPartOfId = not oFrame.bIsInline and oFrame.sId is not None;
+      else:
+        # All frames after the loop are not part of the hash.
+        oFrame.bIsPartOfId = False;
+    # The bug id and description are adjusted to explain the recursive function call as its cause.
+    oBugReport.sBugTypeId = "RecursiveCall";
+    if uRecursionLoopSize == 1:
+      oBugReport.sBugDescription = "A recursive function call exhausted available stack memory";
+    else:
+      oBugReport.sBugDescription = "A recursive function call involving %d functions exhausted available stack memory" % uRecursionLoopSize;
   return oBugReport;

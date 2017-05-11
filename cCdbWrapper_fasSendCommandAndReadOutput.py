@@ -33,28 +33,25 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
         and not bShowOnlyCommandOutput
       )
     ) 
-  if dxConfig["bOutputStdIn"]:
-    print "cdb<%s" % repr(sCommand)[1:-1];
   if bIgnoreOutput:
     bUseMarkers = False;
-  else:
+  elif bUseMarkers:
     sCommand = " ".join([s.rstrip(";") + ";" for s in [
       sPrintStartMarkerCommand, sCommand, sPrintEndMarkerCommand
     ]]);
+  if dxConfig["bOutputStdIO"]:
+    print "cdb<%s" % repr(sCommand)[1:-1];
+  if oCdbWrapper.bGenerateReportHTML and not bIgnoreOutput:
+    oCdbWrapper.sCdbIOHTML += "<hr/>";
+    if bAddCommandToHTML:
+      # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
+      oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
+      oCdbWrapper.sPromptHTML = None;
   try:
     oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
   except Exception, oException:
     oCdbWrapper.bCdbRunning = False;
     raise cCdbStoppedException();
-  if oCdbWrapper.bGenerateReportHTML and oCdbWrapper.asCdbStdIOBlocksHTML is not None:
-    if bAddCommandToHTML:
-      # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
-      oCdbWrapper.asCdbStdIOBlocksHTML[-1] += "<span class=\"CDBCommand\">%s</span><br/>" % \
-          oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
-    else:
-      # Remove the second to last output block: it contains the cdb prompt that is linked to this command and thus it
-      # has become irrelevant.
-      oCdbWrapper.asCdbStdIOBlocksHTML.pop(-1);
   # The following command will always add a new output block with the new cdb prompt, regardless of bDoNotSaveIO.
   return oCdbWrapper.fasReadOutput(
     bOutputIsInformative = bOutputIsInformative,

@@ -22,12 +22,6 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oCdb
     oBugReport.sBugDescription = "A Windows Run-Time Originate error was thrown with error code %X and message %s." % \
         (hResult, json.dumps(sMessage));
     oBugReport.sSecurityImpact = "The security impact of this type of vulnerability is unknown";
-    # The RoOriginateError error call and anything it calls is not relevant or unique to this bug and should be hidden:
-    oBugReport.oStack.fbTopFramesMatchSymbols([
-      "kernelbase.dll!RaiseException",
-      "combase.dll!SendReport",
-      "combase.dll!RoOriginateError",
-    ], bHideIfMatched = True)
   else:
     # This is not a bug, but we want to show the message:
     oBugReport.sBugTypeId = None;

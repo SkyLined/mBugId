@@ -5,8 +5,8 @@ dxConfig = {
   "sCdbBinaryPath_x86": dsCdbBinaryPath_sISA.get("x86"),
   "sCdbBinaryPath_x64": dsCdbBinaryPath_sISA.get("x64"),
   ### Console output
-  "bOutputStdIn": False,                # Output cdb input (commands) send to cdb while debugging application
-  "bOutputStdOut": False,               # Output cdb output while debugging application
+  "bOutputStdIO": False,                # Output cdb input and output (commands send to cdb while debugging application
+                                        # and their output returned by cdb).
   "bOutputStdErr": True,                # Output cdb error output, which probably comes from the debugged application.
   "bOutputFirstChanceExceptions": False, # Are first chance exceptions detected and output?
   "bOutputCommandLine": False,          # Is the cbd.exe command line printed before execution?

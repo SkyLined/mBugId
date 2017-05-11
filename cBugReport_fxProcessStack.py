@@ -7,76 +7,90 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
   if oCdbWrapper.bGenerateReportHTML:
     asHTML = [];
     asNotesHTML = [];
-  asStackFrameIds = [];
-  aoRelevantStackFrames = [];
+  aoStackFramesPartOfId = [];
+  # If no frames have been marked as part of the id, mark as many as the default settings request:
+  bCanBeHidden = True;
+  bIdFramesMarked = False;
+  for oStackFrame in oBugReport.oStack.aoFrames:
+    if oStackFrame.sIsHiddenBecause is not None:
+      assert bCanBeHidden, \
+        "Cannot have a hidden frame after a non-hidden frame";
+      assert not oStackFrame.bIsPartOfId, \
+        "Cannot have a hidden frame that is part of the id";
+    else:
+      bCanBeHidden = False;
+    if oStackFrame.bIsPartOfId:
+      bIdFramesMarked = True;
+  if not bIdFramesMarked:
+    # Mark up to `uStackHashFramesCount` frames as part of the id
+    uFramesToBeMarkedCount = dxConfig["uStackHashFramesCount"];
+    for oStackFrame in oBugReport.oStack.aoFrames:
+      if uFramesToBeMarkedCount == 0:
+        break;
+      if oStackFrame.sIsHiddenBecause is None and oStackFrame.sId:
+        oStackFrame.bIsPartOfId = True;
+        uFramesToBeMarkedCount -= 1;
+  
   for oStackFrame in oBugReport.oStack.aoFrames:
     if oCdbWrapper.bGenerateReportHTML:
-      sOptionalHashHTML = "";
-      sOptionalSourceHTML = "";
+      asFrameHTMLClasses = ["StackFrame"];
+      asFrameNotesHTML = [];
+      sOptionalSourceHTML = None;
       if oStackFrame.sSourceFilePath:
         sSourceFilePathAndLineNumber = "%s @ %d" % (oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
         sSourceCodeLinkURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
         if sSourceCodeLinkURL:
-          sOptionalSourceHTML = " <span class=\"StackSource\">[<a href=\"%s\" target=\"_blank\">%s</a>]</span>" % \
+          sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % \
               (oCdbWrapper.fsHTMLEncode(sSourceCodeLinkURL), oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber));
         else:
-          sOptionalSourceHTML = " <span class=\"StackSource\">[%s]</span>" % \
+          sOptionalSourceHTML = "[%s]" % \
               oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
-    if oStackFrame.bIsHidden:
-      # This frame is hidden (because it is irrelevant to the crash)
-      if oCdbWrapper.bGenerateReportHTML:
-        asAddressClasses = ["StackFrameIgnored"];
-    else:
-      if oCdbWrapper.bGenerateReportHTML:
-        asAddressClasses = [oStackFrame.oFunction and "StackFrameAddress" or "StackFrameNoSymbol"];
-        if len(asStackFrameIds) < oBugReport.oStack.uHashFramesCount and oStackFrame.sId:
-          asAddressClasses.append("Important");
-      # Hash frame address for id and output frame to html
-      if len(asStackFrameIds) < oBugReport.oStack.uHashFramesCount:
-        aoRelevantStackFrames.append(oStackFrame);
-        if oStackFrame.sId:
-          asStackFrameIds.append(oStackFrame.sId);
-          if oCdbWrapper.bGenerateReportHTML:
-            # frame adds useful information to the id: add hash and output bold
-            sOptionalHashHTML = " <span class=\"StackFrameHash\">(id: %s)</span>" % \
-                oCdbWrapper.fsHTMLEncode(oStackFrame.sId);
     if oCdbWrapper.bGenerateReportHTML:
-      sAddressHTML = "<span class=\"%s\">%s</span>" % \
-          (" ".join(asAddressClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress));
-      asHTML.append(sAddressHTML + sOptionalHashHTML + sOptionalSourceHTML);
-  if len(asStackFrameIds) > dxConfig["uStackHashFramesCount"]:
-    # For certain bugs, such as recursive function calls, ids may have been generated for more functions than the value
-    # in uStackHashFramesCount. In this case, the last ids are hashes into one id to reduce the number of hashes:
+      if oStackFrame.bIsInline:
+        # This frame is hidden (because it is irrelevant to the crash)
+          asFrameHTMLClasses.append("StackFrameInline");
+          asFrameNotesHTML.append("inlined function");
+      if oStackFrame.sIsHiddenBecause is not None:
+        # This frame is hidden (because it is irrelevant to the crash)
+          asFrameHTMLClasses.append("StackFrameHidden");
+          asFrameNotesHTML.append(oCdbWrapper.fsHTMLEncode(oStackFrame.sIsHiddenBecause));
+      if oStackFrame.bIsPartOfId:
+          asFrameHTMLClasses.append("StackFramePartOfId");
+          asFrameNotesHTML.append("id: %s" % oCdbWrapper.fsHTMLEncode(oStackFrame.sId));
+      if not oStackFrame.oFunction:
+        asFrameHTMLClasses.append("StackFrameWithoutSymbol");
+        asFrameNotesHTML.append("no function symbol available");
+    if oStackFrame.bIsPartOfId:
+      aoStackFramesPartOfId.append(oStackFrame);
+    if oCdbWrapper.bGenerateReportHTML:
+      asHTML.append(" ".join([s for s in [
+        "<span class=\"%s\">%s</span>" % (" ".join(asFrameHTMLClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress)),
+        asFrameNotesHTML and "<span class=\"StackFrameNotes\">(%s)</span>" % ", ".join(asFrameNotesHTML),
+        sOptionalSourceHTML and "<span class=\"StackFrameSource\">[%s]</span>" % sOptionalSourceHTML,
+      ] if s]));
+  # Get the stack ids:
+  asStackIds = [oStackFrame.sId for oStackFrame in aoStackFramesPartOfId];
+  if len(asStackIds) > dxConfig["uStackHashFramesCount"]:
+    # There are too many stack hashes: concatinate all excessive hashes togerther with the last non-excessive one and
+    # hash them again. This new has replaces them, bringing the number of hashes down to the maximum number. The last
+    # hash is effectively a combination of all these hashes, guaranteeing a certain level of uniqueness.
+    sExcessIds = "";
+    while len(asStackIds) >= dxConfig["uStackHashFramesCount"]:
+      sExcessIds = asStackIds.pop() + sExcessIds;
     oHasher = hashlib.md5();
-    asCombinedIds = [];
-    while len(asStackFrameIds) >= dxConfig["uStackHashFramesCount"]:
-      sId = asStackFrameIds.pop();
-      asCombinedIds.append(sId);
-      oHasher.update(sId);
-    sCombinedId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
-    asStackFrameIds.append(sCombinedId);
-    if oCdbWrapper.bGenerateReportHTML:
-      asNotesHTML += ["The stack frames with ids %s and %s where combined into one id %s." % \
-          (", ".join(asCombinedIds[:-1]), asCombinedIds[-1], sCombinedId)];
-  oBugReport.sStackId = ".".join([s for s in asStackFrameIds]);
+    oHasher.update(sExcessIds);
+    asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
+  oBugReport.sStackId = ".".join(asStackIds);
   # Get the bug location.
   oBugReport.sBugLocation = "(unknown)";
-  for oRelevantStackFrame in aoRelevantStackFrames:
-    # Find the first stack frame with an address we can show the user:
-    if oRelevantStackFrame.sSimplifiedAddress:
-      oBugReport.sBugLocation = oRelevantStackFrame.sSimplifiedAddress;
-      if (
-        oBugReport.oProcess and (
-          not oRelevantStackFrame.oModule or
-          oRelevantStackFrame.oModule != oBugReport.oProcess.oMainModule
-        )
-      ):
-        # Exception happened in a module, not the process' binary: add process' binary name:
-        oBugReport.sBugLocation = "%s!%s" % (oBugReport.oProcess.sBinaryName, oBugReport.sBugLocation);
-      if oRelevantStackFrame.sSourceFilePath:
-        oBugReport.sBugSourceLocation = "%s @ %d" % \
-            (oRelevantStackFrame.sSourceFilePath, oRelevantStackFrame.uSourceFileLineNumber);
-      break;
+  if aoStackFramesPartOfId:
+    oTopIdStackFrame = aoStackFramesPartOfId[0];
+    oBugReport.sBugLocation = oTopIdStackFrame.sSimplifiedAddress;
+    if oBugReport.oProcess and oTopIdStackFrame.oModule != oBugReport.oProcess.oMainModule:
+      # Exception did not happen in the process' binary: add process' binary name to the location:
+      oBugReport.sBugLocation = "%s!%s" % (oBugReport.oProcess.sBinaryName, oBugReport.sBugLocation);
+    if oTopIdStackFrame.sSourceFilePath:
+      oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
   if oCdbWrapper.bGenerateReportHTML:
     if oBugReport.oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
@@ -86,4 +100,4 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
     ]);
   else:
     sHTML = None;
-  return aoRelevantStackFrames, sHTML;
+  return aoStackFramesPartOfId, sHTML;

@@ -7,7 +7,6 @@ from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
-from cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess import cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
 from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
@@ -22,33 +21,34 @@ from sOSISA import sOSISA;
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
-    sCdbISA = None, # Which version of cdb should be used to debug this application? ("x86" or "x64")
-    asApplicationCommandLine = None,
-    auApplicationProcessIds = None,
-    asLocalSymbolPaths = None,
-    asSymbolCachePaths = None, 
-    asSymbolServerURLs = None,
-    dsURLTemplate_by_srSourceFilePath = None,
-    rImportantStdOutLines = None,
-    rImportantStdErrLines = None,
-    bGenerateReportHTML = False,
-    fFailedToDebugApplicationCallback = None, # called when the application cannot be started by the debugger, or the
+    sCdbISA,                                  # Which version of cdb should be used to debug this application? ("x86" or "x64")
+    asApplicationCommandLine,
+    auApplicationProcessIds,
+    asLocalSymbolPaths,
+    asSymbolCachePaths, 
+    asSymbolServerURLs,
+    dsURLTemplate_by_srSourceFilePath,
+    rImportantStdOutLines,
+    rImportantStdErrLines,
+    bGenerateReportHTML,        
+    fFailedToDebugApplicationCallback,        # called when the application cannot be started by the debugger, or the
                                               # debugger cannot attach to the given process ids. Arguments:
                                               # (oBugId, sErrorMessage).
-    fApplicationRunningCallback = None,       # called when the application is started in the debugger, or the
+    fApplicationRunningCallback,              # called when the application is started in the debugger, or the
                                               # processes the debugger attached to have been resumed.
-    fApplicationSuspendedCallback = None,     # called when the application is suspended to handle an exception,
+    fApplicationSuspendedCallback,            # called when the application is suspended to handle an exception,
                                               # timeout or breakpoint.
-    fApplicationResumedCallback = None,       # called after the application was suspended, right before the
+    fApplicationResumedCallback,              # called after the application was suspended, right before the
                                               # application is resumed again.
-    fMainProcessTerminatedCallback = None,    # called when (any of) the application's "main" processes terminate.
+    fMainProcessTerminatedCallback,           # called when (any of) the application's "main" processes terminate.
                                               # When BugId starts an application, the first process created is the main
                                               # process. When BugId to attaches to one or more processes, these are the
                                               # main processes. This callback is not called when any child processes
                                               # spawned by these main processes terminate.
-    fInternalExceptionCallback = None,        # called when there is a bug in BugId itself.
-    fPageHeapNotEnabledCallback = None,       # called when page heap is not enabled for a particular binary.
-    fFinishedCallback = None,                 # called when BugId is finished.
+    fInternalExceptionCallback,               # called when there is a bug in BugId itself.
+    fFinishedCallback,                        # called when BugId is finished.
+    fPageHeapNotEnabledCallback,              # called when page heap is not enabled for a particular binary.
+    fStdErrOutputCallback,                    # called whenever there is output on stderr
   ):
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
@@ -62,8 +62,9 @@ class cCdbWrapper(object):
     oCdbWrapper.fApplicationResumedCallback = fApplicationResumedCallback;
     oCdbWrapper.fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
     oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
-    oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     oCdbWrapper.fFinishedCallback = fFinishedCallback;
+    oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
+    oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
     uSymbolOptions = sum([
       0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -112,8 +113,6 @@ class cCdbWrapper(object):
     sSymbolsPath = ";".join(asLocalSymbolPaths + ["cache*%s" % x for x in asSymbolCachePaths] + ["srv*%s" % x for x in asSymbolServerURLs]);
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
-    # Cache which binaries have page heap enabled. Used by cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess
-    oCdbWrapper.asBinaryNamesWithPageHeapEnabled = [];
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
@@ -139,7 +138,8 @@ class cCdbWrapper(object):
     # Initialize some variables
     oCdbWrapper.sCurrentISA = None; # During exception handling, this is set to the ISA for the code that caused it.
     if bGenerateReportHTML:
-      oCdbWrapper.asCdbStdIOBlocksHTML = [""]; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
+      oCdbWrapper.sCdbIOHTML = ""; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
+      oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.
     oCdbWrapper.oBugReport = None; # Set to a bug report if a bug was detected in the application
     oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
@@ -358,6 +358,3 @@ class cCdbWrapper(object):
   
   def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fEnsurePageHeapIsEnabledInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fEnsurePageHeapIsEnabledInCurrentProcess(oCdbWrapper, *axArguments, **dxArguments);

@@ -8,7 +8,7 @@ import threading;
       ,,,       dP     \,-` `-<`    Yb _&/                                      
      :O()      ,S`  \,' \      \    `Sis|ssssssssssssssssss,        ,,,         
       ```      (S   (   | --====)    SSS|SSSSSSSSSSSSSSSSSSD        ()O:        
-               'S,  /', /      /     S?*/******************'        ```         
+               'S,  /', /      /    ,S?*/******************'        ```         
                 Yb    _/'-_ _-<._   dP `                                        
   _______________YS,       |      ,SP_________________________________________  
                   `Sbs,_      _,sdS`                                            
@@ -68,6 +68,7 @@ class cBugId(object):
     fInternalExceptionCallback = None,
     fFinishedCallback = None,
     fPageHeapNotEnabledCallback = None,
+    fStdErrOutputCallback = None,
   ):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
     # This event is used by the fWait function to wait for the process to
@@ -80,11 +81,10 @@ class cBugId(object):
     oBugId.__fInternalExceptionCallback = fInternalExceptionCallback;
     oBugId.__fFinishedCallback = fFinishedCallback;
     oBugId.__fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
+    oBugId.__fStdErrOutputCallback = fStdErrOutputCallback;
     
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
-    # If debugging fails, this is set to a string that describes the reason why:
-    oBugId.sFailedToDebugApplicationErrorMessage = None;
     # If a bug was found, this is set to the bug report:
     oBugId.oBugReport = None;
     # Run the application in a debugger and catch exceptions.
@@ -107,6 +107,7 @@ class cBugId(object):
       fInternalExceptionCallback = oBugId.__fInternalExceptionHandler,
       fFinishedCallback = oBugId.__fFinishedHandler,
       fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledHandler,
+      fStdErrOutputCallback = oBugId.__fStdErrOutputHandler,
     );
   
   def fStart(oBugId):
@@ -149,19 +150,19 @@ class cBugId(object):
   
   # Wrap all callbacks to provide this cBugId instance as the first argument.
   def __fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
-    # Save error message if application cannot be debugged.
-    oBugId.sFailedToDebugApplicationErrorMessage = sErrorMessage;
     oBugId.__oFinishedEvent.set();
-    if oBugId.__fFailedToDebugApplicationCallback:
-      oBugId.__fFailedToDebugApplicationCallback(oBugId, sErrorMessage);
+    # This error must be handled, or an assertion is thrown
+    assert oBugId.__fFailedToDebugApplicationCallback, sErrorMessage;
+    oBugId.__fFailedToDebugApplicationCallback(oBugId, sErrorMessage);
+    
   
   def  __fApplicationRunningHandler(oBugId):
     if oBugId.__fApplicationRunningCallback:
       oBugId.__fApplicationRunningCallback(oBugId);
   
-  def  __fApplicationSuspendedHandler(oBugId):
+  def  __fApplicationSuspendedHandler(oBugId, sReason):
     if oBugId.__fApplicationSuspendedCallback:
-      oBugId.__fApplicationSuspendedCallback(oBugId);
+      oBugId.__fApplicationSuspendedCallback(oBugId, sReason);
   
   def  __fApplicationResumedHandler(oBugId):
     if oBugId.__fApplicationResumedCallback:
@@ -194,3 +195,7 @@ class cBugId(object):
       # This is fatal if it's preventable and there is no callback handler
       assert not bPreventable, \
         "Full page heap is not enabled for %s in process %d/0x%X." % (sBinaryName, uProcessId, uProcessId);
+  
+  def __fStdErrOutputHandler(oBugId, sOutput):
+    if oBugId.__fStdErrOutputCallback:
+      oBugId.__fStdErrOutputCallback(oBugId, sOutput);

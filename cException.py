@@ -205,16 +205,14 @@ class cException(object):
           else:
             raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
         # Under all circumstances one expects there to be a stack frame for the exception (i.e. the stack frame has
-        # the same uInstructionPointer as the exception). There may be stack frames above it that were used to trigger
-        # the exception ((e.g. ntdll!RaiseException) but these are not relevant to the bug and can be hidden.
+        # the same uInstructionPointer as the exception).
         # We need to special case int3 breakpoints: the exception happens at the int3 instruction, but the first stack
-        # frame should point to the instruction immediately following it (one byte higher).
+        # frame should point to the instruction immediately following it (address + 1).
         bInt3 = bExceptionOffByOne and oException.uInstructionPointer + 1 == oStack.aoFrames[0].uInstructionPointer
         if not bInt3:
           for oFrame in oStack.aoFrames:
             if oFrame.uInstructionPointer == oException.uInstructionPointer:
               break;
-            oFrame.bIsHidden = True;
           else:
             raise AssertionError("The %sexception address was not found on the stack\r\n%s\r\n---\r\n%s" % (
               bExceptionOffByOne and "adjusted " or "",
