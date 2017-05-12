@@ -34,12 +34,13 @@ dfoAnalyzeException_by_uExceptionCode = {
   WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, oStack):
+  def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
     oBugReport.oProcess = oProcess;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
-    oBugReport.oStack = oStack;
+    oBugReport.uStackFramesCount = uStackFramesCount;
+    oBugReport.__oStack = None;
     oBugReport.atxMemoryRemarks = [];
     oBugReport.__dtxMemoryDumps = {};
     oBugReport.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
@@ -53,6 +54,12 @@ class cBugReport(object):
     oBugReport.sBugLocation = None;
     oBugReport.sBugSourceLocation = None;
     oBugReport.sReportHTML = None;
+  
+  @property
+  def oStack(oBugReport):
+    if oBugReport.__oStack is None:
+      oBugReport.__oStack = cStack.foCreate(oBugReport.oProcess, oBugReport.uStackFramesCount);
+    return oBugReport.__oStack;
   
   def fAddMemoryDump(oBugReport, uStartAddress, uEndAddress, sDescription):
     assert uStartAddress not in oBugReport.__dtxMemoryDumps, \
@@ -70,8 +77,7 @@ class cBugReport(object):
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
       uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
-    oStack = cStack.foCreate(oCdbWrapper.oCurrentProcess, uStackFramesCount);
-    oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, oStack, bApplicationCannotHandleException);
+    oException = cException.foCreate(oCdbWrapper, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException);
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
     if oException is None: return None;
     # Create a preliminary error report.
@@ -80,7 +86,7 @@ class cBugReport(object):
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
-      oStack = oStack,
+      uStackFramesCount = uStackFramesCount,
     );
     # Perform exception specific analysis:
     foAnalyzeException = dfoAnalyzeException_by_uExceptionCode.get(oException.uCode);
@@ -92,14 +98,13 @@ class cBugReport(object):
   @classmethod
   def foCreate(cBugReport, oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
-    oStack = cStack.foCreate(oCdbWrapper.oCurrentProcess, uStackFramesCount);
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oCdbWrapper.oCurrentProcess,
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
-      oStack = oStack,
+      uStackFramesCount = uStackFramesCount,
     );
     fApplyBugTranslationsToBugReport(oBugReport);
     return oBugReport;

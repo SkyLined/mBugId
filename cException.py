@@ -4,27 +4,6 @@ from cStowedException import cStowedException;
 from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
 from NTSTATUS import *;
 
-def fsAddressData(oStackFrameOrException):
-  return "ip=0x%X addr=%s mod=%s,%s%s func=%s%s" % (
-    oStackFrameOrException.uInstructionPointer,
-    oStackFrameOrException.uAddress is None and "-" or "0x%X" % oStackFrameOrException.uAddress,
-    oStackFrameOrException.sUnloadedModuleFileName or "-",
-    oStackFrameOrException.oModule and "%s@%s" % (
-      oStackFrameOrException.oModule.sBinaryName,
-      oStackFrameOrException.oModule.uStartAddress and "0x%X" % oStackFrameOrException.oModule.uStartAddress or "?"
-    ) or "-",
-    oStackFrameOrException.uModuleOffset and "%s0x%X" % (
-        oStackFrameOrException.uModuleOffset < 0 and "-" or "+",
-        abs(oStackFrameOrException.uModuleOffset)
-    ) or "",
-    oStackFrameOrException.oFunction and oStackFrameOrException.oFunction.sSymbol or "-",
-    oStackFrameOrException.iFunctionOffset and "%s0x%X" % (
-        oStackFrameOrException.iFunctionOffset < 0 and "-" or "+",
-        abs(oStackFrameOrException.iFunctionOffset)
-    ) or "",
-  )
-
-
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
     oException.asCdbLines = asCdbLines; # This is here merely to be able to debug issues - it is not used.
@@ -55,11 +34,10 @@ class cException(object):
     );
     
   @classmethod
-  def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, oStack, bApplicationCannotHandleException):
+  def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, bApplicationCannotHandleException):
     return cException.foCreateHelper(oCdbWrapper, 
       uCode = uCode,
       sCodeDescription = sCodeDescription,
-      oStack = oStack,
       bApplicationCannotHandleException = bApplicationCannotHandleException,
     );
 
@@ -70,12 +48,9 @@ class cException(object):
       # Or
         uCode = None,
         sCodeDescription = None,
-        oStack = None,
       # Always
       bApplicationCannotHandleException = None
   ):
-    if oStack is None:
-      oStack = cStack([]);
     assert bApplicationCannotHandleException is not None, \
         "bApplicationCannotHandleException is required!";
     asExceptionRecord = oCdbWrapper.fasSendCommandAndReadOutput(
@@ -170,53 +145,19 @@ class cException(object):
     else:
       oException.uAddress = oException.uInstructionPointer;
       sCdbSymbolOrAddress = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
-    if not oStack.aoFrames:
-      # Failed to get stack, use information from exception and the current return adderss to reconstruct the top frame.
-      uReturnAddress = oCdbWrapper.oCurrentProcess.fuGetValue("@$ra");
-      oStack.fCreateAndAddStackFrame(
-        uNumber = 0,
-        sCdbSymbolOrAddress = sCdbSymbolOrAddress,
-        uInstructionPointer = oException.uInstructionPointer, uReturnAddress = uReturnAddress,
-        uAddress = oException.uAddress,
-        sUnloadedModuleFileName = oException.sUnloadedModuleFileName,
-        oModule = oException.oModule, uModuleOffset = oException.uModuleOffset,
-        oFunction = oException.oFunction, iFunctionOffset = oException.iFunctionOffset,
-        # No source information.
-      );
-    else:
-      if oException.uCode == STATUS_WAKE_SYSTEM_DEBUGGER:
-        # This exception does not happen in a particular part of the code, and the exception address is therefore 0.
-        # Do not try to find this address on the stack.
-        pass;
+    
+    #### Work-around for a cdb bug ###############################################################################
+    # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
+    # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
+    # will be off-by-one.
+    if oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
+      oException.uInstructionPointer -= 1;
+      if oException.uAddress is not None:
+        oException.uAddress -= 1;
+      elif oException.uModuleOffset is not None:
+        oException.uModuleOffset -= 1;
+      elif oException.iFunctionOffset is not None:
+        oException.iFunctionOffset -= 1;
       else:
-        #### Work-around for a cdb bug ###############################################################################
-        # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
-        # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
-        # will be off-by-one.
-        bExceptionOffByOne = oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]
-        if bExceptionOffByOne:
-          oException.uInstructionPointer -= 1;
-          if oException.uAddress is not None:
-            oException.uAddress -= 1;
-          elif oException.uModuleOffset is not None:
-            oException.uModuleOffset -= 1;
-          elif oException.iFunctionOffset is not None:
-            oException.iFunctionOffset -= 1;
-          else:
-            raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
-        # Under all circumstances one expects there to be a stack frame for the exception (i.e. the stack frame has
-        # the same uInstructionPointer as the exception).
-        # We need to special case int3 breakpoints: the exception happens at the int3 instruction, but the first stack
-        # frame should point to the instruction immediately following it (address + 1).
-        bInt3 = bExceptionOffByOne and oException.uInstructionPointer + 1 == oStack.aoFrames[0].uInstructionPointer
-        if not bInt3:
-          for oFrame in oStack.aoFrames:
-            if oFrame.uInstructionPointer == oException.uInstructionPointer:
-              break;
-          else:
-            raise AssertionError("The %sexception address was not found on the stack\r\n%s\r\n---\r\n%s" % (
-              bExceptionOffByOne and "adjusted " or "",
-              fsAddressData(oException),
-              "\r\n".join([fsAddressData(oFrame) for oFrame in oStack.aoFrames])
-            ));
+        raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
     return oException;

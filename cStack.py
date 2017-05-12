@@ -67,6 +67,7 @@ class cStack(object):
   def foCreateFromAddress(cStack, oProcess, pAddress, uSize):
     oCdbWrapper = oProcess.oCdbWrapper;
     # Create the stack object
+    oProcess.fSelectInCdb();
     uStackFramesCount = min(dxConfig["uMaxStackFramesCount"], uSize);
     asStack = oCdbWrapper.fasGetStack("dps 0x%X L0x%X" % (pAddress, uStackFramesCount + 1));
     if not asStack: return None;
@@ -114,9 +115,10 @@ class cStack(object):
   @classmethod
   def foCreate(cStack, oProcess, uStackFramesCount):
     oCdbWrapper = oProcess.oCdbWrapper;
+    oProcess.fSelectInCdb();
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    InstructionPointer = oCdbWrapper.fuGetValue("@$ip");
+    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip");
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
@@ -139,7 +141,7 @@ class cStack(object):
         "Could not allocate memory for stack trace"
       ], "Unknown stack header: %s\r\n%s" % (repr(asStackOutput[0]), "\r\n".join(asStackOutput));
       oStack = cStack();
-      uFrameInstructionPointer = InstructionPointer;
+      uFrameInstructionPointer = uInstructionPointer;
       uFrameIndex = 0;
       for sLine in asStackOutput[1:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
