@@ -9,7 +9,9 @@ dsTip_by_sErrorCode = {
   "NTSTATUS 0xC000010A": "The process was terminated before the debugger could attach",
 };
 
-rAlwaysIgnoredLines = re.compile("^(%s)$" % "|".join([
+# This will be output right in the middle of a line. Luckily it ends with a CRLF, so we can remove it from
+# the output and reconstruct the line as it would have been without this cruft.
+rAlwaysIgnoredCdbOutputLine = re.compile("^(.*)(%s)$" % "|".join([
   r"\*\*\* ERROR: Symbol file could not be found.  Defaulted to export symbols for .*",
   r"\*\*\* WARNING: Unable to verify checksum for .*",
 ]));
@@ -71,6 +73,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             sErrorMessage += "\r\n" + dsTip_by_sErrorCode[sErrorCode];
           oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
           oCdbWrapper.fStop();
+        bConcatinateReturnedLineToNext = False;
         if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
           # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
           # first chance C++ exception happens. These lines are clutter and MSIE outputs a lot of them, so they are
@@ -78,14 +81,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           # chance exceptions.
           pass; 
         elif not bIgnoreOutput:
-          if bAddOutputToHTML:
-            sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
-            sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
-            # Add the line to the current block of I/O
-            oCdbWrapper.sCdbIOHTML += sLineHTML;
-            # Optionally add the line to the important output
-            if bAddImportantLinesToHTML and oCdbWrapper.rImportantStdOutLines.match(sLine):
-              oCdbWrapper.sImportantOutputHTML += sLineHTML;
           asLines.append(sLine);
           # Strip useless symbol warnings and errors:
           if sIgnoredLine is not None:
@@ -97,22 +92,44 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
 #                print "IGNORED %s" % repr(sIgnoredLine);
 #              else:
 #                print "IGNORED %s in %s" % (repr(sIgnoredLine), repr(sLine));
+            if sIgnoredLine and bAddOutputToHTML:
+              sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
+              sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
+              # Add the line to the current block of I/O
+              oCdbWrapper.sCdbIOHTML += sLineHTML;
+              # Optionally add the line to the important output
+              if bAddImportantLinesToHTML and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine):
+                oCdbWrapper.sImportantOutputHTML += sLineHTML;
             if bStartOfCommandOutput:
               sReturnedLine = ""; # Start collecting lines to return to the caller.
               sIgnoredLine = None; # Stop ignoring lines
               sStartOfCommandOutputMarker = None; # Stop looking for the marker.
           else:
-            bEndOfCommandOutput = sEndOfCommandOutputMarker and sReturnedLine.endswith(sEndOfCommandOutputMarker);
-            if bEndOfCommandOutput:
-              sReturnedLine = sReturnedLine[:-len(sEndOfCommandOutputMarker)]; # Remove the marker from the line;
-            if sReturnedLine:
-              if not rAlwaysIgnoredLines.match(sReturnedLine):
+            oIgnoredCdbOutputLine = rAlwaysIgnoredCdbOutputLine.match(sReturnedLine);
+            if oIgnoredCdbOutputLine:
+              # Some cruft got injected into the line; remove it and pretend that it was output before the line:
+              sReturnedLine, sCruft = oIgnoredCdbOutputLine.groups();
+              if bAddOutputToHTML:
+                sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
+                # Add the line to the current block of I/O
+                oCdbWrapper.sCdbIOHTML += sLineHTML;
+                # Optionally add the line to the important output
+                if bAddImportantLinesToHTML and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine):
+                  oCdbWrapper.sImportantOutputHTML += sLineHTML;
+              # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
+              # this line and the next line:
+              bConcatinateReturnedLineToNext = True;
+              bEndOfCommandOutput = False;
+            else:
+              bEndOfCommandOutput = sEndOfCommandOutputMarker and sReturnedLine.endswith(sEndOfCommandOutputMarker);
+              if bEndOfCommandOutput:
+                sReturnedLine = sReturnedLine[:-len(sEndOfCommandOutputMarker)]; # Remove the marker from the line;
+              if sReturnedLine:
+                if bAddOutputToHTML:
+                  sLineHTML = "<span class=\"CDBCommandResult\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
+                  # Add the line to the current block of I/O
+                  oCdbWrapper.sCdbIOHTML += sLineHTML;
                 asReturnedLines.append(sReturnedLine);
-#              else:
-#                if sReturnedLine == sLine:
-#                  print "IGNORED %s" % repr(sReturnedLine);
-#                elif sIgnoredLine:
-#                  print "IGNORED %s in %s" % (repr(sReturnedLine), repr(sLine));
             if bEndOfCommandOutput:
               sEndOfCommandOutputMarker = None; # Stop looking for the marker.
               sReturnedLine = None; # Stop collecting lines to return to the caller.
@@ -122,10 +139,10 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         raise cCdbStoppedException();
       sLine = "";
       if not bIgnoreOutput:
-        if sReturnedLine is not None:
-          sReturnedLine = "";
-        else:
+        if sIgnoredLine is not None:
           sIgnoredLine = "";
+        elif not bConcatinateReturnedLineToNext:
+          sReturnedLine = "";
     else:
       sLine += sChar;
       if not bIgnoreOutput:

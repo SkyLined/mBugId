@@ -137,12 +137,17 @@ sReportHTMLTemplate = ("""
         font-weight: bold;
         white-space: pre;
       }
+      .CDBCommandResult {
+        font-weight: bold;
+        white-space: pre;
+      }
       .CDBStdOut {
         color: grey;
         white-space: pre;
       }
       .CDBOrApplicationStdOut {
-        color: black;
+        font-weight: bold;
+        color: navy;
         white-space: pre;
       }
       .CDBStdErr {

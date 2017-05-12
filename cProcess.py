@@ -91,6 +91,10 @@ class cProcess(object):
     return oProcess.oMainModule.sBinaryName;
   
   @property
+  def sISA(oProcess):
+    return oProcess.uPointerSize == 4 and "x86" or "x64";
+  
+  @property
   def uPointerSize(oProcess):
     if oProcess.__uPointerSize is None:
       oProcess.__uPointerSize = oProcess.fuGetValue("@$ptrsize");

@@ -184,7 +184,7 @@ class cExcessiveCPUUsageDetector(object):
     asDebugOutput = oCdbWrapper.fasSendCommandAndReadOutput(
       '.printf "CPUUsage worm: %s\\r\\n"%s;' % \
           (sMessage, "".join([", 0x%X" % uArgument for uArgument in auArguments])),
-      bShowOnlyCommandOutput = True,
+      bShowCommandInHTMLReport = False,
     );
     assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
     if bDebugOutputWorm: print "@@@ %s" % asDebugOutput[0];

@@ -44,7 +44,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # when a new process is created, up to three exceptions can happen that are related this this event. In such cases
     # BugId may need to ignore all but the first such exception. to be able to ignore exceptions, a dict contains the
     # exception code of the exception to ignore for each process.
-    duIgnoreNextExceptionCode_by_uProcessId = {};
+    dauIgnoreNextExceptionCodes_by_uProcessId = {};
     # Create a list of commands to set up event handling. The default for any exception not explicitly mentioned is to
     # be handled as a second chance exception.
     asExceptionHandlingCommands = ["sxd *"];
@@ -130,12 +130,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
                 oCdbWrapper.fasSendCommandAndReadOutput("~*m; $$ Resume all threads");
               oCdbWrapper.fasSendCommandAndReadOutput(
                 '.printf "Attaching to the application is complete and all threads have been resumed.\\r\\n";',
-                bShowOnlyCommandOutput = True,
+                bShowCommandInHTMLReport = False,
               );
             else:
               oCdbWrapper.fasSendCommandAndReadOutput(
                 '.printf "Starting the application is complete.\\r\\n";',
-                bShowOnlyCommandOutput = True,
+                bShowCommandInHTMLReport = False,
               );
             oCdbWrapper.fApplicationRunningCallback();
             bAttachingToOrStartingApplication = False;
@@ -198,7 +198,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         try:
           asCdbOutput = oCdbWrapper.fasSendCommandAndReadOutput(
             "%s; $$ %s" % (sRunApplicationCommand, sRunApplicationComment),
-            bShowOnlyCommandOutput = True,
+            bShowCommandInHTMLReport = False,
             bOutputIsInformative = True,
             bOutputCanContainApplicationOutput = True,
             bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
@@ -325,12 +325,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
                 "Expected to attach to process %d, got %d" % (uPendingAttachProcessId, uProcessId);
             oCdbWrapper.fasSendCommandAndReadOutput(
               '.printf "Attached to process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-              bShowOnlyCommandOutput = True,
+              bShowCommandInHTMLReport = False,
             );
           else:
             oCdbWrapper.fasSendCommandAndReadOutput(
               '.printf "Started process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-              bShowOnlyCommandOutput = True,
+              bShowCommandInHTMLReport = False,
             );
         # Make sure child processes of the new process are debugged as well.
         oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes");
@@ -357,12 +357,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           oCdbWrapper.fMainProcessTerminatedCallback(uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName);
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "Terminated main process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-            bShowOnlyCommandOutput = True,
+            bShowCommandInHTMLReport = False,
           );
         else:
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "Terminated sub-process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-            bShowOnlyCommandOutput = True,
+            bShowCommandInHTMLReport = False,
           );
         # This event was explicitly to notify us of the terminated process; no more processing is needed.
         continue;
@@ -387,7 +387,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           "cdb was interrupted unexpectedly";
         oCdbWrapper.fasSendCommandAndReadOutput(
           '.printf "The application was interrupted to handle a timeout.\\r\\n";',
-          bShowOnlyCommandOutput = True,
+          bShowCommandInHTMLReport = False,
         );
         oCdbWrapper.uCdbBreakExceptionsPending -= 1;
         continue;
@@ -396,7 +396,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # A breakpoint was hit; fire the callback
         oCdbWrapper.fasSendCommandAndReadOutput(
           '.printf "The application hit a breakpoint.\\r\\n";',
-          bShowOnlyCommandOutput = True,
+          bShowCommandInHTMLReport = False,
         );
         fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
         fBreakpointCallback(uBreakpointId);
@@ -404,7 +404,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       ### Analyze potential bugs #######################################################################################
       oCdbWrapper.fasSendCommandAndReadOutput(
         '.printf "Analyzing unexpected exception.\\r\\n";',
-        bShowOnlyCommandOutput = True,
+        bShowCommandInHTMLReport = False,
       );
       ### Handle VERIFIER STOP #########################################################################################
       oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput);

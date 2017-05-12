@@ -16,7 +16,7 @@ sPrintEndMarkerCommand ='.printf "%s\\r\\n", %s;' % ("%c" * len(sEndOfCommandOut
 
 def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bOutputIsInformative = False,
-    bShowOnlyCommandOutput = False,
+    bShowCommandInHTMLReport = True,
     bOutputCanContainApplicationOutput = False,
     bHandleSymbolLoadErrors = True,
     bIgnoreOutput = False,
@@ -27,32 +27,30 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
   assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
   if oCdbWrapper.bGenerateReportHTML:
-    bAddCommandToHTML = oCdbWrapper.bGenerateReportHTML and (
-      dxConfig["bShowAllCdbCommandsInReport"] or (
-        (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"])
-        and not bShowOnlyCommandOutput
-      )
+    bAddCommandToHTML = (
+      bShowCommandInHTMLReport # Always show
+      or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]) # Show if the user requests these
+      or dxConfig["bShowAllCdbCommandsInReport"] # Show if the user requests all
     ) 
+    if bAddCommandToHTML or not bIgnoreOutput:
+      oCdbWrapper.sCdbIOHTML += "<hr/>";
+    if bAddCommandToHTML:
+      # Add the command and the prompt to the output:
+      oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
+    oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
+  if dxConfig["bOutputStdIO"]:
+    print "cdb<%s" % repr(sCommand)[1:-1];
   if bIgnoreOutput:
     bUseMarkers = False;
   elif bUseMarkers:
     sCommand = " ".join([s.rstrip(";") + ";" for s in [
       sPrintStartMarkerCommand, sCommand, sPrintEndMarkerCommand
     ]]);
-  if dxConfig["bOutputStdIO"]:
-    print "cdb<%s" % repr(sCommand)[1:-1];
-  if oCdbWrapper.bGenerateReportHTML and not bIgnoreOutput:
-    oCdbWrapper.sCdbIOHTML += "<hr/>";
-    if bAddCommandToHTML:
-      # Add the command to the current output block; this block should contain only one line that has the cdb prompt.
-      oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
-      oCdbWrapper.sPromptHTML = None;
   try:
     oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
   except Exception, oException:
     oCdbWrapper.bCdbRunning = False;
     raise cCdbStoppedException();
-  # The following command will always add a new output block with the new cdb prompt, regardless of bDoNotSaveIO.
   return oCdbWrapper.fasReadOutput(
     bOutputIsInformative = bOutputIsInformative,
     bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,

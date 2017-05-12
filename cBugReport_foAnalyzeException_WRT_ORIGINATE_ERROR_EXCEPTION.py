@@ -28,6 +28,6 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oCdb
     oCdbWrapper.fasSendCommandAndReadOutput(
       '.printf "The application threw an Windows Run-Time Originate Error with HRESULT %08X:\\r\\n%%mu\\r\\n", 0x%X;' % \
           (hResult, uMessageAddress),
-      bShowOnlyCommandOutput = True,
+      bShowCommandInHTMLReport = False,
     );
   return oBugReport;

@@ -15,7 +15,7 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
   );
   oCdbWrapper.fasSendCommandAndReadOutput( \
     '.printf "Adding breakpoint %d at %%ly:\\r\\n", 0x%X;' % (uBreakpointId, uAddress),
-    bShowOnlyCommandOutput = True,
+    bShowCommandInHTMLReport = False,
   );
   asBreakpointResult = oCdbWrapper.fasSendCommandAndReadOutput("%s; $$ Set breakpoint" % sBreakpointCommand);
   oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
@@ -44,7 +44,7 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
         "Two active breakpoints at the same location is not supported";
     oCdbWrapper.fasSendCommandAndReadOutput(
       '.printf "  Breakpoint %d was recycled for this address\\r\\n";' % uBreakpointId,
-      bShowOnlyCommandOutput = True
+      bShowCommandInHTMLReport = False,
     );
   else:
     assert len(asBreakpointResult) == 0, \
@@ -65,7 +65,7 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
   # command executed when the breakpoint is hit with "gh" (go with exception handled).
   oCdbWrapper.fasSendCommandAndReadOutput(
     '.printf "Removing breakpoint %d:\\r\\n";' % uBreakpointId,
-    bShowOnlyCommandOutput = True,
+    bShowCommandInHTMLReport = False,
   );
   asClearBreakpoint = oCdbWrapper.fasSendCommandAndReadOutput('bp%d "gh"; $$ Remove breakpoint' % uBreakpointId);
   oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
