@@ -30,7 +30,7 @@ aoBugTranslations = (
 
 def fApplyBugTranslationsToBugReport(oBugReport):
   # Apply transformations until there is none that applies.
-  while 1:
+  while oBugReport.sBugTypeId is not None:
     for oBugTranslation in aoBugTranslations:
       if oBugTranslation.fbApplyToBugReport(oBugReport):
         # This bug translation was applied: restart.
