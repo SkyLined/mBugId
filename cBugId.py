@@ -34,19 +34,14 @@ for (sModule, sURL) in {
     raise;
 
 from cCdbWrapper import cCdbWrapper;
-from sVersion import sVersion;
+from oVersionInformation import oVersionInformation;
 from sOSISA import sOSISA;
 from dxConfig import dxConfig;
 
 class cBugId(object):
-  sVersion = sVersion;
+  oVersionInformation = oVersionInformation;
   sOSISA = sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
-  
-  @staticmethod
-  def fsVersionCheck(): # Expose so external script can check.
-    from fsVersionCheck import fsVersionCheck;
-    return fsVersionCheck();
   
   # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
   def __init__(oBugId,
