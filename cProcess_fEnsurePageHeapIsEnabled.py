@@ -46,35 +46,43 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   # |      NormalHeap - 5850000
   # |          HEAP_GROWABLE HEAP_CLASS_1
   ############################################################################
-  # It turns out that when a new process is created, the command sometimes does not return anything. I do not know why.
-  # A work around is to keep calling this function over and over until it does return something.
-  if not asPageHeapStatusOutput:
-    # Do not set bPageHeapEnabled.
-    print "@@@ Page heap status is UNKNOWN for %s!" % oProcess.sBinaryName;
+  # It turns out that when a new process is created, the !heap command may be unable to provide us the information we
+  # need. This is probably because the process was just created and is still being initialized, so insufficient data
+  # is available at this point. I work around this by repeatedly calling this function, so we can try again and again
+  # until it works.
+  # Find the "Active GlobalFlag bits:"-header
+  for uPageHeapOptionsIndex in xrange(len(asPageHeapStatusOutput)):
+    if asPageHeapStatusOutput[uPageHeapOptionsIndex].strip() == "Active GlobalFlag bits:":
+      break;
+  else:
+    # The header was not found, try again later:
     return;
   asRequiredOptions = ["ENABLE_PAGE_HEAP", "COLLECT_STACK_TRACES"];
-  # Find the "PageHeap enabled with options:"-header
-  for uPageHeapOptionsIndex in xrange(len(asPageHeapStatusOutput)):
-    if asPageHeapStatusOutput[uPageHeapOptionsIndex].strip() == "PageHeap enabled with options:":
-      # Extract which flags are enabled and see if all required flags are:
-      uPageHeapOptionsIndex += 1;
+  # Find the "PageHeap enabled with options:"-header and see if the required options come after it:
+  while uPageHeapOptionsIndex < len(asPageHeapStatusOutput):
+    bHeaderFound = asPageHeapStatusOutput[uPageHeapOptionsIndex].strip() == "PageHeap enabled with options:";
+    uPageHeapOptionsIndex += 1;
+    if bHeaderFound:
+      # Check the which options are reported after the header:
       asEnabledOptions = [];
       while uPageHeapOptionsIndex < len(asPageHeapStatusOutput):
         sEnabledOption = asPageHeapStatusOutput[uPageHeapOptionsIndex].strip();
         if not sEnabledOption:
+          # An empty line follow the options.
           break;
         if sEnabledOption in asRequiredOptions:
+          # Mark the required option as enabled
           asEnabledOptions.append(sEnabledOption);
         uPageHeapOptionsIndex += 1;
+      # See which required options are not enabled:
       asMissingOptions = [s for s in asRequiredOptions if s not in asEnabledOptions];
       if not asMissingOptions:
         # Page heap is enabled correctly.
         gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = True;
         oProcess.bPageHeapEnabled = True;
-#        print "@@@ Page heap status is ENABLED for %s" % oProcess.sBinaryName;
         return;
       break;
-  # Page heap is not enabled
+  # Page heap is not enabled or not all the required options are enabled
   oProcess.bPageHeapEnabled = False;
   # The "id" cdb uses to identify modules in symbols is normally based on the name of the module binary file.
   # However, for unknown reasons, cdb will sometimes use "imageXXXXXXXX", where XXXXXXXX is the hex address at
