@@ -19,7 +19,7 @@ aoBugTranslations = [
   ),
   # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW => hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[\w+\]|MisalignedFree\[\w+\].*|OOBW\[\w+\].*)$"),
+    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "ntdll.dll!RtlAllocateHeap",
