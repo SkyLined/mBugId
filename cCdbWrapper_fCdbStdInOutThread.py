@@ -143,9 +143,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           oCdbWrapper.fApplicationResumedCallback();
         ### Check if page heap is enabled in all processes if requested ################################################
         if dxConfig["bEnsurePageHeap"]:
-          for oProcess in oCdbWrapper.doProcess_by_uId.values():
+          for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
             if not oProcess.bTerminated:
               oProcess.fEnsurePageHeapIsEnabled();
+            elif uProcessId in dauIgnoreNextExceptionCodes_by_uProcessId:
+              del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
         ### Discard cached information about processes #################################################################
         for oProcess in oCdbWrapper.doProcess_by_uId.values():
           # All processes will no longer be new.
@@ -208,12 +210,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-        # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. It
-        # does apparently trigger an error that prevents subsequent commands from being executed. As a result, the 
-        # .printf that outputs the end marker is not executed and fasReadOutput throws an exception. If whatever is
-        # causing this only affects the first command executed at this point, this issue may be resolved by executing
-        # .lastevent twice and ignoring the output the first time: if you ignore the output, no markers are printed and
-        # the exception is not thrown. If you can read this, apparently it worked!
+        # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
+        # appears to be caused by an error (without an error message) as subsequent commands are not getting executed.
+        # As a result, the .printf that outputs the "end marker" is never executed and `fasReadOutput` detects this as
+        # an error in the command and throws an exception. This affects only the next command executed at this point,
+        # so we can resolve this issue by executing `.lastevent` twice: the first time we ignore the output, so the
+        # markers are not added and `fasReadOutput` does not throw an exception and the second time we execute it as
+        # normal.
         oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ dummy", bIgnoreOutput = True);
       ### An exception was detected ####################################################################################
       # Find out what event caused the debugger break
@@ -265,7 +268,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         sBreakpointId,
       ) = oEventMatch.groups();
       uProcessId = long(sProcessIdHex, 16);
-      assert not sProcessIdHex or sProcessIdHex == sProcessIdHex, \
+      assert not sCreateExitProcessIdHex or sProcessIdHex == sCreateExitProcessIdHex, \
           "This is highly unexpected";
       uExceptionCode = sExceptionCode and long(sExceptionCode, 16);
       bApplicationCannotHandleException = sChance == "second";
@@ -281,14 +284,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         else:
           sReason = "process terminated";
         oCdbWrapper.fApplicationSuspendedCallback(sReason);
-      ### See if this was an ignored exception #########################################################################
-      if uProcessId in duIgnoreNextExceptionCode_by_uProcessId:
-        if uExceptionCode == duIgnoreNextExceptionCode_by_uProcessId.pop(uProcessId):
-          oCdbWrapper.fasSendCommandAndReadOutput(
-            '.printf "This exception is ignored.\\r\\n";',
-            bShowOnlyCommandOutput = True,
-          );
-          continue;
       ### See if it was a debugger break-in for a new process that failed to load properly #############################
       if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not always get reported for the new process; see if there are any processes known to cdb
@@ -339,11 +334,29 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # same event; this exception should be ignored as we have already handled the new process.
           # This is potentially unreliable: if this exception is not thrown, but the process does trigger a
           # breakpoint for some other reason, it will be ignored. However, I have never seen that happen.
-          duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.oCurrentProcess.uId] = STATUS_BREAKPOINT;
+          dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [STATUS_BREAKPOINT];
+          if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
+            dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId].append(STATUS_WX86_BREAKPOINT);
         # This event was explicitly to notify us of the new process; no more processing is needed.
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+      ### See if this was an ignored exception #########################################################################
+      auIgnoreNextExceptionCodes = dauIgnoreNextExceptionCodes_by_uProcessId.get(uProcessId);
+      if auIgnoreNextExceptionCodes:
+        assert uExceptionCode == auIgnoreNextExceptionCodes[0], \
+          "Expected to see exception 0x%X in %s process, but got 0x%X!?" % \
+            (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryname, uExceptionCode);        
+        # Ignore this exception
+        oCdbWrapper.fasSendCommandAndReadOutput(
+          '.printf "This exception is assumed to be related to a recent process creation and therefore ignored.\\r\\n";',
+          bShowCommandInHTMLReport = False,
+        );
+        auIgnoreNextExceptionCodes.pop(0);
+        # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
+        if len(auIgnoreNextExceptionCodes) == 0:
+          del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
+        continue;
       ### Handle process termination ###################################################################################
       if sCreateExitProcess == "Exit":
         assert not bAttachingToOrStartingApplication, \
@@ -366,11 +379,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           );
         # This event was explicitly to notify us of the terminated process; no more processing is needed.
         continue;
-      # And find out if the next one should be ignored
-      if uExceptionCode == STATUS_BREAKPOINT:
-        # A breakpoint can trigger a STATUS_BREAKPOINT exception followed by a STATUS_WX86_BREAKPOINT exception. The
-        # later does not represent another event, so should be ignored.
-        duIgnoreNextExceptionCode_by_uProcessId[oCdbWrapper.oCurrentProcess.uId] = STATUS_WX86_BREAKPOINT;
       assert not bAttachingToOrStartingApplication, \
           "No exceptions are expected while attaching to or starting the application!";
       # If available, free previously allocated memory to allow analysis in low memory conditions.
