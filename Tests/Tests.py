@@ -5,11 +5,8 @@ sys.path.extend([os.path.join(sBaseFolderPath, x) for x in ["", "modules"]]);
 
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
 bDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
-uParallelTests = 32;        # Run multiple tests simultaniously. Running multiple tests in paralel can speed things up,
-                            # but there is a point where your CPU becomes the bottleneck and running more tests won't
-                            # provide additional speed. Also if you run too many tests at the same time, you may run
-                            # out of memory, causing incorrect results. 32 seems to work fine on a system with 16 Gb of
-                            # RAM and an 8 core CPU running at 4GHz and higher values do not appear to improve speed.
+uParallelTests = 2;         # Run multiple tests simultaniously. Running multiple tests in parallel should speed things
+                            # up, but for unknown reasons more than two does not get you more speed.
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
@@ -40,12 +37,14 @@ oConcurrentTestsSemaphore = None;
 class cTest(object):
   def __init__(oTest, sISA, axCommandLineArguments, sExpectedBugId, sExpectedFailedToDebugApplicationErrorMessage = None):
     oTest.sISA = sISA;
-    oTest.asCommandLineArguments = [
+    oTest.asCommandLineArguments = axCommandLineArguments and [
       isinstance(x, str) and x
                or x < 10 and ("%d" % x)
                           or ("0x%X" % x)
       for x in axCommandLineArguments
-    ];
+    ] or [];
+    oTest.sBinary = axCommandLineArguments is None and "<invalid>" or dsBinaries_by_sISA[oTest.sISA];
+    oTest.bRunInShell = isinstance(axCommandLineArguments, tuple);
     oTest.sExpectedBugId = sExpectedBugId; # Can also be a tuple of valid values (e.g. PureCall/AppExit)
     oTest.sExpectedFailedToDebugApplicationErrorMessage = sExpectedFailedToDebugApplicationErrorMessage;
     oTest.sFailedToDebugApplicationErrorMessage = None;
@@ -55,18 +54,16 @@ class cTest(object):
   
   def __str__(oTest):
     if oTest.sExpectedFailedToDebugApplicationErrorMessage:
-      return "%s =%s=> %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, repr(oTest.sExpectedFailedToDebugApplicationErrorMessage));
-    return "%s =%s=> %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, repr(oTest.sExpectedBugId));
+      return "%s => %s" % ("Running <invalid>", repr(oTest.sExpectedFailedToDebugApplicationErrorMessage));
+    return "%s on %s%s => %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, oTest.bRunInShell and " (in child process)" or "", repr(oTest.sExpectedBugId));
   
   def fRun(oTest, fErrorCallback):
     global bFailed, oOutputLock;
     oTest.fErrorCallback = fErrorCallback;
     oConcurrentTestsSemaphore.acquire();
-    if oTest.sExpectedFailedToDebugApplicationErrorMessage:
-      sBinary = "this:cannot:be:run";
-    else:
-      sBinary = dsBinaries_by_sISA[oTest.sISA];
-    asApplicationCommandLine = [sBinary] + oTest.asCommandLineArguments;
+    asApplicationCommandLine = [oTest.sBinary] + oTest.asCommandLineArguments;
+    if oTest.bRunInShell:
+      asApplicationCommandLine = [os.environ.get("ComSpec"), "/C"] + asApplicationCommandLine; 
     if bDebugStartFinish:
       oOutputLock and oOutputLock.acquire();
       oTest.bHasOutputLock = True;
@@ -82,6 +79,7 @@ class cTest(object):
         fFinishedCallback = oTest.fFinishedHandler,
         fInternalExceptionCallback = oTest.fInternalExceptionHandler,
         fFailedToDebugApplicationCallback = oTest.fFailedToDebugApplicationHandler,
+        fPageHeapNotEnabledCallback = oTest.fPageHeapNotEnabledHandler,
       );
       oTest.oBugId.fStart();
       oTest.oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
@@ -142,9 +140,9 @@ class cTest(object):
             print "  Reported:    no bug";
             bThisTestFailed = True;
           elif isinstance(oTest.sExpectedBugId, tuple) and oBugReport.sId in oTest.sExpectedBugId:
-            print "+ %s" % oTest;
+            print "+ %s == %s" % (oTest, oBugReport.sId);
           elif isinstance(oTest.sExpectedBugId, str) and oBugReport.sId == oTest.sExpectedBugId:
-            print "+ %s" % oTest;
+            print "+ %s == %s" % (oTest, oBugReport.sId);
           else:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
             print "  Test reported a different bug than expected in the application.";
@@ -160,7 +158,7 @@ class cTest(object):
           print "               %s" % (oBugReport.sBugDescription);
           bThisTestFailed = True;
         else:
-          print "+ %s" % oTest;
+          print "+ %s == None" % oTest;
         bFailed = bThisTestFailed;
         if bThisTestFailed:
           oTest.fErrorCallback();
@@ -215,6 +213,10 @@ class cTest(object):
   def fFailedToDebugApplicationHandler(oTest, oBugId, sErrorMessage):
     oTest.sFailedToDebugApplicationErrorMessage = sErrorMessage;
 
+  def fPageHeapNotEnabledHandler(oTest, oBugId, uProcessId, sBinaryName, bPreventable):
+    assert sBinaryName == "cmd.exe", \
+        "It appears you have not enabled page heap for %s, which is required to run tests." % sBinaryName;
+
 if __name__ == "__main__":
   aoTests = [];
   asArgs = sys.argv[1:];
@@ -245,13 +247,15 @@ if __name__ == "__main__":
       # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
       # Disabling symbols should speed things up considerably.
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
-    aoTests.append(cTest("x86",     [],                                                       None, \
-        'Failed to start application "this:cannot:be:run": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
+    # This will try to debug a non-existing application and check that the error thrown matches the expected value.
+    aoTests.append(cTest("x86",     None,                                                     None, \
+        'Failed to start application "<invalid>": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA,    ["Nop"],                                                  None)); # No exceptions, just a clean program exit.
-      aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.249"));
       aoTests.append(cTest(sISA,    ["Breakpoint"],                                           "Breakpoint ed2.249"));
-      aoTests.append(cTest(sISA,    ["Numbered", 0x80000003, 1],                              "Breakpoint ed2.249"));
+      # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
+      aoTests.append(cTest(sISA,    ("Breakpoint",),                                          "Breakpoint ed2.249"));
+      aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.249"));
       aoTests.append(cTest(sISA,    ["C++"],                                                 ("C++ 191.ed2", "C++:cException 191.ed2")));
       aoTests.append(cTest(sISA,    ["IntegerDivideByZero"],                                  "IntegerDivideByZero ed2.249"));
 # This test will throw a first chance integer overflow, but Visual Studio added an exception handler that then triggers
