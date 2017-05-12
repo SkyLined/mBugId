@@ -19,7 +19,7 @@ from FileSystem import FileSystem;
 from NTSTATUS import *;
 from HRESULT import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from sVersion import sVersion;
+from oVersionInformation import oVersionInformation;
 from sReportHTMLTemplate import sReportHTMLTemplate;
 
 dfoAnalyzeException_by_uExceptionCode = {
@@ -235,7 +235,7 @@ class cBugReport(object):
         "sOptionalCommandLine": oCdbWrapper.asApplicationCommandLine and \
             "<tr><td>Command line: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationCommandLine or "",
         "sBlocks": sBlocks,
-        "sBugIdVersion": sVersion,
+        "sBugIdVersion": oVersionInformation.sCurrentVersion,
       };
     
     # Remove the process object from the bug report and add the process binary name; we only provide basic types.

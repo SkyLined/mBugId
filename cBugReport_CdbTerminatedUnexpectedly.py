@@ -1,6 +1,6 @@
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from sReportHTMLTemplate import sReportHTMLTemplate;
-from sVersion import sVersion;
+from oVersionInformation import oVersionInformation;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):
@@ -21,7 +21,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sStackId = None;
     oBugReport.sBugLocation = None;
     oBugReport.sBugSourceLocation = None;
-    oBugReport.asVersionInformation = ["BugId: %s" % sVersion];
+    oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
     
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
@@ -34,7 +34,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
         "sOptionalCommandLine": "",
-        "sBugIdVersion": sVersion,
+        "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": sBlockHTMLTemplate % {
           "sName": "Application and cdb output log",
           "sCollapsed": "Collapsed",
