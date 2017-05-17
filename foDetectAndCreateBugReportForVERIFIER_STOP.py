@@ -100,7 +100,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     #   ULONG uHeapBlockSize; // The size of the heap block
     # This means we can read the address of the heap block by reading a pointer sized value at offset 4 * sizeof(PVOID).
     puHeapBlockAddress = uVerifierStopHeapBlockAddress + 4 * oCdbWrapper.oCurrentProcess.uPointerSize;
-    uHeapBlockAddress = oCdbWrapper.oCurrentProcess.fuGetValue("poi(0x%X)" % puHeapBlockAddress);
+    uHeapBlockAddress = oCdbWrapper.oCurrentProcess.fuGetValue("poi(0x%X)" % puHeapBlockAddress, "Get heap block address from verifier data");
   else:
     # In all other cases, we trust verifier to provide the correct value:
     uHeapBlockAddress = uVerifierStopHeapBlockAddress;
