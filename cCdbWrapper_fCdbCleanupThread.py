@@ -1,5 +1,5 @@
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
-from Kill import fKillProcessesUntilTheyAreDead;
+import Kill;
 
 def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
@@ -35,12 +35,12 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # also be terminated. However, it turns out that if the application terminates, cdb.exe reports that the last process
   # is terminated while that last process is still busy terminating; the process still exists according to the OS.
   if oCdbWrapper.auProcessIdsPendingDelete:
-    fKillProcessesUntilTheyAreDead(oCdbWrapper.auProcessIdsPendingDelete);
+    Kill.fKillProcessesUntilTheyAreDead(oCdbWrapper.auProcessIdsPendingDelete);
   # There have also been cases where processes associated with an application were still running after this point in
   # the code. I have been unable to determine how this could happen but in an attempt to fix this, all process ids that
   # should be terminated are killed until they are confirmed they have terminated:
   if len(oCdbWrapper.doProcess_by_uId) > 0:
-    fKillProcessesUntilTheyAreDead(oCdbWrapper.doProcess_by_uId.keys());
+    Kill.fKillProcessesUntilTheyAreDead(oCdbWrapper.doProcess_by_uId.keys());
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
   if oCdbWrapper.fFinishedCallback:
