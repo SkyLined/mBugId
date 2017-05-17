@@ -19,7 +19,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oCdbWrapper,
     for uLoopSize in xrange(1, min(uMaxLoopSize, dxConfig["uMaxStackRecursionLoopSize"])):
       #print "  Checking for loops of size: %d starting at frame %d" % (uLoopSize, uFirstLoopStartIndex);
       uLoopCount = 0;
-      while uFirstLoopStartIndex + uLoopCount * uLoopSize < len(oStack.aoFrames):
+      while uFirstLoopStartIndex + (uLoopCount + 1) * uLoopSize < len(oStack.aoFrames):
         uNthLoopStartIndex = uFirstLoopStartIndex + uLoopCount * uLoopSize;
         for uFrameIndexInLoop in xrange(uLoopSize):
           oFirstLoopFrameAtIndex = oStack.aoFrames[uFirstLoopStartIndex + uFrameIndexInLoop];
