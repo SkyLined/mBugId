@@ -148,6 +148,7 @@ sReportHTMLTemplate = ("""
       .CDBOrApplicationStdOut {
         font-weight: bold;
         color: navy;
+        background-color: rgba(255,255,0,0.3);
         white-space: pre;
       }
       .CDBStdErr {
