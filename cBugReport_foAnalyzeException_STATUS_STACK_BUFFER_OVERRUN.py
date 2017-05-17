@@ -54,7 +54,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
     oBugReport.sBugDescription = sFastFailCodeDescription;
   oBugReport.sSecurityImpact = sSecurityImpact;
   if oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
-    uStackPointer = oCdbWrapper.oCurrentProcess.fuGetValue("@$csp");
+    uStackPointer = oCdbWrapper.oCurrentProcess.fuGetValue("@$csp", "Get stack pointer");
     # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
     oBugReport.fAddMemoryDump(
       uStackPointer,
