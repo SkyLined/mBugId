@@ -24,6 +24,10 @@ aoBugTranslations = [
       ], [
         "verifier.dll!AVrfpDphReportCorruptedBlock",
       ], [
+        "verifier.dll!VerifierBreakin",
+      ], [
+        "verifier.dll!VerifierCaptureContextAndReportStop",
+      ], [
         "verifier.dll!VerifierStopMessage",
       ],
     ],

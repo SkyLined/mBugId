@@ -2,6 +2,13 @@ import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
+  # Breakpoint -> hide irrelevant frame
+  cBugTranslation(
+    sOriginalBugTypeId = "Breakpoint",
+    asOriginalTopStackFrameSymbols = [
+        "ntdll.dll!DebugBreakPoint",
+    ],
+  ),
   # Breakpoint -> HeapCorrupt
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
@@ -17,7 +24,7 @@ aoBugTranslations = [
     sTranslatedBugDescription = "A breakpoint was triggered to indicate heap corruption was detected",
     sTranslatedSecurityImpact = "This is probably an exploitable security issue",
   ),
-  # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW => hide irrelevant frames
+  # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW -> hide irrelevant frames
   cBugTranslation(
     sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
     aasAdditionalIrrelevantStackFrameSymbols = [

@@ -114,12 +114,22 @@ aoBugTranslations.append(cBugTranslation(
   asOriginalTopStackFrameSymbols = [
     "*!blink::reportFatalErrorInMainThread",
     "*!v8::Utils::ReportApiFailure",
-    "*!v8::Utils::ApiCheck",
   ],
   aasAdditionalIrrelevantStackFrameSymbols = [
     [
+      "*!v8::Utils::ApiCheck",
+    ], [
       "*!`anonymous namespace'::Create", # Part of skia
     ],
+  ],
+  sTranslatedBugTypeId = "Assert",
+  sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
+  sTranslatedSecurityImpact = None,
+));
+aoBugTranslations.append(cBugTranslation(
+  sOriginalBugTypeId = "Breakpoint",
+  asOriginalTopStackFrameSymbols = [
+    "*!logging::LogMessage::~LogMessage",
   ],
   sTranslatedBugTypeId = "Assert",
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",

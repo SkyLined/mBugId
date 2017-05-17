@@ -1,4 +1,3 @@
-import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
@@ -9,7 +8,7 @@ aoBugTranslations = [
       [
         "kernelbase.dll!RaiseException",
       ], [
-        re.compile("^.*!_CxxThrowException$"),
+        "*!_CxxThrowException",
       ],
     ],
   ),
@@ -21,31 +20,33 @@ aoBugTranslations = [
       [
         "kernelbase.dll!RaiseException",
       ], [
-        re.compile("^.*!_CxxThrowException$"),
+        "*!_CxxThrowException",
       ], [
-        re.compile("^.*!__scrt_throw_std_bad_alloc$"),
+        "*!__scrt_throw_std_bad_alloc",
       ], [
-        re.compile("^.*!malloc$"),
+        "*!malloc",
       ], [
-        re.compile("^.*!operator new$"),
+        "*!operator new",
       ], [
-        re.compile("^.*!std::_Allocate$"),
+        "*!operator new[]",
       ], [
-        re.compile("^.*!std::allocator<\.\.\.>::allocate$"),
+        "*!std::_Allocate",
       ], [
-        re.compile("^.*!std::_Wrap_alloc<\.\.\.>::allocate$"),
+        "*!std::allocator<...>::allocate",
       ], [
-        re.compile("^.*!std::_Tree_comp_alloc<\.\.\.>::_Buyheadnode$"),
+        "*!std::_Wrap_alloc<...>::allocate",
       ], [
-        re.compile("^.*!std::_Tree_comp_alloc<\.\.\.>::_Construct$"),
+        "*!std::_Tree_comp_alloc<...>::_Buyheadnode",
       ], [
-        re.compile("^.*!std::_Tree_comp_alloc<\.\.\.>::{ctor}$"),
+        "*!std::_Tree_comp_alloc<...>::_Construct",
       ], [
-        re.compile("^.*!std::vector<...>::_Reallocate$"),
+        "*!std::_Tree_comp_alloc<..>::{ctor}",
       ], [
-        re.compile("^.*!std::vector<...>::_Reserve$"),
+        "*!std::vector<...>::_Reallocate",
       ], [
-        re.compile("^.*!std::vector<...>::resize$"),
+        "*!std::vector<...>::_Reserve",
+      ], [
+        "*!std::vector<...>::resize",
       ],
     ],
     sTranslatedBugTypeId = "OOM",
