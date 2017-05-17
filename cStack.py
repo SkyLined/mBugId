@@ -118,7 +118,7 @@ class cStack(object):
     oProcess.fSelectInCdb();
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip");
+    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip", "Get instruction pointer");
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
@@ -239,7 +239,8 @@ class cStack(object):
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uModuleOffset = oCdbWrapper.fuGetValue("%s%+d" % (oFunction.sName, iFunctionOffset)) - oModule.uStartAddress;
+              uFrameSymbolAddress = oCdbWrapper.fuGetValue("%s%+d" % (oFunction.sName, iFunctionOffset), "Get address of symbol");
+              uModuleOffset = uFrameSymbolAddress - oModule.uStartAddress;
             oFunction = None;
             iFunctionOffset = None;
         uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
