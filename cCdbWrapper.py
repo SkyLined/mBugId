@@ -310,6 +310,14 @@ class cCdbWrapper(object):
             "Unexpected select process/thread output:\r\n%s" % "\r\n".join(asSelectOutput);
       if uProcessId is not None:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+        if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCurrentISA:
+          sSelectISACommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA];
+          asSelectISAOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectISACommand);
+          assert len(asSelectISAOutput) == 1 and \
+              asSelectISAOutput[0] in ["Effective machine: x86 compatible (x86)", "Effective machine: x64 (AMD64)"], \
+              "Unexpected .effmach output:\r\n%s" % "\r\n".join(asSelectISAOutput);
+          oCdbWrapper.sCurrentISA = oCdbWrapper.oCurrentProcess.sISA;
+  
   # Excessive CPU usage
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
     oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
