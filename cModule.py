@@ -14,9 +14,7 @@ class cModule(object):
     oModule.__sTimestamp = None;
     oModule.__sInformationHTML = None;
     oModule.__doFunction_by_sSymbol = {};
-    # The start address will have none of the upper 32 bits set on x86 for obvious reasons, but it will always have
-    # some bits set on x64 (citation needed).
-    oModule.sISA = uStartAddress < 0x100000000 and "x86" or "x64";
+    oModule.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
   def foGetOrCreateFunctionForSymbol(oModule, sSymbol):
     if sSymbol not in oModule.__doFunction_by_sSymbol:
@@ -127,7 +125,7 @@ class cModule(object):
     oCdbWrapper = oProcess.oCdbWrapper;
     oProcess.fSelectInCdb();
     asListModuleOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      "lmv m *%s; $$ Get module information" % oModule.sCdbId,
+      "lmv m %s; $$ Get module information" % oModule.sCdbId,
       bOutputIsInformative = True,
     );
     # Sample output:
