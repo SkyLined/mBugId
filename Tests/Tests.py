@@ -5,14 +5,12 @@ sys.path.extend([os.path.join(sBaseFolderPath, x) for x in ["", "modules"]]);
 
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
 bDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
-uParallelTests = 2;         # Run multiple tests simultaniously. Running multiple tests in parallel should speed things
-                            # up, but for unknown reasons more than two does not get you more speed.
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
 from FileSystem import FileSystem;
 from sOSISA import sOSISA;
-
+cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
 cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 10; # The test application is simple: CPU usage should be apparent after a few seconds.
 cBugId.dxConfig["uReserveRAM"] = 1024; # Simply test if reserving RAM works, not actually reserve any useful amount.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
@@ -31,8 +29,6 @@ dsBinaries_by_sISA = {
 
 bFailed = False;
 oOutputLock = threading.Lock();
-# If you see weird exceptions, try lowering the number of parallel tests:
-oConcurrentTestsSemaphore = None;
 
 class cTest(object):
   def __init__(oTest, sISA, axCommandLineArguments, sExpectedBugId, sExpectedFailedToDebugApplicationErrorMessage = None):
@@ -60,7 +56,6 @@ class cTest(object):
   def fRun(oTest, fErrorCallback):
     global bFailed, oOutputLock;
     oTest.fErrorCallback = fErrorCallback;
-    oConcurrentTestsSemaphore.acquire();
     asApplicationCommandLine = [oTest.sBinary] + oTest.asCommandLineArguments;
     if oTest.bRunInShell:
       asApplicationCommandLine = [os.environ.get("ComSpec"), "/C"] + asApplicationCommandLine; 
@@ -83,6 +78,7 @@ class cTest(object):
       );
       oTest.oBugId.fStart();
       oTest.oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
+      oTest.oBugId.fWait();
     except Exception, oException:
       if not bFailed:
         bFailed = True;
@@ -96,9 +92,6 @@ class cTest(object):
         fErrorCallback();
         raise;
   
-  def fWait(oTest):
-    hasattr(oTest, "oBugId") and oTest.oBugId.fWait();
-  
   def fStop(oTest):
     hasattr(oTest, "oBugId") and oTest.oBugId.fStop();
   
@@ -109,7 +102,6 @@ class cTest(object):
       print "* Finished %s" % oTest;
       oOutputLock and oOutputLock.release();
       oTest.bHasOutputLock = False;
-    oConcurrentTestsSemaphore.release();
   
   def fFinishedHandler(oTest, oBugId, oBugReport):
     global bFailed, oOutputLock;
@@ -202,12 +194,10 @@ class cTest(object):
         if sCode:
           print "      > %s" % sCode.strip();
         uFrameIndex -= 1;
-      print "  BugId version %s, cBugId version %s" % (sVersion, cBugId.sVersion);
       print "@" * 80;
       oOutputLock and oOutputLock.release();
       oTest.bHasOutputLock = False;
-      if bThisTestFailed:
-        oTest.fErrorCallback();
+      oTest.fErrorCallback();
       raise;
   
   def fFailedToDebugApplicationHandler(oTest, oBugId, sErrorMessage):
@@ -237,9 +227,6 @@ if __name__ == "__main__":
     bGenerateReportHTML = True;
   cBugId.dxConfig["bOutputStdIO"] = bDebugIO;
   cBugId.dxConfig["bOutputStdErr"] = bDebugIO;
-  if bDebugIO:
-    uParallelTests = 1; # prevent UI mess by running tests sequential
-  oConcurrentTestsSemaphore = threading.Semaphore(uParallelTests);
   if asArgs:
     aoTests.append(cTest(asArgs[0], asArgs[1:], None)); # Expect no exceptions.
   else:
@@ -256,7 +243,7 @@ if __name__ == "__main__":
       # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
       aoTests.append(cTest(sISA,    ("Breakpoint",),                                          "Breakpoint ed2.249"));
       aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.249"));
-      aoTests.append(cTest(sISA,    ["C++"],                                                 ("C++ 191.ed2", "C++:cException 191.ed2")));
+      aoTests.append(cTest(sISA,    ["C++"],                                                 ("C++ ed2.249", "C++:cException ed2.249")));
       aoTests.append(cTest(sISA,    ["IntegerDivideByZero"],                                  "IntegerDivideByZero ed2.249"));
 # This test will throw a first chance integer overflow, but Visual Studio added an exception handler that then triggers
 # another exception, so the report is incorrect.
@@ -276,7 +263,7 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA,    ["PureCall"],                                             "PureCall 12d.838"));
       uTooMuchRam = sISA == "x64" and 0x100000000000 or 0xC0000000;
       aoTests.append(cTest(sISA,    ["OOM", "HeapAlloc", uTooMuchRam],                        "OOM ed2.249"));
-      aoTests.append(cTest(sISA,    ["OOM", "C++", uTooMuchRam],                              "OOM 191.519"));
+      aoTests.append(cTest(sISA,    ["OOM", "C++", uTooMuchRam],                              "OOM ed2.249"));
       # WRT
       aoTests.append(cTest(sISA,    ["WRTOriginate", "0x87654321", "message"],                "Stowed[0x87654321] ed2.249"));
       aoTests.append(cTest(sISA,    ["WRTLanguage",  "0x87654321", "message"],                "Stowed[0x87654321@cIUnknown] ed2.249"));
@@ -425,8 +412,6 @@ if __name__ == "__main__":
       break;
     oTest.bGenerateReportHTML = bGenerateReportHTML;
     oTest.fRun(fErrorCallback);
-  for oTest in aoTests:
-    oTest.fWait();
   
   nTestTime = time.clock() - nStartTime;
   oOutputLock.acquire();
