@@ -81,13 +81,19 @@ class cBugTranslation(object):
       else:
         return False;
     # If more top frames may be irrelevant, see if they are there and hide them:
-    for asAdditionalIrrelevantStackFrameSymbols in oBugTranslation.aasAdditionalIrrelevantStackFrameSymbols:
-      # Note that these should be ordered from longest to shortest array ^^^
-      # This is done in the cBugTranslation constructor.
-      if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, sHideWithReason = "this frame is irrelevant to this bug"):
-#        print "@@@ hidden frames";
-        bTranslated = True;
+    while 1:
+      bAdditionalIrrelevantFramesWereHidden = False;
+      for asAdditionalIrrelevantStackFrameSymbols in oBugTranslation.aasAdditionalIrrelevantStackFrameSymbols:
+        # Note that these should be ordered from longest to shortest array ^^^
+        # This is done in the cBugTranslation constructor.
+        if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, sHideWithReason = "this frame is irrelevant to this bug"):
+#          print "@@@ hidden frames";
+          bAdditionalIrrelevantFramesWereHidden = True;
+          bTranslated = True;
+          break;
+      if not bAdditionalIrrelevantFramesWereHidden:
         break;
+      # Some frames were hidden, see if we can hide more.
     # If the bug type should be translated, do so:
     if oBugTranslation.sTranslatedBugTypeId is not NOT_PROVIDED:
       oBugReport.sBugTypeId = oBugTranslation.sTranslatedBugTypeId;
