@@ -46,7 +46,7 @@ class cStowedException(object):
     aoStowedExceptions = [];
     for uIndex in xrange(uStowedExceptionAddressesCount):
       ppStowedExceptionInformation = papStowedExceptionInformation + uIndex * oCdbWrapper.oCurrentProcess.uPointerSize;
-      pStowedExceptionInformation = oCdbWrapper.fuGetValue("poi(0x%X)" % ppStowedExceptionInformation);
+      pStowedExceptionInformation = oCdbWrapper.fuGetValue("poi(0x%X)" % ppStowedExceptionInformation, "Get stowed exception pointer #%d" % uIndex);
       oStowedException = cStowedException.foCreate(oCdbWrapper, pStowedExceptionInformation);
       aoStowedExceptions.append(oStowedException);
     return aoStowedExceptions;
