@@ -19,4 +19,8 @@ aoSourceCodeLinks = [
     srPathHeader = srBasePath + r"\\src\\base\\",
     sURLTemplate = "https://chromium.googlesource.com/chromium/src/base/+/master/%(path)s#%(line_number)s",
   ),
+  cSourceCodeLink( # content
+    srPathHeader = srBasePath + r"\\src\\content\\",
+    sURLTemplate = "https://chromium.googlesource.com/chromium/chromium/+/master/content/%(path)s#%(line_number)s",
+  ),
 ];
