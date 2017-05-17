@@ -8,7 +8,7 @@ def fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
   oPageHeapAllocation,
   uPointerSize, bGenerateReportHTML,
 ):
-  if oPageHeapAllocation.uBlockStartAddress and oPageHeapAllocation.uBlockSize:
+  if oPageHeapAllocation.uBlockStartAddress is not None and oPageHeapAllocation.uBlockSize is not None:
     if bGenerateReportHTML:
       uMemoryDumpStartAddress = oPageHeapAllocation.uBlockStartAddress;
       uMemoryDumpSize = oPageHeapAllocation.uBlockSize;
