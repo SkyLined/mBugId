@@ -385,10 +385,9 @@ if __name__ == "__main__":
               aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AVW@%s ed2.249" % sDescription));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],            "AVE@%s 46f.ed2" % sDescription));
             aoTests.append(cTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ("AVE@%s f47.f47" % sDescription, "AVE@%s f47.ed2" % sDescription)));
-    
-    if bFullTestSuite:
-      for (sISA, dtsDetails_uSpecialAddress) in ddtsDetails_uSpecialAddress_sISA.items():
-        for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
+      
+      if bFullTestSuite:
+        for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in ddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             aoTests.append(cTest(sISA,    ["AccessViolation", "Read", uBaseAddress],            "AVR@%s ed2.249" % sAddressId));
             if bFullTestSuite:
