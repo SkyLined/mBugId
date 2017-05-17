@@ -7,4 +7,4 @@ def cCdbWrapper_fuGetValueForSymbol(oCdbWrapper, sValue):
   oSymbolAndOffsetMatch = re.match(r"^(.+?)(\+(?:0x)?[0-9a-f]+)?$", sValue);
   assert oSymbolAndOffsetMatch, "Unrecognized symbol pattern: %s" % sValue;
   sSymbol, sOffset = oSymbolAndOffsetMatch.groups();
-  return oCdbWrapper.fuGetValue('@!"%s"%s' % (sSymbol, sOffset or ""));
+  return oCdbWrapper.fuGetValue('@!"%s"%s' % (sSymbol, sOffset or ""), "get address for symbol");
