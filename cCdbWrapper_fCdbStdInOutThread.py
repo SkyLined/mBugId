@@ -57,10 +57,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     
     # Read the initial cdb output related to starting/attaching to the first process.
     asIntialCdbOutput = oCdbWrapper.fasReadOutput();
-    # Turn off prompt information as it is not useful most of the time, but can clutter output.
+    # Turn off prompt information as it is not useful most of the time, but can clutter output and slow down
+    # debugging by loading and resolving symbols.
     oCdbWrapper.fasSendCommandAndReadOutput(".prompt_allow -dis -ea -reg -src -sym; $$ Display only the prompt");
     # Make sure the cdb prompt is on a new line after the application has been run:
-    oCdbWrapper.fasSendCommandAndReadOutput('.pcmd -s ".echo"; $$ Output a CRLF after running the application');
+    oCdbWrapper.fasSendCommandAndReadOutput('.pcmd -s ".echo;"; $$ Output a CRLF after running the application');
     # Load the debugger extension
     oCdbWrapper.oExtension = cDebuggerExtension.foLoad(oCdbWrapper);
     
@@ -77,7 +78,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # Memory can be allocated to be freed later in case the system has run low on memory when an analysis needs to be
     # performed. This is done only if dxConfig["uReserveRAM"] > 0. The memory is allocated at the start of
     # debugging, freed right before an analysis is performed and reallocated if the exception was not fatal.
-    bReserveRAMAllocated = False;
+    uReserveRAMAllocated = 0;
     while (
       asIntialCdbOutput # We still need to process the initial cdb output
       or len(oCdbWrapper.auProcessIdsPendingAttach) > 0 # We still need to attach to more processes
@@ -163,15 +164,23 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         ### Reserve RAM if requested ###################################################################################
         # If requested, reserve some memory in cdb that can be released later to make analysis under low memory conditions
         # more likely to succeed.
-        if dxConfig["uReserveRAM"] and not bReserveRAMAllocated:
+        if dxConfig["uReserveRAM"] and uReserveRAMAllocated == 0:
           uBitMask = 2 ** 31;
           while uBitMask >= 1:
             sBit = dxConfig["uReserveRAM"] & uBitMask and "A" or "";
-            if bReserveRAMAllocated:
-              oCdbWrapper.fasSendCommandAndReadOutput("aS /c RAM .printf \"${RAM}{$RAM}%s\"; $$ Allocate RAM" % sBit);
-            elif sBit:
-              oCdbWrapper.fasSendCommandAndReadOutput("aS RAM \"%s\"; $$ Allocate RAM" % sBit);
-              bReserveRAMAllocated = True;
+            if uReserveRAMAllocated:
+              uReserveRAMAllocated *= 2;
+              if dxConfig["uReserveRAM"] & uBitMask:
+                sAdditionalByte = "A";
+                uReserveRAMAllocated += 1;
+              else:
+                sAdditionalByte = "";
+              oCdbWrapper.fasSendCommandAndReadOutput(
+                  'aS /c ${/v:RAM} ".printf \\"${RAM}${RAM}%s\\";"; $$ Allocate %d bytes of RAM' %
+                  (sAdditionalByte, uReserveRAMAllocated));
+            elif dxConfig["uReserveRAM"] & uBitMask:
+              oCdbWrapper.fasSendCommandAndReadOutput('aS ${/v:RAM} "A"; $$ Allocate 1 byte of RAM');
+              uReserveRAMAllocated = 1;
             uBitMask /= 2;
         ### Keep track of time #########################################################################################
         # Mark the time when the application was resumed.
@@ -346,7 +355,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       if auIgnoreNextExceptionCodes:
         assert uExceptionCode == auIgnoreNextExceptionCodes[0], \
           "Expected to see exception 0x%X in %s process, but got 0x%X!?" % \
-            (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryname, uExceptionCode);        
+            (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryName, uExceptionCode);        
         # Ignore this exception
         oCdbWrapper.fasSendCommandAndReadOutput(
           '.printf "This exception is assumed to be related to a recent process creation and therefore ignored.\\r\\n";',
@@ -382,10 +391,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       assert not bAttachingToOrStartingApplication, \
           "No exceptions are expected while attaching to or starting the application!";
       # If available, free previously allocated memory to allow analysis in low memory conditions.
-      if bReserveRAMAllocated:
+      if uReserveRAMAllocated:
         # This command is not relevant to the bug, so it is hidden in the cdb IO to prevent OOM.
-        oCdbWrapper.fasSendCommandAndReadOutput("ad RAM; $$ Release RAM");
-        bReserveRAMAllocated = False;
+        oCdbWrapper.fasSendCommandAndReadOutput("ad ${/v:RAM}; $$ Release RAM");
+        uReserveRAMAllocated = 0;
       ### Handle timeout interrupt #####################################################################################
       if uExceptionCode == DBG_CONTROL_BREAK:
         # The interrupt on timeout thread can send a CTRL+C to cdb, which causes a DBG_CONTROL_BREAK.
