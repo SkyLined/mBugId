@@ -88,11 +88,13 @@ class cBugReport(object):
       sSecurityImpact = oException.sSecurityImpact,
       uStackFramesCount = uStackFramesCount,
     );
-    # Perform exception specific analysis:
-    foAnalyzeException = dfoAnalyzeException_by_uExceptionCode.get(oException.uCode);
-    if foAnalyzeException:
-      oBugReport = foAnalyzeException(oBugReport, oCdbWrapper, oException);
+    # Apply the first round of translations
     fApplyBugTranslationsToBugReport(oBugReport);
+    # Perform exception specific analysis:
+    if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
+      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oCdbWrapper, oException);
+      # Apply another round of translations
+      fApplyBugTranslationsToBugReport(oBugReport);
     return oBugReport;
   
   @classmethod
@@ -217,32 +219,40 @@ class cBugReport(object):
         "sCollapsed": "Collapsed",
         "sContent": oCdbWrapper.sCdbIOHTML,
       });
-      # Stick the HTML of all blocks together.
-      try:
-        sBlocks = "\r\n".join(asBlocksHTML);
-        asBlocksHTML = None;
-      except MemoryError:
-        sBlocks = "";
+      # Create the report using all available information, or a limit amount of information if there is not enough
+      # memory to do that.
+      while asBlocksHTML:
+        bReportTruncated = False;
         try:
-          while asBlocksHTML:
-            sBlocks += asBlocksHTML.pop(0);
+          oBugReport.sReportHTML = sReportHTMLTemplate % {
+            "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
+            "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
+            "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
+            "sBinaryVersion": sBinaryVersionHTML,
+            "sOptionalSource": oBugReport.sBugSourceLocation and \
+                "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
+            "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
+                "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
+            "sOptionalCommandLine": oCdbWrapper.asApplicationCommandLine and \
+                "<tr><td>Command line: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationCommandLine or "",
+            "sBlocks": "\r\n".join(asBlocksHTML) + 
+                (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
+            "sBugIdVersion": oVersionInformation.sCurrentVersion,
+          };
         except MemoryError:
-          sBlocks += "\r\n<hr/>(Partial output: not enough memory to complete)";
-      oBugReport.sReportHTML = sReportHTMLTemplate % {
-        "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
-        "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
-        "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
-        "sBinaryVersion": sBinaryVersionHTML,
-        "sOptionalSource": oBugReport.sBugSourceLocation and \
-            "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
-        "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
-            "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
-        "sOptionalCommandLine": oCdbWrapper.asApplicationCommandLine and \
-            "<tr><td>Command line: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationCommandLine or "",
-        "sBlocks": sBlocks,
-        "sBugIdVersion": oVersionInformation.sCurrentVersion,
-      };
-    
+          # We cannot add everything, so let's remove a block of information to free up some memory and reduce the size
+          # of the final report before we try again. It makes sense to remove the last block, as they are ordered
+          # (somewhat) by how useful the information is to the user, the last block containing less useful information
+          # than the first.
+          asBlocksHTML.pop();
+          # Add a notice to the report about it being truncated.
+          bReportTruncated = True;
+        else:
+          break;
+      else:
+        # There is so little memory available that we cannot seem to be able to create a report at all.
+        # This is highly unlikely, but let's try to handle every eventuality.
+        oBugReport.sReportHTML = "The report was <b>NOT</b> created because there was not enough memory available to add any information.";
     # Remove the process object from the bug report and add the process binary name; we only provide basic types.
     oBugReport.sProcessBinaryName = oBugReport.oProcess.sBinaryName;
     del oBugReport.oProcess;
