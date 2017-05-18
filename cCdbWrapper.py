@@ -289,34 +289,37 @@ class cCdbWrapper(object):
     sSelectCommand = "";
     asSelected = [];
     if uProcessId is not None and uProcessId != oCdbWrapper.oCurrentProcess.uId:
-      # Only do this if the current process is not the one we need.
+      # Select process if it is not yet the current process.
       assert uProcessId in oCdbWrapper.doProcess_by_uId, \
           "Unknown process id %d/0x%X" % uProcessId;
       sSelectCommand += "|~[0x%X]s;" % uProcessId;
       asSelected.append("process");
+      # Assuming there's no error, track the new current process.
+      oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+      if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCurrentISA:
+        # Select process ISA if it is not yet the current ISA. ".block{}" is required
+        sSelectCommand += ".block{.effmach %s;};" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA];
+        # Assuming there's no error, track the new current isa.
+        oCdbWrapper.sCurrentISA = oCdbWrapper.oCurrentProcess.sISA;
+        asSelected.append("isa");
     if uThreadId is not None:
+      # We're not tracking the current thread; always set this.
+      # TODO: track the current thread to reduce the number of times we may need to execute this command:
       sSelectCommand += "~~[0x%X]s;" % uThreadId;
       asSelected.append("thread");
     if sSelectCommand:
-      sSelectCommand += " $$ Select %s" % " and ".join(asSelected);
-      asSelectOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
-      srIgnoredErrors = r"^(\*\*\* )?(%s)$" % "|".join([
-        r"WARNING: Unable to verify checksum for .*",
-        r"ERROR: Module load completed but symbols could not be loaded for .*",
-        "WARNING: Stack overflow detected\. The unwound frames are extracted from outside normal stack bounds\.",
-      ]);
-      for sLine in asSelectOutput:
-        assert re.match(srIgnoredErrors, sLine), \
-            "Unexpected select process/thread output:\r\n%s" % "\r\n".join(asSelectOutput);
-      if uProcessId is not None:
-        oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
-        if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCurrentISA:
-          sSelectISACommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA];
-          asSelectISAOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectISACommand);
-          assert len(asSelectISAOutput) == 1 and \
-              asSelectISAOutput[0] in ["Effective machine: x86 compatible (x86)", "Effective machine: x64 (AMD64)"], \
-              "Unexpected .effmach output:\r\n%s" % "\r\n".join(asSelectISAOutput);
-          oCdbWrapper.sCurrentISA = oCdbWrapper.oCurrentProcess.sISA;
+      # We need to select a different process, isa or thread in cdb.
+      sSelectCommand += " $$ Select %s" % "/".join(asSelected); # Add a comment.
+      asSelectCommandOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
+      if "isa" in asSelected:
+        bUnexpectedOutput = len(asSelectCommandOutput) != 1 or asSelectCommandOutput[0] not in [
+          "Effective machine: x86 compatible (x86)",
+          "Effective machine: x64 (AMD64)"
+        ];
+      else:
+        bUnxepectedOutput = len(asSelectCommandOutput) != 0;
+      assert not bUnxepectedOutput, \
+          "Unexpected select %s output:\r\n%s" % ("/".join(asSelected), "\r\n".join(asSelectCommandOutput));
   
   # Excessive CPU usage
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
