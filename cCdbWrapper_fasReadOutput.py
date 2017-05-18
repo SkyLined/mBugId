@@ -11,9 +11,14 @@ dsTip_by_sErrorCode = {
 
 # This will be output right in the middle of a line. Luckily it ends with a CRLF, so we can remove it from
 # the output and reconstruct the line as it would have been without this cruft.
-rAlwaysIgnoredCdbOutputLine = re.compile("^(.*)(%s)$" % "|".join([
-  r"\*\*\* ERROR: Symbol file could not be found.  Defaulted to export symbols for .*",
-  r"\*\*\* WARNING: Unable to verify checksum for .*",
+rAlwaysIgnoredCdbOutputLine = re.compile("^(.*?)((?:\*\*\* )?(?:%s))$" % "|".join([
+  r"ERROR: Module load completed but symbols could not be loaded for .*",
+  r"ERROR: Symbol file could not be found.  Defaulted to export symbols for .*",
+  r"WARNING: Frame IP not in any known module\. Following frames may be wrong\.",
+  r"WARNING: Stack overflow detected\. The unwound frames are extracted from outside normal stack bounds\.",
+  r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
+  r"WARNING: Stack unwind information not available\. Following frames may be wrong\.",
+  r"WARNING: Unable to verify checksum for .*",
 ]));
 
 def cCdbWrapper_fasReadOutput(oCdbWrapper,
