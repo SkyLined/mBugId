@@ -1,4 +1,4 @@
-2017-05-11
+2017-05-17
 ==========
 Changes to BugIds
 -----------------
@@ -24,6 +24,9 @@ Changes to BugIds
   This code has been improved, so the BugIds should be different in a good way.
   Also, the way stack hashes beyond the desired maximum number are combined
   into one has been modified, which may also change BugIds for such crashes.
++ I've refined many assertion failures and added more detail to the BugId, so
+  you will now see things like `Assert:Unreachable` and `Assert:Deprecated` for
+  supposedly unreachable and deprecated code respectively.
 
 Changes to cBugId API and dxConfig
 ----------------------------------
@@ -171,6 +174,8 @@ Improvements
   of each process.
 + Cache module information such as the start address and end address as well as
   information about the binary.
++ JIT creation of Stacks. This should reduce the number of times the stack is
+  collected, speeding up debugging of applications.
 + A BugReport is always generated, even if a bug is not fatal (no more `None`).
   The `sBugTypeId` can be set to `None` to indicate there is no bug.
 + `ftsGetHeapBlockAndOffsetIdAndDescription` is used everywhere, which should
@@ -214,8 +219,14 @@ Changes to Tests
 + Moved more tests to the full test suite, to speed to quick tests.
 + Dump stack trace on exception.
 + Changed arguments of many tests for better test coverage.
-+ Show time it takes to complete test, so you can optimize the number of
-  parallel tests to increase testing speed.
++ Show time it takes to complete test.
++ No more parallel testing; it did not actually increase the speed of testing
+  as I had hoped, but did seem to make results more unreliable. I suspect cdb
+  uses some kind of system-wide locks that prevent multiple instance from
+  running at the same time.
++ Add test for Breakpoint crash in a child process using cmd.exe as the parent.
+  On x64, there are two such tests: the parent is always x64, but the child can
+  be x86 and x64.
 
 2017-03-24
 ==========
