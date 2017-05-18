@@ -5,11 +5,14 @@ class cModule(object):
   def __init__(oModule, oProcess, sCdbId, uStartAddress = None, uEndAddress = None):
     oModule.oProcess = oProcess;
     oModule.sCdbId = sCdbId;
+    # oModule.uStartAddress is not always known from the start and may only be determined when needed using __fGetAddressesAndSymbolsStatus.
     oModule.__uStartAddress = uStartAddress;
+    # oModule.uEndAddress is not always known from the start and may only be determined when needed using __fGetAddressesAndSymbolsStatus.
     oModule.__uEndAddress = uEndAddress;
-    oModule.__sBinaryName = None;
+    # oModule.bSymbolsAvailable is only determined when needed using __fGetAddressesAndSymbolsStatus
     oModule.__bSymbolsAvailable = None;
     oModule.__bSymbolsStatusKnown = False;
+    oModule.__sBinaryName = None;
     oModule.__sFileVersion = None;
     oModule.__sTimestamp = None;
     oModule.__sInformationHTML = None;
@@ -29,20 +32,18 @@ class cModule(object):
   
   @property
   def uEndAddress(oModule):
-    oCdbWrapper = oModule.oProcess.oCdbWrapper;
     if oModule.__uEndAddress is None:
       oModule.__fGetAddressesAndSymbolsStatus();
     return oModule.__uEndAddress;
   
   @property
   def bSymbolsAvailable(oModule):
-    oCdbWrapper = oModule.oProcess.oCdbWrapper;
     if not oModule.__bSymbolsStatusKnown:
       # Find out the symbols status
       oModule.__fGetAddressesAndSymbolsStatus();
     if oModule.__bSymbolsAvailable is None:
       # It's deferred: try to load symbols
-      asLoadSymbolsOutput = oCdbWrapper.fasSendCommandAndReadOutput("ld %s; $$ Load symbols for module" % oModule.sCdbId);
+      asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand("ld %s; $$ Load symbols for module" % oModule.sCdbId);
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
       # Unfortunately, it does not tell us if it loadad a pdb, or if export symbols are used.
@@ -50,10 +51,7 @@ class cModule(object):
     return oModule.__bSymbolsAvailable;
   
   def __fGetAddressesAndSymbolsStatus(oModule):
-    oProcess = oModule.oProcess;
-    oCdbWrapper = oProcess.oCdbWrapper;
-    oProcess.fSelectInCdb();
-    asListModuleOutput = oCdbWrapper.fasSendCommandAndReadOutput("lmo m %s; $$ List addresses for module" % oModule.sCdbId);
+    asListModuleOutput = oModule.oProcess.fasExecuteCdbCommand("lmo m %s; $$ List addresses for module" % oModule.sCdbId);
     assert len(asListModuleOutput) == 2, \
         "Expected 2 lines of output, got %d:\r\n%s" % (len(asListModuleOutput), "\r\n".join(asListModuleOutput));
     oModule.__fParseListModuleFirstLines(asListModuleOutput);
@@ -119,12 +117,14 @@ class cModule(object):
     return oModule.__sInformationHTML;
   
   def __fGetBinaryInformation(oModule):
+    # TODO: The HTML report output should really not be produced here (aka push the data). Rather, it should be created
+    # on demand using another function call when the report is created (aka pull the data). This would also do away
+    # with all references to oCdbWrapper
+    
     # Gather version information and optionally returns output for use in HTML report.
     # Also sets oModule.sFileVersion if possible.
-    oProcess = oModule.oProcess;
-    oCdbWrapper = oProcess.oCdbWrapper;
-    oProcess.fSelectInCdb();
-    asListModuleOutput = oCdbWrapper.fasSendCommandAndReadOutput(
+    oCdbWrapper = oModule.oProcess.oCdbWrapper;
+    asListModuleOutput = oModule.oProcess.fasExecuteCdbCommand(
       "lmv m %s; $$ Get module information" % oModule.sCdbId,
       bOutputIsInformative = True,
     );
