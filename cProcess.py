@@ -7,18 +7,33 @@ class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
     oProcess.oCdbWrapper = oCdbWrapper;
     oProcess.uId = uId;
-    oProcess.__uPageSize = None;
     oProcess.bNew = True; # Will be set to False by .fCdbStdInOutThread once application is run again.
     oProcess.bTerminated = False; # Will be set to True by .foSetCurrentProcessAfterApplicationRan once process is terminated
+    
+    # Modules will be cached here. They are discarded, except for the main module, whenever the application is resumed.
+    # In a future version it would make sense to always keep the cache, and set a flag whenever the application is
+    # resumed. That way, we may be able to used cached data after an application resume by checking what cached
+    # information is still accurate, which may require only on `lm` call to check the cdbid, start and end addresses of
+    # all loaded modules.
     oProcess.__doModules_by_sCdbId = {};
     
-    oProcess.bPageHeapEnabled = None; # Set to True or False when we find out later.
+    # We'll try to determine if page heap is enabled for every process. However, this may not always work. So until
+    # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
+    oProcess.bPageHeapEnabled = None;
     
-    oProcess.__sISA = None; # .sISA is JIT using __fGetProcessInformation
-    oProcess.__uPointerSize = None; # .uPointerSize is JIT using __fGetProcessInformation
+    # oProcess.sISA is only determined when needed and cached using __fGetProcessInformation
+    oProcess.__sISA = None; 
     
+    # oProcess.uPointerSize is only detemined when needed and cached using __fGetProcessInformation
+    oProcess.__uPointerSize = None; # 
+    
+    # oProcess.uPageSize is only detemined when needed and cached
+    oProcess.__uPageSize = None;
+    
+    # oProcess.oMainModule is only detemined when needed and cached
     oProcess.__oMainModule = None; # .oMainModule is JIT
-    oProcess.__uMainModuleImageBaseAddress = None; # Required for .oMainModule JIT code, set by __fGetProcessInformation
+    # In order to determine oProcess.oMainModule, we need it's base address. This is set by __fGetProcessInformation
+    oProcess.__uMainModuleImageBaseAddress = None;
   
   @property
   def sISA(oProcess):
@@ -35,7 +50,7 @@ class cProcess(object):
   def __fGetProcessInformation(oProcess):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
     # process (i.e. x86 or x64).
-    asPEBOutput = oProcess.oCdbWrapper.fasSendCommandAndReadOutput("!peb; $$ Get current proces environment block");
+    asPEBOutput = oProcess.fasExecuteCdbCommand("!peb; $$ Get current proces environment block");
     # Sample output:
     # |Wow64 PEB32 at 34c000
     # |    InheritedAddressSpace:    No
@@ -118,7 +133,7 @@ class cProcess(object):
       if oProcess.__uMainModuleImageBaseAddress is None:
         # Get information from the PEB about the location of the main module:
         oProcess.__fGetProcessInformation();
-      asModuleInformationOutput = oProcess.oCdbWrapper.fasSendCommandAndReadOutput("lmn a 0x%X; $$ Get module cdb id" % oProcess.__uMainModuleImageBaseAddress);
+      asModuleInformationOutput = oProcess.fasExecuteCdbCommand("lmn a 0x%X; $$ Get module cdb id" % oProcess.__uMainModuleImageBaseAddress);
       # Sample output:
       # |0:007> lmn a 7ff6a8870000
       # |start             end                 module name
@@ -177,3 +192,8 @@ class cProcess(object):
   
   def fEnsurePageHeapIsEnabled(oProcess):
     return cProcess_fEnsurePageHeapIsEnabled(oProcess);
+    
+  def fasExecuteCdbCommand(oProcess, *axArguments, **dxArguments):
+    # Make sure all commands send to cdb are send in the context of this process.
+    oProcess.fSelectInCdb();
+    return oProcess.oCdbWrapper.fasSendCommandAndReadOutput(*axArguments, **dxArguments);
