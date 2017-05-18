@@ -5,10 +5,6 @@ from dxConfig import dxConfig;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
   # These warnings and errors are ignored:
-  r"WARNING: Frame IP not in any known module\. Following frames may be wrong\.",
-  r"WARNING: Stack overflow detected. The unwound frames are extracted from outside normal stack bounds\.",
-  r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
-  r"WARNING: Stack unwind information not available\. Following frames may be wrong\.",
   r"Unable to read dynamic function table list head",
 ]);
 
@@ -132,8 +128,6 @@ class cStack(object):
       # |36 0a19c854 77548e71 MSHTML+0x8d45e
       # |1b 0000008c`53b2c650 00007ffa`4631cfba ntdll!KiUserCallbackDispatcherContinue
       # |22 00000040`0597b770 00007ffa`36ddc0e3 0x40`90140fc3
-      # |WARNING: Frame IP not in any known module. Following frames may be wrong.
-      # |WARNING: Stack unwind information not available. Following frames may be wrong.
       # |Could not allocate memory for stack trace
       assert asStackOutput[0] in [
         " # ChildEBP RetAddr  ",
