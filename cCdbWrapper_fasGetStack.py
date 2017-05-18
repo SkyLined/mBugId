@@ -31,7 +31,6 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
           # If there were any errors, make sure we try loading again.
           if re.match(r"^%s\s*$" % "|".join([
             r"DBGHELP: (.*?) (\- E_PDB_CORRUPT|dia error 0x[0-9a-f]+)",
-            r"\*\*\* ERROR: .+",
           ]), sLine):
             break;
             # Found an error, stop this loop and try again.
@@ -43,23 +42,4 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
     "%s; $$ Get stack" % sGetStackCommand,
     bOutputIsInformative = True,
   );
-  # Remove irrelevant warnings, if any.
-  asRemovedOutput = [];
-  while asStackOutput and re.match("|".join(["^%s$" % s for s in [
-    r"WARNING: Stack overflow detected. The unwound frames are extracted from outside normal stack bounds\.",
-    r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
-    r"\*\*\* WARNING: Unable to verify checksum for .*",
-  ]]), asStackOutput[0]):
-    asRemovedOutput.append(asStackOutput.pop(0));
-  assert asStackOutput, "CDB did not return any stack information for command %s\r\n%s" % \
-      (repr(sGetStackCommand), "\r\n".join(asRemovedOutput));
-  # Getting the stack twice does not always work: for unknown reasons the second time the stack may be truncated or
-  # incorrect. So, if an error in symbol loading is detected while getting the stack, there is no reliable way to try
-  # to reload the symbols and get the stack again: we must throw an exception.
-  assert not re.match(r"^\*\*\* ERROR: Module load completed but symbols could not be loaded for .+$", asStackOutput[0]), \
-      "CDB failed to load symbols:\r\n%s%s%s" % (
-        "\r\n".join(["  %s" % s for s in asStackOutput]),
-        asSymbolLoadStackOutput is not None and ("\r\nasSymbolLoadStackOutput:\r\n%s" % "\r\n".join(["  %s" % s for s in asSymbolLoadStackOutput])) or "",
-        asLastSymbolReloadOutput is not None and ("\r\nasLastSymbolReloadOutput:\r\n%s" % "\r\n".join(["  %s" % s for s in asLastSymbolReloadOutput])) or "",
-      );
   return asStackOutput;
