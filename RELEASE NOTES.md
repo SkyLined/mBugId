@@ -7,7 +7,7 @@ Changes to BugIds
 + Use after frees are now likely to have block size and offset information, as
   in `UAFR[0x20]+4`. See below for details.
 + Architecture independent sizes and offset use `n` rather than `*N`, as in
-  `AVR@NULL+4n`
+  `AVR@NULL+4n`. This makes them shorter and just as easy to read.
 + Stowed exceptions are reported as `Stowed[X,Y,...]` where `X,Y,...` are the
   BugIds of the stowed exception(s).
 + "corrupted heap pointer or using wrong heap" VERIFIER STOP messages are now
@@ -27,6 +27,9 @@ Changes to BugIds
 + I've refined many assertion failures and added more detail to the BugId, so
   you will now see things like `Assert:Unreachable` and `Assert:Deprecated` for
   supposedly unreachable and deprecated code respectively.
++ I've hidden more functions that are used to throw exceptions, and not related
+  to the bug that caused it. This should get you better stack hashes that are
+  more unique to the instance of the bug, rather than the class of bug.
 
 Changes to cBugId API and dxConfig
 ----------------------------------
@@ -94,10 +97,10 @@ Other new features
   after the heap block has been freed, but it still contains this information.
   By making the virtual allocation (temporarily) accessible, it can be read and
   used in the BugId.
-+ Links to official online source repositories are added to source code paths
-  in the stack dump in HTML reports. This is currently implemented for Chrome
-  and the BugId test suite only, but it should be easy to extend this to other
-  open-source projects such as Firefox.
++ Links to official on-line source repositories are added to source code paths
+  in the stack dump in HTML reports. This is currently implemented for Chrome,
+  Firefox and the BugId tests, and it should be easy to extend this to other
+  open-source projects.
 + Add debugger extension to allow BugId to change virtual allocation access
   protection in order to read inaccessible memory. This is used to read
   information from freed memory blocks marked inaccessible by page heap.
