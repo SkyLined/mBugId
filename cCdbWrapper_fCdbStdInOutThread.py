@@ -219,18 +219,18 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-        # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
-        # appears to be caused by an error (without an error message) as subsequent commands are not getting executed.
-        # As a result, the .printf that outputs the "end marker" is never executed and `fasReadOutput` detects this as
-        # an error in the command and throws an exception. This affects only the next command executed at this point,
-        # so we can resolve this issue by executing `.lastevent` twice: the first time we ignore the output, so the
-        # markers are not added and `fasReadOutput` does not throw an exception and the second time we execute it as
-        # normal.
-        oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ dummy", bIgnoreOutput = True);
       ### An exception was detected ####################################################################################
       # Find out what event caused the debugger break
+      # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
+      # appears to be caused by an error while executing the command (without an error message) as subsequent commands
+      # are not getting executed. As a result, the .printf that outputs the "end marker" is never executed and
+      # `fasReadOutput` detects this as an error in the command and throws an exception. This mostly just affects the
+      # next command executed at this point, but I've also seen it affect the second, so I'm going to try and work
+      # around it by providing a `bRetryOnTruncatedOutput` argument that informs `fasSendCommandAndReadOutput` to
+      # detect this truncated output and try the command again for any command that we can safely execute twice.
       asLastEventOutput = oCdbWrapper.fasSendCommandAndReadOutput(".lastevent; $$ Get information about last event",
         bOutputIsInformative = True,
+        bRetryOnTruncatedOutput = True,
       );
       # Sample output:
       # |Last event: 3d8.1348: Create process 3:3d8                
@@ -297,7 +297,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not always get reported for the new process; see if there are any processes known to cdb
         # that we do not yet know about:
-        asListProcesses = oCdbWrapper.fasSendCommandAndReadOutput("|;");
+        asListProcesses = oCdbWrapper.fasSendCommandAndReadOutput("|;", bRetryOnTruncatedOutput = True);
         auNewProcessIds = [];
         for sListProcess in asListProcesses:
           oProcessIdMatch = re.match("[#\.\s]+\d+\s+id:\s+([0-9a-f]+)\s+.*", sListProcess, re.I);
@@ -337,7 +337,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
               bShowCommandInHTMLReport = False,
             );
         # Make sure child processes of the new process are debugged as well.
-        oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes");
+        oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes", bRetryOnTruncatedOutput = True);
         if sCreateExitProcess == "Create":
           # If the application creates a new process, a STATUS_BREAKPOINT exception may follow that signals the
           # same event; this exception should be ignored as we have already handled the new process.

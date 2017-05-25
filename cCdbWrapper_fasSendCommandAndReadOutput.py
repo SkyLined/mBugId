@@ -22,6 +22,7 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     bIgnoreOutput = False,
     srIgnoreErrors = False,
     bUseMarkers = True,
+    bRetryOnTruncatedOutput = False,
 ):
   # Commands can only be execute from within the cCdbWrapper.fCdbStdInOutThread call.
   assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
@@ -46,17 +47,24 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
     sCommand = " ".join([s.rstrip(";") + ";" for s in [
       sPrintStartMarkerCommand, sCommand, sPrintEndMarkerCommand
     ]]);
-  try:
-    oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
-  except Exception, oException:
-    oCdbWrapper.bCdbRunning = False;
-    raise cCdbStoppedException();
-  return oCdbWrapper.fasReadOutput(
-    bOutputIsInformative = bOutputIsInformative,
-    bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
-    bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
-    bIgnoreOutput = bIgnoreOutput,
-    srIgnoreErrors = srIgnoreErrors,
-    sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
-    sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
-  );
+  uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
+  while uTries:
+    try:
+      oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
+    except Exception, oException:
+      oCdbWrapper.bCdbRunning = False;
+      raise cCdbStoppedException();
+    asOutput = oCdbWrapper.fasReadOutput(
+      bOutputIsInformative = bOutputIsInformative,
+      bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
+      bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
+      bIgnoreOutput = bIgnoreOutput,
+      srIgnoreErrors = srIgnoreErrors,
+      sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
+      sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
+      bDontAssertOnTruncatedOutput = uTries > 1,
+    );
+    if asOutput is not None:
+      break; # No retries needed; it already succeeded.
+    uTries -= 1;
+  return asOutput;

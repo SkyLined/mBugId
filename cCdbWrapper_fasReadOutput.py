@@ -33,6 +33,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                                       # should either precede or follow the command output markers. This allowing us
                                       # to ignore the application output and only return the command output to the
                                       # caller.
+  bDontAssertOnTruncatedOutput = False, # Return None instead so the caller can handle it.
 ):
   if bIgnoreOutput:
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and dxConfig["bShowAllCdbCommandsInReport"];
@@ -177,8 +178,11 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
               "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);
           # If there is an error during execution of the command, the end marker will not be output. In this case, see
           # if it is an expected and ignored error, or thrown an assertion:
-          assert not sEndOfCommandOutputMarker or (srIgnoreErrors and len(asReturnedLines) == 1 and re.match(srIgnoreErrors, asReturnedLines[0])), \
-              "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
+          if sEndOfCommandOutputMarker and (not srIgnoreErrors or len(asReturnedLines) != 1 or not re.match(srIgnoreErrors, asReturnedLines[0])):
+            assert bDontAssertOnTruncatedOutput, \
+                "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
+            # Caller asked us not to assert, but return None instead:
+            return None;
         if oCdbWrapper.bGenerateReportHTML:
           # The prompt is always stored in a new block of I/O
           oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
