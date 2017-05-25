@@ -80,8 +80,10 @@ class cBugId(object):
     
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
-    # If a bug was found, this is set to the bug report:
-    oBugId.oBugReport = None;
+    # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
+    # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
+    # attempting to read the report.
+    # oBugId.oBugReport = None;
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
