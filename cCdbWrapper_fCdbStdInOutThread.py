@@ -351,21 +351,22 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
       ### See if this was an ignored exception #########################################################################
-      auIgnoreNextExceptionCodes = dauIgnoreNextExceptionCodes_by_uProcessId.get(uProcessId);
-      if auIgnoreNextExceptionCodes:
-        assert uExceptionCode == auIgnoreNextExceptionCodes[0], \
-          "Expected to see exception 0x%X in %s process, but got 0x%X!?" % \
-            (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryName, uExceptionCode);        
-        # Ignore this exception
-        oCdbWrapper.fasSendCommandAndReadOutput(
-          '.printf "This exception is assumed to be related to a recent process creation and therefore ignored.\\r\\n";',
-          bShowCommandInHTMLReport = False,
-        );
-        auIgnoreNextExceptionCodes.pop(0);
-        # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
-        if len(auIgnoreNextExceptionCodes) == 0:
-          del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
-        continue;
+      if uExceptionCode is not None:
+        auIgnoreNextExceptionCodes = dauIgnoreNextExceptionCodes_by_uProcessId.get(uProcessId);
+        if auIgnoreNextExceptionCodes:
+          assert uExceptionCode == auIgnoreNextExceptionCodes[0], \
+            "Expected to see exception 0x%X in %s process, but got 0x%X!?" % \
+              (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryName, uExceptionCode);        
+          # Ignore this exception
+          oCdbWrapper.fasSendCommandAndReadOutput(
+            '.printf "This exception is assumed to be related to a recent process creation and therefore ignored.\\r\\n";',
+            bShowCommandInHTMLReport = False,
+          );
+          auIgnoreNextExceptionCodes.pop(0);
+          # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
+          if len(auIgnoreNextExceptionCodes) == 0:
+            del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
+          continue;
       ### Handle process termination ###################################################################################
       if sCreateExitProcess == "Exit":
         assert not bAttachingToOrStartingApplication, \
