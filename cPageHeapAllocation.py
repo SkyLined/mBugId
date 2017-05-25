@@ -10,6 +10,15 @@ class cPageHeapAllocation(object):
       bOutputIsInformative = True,
     );
     # Sample output:
+    # Allocated memory on debug page heap
+    # |    address 07fd1000 found in
+    # |    _DPH_HEAP_ROOT @ 4fd1000
+    # |    in busy allocation (  DPH_HEAP_BLOCK:         UserAddr         UserSize -         VirtAddr         VirtSize)
+    # |                                 7f51d9c:          7fd0fc0               40 -          7fd0000             2000
+    # |    6c469abc verifier!AVrfDebugPageHeapAllocate+0x0000023c
+    # |...
+    
+    # Freed memory in debug page heap:
     # |    address 0e948ffc found in
     # |    _DPH_HEAP_ROOT @ 48b1000
     # |    in free-ed allocation (  DPH_HEAP_BLOCK:         VirtAddr         VirtSize)
@@ -19,27 +28,9 @@ class cPageHeapAllocation(object):
     # |    77cfe0da ntdll!RtlpFreeHeap+0x0006c97a
     # |    77cf5d2c ntdll!RtlpFreeHeapInternal+0x0000027e
     # |    77c90a3c ntdll!RtlFreeHeap+0x0000002c
-    # <<<snip>>> no 0-day information for you!
-    # |    address 07fd1000 found in
-    # |    _DPH_HEAP_ROOT @ 4fd1000
-    # |    in busy allocation (  DPH_HEAP_BLOCK:         UserAddr         UserSize -         VirtAddr         VirtSize)
-    # |                                 7f51d9c:          7fd0fc0               40 -          7fd0000             2000
-    # |    6c469abc verifier!AVrfDebugPageHeapAllocate+0x0000023c
-    # <<<snip>>> no 0-day information for you!
-    # There may be errors, sample output:
-    # |ReadMemory error for address 5b59c3d0
-    # |Use `!address 5b59c3d0' to check validity of the address.
-    # <<<snip>>>
-    # |*************************************************************************
-    # |***                                                                   ***
-    # |***                                                                   ***
-    # |***    Either you specified an unqualified symbol, or your debugger   ***
-    # |***    doesn't have full symbol information.  Unqualified symbol      ***
-    # |***    resolution is turned off by default. Please either specify a   ***
-    # |***    fully qualified symbol module!symbolname, or enable resolution ***
-    # <<<snip>>>
-    # unable to resolve ntdll!RtlpStackTraceDataBase
-    # <<<snip>>>
+    # |...
+    
+    # Allocated memory on "normal" hreap
     # |    address 000001ec4e8cc790 found in
     # |    _HEAP @ 1ec4e8c0000
     # |              HEAP_ENTRY Size Prev Flags            UserPtr UserSize - state
@@ -48,7 +39,31 @@ class cPageHeapAllocation(object):
     # |        7fff1bf6fd99 ntdll!RtlDebugAllocateHeap+0x000000000003bf65
     # |        7fff1bf5db7c ntdll!RtlpAllocateHeap+0x0000000000083fbc
     # |        7fff1bed8097 ntdll!RtlpAllocateHeapInternal+0x0000000000000727
-    # <<<snip>>>
+    # ...
+    
+    # Delayed freed in "normal" heap:
+    # |    address 000002572ef108f0 found in
+    # |    _HEAP @ 2577f5f0000
+    # |              HEAP_ENTRY Size Prev Flags            UserPtr UserSize - state
+    # |        000002572ef108a0 0008 0000  [00]   000002572ef108f0    00010 - (free DelayedFree)
+    # |        7ff9c4b5412f verifier!AVrfDebugPageHeapFree+0x00000000000000af
+    # ...
+
+    
+    # Errors:
+    # |ReadMemory error for address 5b59c3d0
+    # |Use `!address 5b59c3d0' to check validity of the address.
+    # ----------------------------------------------------
+    # |*************************************************************************
+    # |***                                                                   ***
+    # |***                                                                   ***
+    # |***    Either you specified an unqualified symbol, or your debugger   ***
+    # |***    doesn't have full symbol information.  Unqualified symbol      ***
+    # |***    resolution is turned off by default. Please either specify a   ***
+    # |***    fully qualified symbol module!symbolname, or enable resolution ***
+    # |<<<snip>>>
+    # |unable to resolve ntdll!RtlpStackTraceDataBase
+    
     # Strip warnings and errors that we may be able to ignore:
     asPageHeapOutput = [
       x for x in asPageHeapOutput
@@ -64,52 +79,57 @@ class cPageHeapAllocation(object):
       return None;
     assert re.match(r"^\s+address [0-9`a-f]+ found in\s*$", asPageHeapOutput[0]), \
         "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-    assert re.match(r"^\s+\w+ @ [0-9`a-f]+\s*$", asPageHeapOutput[1]), \
+    oHeapTypeMatch = re.match(r"^\s+(_HEAP|_DPH_HEAP_ROOT) @ [0-9`a-f]+\s*$", asPageHeapOutput[1]);
+    assert oHeapTypeMatch, \
         "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-    oDPHHeapBlockTypeMatch = re.match(                # line #3
-      r"^\s+in (free-ed|busy) allocation \("          # space "in" space ("free-ed" | "busy") space  "allocation ("
-      r"\s*\w+:"                                      #   [space] DPH_HEAP_BLOCK ":"
-      r"(?:\s+UserAddr\s+UserSize\s+\-)?"             #   optional{ space "UserAddr" space "UserSize" space "-" }
-      r"\s+VirtAddr\s+VirtSize"                       #   space "VirtAddr" space "VirtSize"
-      r"\)\s*$",                                      # ")" [space]
-      asPageHeapOutput[2],
-    );
-    oHeapBlockTypeMatch = re.match(                   # line #3
-      r"^\s+HEAP_ENTRY\s+Size\s+Prev\s+Flags\s+UserPtr\s+UserSize\s+\-\s+state",
-      asPageHeapOutput[2],
-    );
-    assert oDPHHeapBlockTypeMatch or oHeapBlockTypeMatch, \
-        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-    if oDPHHeapBlockTypeMatch:
-      bAllocated = oDPHHeapBlockTypeMatch.group(1) == "busy";
-      oBlockAdressAndSizeMatch = re.match(            # line #4
-        r"^\s+[0-9`a-f]+:"                            # space heap_header_address ":"
-        r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (sBlockStartAddress) space (sBlockSize) space "-" }
-        r"\s+([0-9`a-f]+)\s+([0-9`a-f]+)"             # space (sAllocationStartAddress) space (sAllocationSize)
-        r"\s*$",                                      # [space]
-        asPageHeapOutput[3],
+    sHeapType = oHeapTypeMatch.group(1); # "_HEAP" or "_DPH_HEAP_ROOT"
+    if sHeapType == "_HEAP":
+      oHeapBlockTypeMatch = re.match(                   # line #3
+        r"^\s+HEAP_ENTRY\s+Size\s+Prev\s+Flags\s+UserPtr\s+UserSize\s+\-\s+state",
+        asPageHeapOutput[2],
       );
-      assert oBlockAdressAndSizeMatch, \
-          "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-      sBlockStartAddress, sBlockSize, sAllocationStartAddress, sAllocationSize = oBlockAdressAndSizeMatch.groups();
-      uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
-      uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - oCdbWrapper.oCurrentProcess.uPageSize; # Total size = allocation size + guard page size
-    else:
-      oBlockAdressAndSizeMatch = re.match(            # line #4
+      assert oDPHHeapBlockTypeMatch or oHeapBlockTypeMatch, \
+          "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
+      oBlockInformationMatch = re.match(            # line #4
         r"^\s+[0-9`a-f]+"                             # space heap_entry_address
         r"^\s+[0-9`a-f]+"                             # space heap_entry_size
         r"^\s+[0-9`a-f]+"                             # space prev
         r"^\s+\[[0-9`a-f]+\]"                         # space "[" flags "]"
         r"^\s+([0-9`a-f]+)"                           # space (sBlockStartAddress)
         r"^\s+([0-9`a-f]+)"                           # space (sBlockSize)
-        r"^\s+\-\s+\((busy)\)"                        # space "-" space "(" busy ")"
+        r"^\s+\-\s+\((busy|free DelayedFree)\)"       # space "-" space "(" busy ")"
         r"\s*$",                                      # [space]
         asPageHeapOutput[3],
       );
-      assert oBlockAdressAndSizeMatch, \
+      assert oBlockInformationMatch, \
           "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-      sBlockStartAddress, sBlockSize = oBlockAdressAndSizeMatch.groups();
+      sBlockStartAddress, sBlockSize, sState = oBlockInformationMatch.groups();
+      bAllocated == sState == "busy";
       uAllocationStartAddress, uAllocationSize = None, None; # Not applicable
+    else:
+      oDPHHeapBlockTypeMatch = re.match(                # line #3
+        r"^\s+in (free-ed|busy) allocation \("          # space "in" space ("free-ed" | "busy") space  "allocation ("
+        r"\s*\w+:"                                      #   [space] DPH_HEAP_BLOCK ":"
+        r"(?:\s+UserAddr\s+UserSize\s+\-)?"             #   optional{ space "UserAddr" space "UserSize" space "-" }
+        r"\s+VirtAddr\s+VirtSize"                       #   space "VirtAddr" space "VirtSize"
+        r"\)\s*$",                                      # ")" [space]
+        asPageHeapOutput[2],
+      );
+      assert oDPHHeapBlockTypeMatch, \
+          "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
+      bAllocated = oDPHHeapBlockTypeMatch.group(1) == "busy";
+      oBlockInformationMatch = re.match(            # line #4
+        r"^\s+[0-9`a-f]+:"                            # space heap_header_address ":"
+        r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (sBlockStartAddress) space (sBlockSize) space "-" }
+        r"\s+([0-9`a-f]+)\s+([0-9`a-f]+)"             # space (sAllocationStartAddress) space (sAllocationSize)
+        r"\s*$",                                      # [space]
+        asPageHeapOutput[3],
+      );
+      assert oBlockInformationMatch, \
+          "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
+      sBlockStartAddress, sBlockSize, sAllocationStartAddress, sAllocationSize = oBlockInformationMatch.groups();
+      uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
+      uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - oCdbWrapper.oCurrentProcess.uPageSize; # Total size = allocation size + guard page size
     oVirtualAllocation = cVirtualAllocation.foGetForAddress(oCdbWrapper, uAllocationStartAddress);
     uPointerSize = oCdbWrapper.oCurrentProcess.uPointerSize;
     if bAllocated:
