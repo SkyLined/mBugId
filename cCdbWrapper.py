@@ -293,7 +293,7 @@ class cCdbWrapper(object):
     if uProcessId is not None and uProcessId != oCdbWrapper.oCurrentProcess.uId:
       # Select process if it is not yet the current process.
       assert uProcessId in oCdbWrapper.doProcess_by_uId, \
-          "Unknown process id %d/0x%X" % uProcessId;
+          "Unknown process id %d/0x%X" % (uProcessId, uProcessId);
       sSelectCommand += "|~[0x%X]s;" % uProcessId;
       asSelected.append("process");
       # Assuming there's no error, track the new current process.
