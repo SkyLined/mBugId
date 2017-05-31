@@ -190,7 +190,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
         oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
       else:
-        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreate(oCdbWrapper);
+        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oCdbWrapper, oCdbWrapper.oCurrentProcess);
         uOffsetFromTopOfStack = uAccessViolationAddress - oThreadEnvironmentBlock.uStackTopAddress;
         uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAccessViolationAddress;
         if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= oCdbWrapper.oCurrentProcess.uPageSize:

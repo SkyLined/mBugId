@@ -2,8 +2,8 @@ import re;
 
 class cThreadEnvironmentBlock(object):
   @staticmethod
-  def foCreate(oCdbWrapper):
-    asPageHeapOutput = oCdbWrapper.fasSendCommandAndReadOutput("!teb", bOutputIsInformative = True);
+  def foCreateForCurrentThread(oCdbWrapper, oProcess):
+    asPageHeapOutput = oProcess.fasExecuteCdbCommand("!teb", bOutputIsInformative = True);
     assert asPageHeapOutput, "Missing TEB info output";
     # Sample output:
     # |0:000> !teb
@@ -26,17 +26,48 @@ class cThreadEnvironmentBlock(object):
     # |    HardErrorMode:        0
     oHeaderMatch = re.match(r"^TEB at ([0-9A-Fa-f]+)$", asPageHeapOutput[0]);
     assert oHeaderMatch, "Unexpected TEB info header:%s\r\n%s" % (asPageHeapOutput[0], "\r\n".join(asPageHeapOutput));
-    uTEBAddress = long(oHeaderMatch.group(1), 16);
+    sTEBAddress = oHeaderMatch.group(1);
+    uTEBAddress = long(sTEBAddress, 16);
+    uTEBPointerSize = len(sTEBAddress) == 16 and 8 or 4; # 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
     uStackTopAddress = None;
     uStackBottomAddress = None;
-    for sLine in asPageHeapOutput[1:]:
-      oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
-      assert oLineMatch, "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asPageHeapOutput));
-      sName, sValue = oLineMatch.groups();
-      if sName == "StackBase":
-        uStackTopAddress = long(sValue, 16);
-      elif sName == "StackLimit":
-        uStackBottomAddress = long(sValue, 16);
+    if len(asPageHeapOutput) == 2 and asPageHeapOutput[1] == "error InitTypeRead( TEB )...":
+      # No additional information was provided, we'll have to grab it from the TEB outselves.
+      # The TEB has a pointer to the stack top and bottom:
+      # http://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FNT%20Objects%2FThread%2FTEB.html
+      # typedef struct _TEB
+      # {
+      #     struct _NT_TIB                    NtTib;  // size = 7 * pointer
+      #     ...snip...
+      # struct _NT_TIB {
+      #   void *ExceptionList;                        // size = pointer
+      #   void *StackBase;                            // size = pointer
+      #   void *StackLimit;                           // size = pointer
+      #   void *SubSystemTib;                         // size = pointer
+      #   union {                                     // size = max(pointer, DWORD)
+      #     void *FiberData;                          //    size = pointer
+      #     uint32_t Version;                         //    size = DWORD
+      #   };                          
+      #   void *ArbitraryUserPointer;                 // size = pointer
+      #   struct _NT_TIB *Self;                       // size = pointer
+      # };                                            // total size =  7 * pointer
+      uStackTopAddress = oProcess.oCdbWrapper.fuGetValue(
+        "poi(0x%X)" % (uTEBAddress + 1 * uTEBPointerSize),
+        "Get stack top address from TEB"
+      );
+      uStackBottomAddress = oProcess.oCdbWrapper.fuGetValue(
+        "poi(0x%X)" % (uTEBAddress + 2 * uTEBPointerSize),
+        "Get stack bottom address from TEB"
+      );
+    else:
+      for sLine in asPageHeapOutput[1:]:
+        oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
+        assert oLineMatch, "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asPageHeapOutput));
+        sName, sValue = oLineMatch.groups();
+        if sName == "StackBase":
+          uStackTopAddress = long(sValue, 16);
+        elif sName == "StackLimit":
+          uStackBottomAddress = long(sValue, 16);
     return cThreadEnvironmentBlock(
       uAddress = uTEBAddress,
       uStackTopAddress = uStackTopAddress,
