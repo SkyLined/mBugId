@@ -88,7 +88,7 @@ class cPageHeapAllocation(object):
         r"^\s+HEAP_ENTRY\s+Size\s+Prev\s+Flags\s+UserPtr\s+UserSize\s+\-\s+state",
         asPageHeapOutput[2],
       );
-      assert oDPHHeapBlockTypeMatch or oHeapBlockTypeMatch, \
+      assert oHeapBlockTypeMatch, \
           "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
       oBlockInformationMatch = re.match(            # line #4
         r"^\s+[0-9`a-f]+"                             # space heap_entry_address
