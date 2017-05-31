@@ -131,10 +131,11 @@ class cTest(object):
             print "  Expected:    %s" % repr(oTest.sExpectedBugId);
             print "  Reported:    no bug";
             bThisTestFailed = True;
-          elif isinstance(oTest.sExpectedBugId, tuple) and oBugReport.sId in oTest.sExpectedBugId:
-            print "+ %s == %s" % (oTest, oBugReport.sId);
-          elif isinstance(oTest.sExpectedBugId, str) and oBugReport.sId == oTest.sExpectedBugId:
-            print "+ %s == %s" % (oTest, oBugReport.sId);
+          elif (
+            (isinstance(oTest.sExpectedBugId, tuple) and oBugReport.sId in oTest.sExpectedBugId)
+            or (isinstance(oTest.sExpectedBugId, str) and oBugReport.sId == oTest.sExpectedBugId)
+          ):
+            print "+ %s" % oTest;
           else:
             print "- Failed test: %s" % " ".join([dsBinaries_by_sISA[oTest.sISA]] + oTest.asCommandLineArguments);
             print "  Test reported a different bug than expected in the application.";
