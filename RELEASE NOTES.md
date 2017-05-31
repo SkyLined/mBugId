@@ -1,4 +1,4 @@
-2017-05-17
+2017-05-31
 ==========
 Changes to BugIds
 -----------------
@@ -77,6 +77,13 @@ Changes to cBugId API and dxConfig
   application or cdb output a line of text to stderr. The callback handler is
   called with the cBugId instance as its first argument and the line of text in
   the second. This can be used to show or store all stderr output.
++ `fNewProcessCallback` is a new callback that is called whenever a new process
+  is started by the application. The callback handler is called with the cBugId
+  instance as its first argument and the cProcess instance that represents the
+  new process as the the second. If you plan on saving the cProcess instance
+  for later use, please check that cProcess.bTerminated is not True before
+  attempting to use it, as many properties are determined at the time they are
+  read and this will no longer work after the process has terminated.
 + `bOutputStdOut` and `bOutputStdIn` have been replaced with `bOutputStdIO`, as
   I found it really only makes sense to show both and having them behind one
   setting makes changing it easier.
@@ -153,6 +160,7 @@ Bug fixes
 
 Improvements
 ------------
++ Handle "corrupted header" VERIFIER STOP messages.
 + Handle cdb termination in the stdio thread by throwing a specific exception.
   This removes the need for many, many checks to see if cdb is still alive,
   making the code easier to read and maintain. It also removes the risk of a
