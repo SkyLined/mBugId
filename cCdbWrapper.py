@@ -49,6 +49,7 @@ class cCdbWrapper(object):
     fFinishedCallback,                        # called when BugId is finished.
     fPageHeapNotEnabledCallback,              # called when page heap is not enabled for a particular binary.
     fStdErrOutputCallback,                    # called whenever there is output on stderr
+    fNewProcessCallback,                      # called whenever there is a new process.
   ):
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
@@ -65,6 +66,7 @@ class cCdbWrapper(object):
     oCdbWrapper.fFinishedCallback = fFinishedCallback;
     oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
+    oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
     oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
     uSymbolOptions = sum([
       0x00000001, # SYMOPT_CASE_INSENSITIVE

@@ -64,6 +64,7 @@ class cBugId(object):
     fFinishedCallback = None,
     fPageHeapNotEnabledCallback = None,
     fStdErrOutputCallback = None,
+    fNewProcessCallback = None,
   ):
     # Replace fFinishedCallback with a wrapper that signals the finished event.
     # This event is used by the fWait function to wait for the process to
@@ -77,6 +78,7 @@ class cBugId(object):
     oBugId.__fFinishedCallback = fFinishedCallback;
     oBugId.__fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     oBugId.__fStdErrOutputCallback = fStdErrOutputCallback;
+    oBugId.__fNewProcessCallback = fNewProcessCallback;
     
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
@@ -105,6 +107,7 @@ class cBugId(object):
       fFinishedCallback = oBugId.__fFinishedHandler,
       fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledHandler,
       fStdErrOutputCallback = oBugId.__fStdErrOutputHandler,
+      fNewProcessCallback = oBugId.__fNewProcessHandler,
     );
   
   def fStart(oBugId):
@@ -196,3 +199,8 @@ class cBugId(object):
   def __fStdErrOutputHandler(oBugId, sOutput):
     if oBugId.__fStdErrOutputCallback:
       oBugId.__fStdErrOutputCallback(oBugId, sOutput);
+  
+  def __fNewProcessHandler(oBugId, oProcess):
+    if oBugId.__fNewProcessCallback:
+      oBugId.__fNewProcessCallback(oBugId, oProcess);
+  

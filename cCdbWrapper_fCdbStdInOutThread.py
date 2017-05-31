@@ -347,6 +347,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
             dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId].append(STATUS_WX86_BREAKPOINT);
         # This event was explicitly to notify us of the new process; no more processing is needed.
+        oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
