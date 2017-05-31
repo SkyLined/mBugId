@@ -21,19 +21,37 @@ class cProcess(object):
     # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
     oProcess.bPageHeapEnabled = None;
     
+    # oProcess.sCommandLine is only determined when needed and cached using __fGetProcessInformation
+    oProcess.__sCommandLine = None; 
+    
     # oProcess.sISA is only determined when needed and cached using __fGetProcessInformation
     oProcess.__sISA = None; 
     
-    # oProcess.uPointerSize is only detemined when needed and cached using __fGetProcessInformation
+    # oProcess.uPointerSize is only determined when needed and cached using __fGetProcessInformation
     oProcess.__uPointerSize = None; # 
     
-    # oProcess.uPageSize is only detemined when needed and cached
+    # oProcess.uPageSize is only determined when needed and cached
     oProcess.__uPageSize = None;
     
-    # oProcess.oMainModule is only detemined when needed and cached
+    # oProcess.oMainModule is only determined when needed and cached
     oProcess.__oMainModule = None; # .oMainModule is JIT
     # In order to determine oProcess.oMainModule, we need it's base address. This is set by __fGetProcessInformation
     oProcess.__uMainModuleImageBaseAddress = None;
+    
+    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sCdbId for every
+    # loaded module and returns all the values in this dict. Since this dict is cached, this only needs to be done
+    # once until the cache is invalidated.
+    oProcess.__bAllModulesEnumerated = False;
+  
+  @property
+  def sBinaryName(oProcess):
+    return oProcess.oMainModule.sBinaryName;
+  
+  @property
+  def sCommandLine(oProcess):
+    if oProcess.__sCommandLine is None:
+      oProcess.__fGetProcessInformation();
+    return oProcess.__sCommandLine;
   
   @property
   def sISA(oProcess):
@@ -46,6 +64,12 @@ class cProcess(object):
     if oProcess.__uPointerSize is None:
       oProcess.__fGetProcessInformation();
     return oProcess.__uPointerSize;
+  
+  @property
+  def uPageSize(oProcess):
+    if oProcess.__uPageSize is None:
+      oProcess.__uPageSize = oProcess.fuGetValue("@$pagesize", "Get page size for process");
+    return oProcess.__uPageSize;
   
   def __fGetProcessInformation(oProcess):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
@@ -92,12 +116,19 @@ class cProcess(object):
         if oPEBMatch:
           sPEBType, sPEBAddress = oPEBMatch.groups();
           uPEBAddress = long(sPEBAddress, 16);
+          # This seems to work well enough, but an alternative way to determine the pointer size is to check if the
+          # PEB address string consists of 16 hex digits (64-bits) or less (32-bits) similar to how it is done in
+          # cThreadEnvironmentBlock at the moment of this writing.
           uPEBPointerSize = sPEBType == "Wow64 PEB32" or oProcess.oCdbWrapper.sCdbISA == "x86" and 4 or 8;
       elif oProcess.__uMainModuleImageBaseAddress is None:
         # Then look for the ImageBaseAddress:
         oImageBaseAddressMatch = re.match(r"^    ImageBaseAddress:\s+([0-9a-f]+)$", sLine, re.I);
         if oImageBaseAddressMatch:
           oProcess.__uMainModuleImageBaseAddress = long(oImageBaseAddressMatch.group(1), 16);
+      else:
+        oCommandLineMatch = re.match(r"^    CommandLine:\s+'(.*)'$", sLine, re.I);
+        if oCommandLineMatch:
+          oProcess.__sCommandLine = oCommandLineMatch.group(1);
           break;
     else:
       # The PEB address should always be output on the first line (though there may be some NatVis cruft before it,
@@ -116,7 +147,7 @@ class cProcess(object):
       #     PVOID Mutant;
       #     PVOID ImageBaseAddress;     <=== That's what we're looking for.
       #     PPEB_LDR_DATA Ldr;
-      oProcess.__uMainModuleImageBaseAddress = oProcess.oCdbWrapper.fuGetValue(
+      oProcess.__uMainModuleImageBaseAddress = oProcess.fuGetValue(
         "poi(0x%X)" % (uPEBAddress + 2 * uPEBPointerSize),
         "Get main module image base from PEB"
       );
@@ -155,19 +186,20 @@ class cProcess(object):
     return oProcess.__oMainModule;
   
   @property
-  def sBinaryName(oProcess):
-    return oProcess.oMainModule.sBinaryName;
-  
-  @property
-  def uPageSize(oProcess):
-    if oProcess.__uPageSize is None:
-      oProcess.fSelectInCdb();
-      oProcess.__uPageSize = oProcess.fuGetValue("@$pagesize", "Get page size for process");
-    return oProcess.__uPageSize;
+  def aoModules(oProcess):
+    if not oProcess.__bAllModulesEnumerated:
+      asLoadedModulesCdbIds = oProcess.fasExecuteCdbCommand("lmo1m; $$ List all loaded module cdb ids");
+      assert len(asLoadedModulesCdbIds) > 0, \
+          "Got no loaded modules list";
+      for sCdbId in asLoadedModulesCdbIds:
+        oProcess.foGetOrCreateModuleForCdbId(sCdbId);
+      oProcess.__bAllModulesEnumerated = True;
+    return oProcess.__doModules_by_sCdbId.values();
   
   def fClearCache(oProcess):
     # Assume that all modules can be unloaded, except the main module.
     oProcess.__doModules_by_sCdbId = {oProcess.oMainModule.sCdbId: oProcess.oMainModule};
+    oProcess.__bAllModulesEnumerated = False;
   
   def foGetOrCreateModuleForCdbId(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments):
     oProcess.oMainModule; # Make sure we've already created the main module, or it could be created twice.
