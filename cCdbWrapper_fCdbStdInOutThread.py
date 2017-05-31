@@ -297,7 +297,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not always get reported for the new process; see if there are any processes known to cdb
         # that we do not yet know about:
-        asListProcesses = oCdbWrapper.fasSendCommandAndReadOutput("|;", bRetryOnTruncatedOutput = True);
+        asListProcesses = oCdbWrapper.fasSendCommandAndReadOutput(
+          "|;",
+          bRetryOnTruncatedOutput = True,
+        );
         auNewProcessIds = [];
         for sListProcess in asListProcesses:
           oProcessIdMatch = re.match("[#\.\s]+\d+\s+id:\s+([0-9a-f]+)\s+.*", sListProcess, re.I);
@@ -330,14 +333,19 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             oCdbWrapper.fasSendCommandAndReadOutput(
               '.printf "Attached to process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
               bShowCommandInHTMLReport = False,
+              bRetryOnTruncatedOutput = True,
             );
           else:
             oCdbWrapper.fasSendCommandAndReadOutput(
               '.printf "Started process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
               bShowCommandInHTMLReport = False,
+              bRetryOnTruncatedOutput = True,
             );
         # Make sure child processes of the new process are debugged as well.
-        oCdbWrapper.fasSendCommandAndReadOutput(".childdbg 1; $$ Debug child processes", bRetryOnTruncatedOutput = True);
+        oCdbWrapper.fasSendCommandAndReadOutput(
+          ".childdbg 1; $$ Debug child processes",
+          bRetryOnTruncatedOutput = True
+        );
         if sCreateExitProcess == "Create":
           # If the application creates a new process, a STATUS_BREAKPOINT exception may follow that signals the
           # same event; this exception should be ignored as we have already handled the new process.
@@ -362,6 +370,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "This exception is assumed to be related to a recent process creation and therefore ignored.\\r\\n";',
             bShowCommandInHTMLReport = False,
+            bRetryOnTruncatedOutput = True,
           );
           auIgnoreNextExceptionCodes.pop(0);
           # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
@@ -382,11 +391,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "Terminated main process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
             bShowCommandInHTMLReport = False,
+            bRetryOnTruncatedOutput = True,
           );
         else:
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "Terminated sub-process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
             bShowCommandInHTMLReport = False,
+            bRetryOnTruncatedOutput = True,
           );
         # This event was explicitly to notify us of the terminated process; no more processing is needed.
         continue;
@@ -395,7 +406,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # If available, free previously allocated memory to allow analysis in low memory conditions.
       if uReserveRAMAllocated:
         # This command is not relevant to the bug, so it is hidden in the cdb IO to prevent OOM.
-        oCdbWrapper.fasSendCommandAndReadOutput("ad ${/v:RAM}; $$ Release RAM");
+        oCdbWrapper.fasSendCommandAndReadOutput(
+          "ad ${/v:RAM}; $$ Release RAM",
+        );
         uReserveRAMAllocated = 0;
       ### Handle timeout interrupt #####################################################################################
       if uExceptionCode == DBG_CONTROL_BREAK:
@@ -407,6 +420,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         oCdbWrapper.fasSendCommandAndReadOutput(
           '.printf "The application was interrupted to handle a timeout.\\r\\n";',
           bShowCommandInHTMLReport = False,
+          bRetryOnTruncatedOutput = True,
         );
         oCdbWrapper.uCdbBreakExceptionsPending -= 1;
         continue;
@@ -416,6 +430,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         oCdbWrapper.fasSendCommandAndReadOutput(
           '.printf "The application hit a breakpoint.\\r\\n";',
           bShowCommandInHTMLReport = False,
+          bRetryOnTruncatedOutput = True,
         );
         fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
         fBreakpointCallback(uBreakpointId);
@@ -424,6 +439,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       oCdbWrapper.fasSendCommandAndReadOutput(
         '.printf "Analyzing unexpected exception.\\r\\n";',
         bShowCommandInHTMLReport = False,
+        bRetryOnTruncatedOutput = True,
       );
       ### Handle VERIFIER STOP #########################################################################################
       oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput);
@@ -445,7 +461,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       oCdbWrapper.oBugReport.fPostProcess(oCdbWrapper);
     # Terminate cdb.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-    oCdbWrapper.fasSendCommandAndReadOutput("q", bIgnoreOutput = True, bUseMarkers = False); # This is not going to end up in the report.
+    oCdbWrapper.fasSendCommandAndReadOutput(
+      "q",
+      bIgnoreOutput = True,
+      bUseMarkers = False
+    ); # This is not going to end up in the report.
   except cCdbStoppedException as oCdbStoppedException:
     pass;
   finally:
