@@ -174,7 +174,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
           "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
               "\r\n".join(asRelevantLines);
       sBugTypeId = "OOBW";
-    elif sMessage == ["corrupted suffix pattern", "corrupted header"]:
+    elif sMessage in ["corrupted suffix pattern", "corrupted header"]:
       assert uCorruptionAddress is not None, \
           "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
               "\r\n".join(asRelevantLines);
