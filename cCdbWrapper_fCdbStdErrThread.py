@@ -13,8 +13,6 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
           oCdbWrapper.sCdbIOHTML += sLineHTML;
           if oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine):
             oCdbWrapper.sImportantOutputHTML += sLineHTML;
-        if dxConfig["bOutputStdErr"]:
-          print "cdb:stderr>%s" % repr(sLine)[1:-1];
         oCdbWrapper.fStdErrOutputCallback(sLine);
       if sChar == "":
         break;
