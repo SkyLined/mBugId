@@ -146,7 +146,7 @@ class cBugId(object):
   def fbFinished(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
-    oBugId.__oFinishedEvent.isSet();
+    return oBugId.__oFinishedEvent.isSet();
   
   # Wrap all callbacks to provide this cBugId instance as the first argument.
   def __fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
