@@ -65,8 +65,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # Load the debugger extension
     oCdbWrapper.oExtension = cDebuggerExtension.foLoad(oCdbWrapper);
     
-    # Only fire fApplicationRunningCallback if the application was started for the first time or resumed after it was
-    # paused to analyze an exception. 
     if len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
       sStatus = "attaching to application";
     else:
@@ -138,9 +136,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
                 '.printf "Starting the application is complete.\\r\\n";',
                 bShowCommandInHTMLReport = False,
               );
-            oCdbWrapper.fApplicationRunningCallback();
+            if oCdbWrapper.fApplicationRunningCallback:
+              oCdbWrapper.fApplicationRunningCallback();
             bAttachingToOrStartingApplication = False;
-        else:
+        elif oCdbWrapper.fApplicationResumedCallback:
           oCdbWrapper.fApplicationResumedCallback();
         ### Check if page heap is enabled in all processes if requested ################################################
         if dxConfig["bEnsurePageHeap"]:
@@ -283,7 +282,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       bApplicationCannotHandleException = sChance == "second";
       uBreakpointId = sBreakpointId and long(sBreakpointId);
       # If the application was not suspended on purpose to attach to another process, report it:
-      if not bAttachingToOrStartingApplication:
+      if not bAttachingToOrStartingApplication and oCdbWrapper.fApplicationSuspendedCallback:
         if uBreakpointId is not None:
           sReason = "breakpoint hit";
         elif uExceptionCode is not None:
@@ -355,7 +354,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
             dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId].append(STATUS_WX86_BREAKPOINT);
         # This event was explicitly to notify us of the new process; no more processing is needed.
-        oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
+        if oCdbWrapper.fNewProcessCallback:
+          oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
@@ -387,7 +387,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # terminated:
         oCdbWrapper.oCurrentProcess.bTerminated = True;
         if oCdbWrapper.oCurrentProcess in oCdbWrapper.aoMainProcesses:
-          oCdbWrapper.fMainProcessTerminatedCallback(uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName);
+          if oCdbWrapper.fMainProcessTerminatedCallback:
+            oCdbWrapper.fMainProcessTerminatedCallback(uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName);
           oCdbWrapper.fasSendCommandAndReadOutput(
             '.printf "Terminated main process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
             bShowCommandInHTMLReport = False,

@@ -98,16 +98,25 @@ class cBugId(object):
       rImportantStdOutLines = rImportantStdOutLines,
       rImportantStdErrLines = rImportantStdErrLines,
       bGenerateReportHTML = bGenerateReportHTML,
+      # All callbacks are wrapped to insert this cBugId instance as the first argument.
       fFailedToDebugApplicationCallback = oBugId.__fFailedToDebugApplicationHandler,
-      fApplicationRunningCallback = oBugId.__fApplicationRunningHandler,
-      fApplicationSuspendedCallback = oBugId.__fApplicationSuspendedHandler,
-      fApplicationResumedCallback = oBugId.__fApplicationResumedHandler,
-      fMainProcessTerminatedCallback = oBugId.__fMainProcessTerminatedHandler,
-      fInternalExceptionCallback = oBugId.__fInternalExceptionHandler,
+      fApplicationRunningCallback = oBugId.__fApplicationRunningCallback and \
+          (lambda: oBugId.__fApplicationRunningCallback(oBugId)),
+      fApplicationSuspendedCallback = oBugId.__fApplicationSuspendedCallback and \
+          (lambda sReason: oBugId.__fApplicationSuspendedCallback(oBugId, sReason)),
+      fApplicationResumedCallback = oBugId.__fApplicationResumedCallback and \
+          (lambda: oBugId.__fApplicationResumedCallback(oBugId)),
+      fMainProcessTerminatedCallback = oBugId.__fMainProcessTerminatedCallback and \
+          (lambda uProcessId, sBinaryName: oBugId.__fMainProcessTerminatedCallback(oBugId, uProcessId, sBinaryName)),
+      fInternalExceptionCallback = oBugId.__fInternalExceptionCallback and \
+          (lambda oException, oTraceBack: oBugId.__fInternalExceptionCallback(oBugId, oException, oTraceBack)),
       fFinishedCallback = oBugId.__fFinishedHandler,
-      fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledHandler,
-      fStdErrOutputCallback = oBugId.__fStdErrOutputHandler,
-      fNewProcessCallback = oBugId.__fNewProcessHandler,
+      fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledCallback and \
+          (lambda uProcessId, sBinaryName, bPreventable: oBugId.__fPageHeapNotEnabledCallback(oBugId, uProcessId, sBinaryName, bPreventable)),
+      fStdErrOutputCallback = oBugId.__fStdErrOutputCallback and \
+          (lambda sOutput: oBugId.__fStdErrOutputCallback(oBugId, sOutput)),
+      fNewProcessCallback = oBugId.__fNewProcessCallback and \
+          (lambda oProcess: oBugId.__fNewProcessCallback(oBugId, oProcess)),
     );
   
   def fStart(oBugId):
@@ -148,38 +157,11 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
     return oBugId.__oFinishedEvent.isSet();
   
-  # Wrap all callbacks to provide this cBugId instance as the first argument.
   def __fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
     oBugId.__oFinishedEvent.set();
     # This error must be handled, or an assertion is thrown
     assert oBugId.__fFailedToDebugApplicationCallback, sErrorMessage;
     oBugId.__fFailedToDebugApplicationCallback(oBugId, sErrorMessage);
-    
-  
-  def  __fApplicationRunningHandler(oBugId):
-    if oBugId.__fApplicationRunningCallback:
-      oBugId.__fApplicationRunningCallback(oBugId);
-  
-  def  __fApplicationSuspendedHandler(oBugId, sReason):
-    if oBugId.__fApplicationSuspendedCallback:
-      oBugId.__fApplicationSuspendedCallback(oBugId, sReason);
-  
-  def  __fApplicationResumedHandler(oBugId):
-    if oBugId.__fApplicationResumedCallback:
-      oBugId.__fApplicationResumedCallback(oBugId);
-  
-  def __fExceptionDetectedHandler(oBugId):
-    if oBugId.__fExceptionDetectedCallback:
-      oBugId.__fExceptionDetectedCallback(oBugId);
-  
-  def __fMainProcessTerminatedHandler(oBugId, uProcessId, sBinaryName):
-    if oBugId.__fMainProcessTerminatedCallback:
-      oBugId.__fMainProcessTerminatedCallback(oBugId, uProcessId, sBinaryName);
-  
-  def __fInternalExceptionHandler(oBugId, oException, oTraceBack):
-    if not oBugId.__fInternalExceptionCallback:
-      raise oException;
-    oBugId.__fInternalExceptionCallback(oBugId, oException, oTraceBack);
   
   def __fFinishedHandler(oBugId, oBugReport):
     # Save bug report, if any.
@@ -187,20 +169,3 @@ class cBugId(object):
     oBugId.__oFinishedEvent.set();
     if oBugId.__fFinishedCallback:
       oBugId.__fFinishedCallback(oBugId, oBugReport);
-  
-  def __fPageHeapNotEnabledHandler(oBugId, uProcessId, sBinaryName, bPreventable):
-    if oBugId.__fPageHeapNotEnabledCallback:
-      oBugId.__fPageHeapNotEnabledCallback(oBugId, uProcessId, sBinaryName, bPreventable);
-    else:
-      # This is fatal if it's preventable and there is no callback handler
-      assert not bPreventable, \
-        "Full page heap is not enabled for %s in process %d/0x%X." % (sBinaryName, uProcessId, uProcessId);
-  
-  def __fStdErrOutputHandler(oBugId, sOutput):
-    if oBugId.__fStdErrOutputCallback:
-      oBugId.__fStdErrOutputCallback(oBugId, sOutput);
-  
-  def __fNewProcessHandler(oBugId, oProcess):
-    if oBugId.__fNewProcessCallback:
-      oBugId.__fNewProcessCallback(oBugId, oProcess);
-  

@@ -13,7 +13,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
           oCdbWrapper.sCdbIOHTML += sLineHTML;
           if oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine):
             oCdbWrapper.sImportantOutputHTML += sLineHTML;
-        oCdbWrapper.fStdErrOutputCallback(sLine);
+        oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
       if sChar == "":
         break;
       sLine = "";

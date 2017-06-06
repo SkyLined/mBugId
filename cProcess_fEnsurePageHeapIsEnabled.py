@@ -91,6 +91,10 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   # from doing the same. In such cases, it appears that page heap cannot be enabled by the user, so we'll report it
   # with the second argument as "False" (not preventable).
   bPreventable = re.match(r"image[0-9a-f]{8}", oProcess.oMainModule.sCdbId, re.I) is None;
-#  print "@@@ Page heap status is %s DISABLED for %s" % (bPreventable and "PREVENTABLY" or "PERMANENTLY", oProcess.sBinaryName);
   # Report it
-  oCdbWrapper.fPageHeapNotEnabledCallback(oProcess.uId, oProcess.sBinaryName, bPreventable);
+  if oCdbWrapper.fPageHeapNotEnabledCallback:
+    oCdbWrapper.fPageHeapNotEnabledCallback(oProcess.uId, oProcess.sBinaryName, bPreventable);
+  else:
+    # This is fatal if it's preventable and there is no callback handler
+    assert not bPreventable, \
+        "Full page heap is not enabled for %s in process %d/0x%X." % (sBinaryName, uProcessId, uProcessId);

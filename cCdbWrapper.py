@@ -214,38 +214,42 @@ class cCdbWrapper(object):
   
   def _fThreadWrapper(oCdbWrapper, fActivity):
     try:
-      fActivity(oCdbWrapper);
-    except Exception, oException:
-      cException, oException, oTraceBack = sys.exc_info();
-      try:
-        oCdbWrapper.fInternalExceptionCallback(oException, oTraceBack);
-      finally:
-        oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-        if not oCdbProcess:
-          oCdbWrapper.bCdbRunning = False;
-          return;
-        if oCdbProcess.poll() is not None:
-          oCdbWrapper.bCdbRunning = False;
-          return;
-        oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-        # cdb is still running: try to terminate cdb the normal way.
+      # If there is not exception callback, do not handle exceptions:
+      if not oCdbWrapper.fInternalExceptionCallback:
+        return fActivity(oCdbWrapper);
+      else:
+        # If there is an exception callback, handle exceptions and pass them to the callback:
         try:
-          oCdbProcess.terminate();
-        except:
-          pass;
-        else:
-          oCdbWrapper.bCdbRunning = False;
-          return;
-        if oCdbProcess.poll() is not None:
-          oCdbWrapper.bCdbRunning = False;
-          return;
-        # cdb is still running: try to terminate cdb the hard way.
-        fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
-        # Make sure cdb finally died.
-        assert oCdbProcess.poll() is not None, \
-            "cdb did not die after killing it repeatedly";
+          fActivity(oCdbWrapper);
+        except Exception, oException:
+          cException, oException, oTraceBack = sys.exc_info();
+          oCdbWrapper.fInternalExceptionCallback(oException, oTraceBack);
+    finally:
+      oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
+      if not oCdbProcess:
         oCdbWrapper.bCdbRunning = False;
         return;
+      if oCdbProcess.poll() is not None:
+        oCdbWrapper.bCdbRunning = False;
+        return;
+      oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
+      # cdb is still running: try to terminate cdb the normal way.
+      try:
+        oCdbProcess.terminate();
+      except:
+        pass;
+      else:
+        oCdbWrapper.bCdbRunning = False;
+        return;
+      if oCdbProcess.poll() is not None:
+        oCdbWrapper.bCdbRunning = False;
+        return;
+      # cdb is still running: try to terminate cdb the hard way.
+      fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
+      # Make sure cdb finally died.
+      assert oCdbProcess.poll() is not None, \
+          "cdb did not die after killing it repeatedly";
+      oCdbWrapper.bCdbRunning = False;
   
   def fStop(oCdbWrapper):
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
