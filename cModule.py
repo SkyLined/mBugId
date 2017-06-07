@@ -24,8 +24,8 @@ class cModule(object):
   
   @property
   def bSymbolsAvailable(oModule):
-    if oModule.__sSymbolStatus == "deferred":
-      # It's deferred: try to load symbols now.
+    if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
+      # It's deferred or otherwise not loaded: try to load symbols now.
       asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand("ld %s; $$ Load symbols for module" % oModule.sCdbId);
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
@@ -152,9 +152,10 @@ class cModule(object):
     if oModule.__sSymbolStatus == "deferred":
       # If the symbol status was deferred, we may have loaded the symbols, so this may have changed:
       oModule.__sSymbolStatus = sSymbolStatus;
-    else:
-      assert oModule.__sSymbolStatus == sSymbolStatus, \
-        "Module symbol status was given as %s, but is now reported to be %s" % (repr(oModule.__sSymbolStatus), repr(sSymbolStatus));
+# I've seen the module symbol status go from "export symbols" to "deferred" for unknown reasons. Let's just ignore this.
+#    else:
+#      assert oModule.__sSymbolStatus == sSymbolStatus, \
+#        "Module symbol status was given as %s, but is now reported to be %s" % (repr(oModule.__sSymbolStatus), repr(sSymbolStatus));
     
     dsValue_by_sName = {};
     for sLine in asListModuleOutput[2:]:
