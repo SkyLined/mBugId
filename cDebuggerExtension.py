@@ -1,9 +1,9 @@
 import os, re;
 
-gsThisFilePath = os.path.dirname(__file__);
+gsDebuggerExtensionBinBasePath = os.path.abspath(os.path.join(os.path.dirname(__file__), "DebuggerExtension", "bin"));
 gdsDebuggerExtensionDLLPath_by_sCdbISA = {
-  "x86": os.path.join(gsThisFilePath, "DebuggerExtension", "bin", "i386", "debugext.dll"),
-  "x64": os.path.join(gsThisFilePath, "DebuggerExtension", "bin", "amd64", "debugext.dll"),
+  "x86": os.path.join(gsDebuggerExtensionBinBasePath, "i386", "debugext.dll"),
+  "x64": os.path.join(gsDebuggerExtensionBinBasePath, "amd64", "debugext.dll"),
 };
 
 class cDebuggerExtension(object):
