@@ -351,8 +351,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # This is potentially unreliable: if this exception is not thrown, but the process does trigger a
           # breakpoint for some other reason, it will be ignored. However, I have never seen that happen.
           dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [STATUS_BREAKPOINT];
-          if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
-            dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId].append(STATUS_WX86_BREAKPOINT);
+        # And a STATUS_BREAKPOINT triggered to report a new process in turn can be followed by a STATUS_WX86_BREAKPOINT
+        # on x64 systems running a x86 process.
+        if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
+          dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(STATUS_WX86_BREAKPOINT);
         # This event was explicitly to notify us of the new process; no more processing is needed.
         if oCdbWrapper.fNewProcessCallback:
           oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
