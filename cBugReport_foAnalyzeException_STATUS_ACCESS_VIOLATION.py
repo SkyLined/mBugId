@@ -219,8 +219,9 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled or memory be allocate at the address.";
             elif oVirtualAllocation.bReserved:
               oBugReport.sBugTypeId = "AV%s@Reserved" % sViolationTypeId;
-              oBugReport.sBugDescription = "Access violation while %s reserved but unallocated memory at 0x%X." % \
-                  (sViolationTypeDescription, uAccessViolationAddress);
+              oBugReport.sBugDescription = "Access violation at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
+                  (uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation.uBaseAddress, \
+                  oVirtualAllocation.uBaseAddress + oVirtualAllocation.uSize);
               oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
                   "memory be allocated at the address rather than reserved.";
             else:
