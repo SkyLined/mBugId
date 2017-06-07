@@ -2,16 +2,12 @@ import os, re;
 from cFunction import cFunction;
 
 class cModule(object):
-  def __init__(oModule, oProcess, sCdbId = None, uStartAddress = None, uEndAddress = None):
+  def __init__(oModule, oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):
     oModule.oProcess = oProcess;
-    # oModule.sCdbId is not always known from the start and may only be determined when needed using __fGetModuleInformation.
-    oModule.__sCdbId = sCdbId;
-    # oModule.uStartAddress is not always known from the start and may only be determined when needed using __fGetModuleInformation.
-    oModule.__uStartAddress = uStartAddress;
-    # oModule.uEndAddress is not always known from the start and may only be determined when needed using __fGetModuleInformation.
-    oModule.__uEndAddress = uEndAddress;
-    # oModule.bSymbolsAvailable is only determined when needed using __fGetModuleInformation
-    oModule.__bSymbolsAvailable = None;
+    oModule.uStartAddress = uStartAddress;
+    oModule.uEndAddress = uEndAddress;
+    oModule.sCdbId = sCdbId;
+    oModule.__sSymbolStatus = sSymbolStatus; # Not exposed; use bSymbolsAvailable
     # __fGetModuleInformation needs only be called once:
     oModule.__bModuleInformationAvailable = False; # set to false when __fGetModuleInformation is called.
     oModule.__sBinaryName = None;
@@ -26,41 +22,26 @@ class cModule(object):
       oModule.__doFunction_by_sSymbol[sSymbol] = cFunction(oModule, sSymbol);
     return oModule.__doFunction_by_sSymbol[sSymbol];
   
-  # The below three may have been provided in the constructors arguments, so we may not need to call __fGetModuleInformation.
-  @property
-  def sCdbId(oModule):
-    if oModule.__sCdbId is None:
-      oModule.__fGetModuleInformation();
-    return oModule.__sCdbId;
-  
-  @property
-  def uStartAddress(oModule):
-    if oModule.__uStartAddress is None:
-      oModule.__fGetModuleInformation();
-    return oModule.__uStartAddress;
-  
-  @property
-  def uEndAddress(oModule):
-    if oModule.__uEndAddress is None:
-      oModule.__fGetModuleInformation();
-    return oModule.__uEndAddress;
-  
-  # The below are never available until __fGetModuleInformation is called:
   @property
   def bSymbolsAvailable(oModule):
-    if not oModule.__bModuleInformationAvailable:
-      oModule.__fGetModuleInformation();
-    # Find out the symbols status
-    if oModule.__bSymbolsAvailable is None:
-      # It's deferred: try to load symbols
+    if oModule.__sSymbolStatus == "deferred":
+      # It's deferred: try to load symbols now.
       asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand("ld %s; $$ Load symbols for module" % oModule.sCdbId);
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
       # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
       # So we will call __fGetModuleInformation again to find out.
       oModule.__fGetModuleInformation();
-    return oModule.__bSymbolsAvailable;
+      assert oModule.__sSymbolStatus != "deferred", \
+          "Symbol loading reported success, but symbols are still reported as deferred";
+    return {
+      "export symbols": False,
+      "no symbols": False,
+      "pdb symbols": True,
+      "private pdb symbols": True,
+    }[oModule.__sSymbolStatus];
   
+  # The below are never available until __fGetModuleInformation is called:
   @property
   def sBinaryName(oModule):
     if not oModule.__bModuleInformationAvailable:
@@ -93,6 +74,26 @@ class cModule(object):
       oModule.__fGetModuleInformation();
     return oModule.__sInformationHTML;
   
+  @staticmethod
+  def ftxParseListModulesOutputLine(sListModulesOutputLine):
+    oInformationMatch = re.match(
+      r"^\s*%s\s*$" % "\s+".join([
+        r"([0-9a-f`]+)",                              # (start_address)
+        r"([0-9a-f`]+)",                              # (end_address)
+        r"(\w+)(?:\s+C)?",                            # (cdb_module_id) [ space "C" ] # not sure what this "C" means
+        r"\((deferred|(?:export|no|(?:private )?pdb) symbols)\)", # "(" symbol status ")"
+        r".*?",                                       # symbol information.
+      ]),
+      sListModulesOutputLine,
+      re.I
+    );
+    assert oInformationMatch, \
+        "Unrecognized module basic information output: %s" % sListModulesOutputLine;
+    (sStartAddress, sEndAddress, sCdbId, sSymbolStatus) = oInformationMatch.groups();
+    uStartAddress = long(sStartAddress.replace("`", ""), 16);
+    uEndAddress = long(sEndAddress.replace("`", ""), 16);
+    return (uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
+  
   def __fGetModuleInformation(oModule):
     # TODO: The HTML report output should really not be produced here (aka push the data). Rather, it should be created
     # on demand using another function call when the report is created (aka pull the data). This would also do away
@@ -102,8 +103,7 @@ class cModule(object):
     # Also sets oModule.sFileVersion if possible.
     oCdbWrapper = oModule.oProcess.oCdbWrapper;
     asListModuleOutput = oModule.oProcess.fasExecuteCdbCommand(
-        oModule.__sCdbId and "lmov m %s; $$ Get module information" % oModule.__sCdbId
-        or "lmov a 0x%X; $$ Get module information" % oModule.uStartAddress,
+      "lmov a 0x%X; $$ Get module information" % oModule.uStartAddress,
       bOutputIsInformative = True,
     );
     # Sample output:
@@ -140,38 +140,21 @@ class cModule(object):
         "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(asListModuleOutput), "\r\n".join(asListModuleOutput));
     assert re.match("^start\s+end\s+module name\s*$", asListModuleOutput[0]), \
         "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(asListModuleOutput);
-    oAddressesAndSymbolStatusMatch = re.match(
-      r"^\s*%s\s*$" % "\s+".join([
-        r"([0-9a-f`]+)",                              # (start_address)
-        r"([0-9a-f`]+)",                              # (end_address)
-        r"(\w+)(?:\s+C)?",                            # (cdb_module_id) [ space "C" ] # not sure what this "C" means
-        r"\((deferred|(?:export|no|(?:private )?pdb) symbols)\)", # "(" symbol status ")"
-        r".*?",                                       # symbol information.
-      ]),
-      asListModuleOutput[1],
-      re.I
-    );
-    assert oAddressesAndSymbolStatusMatch, \
-        "Unexpected list module output on line 2:\r\n%s" % "\r\n".join(asListModuleOutput);
-    (sStartAddress, sEndAddress, sCdbId, sSymbolStatus) = oAddressesAndSymbolStatusMatch.groups();
-    uStartAddress = long(sStartAddress.replace("`", ""), 16);
-    uEndAddress = long(sEndAddress.replace("`", ""), 16);
-    assert oModule.__uStartAddress in [None, uStartAddress], \
-        "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oModule.__uStartAddress, uStartAddress);
-    assert oModule.__uEndAddress in [None, uEndAddress], \
-        "Module end address was given as 0x%X, but is now reported to be 0x%X" % (oModule.__uEndAddress, uEndAddress);
-    assert oModule.__sCdbId in [None, sCdbId], \
-        "Module cdb id was given as %s, but is now reported to be %s" % (repr(oModule.__sCdbId), repr(sCdbId));
-    oModule.__uStartAddress = uStartAddress;
-    oModule.__uEndAddress = uEndAddress;
-    oModule.__sCdbId = sCdbId;
-    oModule.__bSymbolsAvailable = {
-      "deferred": None,
-      "export symbols": False,
-      "no symbols": False,
-      "pdb symbols": True,
-      "private pdb symbols": True,
-    }[sSymbolStatus];
+    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParseListModulesOutputLine(asListModuleOutput[1]);
+    assert oModule.uStartAddress == uStartAddress, \
+        "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oModule.uStartAddress, uStartAddress);
+    assert oModule.uEndAddress == uEndAddress, \
+        "Module end address was given as 0x%X, but is now reported to be 0x%X" % (oModule.uEndAddress, uEndAddress);
+# After encountering many odd bugs, and many hours spent trying to find out what was going on, I found the cdb id for a module can change...
+# Though the cdb developers may think this was a good idea, I tend to disagree. The code now tries to avoid using the cdb ids as much as possible.
+#    assert oModule.sCdbId == sCdbId, \
+#        "Module cdb id was given as %s, but is now reported to be %s" % (repr(oModule.sCdbId), repr(sCdbId));
+    if oModule.__sSymbolStatus == "deferred":
+      # If the symbol status was deferred, we may have loaded the symbols, so this may have changed:
+      oModule.__sSymbolStatus = sSymbolStatus;
+    else:
+      assert oModule.__sSymbolStatus == sSymbolStatus, \
+        "Module symbol status was given as %s, but is now reported to be %s" % (repr(oModule.__sSymbolStatus), repr(sSymbolStatus));
     
     dsValue_by_sName = {};
     for sLine in asListModuleOutput[2:]:

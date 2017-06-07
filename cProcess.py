@@ -10,11 +10,7 @@ class cProcess(object):
     oProcess.bNew = True; # Will be set to False by .fCdbStdInOutThread once application is run again.
     oProcess.bTerminated = False; # Will be set to True by .foSetCurrentProcessAfterApplicationRan once process is terminated
     
-    # Modules will be cached here. They are discarded, except for the main module, whenever the application is resumed.
-    # In a future version it would make sense to always keep the cache, and set a flag whenever the application is
-    # resumed. That way, we may be able to used cached data after an application resume by checking what cached
-    # information is still accurate, which may require only on `lm` call to check the cdbid, start and end addresses of
-    # all loaded modules.
+    # Modules will be cached here. They are discarded whenever the application is resumed.
     oProcess.__doModules_by_sCdbId = {};
     
     # We'll try to determine if page heap is enabled for every process. However, this may not always work. So until
@@ -164,33 +160,56 @@ class cProcess(object):
       if oProcess.__uMainModuleImageBaseAddress is None:
         # Get information from the PEB about the location of the main module:
         oProcess.__fGetProcessInformation();
-      oProcess.__oMainModule = cModule(oProcess, uStartAddress = oProcess.__uMainModuleImageBaseAddress);
+      oProcess.__oMainModule = oProcess.__foProcessListModulesOutput(
+        sCommand = "lmo a 0x%X; $$ Get basic information on main module" % oProcess.__uMainModuleImageBaseAddress,
+        bExpectAndReturnOneModule = True,
+      );
     return oProcess.__oMainModule;
+  
+  def foGetModuleForCdbId(oProcess, sCdbId):
+    if sCdbId not in oProcess.__doModules_by_sCdbId:
+      return oProcess.__foProcessListModulesOutput(
+        sCommand = "lmo m %s; $$ Get basic information on module by cdb id" % sCdbId,
+        bExpectAndReturnOneModule = True,
+      );
+    return oProcess.__doModules_by_sCdbId[sCdbId];
   
   @property
   def aoModules(oProcess):
     if not oProcess.__bAllModulesEnumerated:
-      asLoadedModulesCdbIds = oProcess.fasExecuteCdbCommand("lmo1m; $$ List all loaded module cdb ids");
-      assert len(asLoadedModulesCdbIds) > 0, \
-          "Got no loaded modules list";
-      for sCdbId in asLoadedModulesCdbIds:
-        oProcess.foGetOrCreateModuleForCdbId(sCdbId);
+      oProcess.__foProcessListModulesOutput(
+        sCommand = "lmo; $$ Get basic information on all loaded modules",
+      );
       oProcess.__bAllModulesEnumerated = True;
     return oProcess.__doModules_by_sCdbId.values();
+  
+  def __foProcessListModulesOutput(oProcess, sCommand, bExpectAndReturnOneModule = False):
+    asListModulesOutput = oProcess.fasExecuteCdbCommand(sCommand);
+    if bExpectAndReturnOneModule:
+      assert len(asListModulesOutput) == 2, \
+          "Expected exactly two lines of module information output, got %d:\r\n%s" % \
+          (len(asListModulesOutput), "\r\n".join(asListModulesOutput));
+    else:
+      assert len(asListModulesOutput) > 1, \
+          "Expected at least two lines of module information output, got %d:\r\n%s" % \
+          (len(asListModulesOutput), "\r\n".join(asListModulesOutput));
+    assert re.match("^start\s+end\s+module name\s*$", asListModulesOutput[0]), \
+        "Unrecognized list modules output header: %s\r\n%s" % (repr(asListModulesOutput[0]), "\r\n".join(asListModulesOutput));
+    for sModuleBasicInformation in asListModulesOutput[1:]:
+      (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParseListModulesOutputLine(sModuleBasicInformation);
+      oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
+      if bExpectAndReturnOneModule:
+        return oModule;
+  
+  def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):
+    if sCdbId not in oProcess.__doModules_by_sCdbId:
+      oProcess.__doModules_by_sCdbId[sCdbId] = cModule(oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
+    return oProcess.__doModules_by_sCdbId[sCdbId];
   
   def fClearCache(oProcess):
     # Assume that all modules can be unloaded, except the main module.
     oProcess.__doModules_by_sCdbId = {};
     oProcess.__bAllModulesEnumerated = False;
-  
-  def foGetOrCreateModuleForCdbId(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments):
-    oProcess.oMainModule; # Make sure we've already created the main module, or it could be created twice.
-    if sCdbId not in oProcess.__doModules_by_sCdbId:
-      if sCdbId == oProcess.__oMainModule.sCdbId:
-        oProcess.__doModules_by_sCdbId[sCdbId] = oProcess.__oMainModule;
-      else:
-        oProcess.__doModules_by_sCdbId[sCdbId] = cModule(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments);
-    return oProcess.__doModules_by_sCdbId[sCdbId];
   
   def fSelectInCdb(oProcess):
     oProcess.oCdbWrapper.fSelectProcess(oProcess.uId);

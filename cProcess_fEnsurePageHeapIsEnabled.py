@@ -5,14 +5,12 @@ import re;
 gdbPageHeapEnabled_by_sBinaryName = {};
 
 def cProcess_fEnsurePageHeapIsEnabled(oProcess):
-  oCdbWrapper = oProcess.oCdbWrapper;
   if oProcess.bPageHeapEnabled is not None:
     return; # We have ensured this before.
   if oProcess.sBinaryName in gdbPageHeapEnabled_by_sBinaryName:
     oProcess.bPageHeapEnabled = gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName];
     return;
-  oProcess.fSelectInCdb();
-  asPageHeapStatusOutput = oCdbWrapper.fasSendCommandAndReadOutput("!heap -p; $$ Get page heap status");
+  asPageHeapStatusOutput = oProcess.fasExecuteCdbCommand("!heap -p; $$ Get page heap status");
   #### Page heap disabled ####################################################
   # |    Active GlobalFlag bits:
   # |        htc - Enable heap tail checking
@@ -92,8 +90,8 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   # with the second argument as "False" (not preventable).
   bPreventable = re.match(r"image[0-9a-f]{8}", oProcess.oMainModule.sCdbId, re.I) is None;
   # Report it
-  if oCdbWrapper.fPageHeapNotEnabledCallback:
-    oCdbWrapper.fPageHeapNotEnabledCallback(oProcess.uId, oProcess.sBinaryName, bPreventable);
+  if oProcess.oCdbWrapper.fPageHeapNotEnabledCallback:
+    oProcess.oCdbWrapper.fPageHeapNotEnabledCallback(oProcess.uId, oProcess.sBinaryName, bPreventable);
   else:
     # This is fatal if it's preventable and there is no callback handler
     assert not bPreventable, \
