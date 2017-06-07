@@ -323,8 +323,8 @@ class cCdbWrapper(object):
           "Effective machine: x64 (AMD64)"
         ];
       else:
-        bUnxepectedOutput = len(asSelectCommandOutput) != 0;
-      assert not bUnxepectedOutput, \
+        bUnexpectedOutput = len(asSelectCommandOutput) != 0;
+      assert not bUnexpectedOutput, \
           "Unexpected select %s output:\r\n%s" % ("/".join(asSelected), "\r\n".join(asSelectCommandOutput));
   
   # Excessive CPU usage
