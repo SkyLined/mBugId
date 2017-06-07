@@ -164,25 +164,7 @@ class cProcess(object):
       if oProcess.__uMainModuleImageBaseAddress is None:
         # Get information from the PEB about the location of the main module:
         oProcess.__fGetProcessInformation();
-      asModuleInformationOutput = oProcess.fasExecuteCdbCommand("lmn a 0x%X; $$ Get module cdb id" % oProcess.__uMainModuleImageBaseAddress);
-      # Sample output:
-      # |0:007> lmn a 7ff6a8870000
-      # |start             end                 module name
-      # |00007ff6`a8870000 00007ff6`a88b1000   notepad  notepad.exe
-      assert len(asModuleInformationOutput) == 2, \
-          "Unexpected number of lines in module information:\r\n%s" % "\r\n".join(asModuleInformationOutput);
-      assert re.match(r"^start\s+end\s+module name\s*$", asModuleInformationOutput[0]), \
-          "Unexpected module information header:\r\n%s" % "\r\n".join(asModuleInformationOutput);
-      oModuleInformationMatch = re.match("^([0-9`a-f]+)\s+([0-9`a-f]+)\s+(\w+)\s+.*$", asModuleInformationOutput[1], re.I);
-      assert oModuleInformationMatch, \
-          "Unexpected module information:\r\n%s" % "\r\n".join(asModuleInformationOutput);
-      (sStartAddress, sEndAddress, sMainModuleCdbId) = oModuleInformationMatch.groups();
-      uStartAddress = long(sStartAddress.replace("`", ""), 16)
-      assert uStartAddress == oProcess.__uMainModuleImageBaseAddress, \
-          "Two different base addresses returned for module: %X and %X" % (uStartAddress, oProcess.__uMainModuleImageBaseAddress);
-      uEndAddress = long(sEndAddress.replace("`", ""), 16);
-      oProcess.__oMainModule = cModule(oProcess, sMainModuleCdbId, uStartAddress, uEndAddress);
-      oProcess.__doModules_by_sCdbId[sMainModuleCdbId] = oProcess.oMainModule;
+      oProcess.__oMainModule = cModule(oProcess, uStartAddress = oProcess.__uMainModuleImageBaseAddress);
     return oProcess.__oMainModule;
   
   @property
@@ -198,13 +180,16 @@ class cProcess(object):
   
   def fClearCache(oProcess):
     # Assume that all modules can be unloaded, except the main module.
-    oProcess.__doModules_by_sCdbId = {oProcess.oMainModule.sCdbId: oProcess.oMainModule};
+    oProcess.__doModules_by_sCdbId = {};
     oProcess.__bAllModulesEnumerated = False;
   
   def foGetOrCreateModuleForCdbId(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments):
     oProcess.oMainModule; # Make sure we've already created the main module, or it could be created twice.
     if sCdbId not in oProcess.__doModules_by_sCdbId:
-      oProcess.__doModules_by_sCdbId[sCdbId] = cModule(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments);
+      if sCdbId == oProcess.__oMainModule.sCdbId:
+        oProcess.__doModules_by_sCdbId[sCdbId] = oProcess.__oMainModule;
+      else:
+        oProcess.__doModules_by_sCdbId[sCdbId] = cModule(oProcess, sCdbId, *axAddressArguments, **dxAddressArguments);
     return oProcess.__doModules_by_sCdbId[sCdbId];
   
   def fSelectInCdb(oProcess):
