@@ -56,6 +56,7 @@ class cException(object):
     asExceptionRecord = oCdbWrapper.fasSendCommandAndReadOutput(
       ".exr %s; $$ Get exception record" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
       bOutputIsInformative = True,
+      bRetryOnTruncatedOutput = True,
     );
     oException = cException(asExceptionRecord, uCode, sCodeDescription, bApplicationCannotHandleException);
     # Sample output:
