@@ -114,6 +114,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             # There are more processes to attach to:
             asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
                 ".attach 0x%X; $$ Attaching to another process" % oCdbWrapper.auProcessIdsPendingAttach[0]);
+            assert asAttachToProcess == ["Attach will occur on next execution"], \
+                "Unexpected .attach output: %s" % repr(asAttachToProcess);
           else:
             # We attached to or started the application, set up exception handling and resume threads if needed.
             # Note to self: when rewriting the code, make sure not to set up exception handling before the debugger has
