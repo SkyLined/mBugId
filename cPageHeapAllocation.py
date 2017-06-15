@@ -84,45 +84,58 @@ class cPageHeapAllocation(object):
         "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asPageHeapOutput);
     sHeapType = oHeapTypeMatch.group(1); # "_HEAP" or "_DPH_HEAP_ROOT"
     if sHeapType == "_HEAP":
-      oHeapBlockTypeMatch = re.match(                   # line #3
-        r"^\s+HEAP_ENTRY\s+Size\s+Prev\s+Flags\s+UserPtr\s+UserSize\s+\-\s+state",
+      assert re.match( # line #3
+        "^\s+%s\s*$" % "\s+".join([               # starts with spaces, separated by spaces and optionally end with spaces too
+          r"HEAP_ENTRY", r"Size", r"Prev", r"Flags", r"UserPtr", r"UserSize", r"\-", r"state",
+        ]),
         asPageHeapOutput[2],
-      );
-      assert oHeapBlockTypeMatch, \
+      ), \
           "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
-      oBlockInformationMatch = re.match(            # line #4
-        r"^\s+[0-9`a-f]+"                             # space heap_entry_address
-        r"^\s+[0-9`a-f]+"                             # space heap_entry_size
-        r"^\s+[0-9`a-f]+"                             # space prev
-        r"^\s+\[[0-9`a-f]+\]"                         # space "[" flags "]"
-        r"^\s+([0-9`a-f]+)"                           # space (sBlockStartAddress)
-        r"^\s+([0-9`a-f]+)"                           # space (sBlockSize)
-        r"^\s+\-\s+\((busy|free DelayedFree)\)"       # space "-" space "(" busy ")"
-        r"\s*$",                                      # [space]
+      oBlockInformationMatch = re.match( # line #4 
+        "^\s+%s\s*$" % "\s+".join([               # starts with spaces, separated by spaces and optionally end with spaces too
+          r"[0-9`a-f]+",                            # heap_entry_address
+          r"[0-9`a-f]+",                            # heap_entry_size
+          r"[0-9`a-f]+",                            # prev
+          r"\[" r"[0-9`a-f]+" r"\]",                # "[" flags "]"
+          r"([0-9`a-f]+)",                          # (sBlockStartAddress)
+          r"([0-9`a-f]+)",                          # (sBlockSize)
+          r"\-",                                    # "-"
+          r"\(" r"(busy|free DelayedFree)" r"\)",   # "(" (sState)  ")"
+        ]),
         asPageHeapOutput[3],
       );
       assert oBlockInformationMatch, \
           "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
       sBlockStartAddress, sBlockSize, sState = oBlockInformationMatch.groups();
-      bAllocated == sState == "busy";
+      bAllocated = sState == "busy";
       uAllocationStartAddress, uAllocationSize = None, None; # Not applicable
     else:
-      oDPHHeapBlockTypeMatch = re.match(                # line #3
-        r"^\s+in (free-ed|busy) allocation \("          # space "in" space ("free-ed" | "busy") space  "allocation ("
-        r"\s*\w+:"                                      #   [space] DPH_HEAP_BLOCK ":"
-        r"(?:\s+UserAddr\s+UserSize\s+\-)?"             #   optional{ space "UserAddr" space "UserSize" space "-" }
-        r"\s+VirtAddr\s+VirtSize"                       #   space "VirtAddr" space "VirtSize"
-        r"\)\s*$",                                      # ")" [space]
+      oDPHHeapBlockTypeMatch = re.match( # line #3
+        "^\s+%s\s*$" % "\s+".join([                 # starts with spaces, separated by spaces and optionally end with spaces too
+          r"in",                                        # "in"
+          r"(free-ed|busy)",                            # (sState)
+          r"allocation",                                # "allocation"
+          r"\(" r"\s*" r"DPH_HEAP_BLOCK" r":",          # "(" [space] DPH_HEAP_BLOCK ":"
+          r"(?:UserAddr",                               # optional{ "UserAddr" 
+            r"UserSize",                                #           "UserSize"
+            r"\-", ")?"                                 #           "-" }
+          r"VirtAddr",                                  # "VirtAddr"
+          r"VirtSize" r"\)",                            # "VirtSize" ")"
+        ]),
         asPageHeapOutput[2],
       );
       assert oDPHHeapBlockTypeMatch, \
           "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asPageHeapOutput);
       bAllocated = oDPHHeapBlockTypeMatch.group(1) == "busy";
-      oBlockInformationMatch = re.match(            # line #4
-        r"^\s+[0-9`a-f]+:"                            # space heap_header_address ":"
-        r"(?:\s+([0-9`a-f]+)\s+([0-9`a-f]+)\s+\-)?"   # optional{ space (sBlockStartAddress) space (sBlockSize) space "-" }
-        r"\s+([0-9`a-f]+)\s+([0-9`a-f]+)"             # space (sAllocationStartAddress) space (sAllocationSize)
-        r"\s*$",                                      # [space]
+      oBlockInformationMatch = re.match( # line #4
+        "^\s+%s\s*$" % "\s+".join([                 # starts with spaces, separated by spaces and optionally end with spaces too
+          r"[0-9`a-f]+" r":",                           # heap_header_address ":"
+          r"(?:([0-9`a-f]+)",                           # optional{ (sBlockStartAddress)
+            r"([0-9`a-f]+)",                            #           (sBlockSize)
+            r"\-", r")?"                                #            "-" }
+          r"([0-9`a-f]+)",                              # (sAllocationStartAddress)
+          r"([0-9`a-f]+)",                              # (sAllocationSize)
+        ]),
         asPageHeapOutput[3],
       );
       assert oBlockInformationMatch, \
@@ -244,4 +257,4 @@ class cPageHeapAllocation(object):
       if oPageHeapAllocation.uPostBlockPaddingSize:
         axPostBlockPadding = [0xD0 for x in xrange(oPageHeapAllocation.uPostBlockPaddingSize)]
         oCorruptionDetector.fbDetectCorruption(oPageHeapAllocation.uBlockEndAddress, axPostBlockPadding);
-    return oCorruptionDetector.bCorruptionDetected and oCorruptionDetector or None;
+    return oCorruptionDetector.bCorruptionDetected and oCorruptionDetector;
