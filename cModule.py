@@ -8,13 +8,15 @@ class cModule(object):
     oModule.uEndAddress = uEndAddress;
     oModule.sCdbId = sCdbId;
     oModule.__sSymbolStatus = sSymbolStatus; # Not exposed; use bSymbolsAvailable
-    # __fGetModuleInformation needs only be called once:
-    oModule.__bModuleInformationAvailable = False; # set to false when __fGetModuleInformation is called.
+    # __fGetModuleSymbolAndVersionInformation needs only be called once:
+    oModule.__bModuleSymbolAndVersionInformationAvailable = False; # set to false when __fGetModuleSymbolAndVersionInformation is called.
+    oModule.__sBinaryPath = None;
     oModule.__sBinaryName = None;
     oModule.__sFileVersion = None;
     oModule.__sTimestamp = None;
     oModule.__sInformationHTML = None;
     oModule.__doFunction_by_sSymbol = {};
+    oModule.__asModuleInformationTableRowsHTML = None;
     oModule.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
   def foGetOrCreateFunctionForSymbol(oModule, sSymbol):
@@ -30,8 +32,8 @@ class cModule(object):
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
       # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
-      # So we will call __fGetModuleInformation again to find out.
-      oModule.__fGetModuleInformation();
+      # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
+      oModule.__fGetModuleSymbolAndVersionInformation();
       assert oModule.__sSymbolStatus != "deferred", \
           "Symbol loading reported success, but symbols are still reported as deferred";
     return {
@@ -41,23 +43,47 @@ class cModule(object):
       "private pdb symbols": True,
     }[oModule.__sSymbolStatus];
   
-  # The below are never available until __fGetModuleInformation is called:
   @property
-  def sBinaryName(oModule):
-    if not oModule.__bModuleInformationAvailable:
-      oModule.__fGetModuleInformation();
-    return oModule.__sBinaryName;
+  def sBinaryPath(oModule):
+    if oModule.__sBinaryPath is None:
+      asDLLsOutput = oModule.oProcess.fasExecuteCdbCommand(
+        "!dlls -c 0x%X" % oModule.uStartAddress,
+        bOutputIsInformative = True,
+      );
+      if asDLLsOutput:
+        while asDLLsOutput[0] in ["", "This is Win8 with the loader DAG."]:
+          asDLLsOutput.pop(0);
+        oFirstLineMatch = re.match(r"^0x[0-9`a-f]+: ([A-Z]:\\.+)$", asDLLsOutput[0], re.I);
+        assert oFirstLineMatch, \
+            "Unrecognized !dlls output first line : %s\r\n%s" % (repr(asDLLsOutput[0]), "\r\n".join(asDLLsOutput));
+        oModule.__sBinaryPath = oFirstLineMatch.group(1);
+      else:
+        # Of course, !dlls will sometimes not output anything for unknown reasons.
+        # In this case we have to resort to less reliable measures.
+        oModule.__fGetModuleSymbolAndVersionInformation();
+    return oModule.__sBinaryPath;
   
   @property
+  def sBinaryName(oModule):
+    if oModule.__sBinaryPath is None:
+      # "!dlls" may not work yet if the process was recently started, but "__fGetModuleSymbolAndVersionInformation"
+      # uses "lm", which should give us eht name of the binary as well:
+      if oModule.__sBinaryName is None:
+        oModule.__fGetModuleSymbolAndVersionInformation();
+      return oModule.__sBinaryName;
+    return os.path.basename(oModule.sBinaryPath);
+  
+  # The below are never available until __fGetModuleSymbolAndVersionInformation is called:
+  @property
   def sFileVersion(oModule):
-    if not oModule.__bModuleInformationAvailable:
-      oModule.__fGetModuleInformation();
+    if not oModule.__bModuleSymbolAndVersionInformationAvailable:
+      oModule.__fGetModuleSymbolAndVersionInformation();
     return oModule.__sFileVersion;
   @property
   
   def sTimestamp(oModule):
-    if not oModule.__bModuleInformationAvailable:
-      oModule.__fGetModuleInformation();
+    if not oModule.__bModuleSymbolAndVersionInformationAvailable:
+      oModule.__fGetModuleSymbolAndVersionInformation();
     return oModule.__sTimestamp;
   
   @property
@@ -70,8 +96,14 @@ class cModule(object):
   
   @property
   def sInformationHTML(oModule):
-    if not oModule.__bModuleInformationAvailable:
-      oModule.__fGetModuleInformation();
+    if not oModule.__bModuleSymbolAndVersionInformationAvailable:
+      oModule.__fGetModuleSymbolAndVersionInformation();
+      oModule.__sInformationHTML = "".join([
+        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName or "<unknown binary>"),
+        "<table>",
+      ] + oModule.__asModuleInformationTableRowsHTML + [
+        "</table>",
+      ]);
     return oModule.__sInformationHTML;
   
   @staticmethod
@@ -94,7 +126,7 @@ class cModule(object):
     uEndAddress = long(sEndAddress.replace("`", ""), 16);
     return (uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
   
-  def __fGetModuleInformation(oModule):
+  def __fGetModuleSymbolAndVersionInformation(oModule):
     # TODO: The HTML report output should really not be produced here (aka push the data). Rather, it should be created
     # on demand using another function call when the report is created (aka pull the data). This would also do away
     # with all references to oCdbWrapper
@@ -135,7 +167,7 @@ class cModule(object):
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
     if oCdbWrapper.bGenerateReportHTML:
-      asModuleInformationTableRowsHTML = [];
+      oModule.__asModuleInformationTableRowsHTML = [];
     assert len(asListModuleOutput) > 2, \
         "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(asListModuleOutput), "\r\n".join(asListModuleOutput));
     assert re.match("^start\s+end\s+module name\s*$", asListModuleOutput[0]), \
@@ -169,16 +201,20 @@ class cModule(object):
         (sName, sValue) = oNameAndValueMatch.groups();
         dsValue_by_sName[sName] = sValue;
         if oCdbWrapper.bGenerateReportHTML:
-          asModuleInformationTableRowsHTML.append(
+          oModule.__asModuleInformationTableRowsHTML.append(
             '<tr><td>%s</td><td>%s</td></tr>' % (oCdbWrapper.fsHTMLEncode(sName), oCdbWrapper.fsHTMLEncode(sValue)),
           );
+    if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
+      # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
+      if oModule.oProcess.sBasePath:
+        sBinaryPath = os.path.join(oModule.oProcess.sBasePath, dsValue_by_sName["Image path"]);
+      else:
+        sBinaryPath = os.path.abspath(dsValue_by_sName["Image path"]);
+      # The above is kinda hacky, so check that the file exists before assuming the value is correct:
+      if os.path.isfile(sBinaryPath):
+        oModule.__sBinaryPath = sBinaryPath;
     oModule.__sBinaryName = "Image path" in dsValue_by_sName and os.path.basename(dsValue_by_sName["Image path"]) or None;
     oModule.__sFileVersion = dsValue_by_sName.get("File version");
     oModule.__sTimestamp = dsValue_by_sName["Timestamp"];
-    if oCdbWrapper.bGenerateReportHTML:
-      oModule.__sInformationHTML = "".join([
-        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.__sBinaryName or "<unknown binary>"),
-        "<table>",
-      ] + asModuleInformationTableRowsHTML + [
-        "</table>",
-      ]);
+    
+    oModule.__bModuleSymbolAndVersionInformationAvailable = True;
