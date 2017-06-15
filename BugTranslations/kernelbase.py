@@ -1,7 +1,7 @@
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # The following frames are always irrelevant to bugs:
+  # * -> hide irrelevant frames
   cBugTranslation(
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
@@ -10,6 +10,15 @@ aoBugTranslations = [
         "kernelbase.dll!RaiseException",
       ], [
         "kernelbase.dll!RaiseFailFastException",
+      ],
+    ],
+  ),
+  # OOM -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = "OOM",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "KERNELBASE.dll!TerminateProcessOnMemoryExhaustion",
       ],
     ],
   ),

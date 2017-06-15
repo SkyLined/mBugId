@@ -15,19 +15,23 @@ aoBugTranslations.append(cBugTranslation(
 # OOM (hide irrelevant frames only)
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "OOM",
-  aasOriginalTopStackFrameSymbols = [
+  aasAdditionalIrrelevantStackFrameSymbols = [
     [
+      "syzyasan_rtl.dll!agent::asan::heap_managers::BlockHeapManager::Allocate",
+    ], [
+      "syzyasan_rtl.dll!agent::asan::heap_managers::BlockHeapManager::Free",
+    ], [
       "syzyasan_rtl.dll!agent::asan::StackCaptureCache::GetStackCapture",
     ], [
       "syzyasan_rtl.dll!agent::asan::StackCaptureCache::SaveStackTrace",
     ], [
-      "syzyasan_rtl.dll!agent::asan::heap_managers::BlockHeapManager::Free",
-    ], [
-      "syzyasan_rtl.dll!agent::asan::heap_managers::BlockHeapManager::Allocate",
-    ], [
       "syzyasan_rtl.dll!agent::asan::WindowsHeapAdapter::HeapAlloc",
     ], [
+      "syzyasan_rtl.dll!agent::asan::WindowsHeapAdapter::HeapReAlloc",
+    ], [
       "syzyasan_rtl.dll!asan_HeapAlloc",
+    ], [
+      "syzyasan_rtl.dll!asan_HeapReAlloc",
     ],
   ],
 ));

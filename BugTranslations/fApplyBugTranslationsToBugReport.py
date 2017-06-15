@@ -11,10 +11,11 @@ from MSIE import aoBugTranslations as aoBugTranslations_MSIE;
 from ntdll import aoBugTranslations as aoBugTranslations_ntdll;
 from RTC import aoBugTranslations as aoBugTranslations_RTC;
 from SlashGS import aoBugTranslations as aoBugTranslations_SlashGS;
+from V8 import aoBugTranslations as aoBugTranslations_V8;
 from verifier import aoBugTranslations as aoBugTranslations_verifier;
 
-aoBugTranslations = (
-  aoBugTranslations_ASan
+aoBugTranslations = ([]
+  + aoBugTranslations_ASan
   + aoBugTranslations_CFG
   + aoBugTranslations_Chrome
   + aoBugTranslations_combase
@@ -27,6 +28,7 @@ aoBugTranslations = (
   + aoBugTranslations_ntdll
   + aoBugTranslations_RTC
   + aoBugTranslations_SlashGS
+  + aoBugTranslations_V8
   + aoBugTranslations_verifier
 );
 

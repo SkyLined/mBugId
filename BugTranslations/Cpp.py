@@ -23,30 +23,6 @@ aoBugTranslations = [
         "*!_CxxThrowException",
       ], [
         "*!__scrt_throw_std_bad_alloc",
-      ], [
-        "*!malloc",
-      ], [
-        "*!operator new",
-      ], [
-        "*!operator new[]",
-      ], [
-        "*!std::_Allocate",
-      ], [
-        "*!std::allocator<...>::allocate",
-      ], [
-        "*!std::_Wrap_alloc<...>::allocate",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Buyheadnode",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Construct",
-      ], [
-        "*!std::_Tree_comp_alloc<..>::{ctor}",
-      ], [
-        "*!std::vector<...>::_Reallocate",
-      ], [
-        "*!std::vector<...>::_Reserve",
-      ], [
-        "*!std::vector<...>::resize",
       ],
     ],
     sTranslatedBugTypeId = "OOM",
@@ -74,6 +50,47 @@ aoBugTranslations = [
     sOriginalBugTypeId = "StackExhaustion",
     asOriginalTopStackFrameSymbols = [
       "*!__chkstk",
+    ],
+  ),
+  # OOM -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = "OOM",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!malloc",
+      ], [
+        "*!realloc",
+      ], [
+        "*!operator new",
+      ], [
+        "*!operator new[]",
+      ], [
+        "*!std::_Allocate",
+      ], [
+        "*!std::allocator<...>::allocate",
+      ], [
+        "*!std::basic_string<...>::_Copy",
+      ], [
+        "*!std::basic_string<...>::_Grow",
+      ], [
+        "*!std::basic_string<...>::assign",
+      ], [
+        "*!std::basic_string<...>::basic_string<...>",
+      ], [
+        "*!std::_Tree_comp_alloc<...>::_Buyheadnode",
+      ], [
+        "*!std::_Tree_comp_alloc<...>::_Construct",
+      ], [
+        "*!std::_Tree_comp_alloc<..>::{ctor}",
+      ], [
+        "*!std::vector<...>::_Reallocate",
+      ], [
+        "*!std::vector<...>::_Reserve",
+      ], [
+        "*!std::vector<...>::resize",
+      ], [
+        "*!std::_Wrap_alloc<...>::allocate",
+      ],
     ],
   ),
 ];

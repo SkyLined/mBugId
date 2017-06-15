@@ -2,20 +2,6 @@ import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [];
-# AVE@NULL -> OOM
-aoBugTranslations.append(cBugTranslation(
-  sOriginalBugTypeId = "AVE@NULL",
-  asOriginalTopStackFrameSymbols = [
-    "0x0",
-    "*!v8::base::OS::Abort",
-    "*!v8::Utils::ReportApiFailure",
-    "*!v8::Utils::ApiCheck",
-    "*!v8::internal::V8::FatalProcessOutOfMemory",
-  ],
-  sTranslatedBugTypeId = "OOM",
-  sTranslatedBugDescription = "The application caused an access violation by calling NULL to indicate it was unable to allocate enough memory.",
-  sTranslatedSecurityImpact = None,
-));
 # AVW@NULL -> OOM
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "AVW@NULL",
@@ -131,21 +117,17 @@ aoBugTranslations.append(cBugTranslation(
   asOriginalTopStackFrameSymbols = [
     "*!logging::LogMessage::~LogMessage",
   ],
+  aasAdditionalIrrelevantStackFrameSymbols = [
+    [
+      "*!blink::ReportFatalErrorInMainThread",
+    ], [
+      "*!v8::Utils::ReportApiFailure",
+    ],
+  ],
   sTranslatedBugTypeId = "Assert",
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
   sTranslatedSecurityImpact = None,
 ));
-# Assert -> OOM
-aoBugTranslations.append(cBugTranslation(
-  sOriginalBugTypeId = "Assert",
-  asOriginalTopStackFrameSymbols = [
-    "*!v8::internal::V8::FatalProcessOutOfMemory",
-  ],
-  sTranslatedBugTypeId = "OOM",
-  sTranslatedBugDescription = "The application triggered a breakpoint to indicate it was unable to allocate enough memory.",
-  sTranslatedSecurityImpact = None,
-));
-
 # Breakpoint -> Ignored
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "Breakpoint",
@@ -157,7 +139,7 @@ aoBugTranslations.append(cBugTranslation(
   sTranslatedSecurityImpact = None,
 ));
 
-# OOM -> OOM (hide irrelevant frames)
+# OOM -> hide irrelevant frames
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "OOM",
   aasAdditionalIrrelevantStackFrameSymbols = [
@@ -166,7 +148,11 @@ aoBugTranslations.append(cBugTranslation(
     ], [
       "*!`anonymous namespace'::DefaultWinHeapMallocImpl",
     ], [
+      "*!`anonymous namespace'::DefaultWinHeapReallocImpl",
+    ], [
       "*!ShimMalloc",
+    ], [
+      "*!ShimRealloc",
     ],
   ],
 ));
