@@ -23,7 +23,6 @@ daxExceptionHandling = {
     STATUS_STACK_OVERFLOW,
     STATUS_WX86_BREAKPOINT,
     STATUS_WAKE_SYSTEM_DEBUGGER,
-    WRT_ORIGINATE_ERROR_EXCEPTION,
   ],
   "sxd": [ # break on second chance exceptions
     STATUS_INTEGER_DIVIDE_BY_ZERO,
@@ -35,6 +34,7 @@ daxExceptionHandling = {
     # step exceptions will not reduce BugId's effectiveness.
     STATUS_SINGLE_STEP,
     STATUS_WX86_SINGLE_STEP,
+    WRT_ORIGINATE_ERROR_EXCEPTION,
   ],
   "sxi": [ # ignored
     "ld", "ud", # Load/unload module
