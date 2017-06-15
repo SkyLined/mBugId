@@ -17,6 +17,9 @@ class cProcess(object):
     # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
     oProcess.bPageHeapEnabled = None;
     
+    # oProcess.sBasePath is only determined when needed and cached using __fGetProcessInformation
+    oProcess.__sBasePath = None;
+    
     # oProcess.sCommandLine is only determined when needed and cached using __fGetProcessInformation
     oProcess.__sCommandLine = None; 
     
@@ -42,6 +45,12 @@ class cProcess(object):
   @property
   def sBinaryName(oProcess):
     return oProcess.oMainModule.sBinaryName;
+  
+  @property
+  def sBasePath(oProcess):
+    if oProcess.__sBasePath is None:
+      oProcess.__fGetProcessInformation();
+    return oProcess.__sBasePath;
   
   @property
   def sCommandLine(oProcess):
@@ -70,7 +79,10 @@ class cProcess(object):
   def __fGetProcessInformation(oProcess):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
     # process (i.e. x86 or x64).
-    asPEBOutput = oProcess.fasExecuteCdbCommand("!peb; $$ Get current proces environment block");
+    asPEBOutput = oProcess.fasExecuteCdbCommand(
+      "!peb; $$ Get current proces environment block",
+      bRetryOnTruncatedOutput = True
+    );
     # Sample output:
     # |Wow64 PEB32 at 34c000
     # |    InheritedAddressSpace:    No
@@ -122,10 +134,14 @@ class cProcess(object):
         if oImageBaseAddressMatch:
           oProcess.__uMainModuleImageBaseAddress = long(oImageBaseAddressMatch.group(1), 16);
       else:
-        oCommandLineMatch = re.match(r"^    CommandLine:\s+'(.*)'$", sLine, re.I);
-        if oCommandLineMatch:
-          oProcess.__sCommandLine = oCommandLineMatch.group(1);
-          break;
+        oImageFileMatch = re.match(r"^    ImageFile:\s+'(.*)'$", sLine, re.I);
+        if oImageFileMatch:
+          oProcess.__sBasePath = os.path.dirname(oImageFileMatch.group(1));
+        else:
+          oCommandLineMatch = re.match(r"^    CommandLine:\s+'(.*)'$", sLine, re.I);
+          if oCommandLineMatch:
+            oProcess.__sCommandLine = oCommandLineMatch.group(1);
+            break;
     else:
       # The PEB address should always be output on the first line (though there may be some NatVis cruft before it,
       # which we'll ignore). If it's not, that is an error.
