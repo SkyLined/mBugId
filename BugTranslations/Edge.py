@@ -86,7 +86,7 @@ aoBugTranslations.append(cBugTranslation(
 ));
 # Breakpoint -> Assert:Arguments
 aoBugTranslations.append(cBugTranslation(
-  sOriginalBugTypeId = "Breakpoint",
+  sOriginalBugTypeId = "Assert",
   asOriginalTopStackFrameSymbols = [
     "EDGEHTML.dll!Abandonment::InvalidArguments",
   ],
