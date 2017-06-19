@@ -46,7 +46,6 @@ class cStack(object):
     while uFrameIndex < len(oStack.aoFrames) and (oStack.aoFrames[uFrameIndex].sIsHiddenBecause is not None):
       uFrameIndex += 1;
     if len(asSymbols) > len(oStack.aoFrames) - uFrameIndex:
-      print "@@@ not enough frames";
       return False; # There are not enough non-hidden frames to match this translation
     uStartFrameIndex = uFrameIndex;
     for sSymbol in asSymbols:
