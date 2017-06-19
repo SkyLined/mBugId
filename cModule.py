@@ -14,9 +14,8 @@ class cModule(object):
     oModule.__sBinaryName = None;
     oModule.__sFileVersion = None;
     oModule.__sTimestamp = None;
-    oModule.__sInformationHTML = None;
     oModule.__doFunction_by_sSymbol = {};
-    oModule.__asModuleInformationTableRowsHTML = None;
+    oModule.__atsModuleInformationNameAndValuePairs = None;
     oModule.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
   def foGetOrCreateFunctionForSymbol(oModule, sSymbol):
@@ -98,13 +97,16 @@ class cModule(object):
   def sInformationHTML(oModule):
     if not oModule.__bModuleSymbolAndVersionInformationAvailable:
       oModule.__fGetModuleSymbolAndVersionInformation();
-      oModule.__sInformationHTML = "".join([
-        "<h2 class=\"SubHeader\">%s</h2>" % oCdbWrapper.fsHTMLEncode(oModule.sBinaryName or "<unknown binary>"),
-        "<table>",
-      ] + oModule.__asModuleInformationTableRowsHTML + [
-        "</table>",
-      ]);
-    return oModule.__sInformationHTML;
+    fsHTMLEncode = oModule.oProcess.oCdbWrapper.fsHTMLEncode;
+    return "".join([
+      "<h2 class=\"SubHeader\">%s</h2>" % fsHTMLEncode(oModule.sBinaryName or "<unknown binary>"),
+      "<table>",
+    ] + [
+      "<tr><td>%s</td><td>%s</td></tr>" % (fsHTMLEncode(sName), fsHTMLEncode(sValue))
+      for sName, sValue in oModule.__atsModuleInformationNameAndValuePairs
+    ] + [
+      "</table>",
+    ]);
   
   @staticmethod
   def ftxParseListModulesOutputLine(sListModulesOutputLine):
@@ -167,7 +169,7 @@ class cModule(object):
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
     if oCdbWrapper.bGenerateReportHTML:
-      oModule.__asModuleInformationTableRowsHTML = [];
+      oModule.__atsModuleInformationNameAndValuePairs = [];
     assert len(asListModuleOutput) > 2, \
         "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(asListModuleOutput), "\r\n".join(asListModuleOutput));
     assert re.match("^start\s+end\s+module name\s*$", asListModuleOutput[0]), \
@@ -201,9 +203,7 @@ class cModule(object):
         (sName, sValue) = oNameAndValueMatch.groups();
         dsValue_by_sName[sName] = sValue;
         if oCdbWrapper.bGenerateReportHTML:
-          oModule.__asModuleInformationTableRowsHTML.append(
-            '<tr><td>%s</td><td>%s</td></tr>' % (oCdbWrapper.fsHTMLEncode(sName), oCdbWrapper.fsHTMLEncode(sValue)),
-          );
+          oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
     if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
       if oModule.oProcess.sBasePath:
