@@ -1,7 +1,12 @@
 import os, re, sys, threading, time, traceback;
-sLocalFolderPath = os.path.dirname(os.path.abspath(__file__));
-sBaseFolderPath = os.path.dirname(sLocalFolderPath);
-sys.path.extend([os.path.join(sBaseFolderPath, x) for x in ["", "modules"]]);
+sTestsFolderPath = os.path.dirname(os.path.abspath(__file__));
+sBugIdFolderPath = os.path.dirname(sTestsFolderPath);
+sBaseFolderPath = os.path.dirname(sBugIdFolderPath);
+sys.path.extend([
+  sBaseFolderPath,
+  sBugIdFolderPath,
+  os.path.join(sBugIdFolderPath, "modules"),
+]);
 
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
 bDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
@@ -22,9 +27,9 @@ if sOSISA == "x64":
 sReportsFolderName = FileSystem.fsPath(sBaseFolderPath, "Tests", "Reports");
 
 dsBinaries_by_sISA = {
-  "x86": os.path.join(sLocalFolderPath, r"bin\Tests_x86.exe"),
-  "x64": os.path.join(sLocalFolderPath, r"bin\Tests_x64.exe"),
-  "fail": os.path.join(sLocalFolderPath, r"bin\Binary_does_not_exist.exe"),
+  "x86": os.path.join(sTestsFolderPath, r"bin\Tests_x86.exe"),
+  "x64": os.path.join(sTestsFolderPath, r"bin\Tests_x64.exe"),
+  "fail": os.path.join(sTestsFolderPath, r"bin\Binary_does_not_exist.exe"),
 };
 
 bFailed = False;
@@ -56,9 +61,16 @@ class cTest(object):
   def fRun(oTest, fErrorCallback):
     global bFailed, oOutputLock;
     oTest.fErrorCallback = fErrorCallback;
-    asApplicationCommandLine = [oTest.sBinary] + oTest.asCommandLineArguments;
+    oOutputLock and oOutputLock.acquire();
+    oTest.bHasOutputLock = True;
+    print "* %s\r" % oTest,;
+    oOutputLock and oOutputLock.release();
+    oTest.bHasOutputLock = False;
+    sApplicationBinaryPath = oTest.sBinary;
+    asApplicationArguments = oTest.asCommandLineArguments;
     if oTest.bRunInShell:
-      asApplicationCommandLine = [os.environ.get("ComSpec"), "/C"] + asApplicationCommandLine; 
+      asApplicationArguments = ["/C", sApplicationBinaryPath] + asApplicationArguments; 
+      sApplicationBinaryPath = os.environ.get("ComSpec");
     if bDebugStartFinish:
       oOutputLock and oOutputLock.acquire();
       oTest.bHasOutputLock = True;
@@ -68,7 +80,8 @@ class cTest(object):
     try:
       oTest.oBugId = cBugId(
         sCdbISA = oTest.sISA,
-        asApplicationCommandLine = asApplicationCommandLine,
+        sApplicationBinaryPath = sApplicationBinaryPath,
+        asApplicationArguments = asApplicationArguments,
         asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
         bGenerateReportHTML = oTest.bGenerateReportHTML,
         fFinishedCallback = oTest.fFinishedHandler,
@@ -211,12 +224,15 @@ class cTest(object):
 if __name__ == "__main__":
   aoTests = [];
   asArgs = sys.argv[1:];
+  bQuickTestSuite = False;
   bFullTestSuite = False;
   bGenerateReportHTML = False;
   while asArgs:
     if asArgs[0] == "--full": 
       bFullTestSuite = True;
       bGenerateReportHTML = True;
+    if asArgs[0] == "--quick": 
+      bQuickTestSuite = True;
     elif asArgs[0] == "--debug": 
       bDebugIO = True;
       bGenerateReportHTML = True;
@@ -241,6 +257,8 @@ if __name__ == "__main__":
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA,    ["Nop"],                                                  None)); # No exceptions, just a clean program exit.
       aoTests.append(cTest(sISA,    ["Breakpoint"],                                           "Breakpoint ed2.249"));
+      if bQuickTestSuite:
+        continue; # Just do a test without a crash and breakpoint.
       # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
       aoTests.append(cTest(sISA,    ("Breakpoint",),                                          "Breakpoint ed2.249"));
       aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.249"));

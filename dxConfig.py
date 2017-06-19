@@ -1,9 +1,9 @@
-from dsCdbBinaryPath_sISA import dsCdbBinaryPath_sISA;
+from dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
 # Add default values where no values have been supplied:
 dxConfig = {
   ### cdb/kill binary settings
-  "sCdbBinaryPath_x86": dsCdbBinaryPath_sISA.get("x86"),
-  "sCdbBinaryPath_x64": dsCdbBinaryPath_sISA.get("x64"),
+  "sDebuggingToolsPath_x86": dsDebuggingToolsPath_sISA.get("x86"),
+  "sDebuggingToolsPath_x64": dsDebuggingToolsPath_sISA.get("x64"),
   ### Console output
   "bOutputStdIO": False,                # Output cdb input and output (commands send to cdb while debugging application
                                         # and their output returned by cdb).
@@ -12,7 +12,11 @@ dxConfig = {
                                         # the arguments. The handler gets called once for each line of stderr output,
                                         # which is passed in the first argument. Have your handler print this argument.
   "bOutputFirstChanceExceptions": False, # Are first chance exceptions detected and output?
-  "bOutputCommandLine": False,          # Is the cbd.exe command line printed before execution?
+#  "bOutputCommandLine": False,         # This has been removed in favor of the oCdbWrapper.sCdbCommandLine property:
+                                        # if you would like to see the command line, add a handler for 
+                                        # fApplicationRunningCallback to the arguments. This handler gets called once
+                                        # the debugger has started debugging the application. Have your handler print
+                                        # this property. You may also want to do the same for error callback handlers.
   "bOutputProcesses": False,            # Output process details whenever one is created/attached to/terminated.
   ### Pointer settings
   "uMaxAddressOffset": 0x1000,          # How big an offset from a special address (such as NULL) do you expect in your
@@ -153,4 +157,7 @@ dxConfig = {
                                         # during debugging will be checked to make sure page heap is enabled.
                                         # If page heap is not enabled as expected, an error is reported through the
                                         # error callback.
+  ### PLM Debugger helper
+  "sPLMDebugHelperPipeName": "BugId PLMDebug pipe", # The name of the pipe used for communication between the PLMDebug
+                                        # helper and BugId. Note that this must be a 
 };

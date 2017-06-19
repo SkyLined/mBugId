@@ -33,7 +33,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sOptionalSource": "",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
-        "sOptionalCommandLine": "",
+        "sOptionalApplicationArguments": "",
         "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": sBlockHTMLTemplate % {
           "sName": "Application and cdb output log",

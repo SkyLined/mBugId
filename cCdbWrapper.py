@@ -1,4 +1,4 @@
-import itertools, re, subprocess, sys, threading, time;
+import itertools, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasSendCommandAndReadOutput import cCdbWrapper_fasSendCommandAndReadOutput;
@@ -15,15 +15,43 @@ from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fR
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
 from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
+from cPLMApplication import cPLMApplication;
+from fasRunApplication import fasRunApplication;
 from dxConfig import dxConfig;
 from Kill import fKillProcessesUntilTheyAreDead;
 from sOSISA import sOSISA;
 
+guSymbolOptions = sum([
+  0x00000001, # SYMOPT_CASE_INSENSITIVE
+  0x00000002, # SYMOPT_UNDNAME
+  0x00000004 * (dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_DEFERRED_LOAD
+# 0x00000008, # SYMOPT_NO_CPP
+  0x00000010 * (dxConfig["bEnableSourceCodeSupport"] and 1 or 0), # SYMOPT_LOAD_LINES
+# 0x00000020, # SYMOPT_OMAP_FIND_NEAREST
+# 0x00000040, # SYMOPT_LOAD_ANYTHING
+# 0x00000080, # SYMOPT_IGNORE_CVREC
+  0x00000100 * (not dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_NO_UNQUALIFIED_LOADS
+  0x00000200, # SYMOPT_FAIL_CRITICAL_ERRORS
+# 0x00000400, # SYMOPT_EXACT_SYMBOLS
+  0x00000800, # SYMOPT_ALLOW_ABSOLUTE_SYMBOLS
+  0x00001000 * (not dxConfig["bUse_NT_SYMBOL_PATH"] and 1 or 0), # SYMOPT_IGNORE_NT_SYMPATH
+  0x00002000, # SYMOPT_INCLUDE_32BIT_MODULES 
+# 0x00004000, # SYMOPT_PUBLICS_ONLY
+# 0x00008000, # SYMOPT_NO_PUBLICS
+  0x00010000, # SYMOPT_AUTO_PUBLICS
+  0x00020000, # SYMOPT_NO_IMAGE_SEARCH
+# 0x00040000, # SYMOPT_SECURE
+  0x00080000, # SYMOPT_NO_PROMPTS
+# 0x80000000, # SYMOPT_DEBUG (don't set here: will be switched on and off later as needed)
+]);
+
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
     sCdbISA,                                  # Which version of cdb should be used to debug this application? ("x86" or "x64")
-    asApplicationCommandLine,
+    sApplicationBinaryPath,
     auApplicationProcessIds,
+    sApplicationPackageName,
+    asApplicationArguments,
     asLocalSymbolPaths,
     asSymbolCachePaths, 
     asSymbolServerURLs,
@@ -52,7 +80,20 @@ class cCdbWrapper(object):
     fNewProcessCallback,                      # called whenever there is a new process.
   ):
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
-    oCdbWrapper.asApplicationCommandLine = asApplicationCommandLine;
+    assert sum([sApplicationBinaryPath and 1 or 0, auApplicationProcessIds and 1 or 0, sApplicationPackageName and 1 or 0]), \
+        "You must provide one of the following: an application command line, a list of process ids or an application package name";
+    oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
+    # sApplicationPackageName is used to create a cPLMApplication instance later in this constructor.
+    oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
+    oCdbWrapper.auProcessIdsPendingDelete = []; # There should only ever be one in this list, but that is not enforced.
+    oCdbWrapper.asApplicationArguments = asApplicationArguments;
+    oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths or [];
+    oCdbWrapper.asSymbolCachePaths = asSymbolCachePaths;
+    if asSymbolCachePaths is None:
+      oCdbWrapper.asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"];
+    oCdbWrapper.asSymbolServerURLs = asSymbolServerURLs;
+    if asSymbolServerURLs is None:
+      oCdbWrapper.asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"];
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
@@ -67,76 +108,16 @@ class cCdbWrapper(object):
     oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
+    
     oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
-    uSymbolOptions = sum([
-      0x00000001, # SYMOPT_CASE_INSENSITIVE
-      0x00000002, # SYMOPT_UNDNAME
-      0x00000004 * (dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_DEFERRED_LOAD
-#     0x00000008, # SYMOPT_NO_CPP
-      0x00000010 * (dxConfig["bEnableSourceCodeSupport"] and 1 or 0), # SYMOPT_LOAD_LINES
-#     0x00000020, # SYMOPT_OMAP_FIND_NEAREST
-#     0x00000040, # SYMOPT_LOAD_ANYTHING
-#     0x00000080, # SYMOPT_IGNORE_CVREC
-      0x00000100 * (not dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_NO_UNQUALIFIED_LOADS
-      0x00000200, # SYMOPT_FAIL_CRITICAL_ERRORS
-#     0x00000400, # SYMOPT_EXACT_SYMBOLS
-      0x00000800, # SYMOPT_ALLOW_ABSOLUTE_SYMBOLS
-      0x00001000 * (not dxConfig["bUse_NT_SYMBOL_PATH"] and 1 or 0), # SYMOPT_IGNORE_NT_SYMPATH
-      0x00002000, # SYMOPT_INCLUDE_32BIT_MODULES 
-#     0x00004000, # SYMOPT_PUBLICS_ONLY
-#     0x00008000, # SYMOPT_NO_PUBLICS
-      0x00010000, # SYMOPT_AUTO_PUBLICS
-      0x00020000, # SYMOPT_NO_IMAGE_SEARCH
-#     0x00040000, # SYMOPT_SECURE
-      0x00080000, # SYMOPT_NO_PROMPTS
-#     0x80000000, # SYMOPT_DEBUG (don't set here: will be switched on and off later as needed)
-    ]);
     # Get the cdb binary path
-    sCdbBinaryPath = dxConfig["sCdbBinaryPath_%s" % oCdbWrapper.sCdbISA];
-    assert sCdbBinaryPath, "No %s cdb binary path found" % oCdbWrapper.sCdbISA;
-    # Get the command line (without starting/attaching to a process)
-    asCommandLine = [
-      sCdbBinaryPath,
-      "-o", # Debug any child processes spawned by the main processes as well.
-
-      "-sflags", "0x%08X" % uSymbolOptions # Set symbol loading options (See above for details)
-    ];
-    if dxConfig["bEnableSourceCodeSupport"]:
-      asCommandLine += ["-lines"];
-    # Get a list of symbol paths, caches and servers to use:
-    asLocalSymbolPaths = asLocalSymbolPaths or [];
-    if asSymbolCachePaths is None:
-      asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"];
-    # If not symbols should be used, or no symbol paths are provided, don't use them:
-    if asSymbolServerURLs is None:
-      asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"];
-    oCdbWrapper.bUsingSymbolServers = asSymbolServerURLs;
-    # Construct the cdb symbol path if one is needed and add it as an argument.
-    sSymbolsPath = ";".join(asLocalSymbolPaths + ["cache*%s" % x for x in asSymbolCachePaths] + ["srv*%s" % x for x in asSymbolServerURLs]);
-    if sSymbolsPath:
-      asCommandLine += ["-y", sSymbolsPath];
+    oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
+    assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
+    oCdbWrapper.oPLMApplication = sApplicationPackageName and cPLMApplication(sApplicationPackageName, oCdbWrapper.sDebuggingToolsPath) or None;
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
-    oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
-    oCdbWrapper.auProcessIdsPendingDelete = []; # There should only ever be one in this list, but that is not enforced.
     # Keep track of what the applications "main" processes are.
     oCdbWrapper.aoMainProcesses = [];
-    if asApplicationCommandLine is not None:
-      # If a process must be started, add it to the command line.
-      assert not auApplicationProcessIds, "Cannot start a process and attach to processes at the same time";
-      asCommandLine += asApplicationCommandLine;
-    else:
-      assert auApplicationProcessIds, "Must start a process or attach to one";
-      # If any processes must be attached to, add the first to the coommand line.
-      asCommandLine += ["-p", str(auApplicationProcessIds[0])];
-    # Quote any non-quoted argument that contain spaces:
-    asCommandLine = [
-      (x and (x[0] == '"' or x.find(" ") == -1)) and x or '"%s"' % x.replace('"', '\\"')
-      for x in asCommandLine
-    ];
-    # Show the command line if requested.
-    if dxConfig["bOutputCommandLine"]:
-      print "* Starting %s" % " ".join(asCommandLine);
     # Initialize some variables
     oCdbWrapper.sCurrentISA = None; # During exception handling, this is set to the ISA for the code that caused it.
     if bGenerateReportHTML:
@@ -186,14 +167,53 @@ class cCdbWrapper(object):
     oCdbWrapper.nApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
-    oCdbWrapper.oCdbProcess = subprocess.Popen(
-      args = " ".join(asCommandLine),
-      stdin = subprocess.PIPE,
-      stdout = subprocess.PIPE,
-      stderr = subprocess.PIPE,
-      creationflags = subprocess.CREATE_NEW_PROCESS_GROUP,
+    oCdbWrapper.oCdbProcess = None;
+  
+  def fAttachToProcessById(oCdbWrapper, uProcessId):
+    if oCdbWrapper.oCdbProcess is None:
+      # This is the first process: start the debugger and attach to it.
+      assert len(oCdbWrapper.auProcessIdsPendingAttach) == 0, \
+          "This functions is not expected to get called when processes are pending attach.";
+      oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
+      oCdbWrapper.__fStartDebugger();
+    else:
+      oCdbWrapper.fInterrupt(oCdbWrapper.__fActuallyAttachToProcessById, uProcessId);
+  
+  def __fActuallyAttachToProcessById(oCdbWrapper, uProcessId):
+    asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
+        ".attach 0x%X; $$ Attaching to another process" % uProcessId);
+    assert asAttachToProcess == ["Attach will occur on next execution"], \
+        "Unexpected .attach output: %s" % repr(asAttachToProcess);
+  
+  def fStart(oCdbWrapper):
+    if oCdbWrapper.sApplicationBinaryPath or oCdbWrapper.auProcessIdsPendingAttach:
+      # If the application must be started using a command-line, or if we need to attach to existing processes,
+      # start the debugger and do so.
+      oCdbWrapper.__fStartDebugger();
+    if oCdbWrapper.oPLMApplication:
+      # Use PLMDebug to setup attaching to PLM processes and start the application. The debugger may not be started
+      # yet, as we may not have processes to attach to.
+      oCdbWrapper.oPLMApplication.fStart(oCdbWrapper);
+      
+  def __fStartDebugger(oCdbWrapper):
+    global guSymbolOptions;
+    oCdbWrapper.bDebuggerStarted = True;
+    # Get the command line (without starting/attaching to a process)
+    asCommandLine = [
+      os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe"),
+      "-o", # Debug any child processes spawned by the main processes as well.
+      "-sflags", "0x%08X" % guSymbolOptions # Set symbol loading options (See above for details)
+    ];
+    if dxConfig["bEnableSourceCodeSupport"]:
+      asCommandLine += ["-lines"];
+    # Construct the cdb symbol path if one is needed and add it as an argument.
+    sSymbolsPath = ";".join(
+      oCdbWrapper.asLocalSymbolPaths +
+      ["cache*%s" % x for x in oCdbWrapper.asSymbolCachePaths] +
+      ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
     );
-    
+    if sSymbolsPath:
+      asCommandLine += ["-y", sSymbolsPath];
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbStdInOutThread);
     # Create a thread that reads stderr output and shows it in the console
@@ -202,8 +222,30 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbInterruptOnTimeoutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
     oCdbWrapper.oCdbCleanupThread = oCdbWrapper._foThread(cCdbWrapper_fCdbCleanupThread);
-  
-  def fStart(oCdbWrapper):
+    if oCdbWrapper.sApplicationBinaryPath is not None:
+      # If a process must be started, add it to the command line.
+      assert not oCdbWrapper.auProcessIdsPendingAttach, \
+          "Cannot start a process and attach to processes at the same time";
+      asCommandLine += [oCdbWrapper.sApplicationBinaryPath] + oCdbWrapper.asApplicationArguments;
+    else:
+      assert oCdbWrapper.auProcessIdsPendingAttach, \
+          "Must start a process or attach to one";
+      # If any processes must be attached to, add the first to the coommand line.
+      asCommandLine += ["-p", str(oCdbWrapper.auProcessIdsPendingAttach[0])];
+    # Quote any non-quoted argument that contain spaces:
+    asCommandLine = [
+      (x and (x[0] == '"' or x.find(" ") == -1)) and x or '"%s"' % x.replace('"', '\\"')
+      for x in asCommandLine
+    ];
+    # Show the command line if requested.
+    oCdbWrapper.sCdbCommandLine = " ".join(asCommandLine);
+    oCdbWrapper.oCdbProcess = subprocess.Popen(
+      args = oCdbWrapper.sCdbCommandLine,
+      stdin = subprocess.PIPE,
+      stdout = subprocess.PIPE,
+      stderr = subprocess.PIPE,
+      creationflags = subprocess.CREATE_NEW_PROCESS_GROUP,
+    );
     oCdbWrapper.oCdbStdInOutThread.start();
     oCdbWrapper.oCdbStdErrThread.start();
     oCdbWrapper.oCdbInterruptOnTimeoutThread.start();
@@ -280,6 +322,10 @@ class cCdbWrapper(object):
       print "*** INTERNAL ERROR: cCdbWrapper did not terminate, the cdb process is still running.";
       oCdbProcess.terminate();
   
+  @property
+  def bUsingSymbolServers(oCdbWrapper):
+    return len(oCdbWrapper.asSymbolServerURLs) > 0;
+  
   def fuGetVariableId(oCdbWrapper):
     return oCdbWrapper.uAvailableVariableIds.pop();
   def fReleaseVariableId(oCdbWrapper, uVariableId):
@@ -294,7 +340,7 @@ class cCdbWrapper(object):
     # Both arguments are optional
     sSelectCommand = "";
     asSelected = [];
-    if uProcessId is not None and uProcessId != oCdbWrapper.oCurrentProcess.uId:
+    if uProcessId is not None and (oCdbWrapper.oCurrentProcess is None or uProcessId != oCdbWrapper.oCurrentProcess.uId):
       # Select process if it is not yet the current process.
       assert uProcessId in oCdbWrapper.doProcess_by_uId, \
           "Unknown process id %d/0x%X" % (uProcessId, uProcessId);
@@ -317,13 +363,14 @@ class cCdbWrapper(object):
       # We need to select a different process, isa or thread in cdb.
       sSelectCommand += " $$ Select %s" % "/".join(asSelected); # Add a comment.
       asSelectCommandOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
+      # cdb may or may not output the last instruction :S. But it will always output the isa on the last line if selected.
       if "isa" in asSelected:
-        bUnexpectedOutput = len(asSelectCommandOutput) != 1 or asSelectCommandOutput[0] not in [
+        bUnexpectedOutput = asSelectCommandOutput[-1] not in [
           "Effective machine: x86 compatible (x86)",
           "Effective machine: x64 (AMD64)"
         ];
       else:
-        bUnexpectedOutput = len(asSelectCommandOutput) != 0;
+        bUnexpectedOutput = False; #len(asSelectCommandOutput) != 0;
       assert not bUnexpectedOutput, \
           "Unexpected select %s output:\r\n%s" % ("/".join(asSelected), "\r\n".join(asSelectCommandOutput));
   
@@ -350,11 +397,14 @@ class cCdbWrapper(object):
     return cCdbWrapper_fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   def fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
-  # Timeouts
-  def fxSetTimeout(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fxSetTimeout(oCdbWrapper, *axArguments, **dxArguments);
-  def fClearTimeout(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fClearTimeout(oCdbWrapper, *axArguments, **dxArguments);
+  # Timeouts/interrupt
+  def fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments):
+    return cCdbWrapper_fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments);
+  def fClearTimeout(oCdbWrapper, xTimeout):
+    return cCdbWrapper_fClearTimeout(oCdbWrapper, xTimeout);
+  def fInterrupt(oCdbWrapper, fCallback, *axCallbackArguments):
+    # An interrupt is implemented as an immediate timeout
+    return cCdbWrapper_fxSetTimeout(oCdbWrapper, 0, fCallback, *axCallbackArguments);
   # cdb I/O
   def fasReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);

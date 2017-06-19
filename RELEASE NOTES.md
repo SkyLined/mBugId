@@ -1,5 +1,15 @@
 2017-06-19
 ==========
+New features
+------------
++ Initial support for debugging PLM apps (Process Lifecycle Management). This
+  is a bit hacky, may not include some processes that you might expect to get
+  debugged (e.g. brokers processes in Edge) and may be subject to a complete
+  overhaul in the near future, but I just wanted to give you a chance to play
+  with it as well as have the public source the same as what I use myself, as
+  this significantly simplifies fixing bug reports and commits.
+  Note that there currently are not tests for this.
+
 Changes to report
 -----------------
 + Only second chance WRT originate errors are now handled to improve
@@ -9,9 +19,26 @@ Changes to report
 Changes to dxConfig
 -------------------
 + `bOutputStdErr` has been removed. If you want to see stderr output, please
-  provde a callback handler for `fStdErrOutputCallback` and print the output
+  provide a callback handler for `fStdErrOutputCallback` and print the output
   yourself. Expect `bOutputStdIO` to be replaced by callbacks at some point as
   well.
++ `bOutputCommandLine` has been removed. If you want to see the cdb command-
+  line, please provide a callback handler for `fApplicationRunningCallback` and
+  print the cBugId.sCdbCommandLine argument. Not that cdb may not get started
+  immediately, e.g. when debugging a PLM app, which is why you have to wait for
+  this event.
+
+Changes to tests
+----------------
++ Make them more user friendly by attempting to detect PYTHON before blindly
+  trying to use it and report an error if it cannot be detected.
++ Add "--quick" argument to run a minimal set of tests (nop and int3). This
+  basically loads everything to check there are no syntax errors, and checks if
+  a debug breakpoint can be detected, but nothing else. There may still be
+  logic bugs in the code that went undetected after these tests. I use them
+  when I fix something as simple as a typo and want to quickly check if I
+  didn't fat-finger it, but don't need to run the normal or full test suit to
+  test everything still works.
 
 Improvements
 ------------

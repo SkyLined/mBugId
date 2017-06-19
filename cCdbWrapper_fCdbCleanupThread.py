@@ -6,6 +6,9 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   oCdbWrapper.oCdbStdInOutThread.join();
   # wait for stderr thread to terminate.
   oCdbWrapper.oCdbStdErrThread.join();
+  if oCdbWrapper.oPLMApplication:
+    # Stop the PLMDebug helper if we're debugging an application.
+    oCdbWrapper.oPLMApplication.fStopDebugging();
   # Terminate the cdb process in case it somehow is still running.
   try:
     oCdbWrapper.oCdbProcess.terminate();

@@ -259,7 +259,7 @@ sReportHTMLTemplate = ("""
           <tr><td>Version:         </td><td>%(sBinaryVersion)s</td></tr>
 %(sOptionalSource)s
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
-%(sOptionalCommandLine)s
+%(sOptionalApplicationArguments)s
         </table>
         <br/>
         <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>%(sBugIdVersion)s</b>. You may not use this

@@ -232,8 +232,8 @@ class cBugReport(object):
                 "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
             "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
                 "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
-            "sOptionalCommandLine": oCdbWrapper.asApplicationCommandLine and \
-                "<tr><td>Command line: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationCommandLine or "",
+            "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
+                "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
             "sBlocks": "\r\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
             "sBugIdVersion": oVersionInformation.sCurrentVersion,

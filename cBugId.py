@@ -46,8 +46,10 @@ class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
-    asApplicationCommandLine = None,
+    sApplicationBinaryPath = None,
     auApplicationProcessIds = None,
+    sApplicationPackageName = None,
+    asApplicationArguments = None,
     asLocalSymbolPaths = None,
     asSymbolCachePaths = None, 
     asSymbolServerURLs = None,
@@ -89,8 +91,10 @@ class cBugId(object):
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
-      asApplicationCommandLine = asApplicationCommandLine,
+      sApplicationBinaryPath = sApplicationBinaryPath,
       auApplicationProcessIds = auApplicationProcessIds,
+      sApplicationPackageName = sApplicationPackageName,
+      asApplicationArguments = asApplicationArguments,
       asLocalSymbolPaths = asLocalSymbolPaths,
       asSymbolCachePaths = asSymbolCachePaths,
       asSymbolServerURLs = asSymbolServerURLs,
