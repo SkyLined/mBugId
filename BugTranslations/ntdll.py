@@ -2,11 +2,12 @@ import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # Breakpoint -> hide irrelevant frame
+  # These frames are never relevant
   cBugTranslation(
-    sOriginalBugTypeId = "Breakpoint",
-    asOriginalTopStackFrameSymbols = [
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
         "ntdll.dll!DebugBreakPoint",
+      ],
     ],
   ),
   # Breakpoint -> HeapCorrupt
