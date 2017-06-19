@@ -8,7 +8,7 @@ dxConfig = {
   "bOutputStdIO": False,                # Output cdb input and output (commands send to cdb while debugging application
                                         # and their output returned by cdb).
 #  "bOutputStdErr": True,               # This has been removed in favor of the cBugId.fStdErrOutputCallback argument:
-                                        # If you would like to see stderr output, add a handler for this callback to
+                                        # if you would like to see stderr output, add a handler for this callback to
                                         # the arguments. The handler gets called once for each line of stderr output,
                                         # which is passed in the first argument. Have your handler print this argument.
   "bOutputFirstChanceExceptions": False, # Are first chance exceptions detected and output?
