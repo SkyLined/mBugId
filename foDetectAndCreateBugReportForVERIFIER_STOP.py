@@ -161,7 +161,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
   else:
     # Check the page heap data near the heap block for signs of corruption:
-    oCorruptionDetector = oPageHeapAllocation.foCheckForCorruption();
+    oCorruptionDetector = cCorruptionDetector.foCreateForPageHeapAllocation(oPageHeapAllocation);
+    
     if oCdbWrapper.bGenerateReportHTML:
       uMemoryDumpStartAddress = oPageHeapAllocation.uBlockStartAddress;
       uMemoryDumpSize = oPageHeapAllocation.uBlockSize;
@@ -174,6 +175,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
           "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
               "\r\n".join(asRelevantLines);
       sBugTypeId = "OOBW";
+      uCorruptionStartAddress = sMessage == "corrupted start stamp" and oPageHeapAllocation.uStartStampAddress or oPageHeapAllocation.uEndStampAddress;
+      uCorruptionEndAddress = uCorruptionStartAddress + 4; # Stamps are 4 bytes
     elif sMessage in ["corrupted suffix pattern", "corrupted header"]:
       assert uCorruptionAddress is not None, \
           "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
@@ -183,6 +186,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       # 0xD0. Verifier has detected that one of the bytes changed value, which indicates an out-of-bounds write. BugId
       # will try to find all bytes that were changed:
       sBugTypeId = "OOBW";
+      uCorruptionStartAddress = uCorruptionAddress;
+      uCorruptionEndAddress = uCorruptionStartAddress + 1; # We do not know the size, so assume one byte.
     elif sMessage == "corrupted infix pattern":
       assert uCorruptionAddress is not None, \
           "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
@@ -191,16 +196,22 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       # detected that one of the bytes changed value, which indicates a write-after-free. BugId will try to find all
       # bytes that were changed:
       oCorruptionDetector.fbDetectCorruption(oPageHeapAllocation.uBlockStartAddress, [0xF0 for x in xrange(oPageHeapAllocation.uBlockSize)]);
+      uCorruptionStartAddress = uCorruptionAddress;
+      uCorruptionEndAddress = uCorruptionStartAddress + 1; # We do not know the size, so assume one byte.
       sBugTypeId = "UAFW";
     else:
       raise AssertionError("Unhandled VERIFIER STOP message: %s" % sMessage);
-    assert oCorruptionDetector, \
-        "Cannot find any sign of corruption";
-    uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
-    uCorruptionEndAddress = oCorruptionDetector.uCorruptionEndAddress;
+    # If we detected the reported corruption ourselves, we can get a better idea of the start and end address:
+    # (One might expect that when a VERIFIER STOP reported memory corruption, we can always detect this as well, but
+    # unfortunately, this is not always true. I do not know why a VERIFIER STOP would report corruption when there is
+    # no sign of it, but by trusting it is correct, we at least get a report so I can find out what is going on).
+    if oCorruptionDetector.bCorruptionDetected:
+      uCorruptionStartAddress = oCorruptionDetector.uCorruptionStartAddress;
+      uCorruptionEndAddress = oCorruptionDetector.uCorruptionEndAddress;
+      if oCdbWrapper.bGenerateReportHTML:
+        atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
     uCorruptionSize = uCorruptionEndAddress - uCorruptionStartAddress;
-    if oCdbWrapper.bGenerateReportHTML:
-      atxMemoryRemarks.extend(oCorruptionDetector.fatxMemoryRemarks());
+    
     # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
     # corrupted region.
     if oCdbWrapper.bGenerateReportHTML:

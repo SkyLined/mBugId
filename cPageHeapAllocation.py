@@ -1,5 +1,4 @@
 import re;
-from cCorruptionDetector import cCorruptionDetector;
 from cVirtualAllocation import cVirtualAllocation;
 
 class cPageHeapAllocation(object):
@@ -242,9 +241,8 @@ class cPageHeapAllocation(object):
       ] if tx];
     return atxMemoryRemarks;
   
-  def foCheckForCorruption(oPageHeapAllocation):
+  def fCheckForCorruption(oPageHeapAllocation, oCorruptionDetector):
     uPointerSize = oPageHeapAllocation.oVirtualAllocation.oProcess.uPointerSize;
-    oCorruptionDetector = cCorruptionDetector(oPageHeapAllocation.oVirtualAllocation);
     if oPageHeapAllocation.uBlockStartAddress:
       uStampPaddingSize = uPointerSize - 4;
       # Check start stamp and optional padding after start stamp
@@ -257,4 +255,3 @@ class cPageHeapAllocation(object):
       if oPageHeapAllocation.uPostBlockPaddingSize:
         axPostBlockPadding = [0xD0 for x in xrange(oPageHeapAllocation.uPostBlockPaddingSize)]
         oCorruptionDetector.fbDetectCorruption(oPageHeapAllocation.uBlockEndAddress, axPostBlockPadding);
-    return oCorruptionDetector.bCorruptionDetected and oCorruptionDetector;
