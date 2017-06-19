@@ -3,7 +3,10 @@ from dxConfig import dxConfig;
 def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
   sLine = "";
   while 1:
-    sChar = oCdbWrapper.oCdbProcess.stderr.read(1);
+    try:
+      sChar = oCdbWrapper.oCdbProcess.stderr.read(1);
+    except IOError:
+      sChar = "";
     if sChar == "\r":
       pass; # ignored.
     elif sChar in ("\n", ""):
