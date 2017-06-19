@@ -80,11 +80,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     while (
       asIntialCdbOutput # We still need to process the initial cdb output
       or len(oCdbWrapper.auProcessIdsPendingAttach) > 0 # We still need to attach to more processes
-      or (len(oCdbWrapper.doProcess_by_uId) > 1 or not oCdbWrapper.oCurrentProcess.bTerminated) # There are still processes running.
+      or (len(oCdbWrapper.doProcess_by_uId) > 1 or not oCdbWrapper.oCurrentProcess or not oCdbWrapper.oCurrentProcess.bTerminated) # There are still processes running.
     ):
       if asIntialCdbOutput:
         # First parse the initial output
-        asCdbOutput = asIntialCdbOutput;
+        asUnprocessedCdbOutput = asIntialCdbOutput;
         asIntialCdbOutput = None;
       else:
         ### Run timeout callbacks ######################################################################################
@@ -208,7 +208,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           "Running application"
         );
         try:
-          asCdbOutput = oCdbWrapper.fasSendCommandAndReadOutput(
+          asUnprocessedCdbOutput += oCdbWrapper.fasSendCommandAndReadOutput(
             "%s; $$ %s" % (sRunApplicationCommand, sRunApplicationComment),
             bShowCommandInHTMLReport = False,
             bOutputIsInformative = True,
@@ -249,6 +249,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           r"(?:",
             r"(Create|Exit) process [0-9a-f]+\:([0-9a-f]+)(?:, code [0-9a-f]+)?",
           r"|",
+            r"(Ignored unload module at [0-9`a-f]+)", # Don't ask why cdb decides to report this, but I've seen it happen after a VERIFIER STOP.
+                                                     # and yes; it should just report a breakpoint instead... sigh.
+          r"|",
             r"(.*?) \- code ([0-9a-f]+) \(!*\s*(first|second) chance\s*!*\)",
           r"|",
             r"Hit breakpoint (\d+)",
@@ -274,9 +277,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       (
         sProcessIdHex,
         sCreateExitProcess, sCreateExitProcessIdHex,
+        sIgnoredUnloadModule,
         sExceptionDescription, sExceptionCode, sChance,
         sBreakpointId,
       ) = oEventMatch.groups();
+      if sIgnoredUnloadModule:
+        # This exception makes no sense; ignore it.
+        continue;
       uProcessId = long(sProcessIdHex, 16);
       assert not sCreateExitProcessIdHex or sProcessIdHex == sCreateExitProcessIdHex, \
           "This is highly unexpected";
@@ -447,7 +454,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         bRetryOnTruncatedOutput = True,
       );
       ### Handle VERIFIER STOP #########################################################################################
-      oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput);
+      oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asUnprocessedCdbOutput);
+      asUnprocessedCdbOutput = [];
       if oBugReport and oBugReport.sBugTypeId is not None:
         # VERIFIER STOP detected.
         oCdbWrapper.oBugReport = oBugReport;
