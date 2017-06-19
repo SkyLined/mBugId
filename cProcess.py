@@ -81,7 +81,8 @@ class cProcess(object):
     # process (i.e. x86 or x64).
     asPEBOutput = oProcess.fasExecuteCdbCommand(
       "!peb; $$ Get current proces environment block",
-      bRetryOnTruncatedOutput = True
+      bRetryOnTruncatedOutput = True,
+      srIgnoreErrors = r".*",
     );
     # Sample output:
     # |Wow64 PEB32 at 34c000
