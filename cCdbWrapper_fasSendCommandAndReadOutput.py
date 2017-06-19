@@ -59,7 +59,7 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
       bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
       bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
       bIgnoreOutput = bIgnoreOutput,
-      srIgnoreErrors = srIgnoreErrors,
+      srIgnoreErrors = uTries == 1 and srIgnoreErrors or False, # Only ignore errors the last try.
       sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
       sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
       bDontAssertOnTruncatedOutput = uTries > 1,
