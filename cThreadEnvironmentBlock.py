@@ -24,11 +24,13 @@ class cThreadEnvironmentBlock(object):
     # |    LastStatusValue:      c00000bb
     # |    Count Owned Locks:    0
     # |    HardErrorMode:        0
-    oHeaderMatch = re.match(r"^TEB at ([0-9A-Fa-f]+)$", asPageHeapOutput[0]);
+    oHeaderMatch = re.match(r"^(Wow64 TEB32|TEB) at ([0-9A-Fa-f]+)$", asPageHeapOutput[0]);
     assert oHeaderMatch, "Unexpected TEB info header:%s\r\n%s" % (asPageHeapOutput[0], "\r\n".join(asPageHeapOutput));
-    sTEBAddress = oHeaderMatch.group(1);
+    sTEBType, sTEBAddress = oHeaderMatch.groups();
     uTEBAddress = long(sTEBAddress, 16);
-    uTEBPointerSize = len(sTEBAddress) == 16 and 8 or 4; # 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
+    # Unless it is explicitly mentioned to be a 32-bit TEB, determine TEB pointer size by looking at the length
+    # cdb reported the address in: 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
+    uTEBPointerSize = sTEBType == "Wow64 TEB32" or len(sTEBAddress) == 8 and 4 or 8;
     uStackTopAddress = None;
     uStackBottomAddress = None;
     if len(asPageHeapOutput) == 2 and asPageHeapOutput[1] == "error InitTypeRead( TEB )...":
