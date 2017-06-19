@@ -134,11 +134,10 @@ class cBugReport(object):
     oBugReport.asVersionInformation = [];
     for oModule in aoRelevantModules:
       # This function populates the version properties of the oModule object and returns HTML if a report is needed.
-      sBinaryInformationHTML = oModule.sInformationHTML;
       oBugReport.asVersionInformation.append(
           "%s %s (%s)" % (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
       if oCdbWrapper.bGenerateReportHTML:
-        asBinaryInformationHTML.append(sBinaryInformationHTML);
+        asBinaryInformationHTML.append(oModule.sInformationHTML);
         asBinaryVersionHTML.append("<b>%s</b>: %s (%s)" % \
             (oModule.sBinaryName, oModule.sFileVersion or oModule.sTimestamp or "unknown", oModule.sISA));
     
