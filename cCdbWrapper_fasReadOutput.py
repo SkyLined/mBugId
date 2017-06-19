@@ -168,7 +168,9 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       else:
         sIgnoredLine += sChar;
       # Detect the prompt. This only works if the prompt starts on a new line!
-      oPromptMatch = re.match("^\d+:\d+(:x86)?> $", sLine);
+      # The prompt normally contains pid and tid information, but for unknown reasons cdb can get confused about the
+      # process it is debugging and show "?:???>"
+      oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
       if oPromptMatch:
         oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
         if dxConfig["bOutputStdIO"]:
