@@ -1,3 +1,45 @@
+2017-06-19
+==========
+Changes to report
+-----------------
++ Only second chance WRT originate errors are now handled to improve
+  performance. This means information from first chance WRT originate errors
+  is not longer collected and stored in the report.
+
+Changes to dxConfig
+-------------------
++ `bOutputStdErr` has been removed. If you want to see stderr output, please
+  provde a callback handler for `fStdErrOutputCallback` and print the output
+  yourself. Expect `bOutputStdIO` to be replaced by callbacks at some point as
+  well.
+
+Improvements
+------------
++ Better bug translations in many cases.
++ Event callback handling should now be more efficient when they are not
+  provided.
++ Added more sanity checks
++ Allow more cdb commands to be retried if they fail for unknown reasons.
++ Add cProcess.sBasePath. This value should be reliable, if available.
++ Added cModule.sBinarypath. This value may not be available and may not be
+  accurate. I am not aware of a 100% reliable way of retrieving it, so it is
+  there only as a potential path. Use with caution.
++ cModule HTML report info is dynamically generated, only when needed.
++ Updated magic values to include more page-heap related values.
++ Handle cases where cdb gets confused and reports the unloading of a module in
+  a process it's not debugging by ignoring this event completely.
++ Improve memory corruption detection and handling.
+
+Bug fixes
+---------
++ `cBugId.fbFinished` now returns `True` or `False`, rather than `None`.
++ Handle never before seen format of last instruction during access violation
+  analysis.
++ Handle never before seen page heap output.
++ Handle never before seen TEB32 output.
++ Various minor fixes (typo-s, uninitialized variables, etc.)
++ Limit memory dump size.
+
 2017-05-31
 ==========
 Changes to BugIds
