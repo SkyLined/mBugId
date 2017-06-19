@@ -1,3 +1,4 @@
+from cCorruptionDetector import cCorruptionDetector;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftsGetHeapBlockAndOffsetIdAndDescription import ftsGetHeapBlockAndOffsetIdAndDescription;
 from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
@@ -17,9 +18,15 @@ def fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
         uPrefix = oPageHeapAllocation.uBlockStartAddress - uAccessViolationAddress;
         uMemoryDumpStartAddress -= uPrefix;
         uMemoryDumpSize += uPrefix;
+        # If the memory dump because too large, truncate it.
+        if uMemoryDumpSize > 0x1000:
+          uMemoryDumpSize = 0x1000;
       elif uAccessViolationAddress >= oPageHeapAllocation.uBlockEndAddress:
         uPostFix = uAccessViolationAddress - oPageHeapAllocation.uBlockEndAddress + 1;
-        uMemoryDumpSize += uPostFix;
+        # Show some of the guard page so we can insert labels where the AV took place, but only
+        # if this does not cause the memory dump to become too large.
+        if uMemoryDumpSize + uPostFix < 0x1000:
+          uMemoryDumpSize += uPostFix;
       # Check if we're not trying to dump a rediculous amount of memory:
       # Clamp start and end address
       uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
@@ -70,8 +77,8 @@ def fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
     oBugReport.sBugDescription += " suggests an earlier memory corruption has corrupted a pointer, index or offset.";
   # We can check the page heap structures for signs of corruption to detect earlier out-of-bounds writes that did not
   # cause an access violation.
-  oCorruptionDetector = oPageHeapAllocation.foCheckForCorruption();
-  if oCorruptionDetector:
+  oCorruptionDetector = cCorruptionDetector.foCreateForPageHeapAllocation(oPageHeapAllocation);
+  if oCorruptionDetector.bCorruptionDetected:
     # We detected a modified byte; there was an OOB write before the one that caused this access
     # violation. Use it's offset instead and add this fact to the description.
     if bGenerateReportHTML:
