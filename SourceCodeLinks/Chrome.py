@@ -3,13 +3,9 @@ from cSourceCodeLink import cSourceCodeLink;
 srBasePath = r"\w+:(\\\w+)*\\(build\\slave\\win-asan\\build|build\\slave\\syzygy_official\\build|win(64)?_pgo)";
 
 aoSourceCodeLinks = [
-  cSourceCodeLink( # base
-    srPathHeader = srBasePath + r"\\src\\base\\",
-    sURLTemplate = "https://chromium.googlesource.com/chromium/src/base/+/master/%(path)s#%(line_number)s",
-  ),
   cSourceCodeLink( # Blink
-    srPathHeader = srBasePath + r"\\src\\third_party\\webkit\\",
-    sURLTemplate = "https://chromium.googlesource.com/chromium/blink/+/master/%(path)s#%(line_number)s",
+    srPathHeader = srBasePath + r"\\src\\third_party\\webkit\\source\\",
+    sURLTemplate = "https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/%(path)s#%(line_number)s",
   ),
   cSourceCodeLink( # syzygy
     srPathHeader = srBasePath + r"\\src\\syzygy\\",
@@ -24,6 +20,6 @@ aoSourceCodeLinks = [
   # It is correct for the following folders: content, ipc, (list is not yet exhaustive).
   cSourceCodeLink(
     srPathHeader = srBasePath + r"\\src\\",
-    sURLTemplate = "https://chromium.googlesource.com/chromium/chromium/+/master/%(path)s#%(line_number)s",
+    sURLTemplate = "https://chromium.googlesource.com/chromium/src/+/master/%(path)s#%(line_number)s",
   ),
 ];
