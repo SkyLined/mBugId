@@ -1,5 +1,6 @@
 import re;
 from cBugReport import cBugReport;
+from cCorruptionDetector import cCorruptionDetector;
 from cPageHeapAllocation import cPageHeapAllocation;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftsGetHeapBlockAndOffsetIdAndDescription import ftsGetHeapBlockAndOffsetIdAndDescription;
@@ -32,6 +33,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
         uErrorNumber = long(sErrorNumber, 16);
         uProcessId = long(sProcessId, 16);
         asRelevantLines.append(sLine);
+        oCdbWrapper.fSelectProcess(uProcessId);
         assert uProcessId == oCdbWrapper.oCurrentProcess.uId, \
             "VERIFIER STOP in process with id %d/0x%X, but current process id is %d/0x%X" % \
             (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.uId, oCdbWrapper.oCurrentProcess.uId);
@@ -235,9 +237,10 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     # value, but there is a chance that a byte was overwritten with the same value it has before, in which case it was
     # not saved. This can be detect if it is surrounded by bytes that did change value. This code reads the value of all
     # bytes between the first and last byte that we detected was corrupted:
-    asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
-    sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
-    sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
+    if oCorruptionDetector.bCorruptionDetected:
+      asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
+      sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
+      sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
   
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
   if oCdbWrapper.bGenerateReportHTML:
