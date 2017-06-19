@@ -68,7 +68,7 @@ class cBugReport(object):
         "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
     uSize = uEndAddress - uStartAddress;
     assert uSize <= 0x1000, \
-        "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uStartAddress, uSize, uEndAddress);
+        "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uEndAddress, uSize, uStartAddress);
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
