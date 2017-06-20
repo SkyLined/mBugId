@@ -90,6 +90,7 @@ class cPLMApplication(object):
     # You can prefix the command line with [os.getenv("ComSpec"), "/K", "ECHO"]  to see the command
     sPLMDebugHelperCommandLine = " ".join(['"%s"' % sys.executable, sPLMDebugHelperPyPath]);
     fasRunApplication(oPLMApplication.__sPLMDebugPath, "/disableDebug", oPLMApplication.sPackageFullName);
+    fasRunApplication(oPLMApplication.__sPLMDebugPath, "/enableDebug", oPLMApplication.sPackageFullName, sPLMDebugHelperCommandLine);
     ############################################################################
     # Start the application.
     fasRunApplication("explorer.exe", "shell:AppsFolder\%s" % oPLMApplication.sApplicationUserModelID);
