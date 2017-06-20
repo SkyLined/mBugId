@@ -19,6 +19,7 @@ class cPLMApplication(object):
     oPLMApplication.__sPackageFullName = None;
     oPLMApplication.__sPackageFamilyName = None;
     oPLMApplication.__sApplicationUserModelID = None;
+    oPLMApplication.__oPLMDebugHelperListenerThread = None;
   
   @property
   def sPackageFullName(oPLMApplication):
@@ -78,8 +79,10 @@ class cPLMApplication(object):
     ############################################################################
     # Start a thread to listen for process ids send by the PLMDebug helper over
     # a named pipe and pass them to a callback:
-    oPLMApplication.oPLMDebugHelperListenerThread = oCdbWrapper._foThread(fPLMDebugHelperListenerThread);
-    oPLMApplication.oPLMDebugHelperListenerThread.start();
+    assert oPLMApplication.__oPLMDebugHelperListenerThread is None, \
+        "Cannot start twice!";
+    oPLMApplication.__oPLMDebugHelperListenerThread = oCdbWrapper._foThread(fPLMDebugHelperListenerThread);
+    oPLMApplication.__oPLMDebugHelperListenerThread.start();
     ############################################################################
     # Ask windows to start all the applications processes suspended and run a "PLMDebugHelper" once for each
     # application process that is started. The application process' id is passed in one of the arguments to the
@@ -87,7 +90,6 @@ class cPLMApplication(object):
     # You can prefix the command line with [os.getenv("ComSpec"), "/K", "ECHO"]  to see the command
     sPLMDebugHelperCommandLine = " ".join(['"%s"' % sys.executable, sPLMDebugHelperPyPath]);
     fasRunApplication(oPLMApplication.__sPLMDebugPath, "/disableDebug", oPLMApplication.sPackageFullName);
-    print fasRunApplication(oPLMApplication.__sPLMDebugPath, "/enableDebug", oPLMApplication.sPackageFullName, sPLMDebugHelperCommandLine);
     ############################################################################
     # Start the application.
     fasRunApplication("explorer.exe", "shell:AppsFolder\%s" % oPLMApplication.sApplicationUserModelID);
@@ -97,11 +99,14 @@ class cPLMApplication(object):
     # 6) When debugging is finished, we ask windows to no longer start our "debugger" for this application.
   
   def fStopDebugging(oPLMApplication):
-    # Stop the PLMDebug helper
-    fasRunApplication(oPLMApplication.__sPLMDebugPath, "/disableDebug", oPLMApplication.sPackageFullName);
-    # Stop the PLMDebug helper data receiving server
-    try:
-      fNamedPipeSendData(dxConfig["sPLMDebugHelperPipeName"], "*END*");
-    except Exception, oException:
-      pass;
-    oPLMApplication.oPLMDebugHelperListenerThread.join();
+    if oPLMApplication.__oPLMDebugHelperListenerThread is None:
+      # Stop the PLMDebug helper
+      fasRunApplication(oPLMApplication.__sPLMDebugPath, "/disableDebug", oPLMApplication.sPackageFullName);
+      # Stop the PLMDebug helper data receiving server
+      try:
+        fNamedPipeSendData(dxConfig["sPLMDebugHelperPipeName"], "*END*");
+      except Exception, oException:
+        pass;
+      # Wait for the receiver to stop.
+      oPLMApplication.__oPLMDebugHelperListenerThread.join();
+      oPLMApplication.__oPLMDebugHelperListenerThread = None;
