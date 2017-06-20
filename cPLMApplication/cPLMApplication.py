@@ -100,7 +100,7 @@ class cPLMApplication(object):
     # 6) When debugging is finished, we ask windows to no longer start our "debugger" for this application.
   
   def fStopDebugging(oPLMApplication):
-    if oPLMApplication.__oPLMDebugHelperListenerThread is None:
+    if oPLMApplication.__oPLMDebugHelperListenerThread is not None:
       # Stop the PLMDebug helper
       fasRunApplication(oPLMApplication.__sPLMDebugPath, "/disableDebug", oPLMApplication.sPackageFullName);
       # Stop the PLMDebug helper data receiving server
