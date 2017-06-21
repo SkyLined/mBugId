@@ -488,14 +488,14 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           if oCdbWrapper.fMainProcessTerminatedCallback:
             oCdbWrapper.fMainProcessTerminatedCallback(uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName);
           oCdbWrapper.fasExecuteCdbCommand(
-            sCommand = '.printf "Terminated main process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
+            sCommand = '.printf "Terminated main process %d/0x%X.\\r\\n";' % (uProcessId, uProcessId),
             sComment = None,
             bShowCommandInHTMLReport = False,
             bRetryOnTruncatedOutput = True,
           );
         else:
           oCdbWrapper.fasExecuteCdbCommand(
-            sCommand = '.printf "Terminated sub-process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
+            sCommand = '.printf "Terminated sub-process %d/0x%X.\\r\\n";' % (uProcessId, uProcessId),
             sComment = None,
             bShowCommandInHTMLReport = False,
             bRetryOnTruncatedOutput = True,
