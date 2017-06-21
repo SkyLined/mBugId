@@ -24,7 +24,7 @@ asTestISAs = [sOSISA];
 if sOSISA == "x64":
   asTestISAs.append("x86");
 
-sReportsFolderName = FileSystem.fsPath(sBaseFolderPath, "Tests", "Reports");
+sReportsFolderName = FileSystem.fsPath(sBugIdFolderPath, "Tests", "Reports");
 
 dsBinaries_by_sISA = {
   "x86": os.path.join(sTestsFolderPath, r"bin\Tests_x86.exe"),
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     if asArgs[0] == "--full": 
       bFullTestSuite = True;
       bGenerateReportHTML = True;
-    if asArgs[0] == "--quick": 
+    elif asArgs[0] == "--quick": 
       bQuickTestSuite = True;
     elif asArgs[0] == "--debug": 
       bDebugIO = True;
