@@ -74,7 +74,7 @@ class cModule(object):
       if oModule.__sBinaryName is None:
         oModule.__fGetModuleSymbolAndVersionInformation();
       return oModule.__sBinaryName;
-    return os.path.basename(oModule.sBinaryPath);
+    return os.path.basename(oModule.sBinaryPath).lower();
   
   # The below are never available until __fGetModuleSymbolAndVersionInformation is called:
   @property
@@ -91,11 +91,11 @@ class cModule(object):
   
   @property
   def sSimplifiedName(oModule):
-    return oModule.sBinaryName.lower();
+    return oModule.sBinaryName;
   
   @property
   def sUniqueName(oModule):
-    return oModule.sBinaryName.lower();
+    return oModule.sBinaryName;
   
   @property
   def sInformationHTML(oModule):
@@ -218,7 +218,7 @@ class cModule(object):
       # The above is kinda hacky, so check that the file exists before assuming the value is correct:
       if os.path.isfile(sBinaryPath):
         oModule.__sBinaryPath = sBinaryPath;
-    oModule.__sBinaryName = "Image path" in dsValue_by_sName and os.path.basename(dsValue_by_sName["Image path"]) or None;
+    oModule.__sBinaryName = "Image path" in dsValue_by_sName and os.path.basename(dsValue_by_sName["Image path"]).lower() or None;
     oModule.__sFileVersion = dsValue_by_sName.get("File version");
     oModule.__sTimestamp = dsValue_by_sName["Timestamp"];
     
