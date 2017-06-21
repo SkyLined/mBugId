@@ -162,7 +162,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           bUWPDummyNeedsToBeKilled = True; # And we need to perform another after starting the UWP application.
         elif bAttachingToOrStartingApplication:
           if bUWPDummyNeedsToBeKilled:
-            oUWPDummyProcess.fasExecuteCdbCommand(".kill; $$ Kill UWP Dummy process");
+            oUWPDummyProcess.fasExecuteCdbCommand(
+              sCommand = ".kill;",
+              sComment = "Kill UWP Dummy process",
+            );
             bUWPDummyNeedsToBeKilled = False;
           # We attached to or started the application, set up exception handling and resume threads if needed.
           # Note to self: when rewriting the code, make sure not to set up exception handling before the debugger has
