@@ -25,9 +25,10 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oCdb
   else:
     # This is not a bug, but we want to show the message:
     oBugReport.sBugTypeId = None;
-    oCdbWrapper.fasSendCommandAndReadOutput(
-      '.printf "The application threw an Windows Run-Time Originate Error with HRESULT %08X:\\r\\n%%mu\\r\\n", 0x%X;' % \
+    oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = '.printf "The application threw an Windows Run-Time Originate Error with HRESULT %08X:\\r\\n%%mu\\r\\n", 0x%X;' % \
           (hResult, uMessageAddress),
+      sComment = None,
       bShowCommandInHTMLReport = False,
     );
   return oBugReport;

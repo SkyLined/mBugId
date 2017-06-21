@@ -19,8 +19,9 @@ MEM_IMAGE               = 0x1000000;
 class cVirtualAllocation(object):
   @staticmethod
   def foGetForAddress(oCdbWrapper, uAddress):
-    asVProtOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      "!vprot 0x%X; $$ Get memory protection information" % uAddress,
+    asVProtOutput = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "!vprot 0x%X;" % uAddress,
+      sComment = "Get memory protection information",
       bOutputIsInformative = True,
     );
     # BaseAddress:       00007df5ff5f0000

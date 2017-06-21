@@ -181,9 +181,10 @@ class cExcessiveCPUUsageDetector(object):
   
   def fWormDebugOutput(oExcessiveCPUUsageDetector, sMessage, *auArguments):
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
-    asDebugOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      '.printf "CPUUsage worm: %s\\r\\n"%s;' % \
+    asDebugOutput = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = '.printf "CPUUsage worm: %s\\r\\n"%s;' % \
           (sMessage, "".join([", 0x%X" % uArgument for uArgument in auArguments])),
+      sComment = None,
       bShowCommandInHTMLReport = False,
     );
     assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
@@ -394,8 +395,9 @@ class cExcessiveCPUUsageDetector(object):
         print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
         print "| %4s  %6s  %s" % ("tid", "time", "source line");
       oCdbWrapper.fSelectProcess(uProcessId);
-      asThreadTimes = oCdbWrapper.fasSendCommandAndReadOutput(
-        "!runaway 7; $$ Get CPU usage information",
+      asThreadTimes = oCdbWrapper.fasExecuteCdbCommand(
+        sCommand = "!runaway 7;",
+        sComment = "Get CPU usage information",
       );
       dnCPUTime_by_uThreadId = {};
       dnCPUTime_by_uThreadId = ddnCPUTime_by_uThreadId_by_uProcessId[uProcessId] = {};

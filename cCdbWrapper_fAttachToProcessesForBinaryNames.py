@@ -4,7 +4,10 @@ def cCdbWrapper_fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames):
   # binary names are case-insensitive, make list lower case for easier comparison:
   asBinaryNames = [s.lower() for s in asBinaryNames];
   # List all processes and their binary names:
-  asRunningProcessesOutput = oCdbWrapper.fasSendCommandAndReadOutput(".tlist; $$ list running processes");
+  asRunningProcessesOutput = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = ".tlist;",
+    sComment = "list running processes",
+  );
   for sLine in asRunningProcessesOutput:
     # Parse each line
     oProcessMatch = re.match("^\s*0n(\d+) (.*)$", sLine);

@@ -10,7 +10,10 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   if oProcess.sBinaryName in gdbPageHeapEnabled_by_sBinaryName:
     oProcess.bPageHeapEnabled = gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName];
     return;
-  asPageHeapStatusOutput = oProcess.fasExecuteCdbCommand("!heap -p; $$ Get page heap status");
+  asPageHeapStatusOutput = oProcess.fasExecuteCdbCommand(
+    sCommand = "!heap -p;",
+    sComment = "Get page heap status",
+  );
   #### Page heap disabled ####################################################
   # |    Active GlobalFlag bits:
   # |        htc - Enable heap tail checking

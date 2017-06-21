@@ -19,6 +19,8 @@ rAlwaysIgnoredCdbOutputLine = re.compile("^(.*?)((?:\*\*\* )?(?:%s))$" % "|".joi
   r"WARNING: Stack pointer is outside the normal stack bounds\. Stack unwinding can be inaccurate\.",
   r"WARNING: Stack unwind information not available\. Following frames may be wrong\.",
   r"WARNING: Unable to verify checksum for .*",
+  r"WARNING: The debugger does not have a current process or thread",
+  r"WARNING: Many commands will not work",
 ]));
 
 def cCdbWrapper_fasReadOutput(oCdbWrapper,
@@ -233,11 +235,10 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       if bHandleSymbolLoadErrors and oCdbWrapper.bUsingSymbolServers and dxConfig["uMaxSymbolLoadingRetries"] > 0:
         sModuleFileName = [s for s in oFailedToLoadSymbolsError.groups() if s][0];
         # Try to reload the module symbols with noisy symbol loading on.
-        oCdbWrapper.fasSendCommandAndReadOutput("!sym noisy;");
-        oCdbWrapper.fasSendCommandAndReadOutput("ld /f %s;$$ Attempt to reload symbols" % sModuleFileName,
-          bHandleSymbolLoadErrors = False, # Let's no trigger an infinite loop
+        oCdbWrapper.fasExecuteCdbCommand(
+          sCommand = "!sym noisy;.block {ld /f %s};!sym quiet;" % sModuleFileName,
+          sComment = "Attempt to noisily reload module symbols",
         );
-        oCdbWrapper.fasSendCommandAndReadOutput("!sym quiet");
       asReturnedLines.pop(uIndex);
       continue;
     # This line should not be ignored, go to the next

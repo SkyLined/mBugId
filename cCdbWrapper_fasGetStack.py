@@ -10,8 +10,10 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
   # again later (without noisy symbol loading) when symbols are loaded.
   # This only makes sense if we're using symbol servers, so we can download the symbols again if they fail.
   if oCdbWrapper.bUsingSymbolServers and dxConfig["bMakeSureSymbolsAreLoaded"]:
-    asSymbolLoadStackOutput = oCdbWrapper.fasSendCommandAndReadOutput( \
-        ".symopt+ 0x80000000;%s;.symopt- 0x80000000; $$ Get stack with debug symbols enabled" % sGetStackCommand);
+    asSymbolLoadStackOutput = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = ".symopt+ 0x80000000;%s;.symopt- 0x80000000" % sGetStackCommand,
+      sComment = "Get stack with debug symbols enabled",
+    );
     if dxConfig["uMaxSymbolLoadingRetries"] > 0:
       # Try to reload all modules and symbols. The symbol loader will not reload all symbols, but only those symbols that
       # were loaded before or those it attempted to load before, but failed. The symbol loader will output all kinds of
@@ -24,8 +26,10 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
         # Reload all modules with noisy symbol loading on to detect any errors. These errors are automatically detected
         # and handled in cCdbOutput.fHandleCommonErrorsInOutput, so all we have to do is check if any errors were found
         # and try again to see if they have been fixed.
-        asLastSymbolReloadOutput = oCdbWrapper.fasSendCommandAndReadOutput( \
-            ".symopt+ 0x80000000;.reload /v;.symopt- 0x80000000; $$ Reload symbols for all modules");
+        asLastSymbolReloadOutput = oCdbWrapper.fasExecuteCdbCommand(
+          sCommand = ".symopt+ 0x80000000;.reload /v;.symopt- 0x80000000;",
+          sComment = "Reload symbols for all modules",
+        );
         bErrorsDuringLoading = False;
         for sLine in asLastSymbolReloadOutput:
           # If there were any errors, make sure we try loading again.
@@ -38,8 +42,9 @@ def cCdbWrapper_fasGetStack(oCdbWrapper, sGetStackCommand):
           # Loop completed: no errors found, stop reloading modules.
           break;
   # Get the stack for real. At this point, no output from symbol loader is expected or handled.
-  asStackOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-    "%s; $$ Get stack" % sGetStackCommand,
+  asStackOutput = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = sGetStackCommand,
+    sComment = "Get stack",
     bOutputIsInformative = True,
   );
   return asStackOutput;

@@ -164,8 +164,9 @@ class cBugReport(object):
       
       if oBugReport.bRegistersRelevant:
         # Create and add registers block
-        asRegisters = oCdbWrapper.fasSendCommandAndReadOutput(
-          "rM 0x%X; $$ Get register information" % (0x1 + 0x4 + 0x8 + 0x10 + 0x20 + 0x40),
+        asRegisters = oCdbWrapper.fasExecuteCdbCommand(
+          sCommand = "rM 0x%X;" % (0x1 + 0x4 + 0x8 + 0x10 + 0x20 + 0x40),
+          sComment = "Get register information",
           bOutputIsInformative = True,
         );
         sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
@@ -264,5 +265,7 @@ class cBugReport(object):
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
       sValidDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
       sOverwriteFlag = dxConfig["bOverwriteDump"] and "/o" or "";
-      oCdbWrapper.fasSendCommandAndReadOutput( \
-          ".dump %s /ma \"%s\"; $$ Save dump to file" % (sOverwriteFlag, sValidDumpFileName));
+      oCdbWrapper.fasExecuteCdbCommand( \
+        sCommand = ".dump %s /ma \"%s\";" % (sOverwriteFlag, sValidDumpFileName),
+        sComment = "Save dump to file",
+      );

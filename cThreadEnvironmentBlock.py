@@ -3,7 +3,11 @@ import re;
 class cThreadEnvironmentBlock(object):
   @staticmethod
   def foCreateForCurrentThread(oCdbWrapper, oProcess):
-    asPageHeapOutput = oProcess.fasExecuteCdbCommand("!teb", bOutputIsInformative = True);
+    asPageHeapOutput = oProcess.fasExecuteCdbCommand(
+      sCommand = "!teb",
+      sComment = "Get thread environment info",
+      bOutputIsInformative = True,
+    );
     assert asPageHeapOutput, "Missing TEB info output";
     # Sample output:
     # |0:000> !teb

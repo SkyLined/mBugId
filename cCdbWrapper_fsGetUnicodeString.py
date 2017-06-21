@@ -1,8 +1,9 @@
 import re;
 
 def cCdbWrapper_fsGetUnicodeString(oCdbWrapper, uAddress, sComment):
-  asGetStringOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-    ".if ($vvalid(0x%X, 1) {.printf \"%mu\\r\\n1\\r\\n\", 0x%X}; .else .printf \"0\\r\\n\"; $$ %s" % (uAddress, uAddress, sComment)
+  asGetStringOutput = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = ".if ($vvalid(0x%X, 1) {.printf \"%mu\\r\\n1\\r\\n\", 0x%X}; .else .printf \"0\\r\\n\";" % (uAddress, uAddress),
+    sComment = sComment,
   );
   sSuccess = asGetStringOutput[-1];
   if sSuccess == "0":

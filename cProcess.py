@@ -80,7 +80,8 @@ class cProcess(object):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
     # process (i.e. x86 or x64).
     asPEBOutput = oProcess.fasExecuteCdbCommand(
-      "!peb; $$ Get current proces environment block",
+      sCommand = "!peb;",
+      sComment = "Get current proces environment block",
       bRetryOnTruncatedOutput = True,
       srIgnoreErrors = r".*",
     );
@@ -178,7 +179,8 @@ class cProcess(object):
         # Get information from the PEB about the location of the main module:
         oProcess.__fGetProcessInformation();
       oProcess.__oMainModule = oProcess.__foProcessListModulesOutput(
-        sCommand = "lmo a 0x%X; $$ Get basic information on main module" % oProcess.__uMainModuleImageBaseAddress,
+        sCommand = "lmo a 0x%X;" % oProcess.__uMainModuleImageBaseAddress,
+        sComment = "Get basic information on main module",
         bExpectAndReturnOneModule = True,
       );
     return oProcess.__oMainModule;
@@ -186,7 +188,8 @@ class cProcess(object):
   def foGetModuleForCdbId(oProcess, sCdbId):
     if sCdbId not in oProcess.__doModules_by_sCdbId:
       return oProcess.__foProcessListModulesOutput(
-        sCommand = "lmo m %s; $$ Get basic information on module by cdb id" % sCdbId,
+        sCommand = "lmo m %s;" % sCdbId,
+        sComment = "Get basic information on module by cdb id",
         bExpectAndReturnOneModule = True,
       );
     return oProcess.__doModules_by_sCdbId[sCdbId];
@@ -195,13 +198,14 @@ class cProcess(object):
   def aoModules(oProcess):
     if not oProcess.__bAllModulesEnumerated:
       oProcess.__foProcessListModulesOutput(
-        sCommand = "lmo; $$ Get basic information on all loaded modules",
+        sCommand = "lmo;",
+        sComment = "Get basic information on all loaded modules",
       );
       oProcess.__bAllModulesEnumerated = True;
     return oProcess.__doModules_by_sCdbId.values();
   
-  def __foProcessListModulesOutput(oProcess, sCommand, bExpectAndReturnOneModule = False):
-    asListModulesOutput = oProcess.fasExecuteCdbCommand(sCommand);
+  def __foProcessListModulesOutput(oProcess, sCommand, sComment, bExpectAndReturnOneModule = False):
+    asListModulesOutput = oProcess.fasExecuteCdbCommand(sCommand, sComment);
     if bExpectAndReturnOneModule:
       assert len(asListModulesOutput) == 2, \
           "Expected exactly two lines of module information output, got %d:\r\n%s" % \
@@ -246,7 +250,7 @@ class cProcess(object):
   def fEnsurePageHeapIsEnabled(oProcess):
     return cProcess_fEnsurePageHeapIsEnabled(oProcess);
     
-  def fasExecuteCdbCommand(oProcess, *axArguments, **dxArguments):
+  def fasExecuteCdbCommand(oProcess, sCommand, sComment, **dxArguments):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();
-    return oProcess.oCdbWrapper.fasSendCommandAndReadOutput(*axArguments, **dxArguments);
+    return oProcess.oCdbWrapper.fasExecuteCdbCommand(sCommand, sComment, **dxArguments);

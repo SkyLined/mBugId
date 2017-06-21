@@ -29,9 +29,10 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
     # Get disassembly before address
     uStartAddress = uAddress - uDisassemblyBytesBefore;
     # Note: cannot use "u {address} L{length}" as length is number of instructions, and we want number of bytes. 
-    asBeforeDisassembly = oCdbWrapper.fasSendCommandAndReadOutput(
-      ".if ($vvalid(0x%X, 0x%X)) { u 0x%X 0x%X; }; $$ disassemble before address" %
+    asBeforeDisassembly = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = ".if ($vvalid(0x%X, 0x%X)) { u 0x%X 0x%X; };" % \
           (uStartAddress, uDisassemblyBytesBefore, uStartAddress, uAddress - 1),
+      sComment = "disassemble before address 0x%X" % uAddress,
       bOutputIsInformative = True,
     );
     # Limit number of instructions
@@ -48,9 +49,10 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
               sBeforeAddressInstructionDescription)
         );
   if uDisassemblyBytesAfter > 0:
-    asAddressAtAndAfterDisassembly = oCdbWrapper.fasSendCommandAndReadOutput(
-      ".if ($vvalid(0x%X, 0x%X)) { u 0x%X L0x%X; }; $$ Disassemble after address" %
+    asAddressAtAndAfterDisassembly = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = ".if ($vvalid(0x%X, 0x%X)) { u 0x%X L0x%X; };" % \
           (uAddress, uDisassemblyBytesAfter, uAddress, uDisassemblyBytesAfter),
+      sComment = "Disassemble after address 0x%X" % uAddress, 
       bOutputIsInformative = True,
     );
     if asAddressAtAndAfterDisassembly:

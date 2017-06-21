@@ -117,7 +117,10 @@ class cStack(object):
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
-      asStackOutput = oCdbWrapper.fasSendCommandAndReadOutput("kn 0x%X; $$ Get stack" % (uStackFramesCount + 1));
+      asStackOutput = oCdbWrapper.fasExecuteCdbCommand(
+        sCommand = "kn 0x%X;" % (uStackFramesCount + 1),
+        sComment = "Get stack",
+      );
       # Here are some lines you might expect to parse:
       # |00 (Inline) -------- chrome_child!WTF::RawPtr<blink::Document>::operator*+0x11
       # |03 0082ec08 603e2568 chrome_child!blink::XMLDocumentParser::startElementNs+0x105
@@ -183,9 +186,10 @@ class cStack(object):
             # correctly in the pdb (cdb will report the closest symbol, which may be for another function!).
             # We do have a return address and there may be a CALL instruction right before the return address that we
             # can use to find the correct symbol for the function.
-            asDisassemblyBeforeReturnAddressOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-              ".if($vvalid(0x%X, 1)) { .if (by(0x%X) == 0xe8) { .if($vvalid(0x%X, 4)) { u 0x%X L1; }; }; }; $$ Get call instruction for %s" % \
-              (uReturnAddress - 5, uReturnAddress - 5, uReturnAddress - 4, uReturnAddress -5, sCdbSymbolOrAddress),
+            asDisassemblyBeforeReturnAddressOutput = oCdbWrapper.fasExecuteCdbCommand(
+              sCommand = ".if($vvalid(0x%X, 1)) { .if (by(0x%X) == 0xe8) { .if($vvalid(0x%X, 4)) { u 0x%X L1; }; }; };" % \
+                  (uReturnAddress - 5, uReturnAddress - 5, uReturnAddress - 4, uReturnAddress -5),
+              sComment = "Get call instruction for %s" % sCdbSymbolOrAddress,
             );
             if len(asDisassemblyBeforeReturnAddressOutput) == 0:
               dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = None;

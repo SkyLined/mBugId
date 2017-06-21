@@ -4,8 +4,9 @@ def fsGetCPPObjectClassNameFromVFTable(oCdbWrapper, uCPPObjectAddress):
   # A C++ object is store in memory starting with a pointer to its virtual function table.
   # The symbol for this virtual function table should follow the pattern "module![namespace::]classname::`vftable'"
   # We can extract the classname from this symbol.
-  asVFTableSymbolOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-    "dps 0x%X L1; $$ Get C++ vftable pointer symbol" % uCPPObjectAddress,
+  asVFTableSymbolOutput = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = "dps 0x%X L1;" % uCPPObjectAddress,
+    sComment = "Get C++ vftable pointer symbol",
     bOutputIsInformative = True,
   );
   assert len(asVFTableSymbolOutput) == 1, \

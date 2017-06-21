@@ -1,7 +1,7 @@
 import itertools, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
-from cCdbWrapper_fasSendCommandAndReadOutput import cCdbWrapper_fasSendCommandAndReadOutput;
+from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
 from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
@@ -179,8 +179,10 @@ class cCdbWrapper(object):
       oCdbWrapper.fInterrupt(oCdbWrapper.__fActuallyAttachToProcessById, uProcessId);
   
   def __fActuallyAttachToProcessById(oCdbWrapper, uProcessId):
-    asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
-        ".attach 0x%X; $$ Attaching to another process" % uProcessId);
+    asAttachToProcess = oCdbWrapper.fasExecuteCdbCommand( \
+      sCommand = ".attach 0x%X;" % uProcessId,
+      sComment = "Attach to process %d" % uProcessId
+    );
     assert asAttachToProcess == ["Attach will occur on next execution"], \
         "Unexpected .attach output: %s" % repr(asAttachToProcess);
   
@@ -361,8 +363,10 @@ class cCdbWrapper(object):
       asSelected.append("thread");
     if sSelectCommand:
       # We need to select a different process, isa or thread in cdb.
-      sSelectCommand += " $$ Select %s" % "/".join(asSelected); # Add a comment.
-      asSelectCommandOutput = oCdbWrapper.fasSendCommandAndReadOutput(sSelectCommand);
+      asSelectCommandOutput = oCdbWrapper.fasExecuteCdbCommand(
+        sCommand = sSelectCommand,
+        sComment = "Select %s" % "/".join(asSelected),
+      );
       # cdb may or may not output the last instruction :S. But it will always output the isa on the last line if selected.
       if "isa" in asSelected:
         bUnexpectedOutput = asSelectCommandOutput[-1] not in [
@@ -408,8 +412,8 @@ class cCdbWrapper(object):
   # cdb I/O
   def fasReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);
-  def fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, *axArguments, **dxArguments);
+  def fasExecuteCdbCommand(oCdbWrapper, *axArguments, **dxArguments):
+    return cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper, *axArguments, **dxArguments);
   
   def fasGetStack(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasGetStack(oCdbWrapper, *axArguments, **dxArguments);

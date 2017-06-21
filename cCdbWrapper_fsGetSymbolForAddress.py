@@ -1,9 +1,14 @@
 import re;
 
 def cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, sAddress):
-  oCdbWrapper.fasSendCommandAndReadOutput('.printf "%%y\\n", %s; $$ Get symbol warmup' % sAddress);
-  asSymbolResult = oCdbWrapper.fasSendCommandAndReadOutput( \
-      '.printf "%%y\\n", %s;lmi a %s; $$ Get symbol' % (sAddress, sAddress));
+  oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = '.printf "%%y\\n", %s;' % sAddress, 
+    sComment = "Get symbol warmup",
+  );
+  asSymbolResult = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = '.printf "%%y\\n", %s;lmi a %s;' % (sAddress, sAddress),
+    sComment = "Get symbol",
+  );
   # Output for a NULL pointer:
   #   >00000000
   #   >start    end        module name

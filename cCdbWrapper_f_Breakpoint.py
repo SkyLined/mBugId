@@ -13,12 +13,15 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     uAddress, 
     sCommand and (' "%s"' % sCommand.replace("\\", "\\\\").replace('"', '\\"')) or ""
   );
-  oCdbWrapper.fasSendCommandAndReadOutput( \
-    '.printf "Adding breakpoint %d at %%ly:\\r\\n", 0x%X;' % (uBreakpointId, uAddress),
+  oCdbWrapper.fasExecuteCdbCommand( \
+    sCommand = '.printf "Adding breakpoint %d at %%ly:\\r\\n", 0x%X;' % (uBreakpointId, uAddress),
+    sComment = None,
     bShowCommandInHTMLReport = False,
   );
-  asBreakpointResult = oCdbWrapper.fasSendCommandAndReadOutput("%s; $$ Set breakpoint" % sBreakpointCommand);
-  oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
+  asBreakpointResult = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = sBreakpointCommand,
+    sComment = "Set breakpoint",
+  );
   # It could be that a previous breakpoint existed at the given location, in which case that breakpoint id is used
   # by cdb instead. This must be detected so we can return the correct breakpoint id to the caller and match the
   # callback to the right breakpoint as well.
@@ -42,14 +45,14 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     # location. If it was not, throw an exception.
     assert uBreakpointId not in oCdbWrapper.dfCallback_by_uBreakpointId, \
         "Two active breakpoints at the same location is not supported";
-    oCdbWrapper.fasSendCommandAndReadOutput(
-      '.printf "  Breakpoint %d was recycled for this address\\r\\n";' % uBreakpointId,
+    oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = '.printf "  Breakpoint %d was recycled for this address\\r\\n";' % uBreakpointId,
+      sComment = None,
       bShowCommandInHTMLReport = False,
     );
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);
-  oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
   oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId] = uAddress;
   oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId] = uProcessId;
   oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId] = fCallback;
@@ -63,10 +66,8 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
   # There is nothing to detect this exception was caused by this bug, and filtering these exceptions is therefore
   # hard to do correctly. An easier way to address this issue is to not "clear" the breakpoint, but replace the
   # command executed when the breakpoint is hit with "gh" (go with exception handled).
-  oCdbWrapper.fasSendCommandAndReadOutput(
-    '.printf "Removing breakpoint %d:\\r\\n";' % uBreakpointId,
-    bShowCommandInHTMLReport = False,
+  asClearBreakpoint = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = 'bp%d "gh";' % uBreakpointId,
+    sComment = 'Remove breakpoint',
   );
-  asClearBreakpoint = oCdbWrapper.fasSendCommandAndReadOutput('bp%d "gh"; $$ Remove breakpoint' % uBreakpointId);
-  oCdbWrapper.fasSendCommandAndReadOutput("bl; $$ List active breakpoints"); # debugging
   del oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];

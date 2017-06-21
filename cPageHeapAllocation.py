@@ -4,8 +4,9 @@ from cVirtualAllocation import cVirtualAllocation;
 class cPageHeapAllocation(object):
   @staticmethod
   def foGetForAddress(oCdbWrapper, uAddress):
-    asPageHeapOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      "!heap -p -a 0x%X; $$ Get page heap information" % uAddress,
+    asPageHeapOutput = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "!heap -p -a 0x%X;" % uAddress,
+      sComment = "Get page heap information",
       bOutputIsInformative = True,
     );
     # Sample output:

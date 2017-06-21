@@ -4,7 +4,10 @@ def cCdbWrapper_fuGetValue(oCdbWrapper, sValue, sComment):
   if re.match(r"^@\$?\w+$", sValue):
     # This is a register or pseudo-register: it's much faster to get these using the "r" command than printing them
     # as is done for other values:
-    asValueResult = oCdbWrapper.fasSendCommandAndReadOutput('r %s; $$ %s' % (sValue, sComment));
+    asValueResult = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "r %s;" % sValue,
+      sComment = sComment,
+    );
     assert len(asValueResult) == 1, \
         "Expected only one line in value result:\r\n%s" % "\r\n".join(asValueResult);
     sValueResult = asValueResult[0];
@@ -14,8 +17,11 @@ def cCdbWrapper_fuGetValue(oCdbWrapper, sValue, sComment):
       return long(sValueResult[len(sValue):], 16);
     except:
       raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sValueResult[len(sValue):]), sValue, "\r\n".join(asValueResult)));
-  asValueResult = oCdbWrapper.fasSendCommandAndReadOutput('.printf "%%p\\n", %s; $$ %s' % (sValue, sComment),
-      srIgnoreErrors = r"^Couldn't resolve error at .*$");
+  asValueResult = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = '.printf "%%p\\n", %s;' % sValue,
+    sComment = sComment,
+    srIgnoreErrors = r"^Couldn't resolve error at .*$",
+  );
   if asValueResult is None:
     return None;
   uValueAtIndex = 0;

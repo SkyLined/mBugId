@@ -27,7 +27,10 @@ class cModule(object):
   def bSymbolsAvailable(oModule):
     if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
       # It's deferred or otherwise not loaded: try to load symbols now.
-      asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand("ld %s; $$ Load symbols for module" % oModule.sCdbId);
+      asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
+        sCommand = "ld %s;" % oModule.sCdbId,
+        sComment = "Load symbols for module %s@0x" % (oModule.sCdbId, oModule.uStartAddress),
+      );
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
       # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
@@ -46,7 +49,8 @@ class cModule(object):
   def sBinaryPath(oModule):
     if oModule.__sBinaryPath is None:
       asDLLsOutput = oModule.oProcess.fasExecuteCdbCommand(
-        "!dlls -c 0x%X" % oModule.uStartAddress,
+        sCommand = "!dlls -c 0x%X" % oModule.uStartAddress,
+        sComment = "Get binary information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
         bOutputIsInformative = True,
       );
       if asDLLsOutput:
@@ -137,7 +141,8 @@ class cModule(object):
     # Also sets oModule.sFileVersion if possible.
     oCdbWrapper = oModule.oProcess.oCdbWrapper;
     asListModuleOutput = oModule.oProcess.fasExecuteCdbCommand(
-      "lmov a 0x%X; $$ Get module information" % oModule.uStartAddress,
+      sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
+      sComment = "Get module information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
       bOutputIsInformative = True,
     );
     # Sample output:

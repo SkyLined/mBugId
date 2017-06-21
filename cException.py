@@ -53,8 +53,9 @@ class cException(object):
   ):
     assert bApplicationCannotHandleException is not None, \
         "bApplicationCannotHandleException is required!";
-    asExceptionRecord = oCdbWrapper.fasSendCommandAndReadOutput(
-      ".exr %s; $$ Get exception record" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
+    asExceptionRecord = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = ".exr %s;" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
+      sComment = "Get exception record",
       bOutputIsInformative = True,
       bRetryOnTruncatedOutput = True,
     );

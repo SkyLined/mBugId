@@ -10,8 +10,9 @@ class cDebuggerExtension(object):
   @staticmethod
   def foLoad(oCdbWrapper):
     sDebuggerExtensionDLLPath = gdsDebuggerExtensionDLLPath_by_sCdbISA[oCdbWrapper.sCdbISA];
-    asLoadOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-      '.load "%s"' % sDebuggerExtensionDLLPath.replace("\\", "\\\\").replace('"', '\\"'),
+    asLoadOutput = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = '.load "%s";' % sDebuggerExtensionDLLPath.replace("\\", "\\\\").replace('"', '\\"'),
+      sComment = "Load debugger extension",
     );
     assert not asLoadOutput, \
         "Failed to load debugger extension %s:\r\n%s" % (sDebuggerExtensionDLLPath, "\r\n".join(asLoadOutput));
@@ -24,8 +25,9 @@ class cDebuggerExtension(object):
     oCdbWrapper = oDebuggerExtension.oCdbWrapper;
     assert ";" not in sComment, \
         "Comments cannot have a semi-colon: %s" % repr(sComment);
-    asProtectResult = oCdbWrapper.fasSendCommandAndReadOutput(
-      "!Protect 0x%X 0x%X 0x%X; $$ %s" % (uAddress, uSize, uProtection, sComment),
+    asProtectResult = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "!Protect 0x%X 0x%X 0x%X;" % (uAddress, uSize, uProtection),
+      sComment = sComment,
     );
     assert len(asProtectResult) > 0, \
         "!Protect did not return any results.";

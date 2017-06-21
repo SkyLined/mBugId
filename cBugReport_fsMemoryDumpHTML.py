@@ -74,8 +74,11 @@ def cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAdd
   uAlignedEndAddress = uEndAddress + uPointerSize - 1 - ((uEndAddress - 1) % uPointerSize);
   uAlignedSize = uAlignedEndAddress - uAlignedStartAddress;
   asMemoryTableHTML = [];
-  asMemoryDumpOutput = oCdbWrapper.fasSendCommandAndReadOutput(
-    "dpp 0x%X L0x%X; $$ Get memory before address" % (uAlignedStartAddress, uAlignedSize), bOutputIsInformative = True);
+  asMemoryDumpOutput = oCdbWrapper.fasExecuteCdbCommand(
+    sCommand = "dpp 0x%X L0x%X;" % (uAlignedStartAddress, uAlignedSize),
+    sComment = "Get memory dump for 0x%X-0x%X" % (uStartAddress, uEndAddress),
+    bOutputIsInformative = True
+  );
   for sLine in asMemoryDumpOutput:
     oMatch = re.match(r"^([0-9a-f`]+)\s+(?:([\?`]+)|([0-9a-f`]+))(?:\s+(.*?))?\s*$", sLine);
     assert oMatch, "Unexpected memory dump output: %s" % repr(sLine);

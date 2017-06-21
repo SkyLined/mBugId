@@ -14,7 +14,9 @@ sEndOfCommandOutputMarker = "}\x02]\x01>";
 sPrintStartMarkerCommand ='.printf "%s\\r\\n", %s;' % ("%c" * len(sStartOfCommandOutputMarker), ", ".join(["0x%X" % ord(s) for s in sStartOfCommandOutputMarker]));
 sPrintEndMarkerCommand ='.printf "%s\\r\\n", %s;' % ("%c" * len(sEndOfCommandOutputMarker), ", ".join(["0x%X" % ord(s) for s in sEndOfCommandOutputMarker]));
 
-def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
+def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
+    sCommand,
+    sComment,
     bOutputIsInformative = False,
     bShowCommandInHTMLReport = True,
     bOutputCanContainApplicationOutput = False,
@@ -44,9 +46,12 @@ def cCdbWrapper_fasSendCommandAndReadOutput(oCdbWrapper, sCommand,
   if bIgnoreOutput:
     bUseMarkers = False;
   elif bUseMarkers:
-    sCommand = " ".join([s.rstrip(";") + ";" for s in [
-      sPrintStartMarkerCommand, sCommand, sPrintEndMarkerCommand
-    ]]);
+    sCommand = "%s .block{ %s }; %s%s" % (
+      sPrintStartMarkerCommand,
+      sCommand,
+      sPrintEndMarkerCommand,
+      sComment and " $$ %s" % sComment or "",
+    );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
   while uTries:
     try:

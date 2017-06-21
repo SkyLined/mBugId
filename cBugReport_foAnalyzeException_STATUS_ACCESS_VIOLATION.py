@@ -90,18 +90,25 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     # e.g. the address is always reported as 0xFFFFFFFFFFFFFFFF and the access type is always "read".
     # A partial work-around is to get the address from the last instruction output, which can be retrieved by asking
     # cdb to output disassembly and address after each command. This may also tell us if the access type was "execute".
-    oCdbWrapper.fasSendCommandAndReadOutput( \
-        ".prompt_allow +dis +ea; $$ Enable disassembly and address in cdb prompt");
+    oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = ".prompt_allow +dis +ea;",
+      sComment = "Enable disassembly and address in cdb prompt",
+    );
     # Do this twice in case the first time requires loading symbols, which can output junk that makes parsing ouput difficult.
-    oCdbWrapper.fasSendCommandAndReadOutput( \
-        "~s; $$ Show disassembly and optional symbol loading stuff");
-    asLastInstructionAndAddress = oCdbWrapper.fasSendCommandAndReadOutput(
-      "~s; $$ Show disassembly",
+    oCdbWrapper.fasExecuteCdbCommand( \
+      sCommand = "~s;",
+      sComment = "Show disassembly and optional symbol loading stuff",
+    );
+    asLastInstructionAndAddress = oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "~s;",
+      sComment = "Show disassembly",
       bOutputIsInformative = True,
     );
     # Revert to not showing disassembly and address:
-    oCdbWrapper.fasSendCommandAndReadOutput( \
-        ".prompt_allow -dis -ea; $$ Revert to clean cdb prompt");
+    oCdbWrapper.fasExecuteCdbCommand( \
+      sCommand = ".prompt_allow -dis -ea;",
+      sComment = "Revert to clean cdb prompt",
+    );
     # Sample output:
     # |00007ffd`420b213e 488b14c2        mov     rdx,qword ptr [rdx+rax*8] ds:00007df5`ffb60000=????????????????
     # or
