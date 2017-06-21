@@ -9,6 +9,9 @@ from fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation import fSe
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 ddtsDetails_uSpecialAddress_sISA = {
+  # There are a number of values that are very close to eachother, and because an offset is likely to be added when
+  # reading using a pointer, having all of them here does not offer extra information. So, I've limited it to values
+  # that are sufficiently far away from eachother to be recognisable after adding offsets.
   "x86": {              # Id                      Description                                           Security impact
             # https://en.wikipedia.org/wiki/Magic_number_(programming)#Magic_debug_values
             0x00000000: ("NULL",                  "a NULL ptr",                                         None),
@@ -16,8 +19,6 @@ ddtsDetails_uSpecialAddress_sISA = {
             0xA0A0A0A0: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary", "Potentially exploitable security issue"),       
             # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
             0xABCDAAAA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
-            0xABCDAAA9: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a freed heap block header", "Potentially exploitable security issue"),
-            0xABCDBBBA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a freed full heap block header", "Potentially exploitable security issue"),   
             0xABCDBBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a full heap block header", "Potentially exploitable security issue"),       
             
             0xBBADBEEF: ("Assertion",             "an address that indicates an assertion has failed",  None),
@@ -32,11 +33,9 @@ ddtsDetails_uSpecialAddress_sISA = {
             
             0xD0D0D0D0: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
             # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
-            0xDCBAAAA9: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
-            0xDCBAAAAA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a freed heap block header", "Potentially exploitable security issue"),
-            0xDCBABBBA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a freed heap block header", "Potentially exploitable security issue"),
-            0xDCBABBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
-
+            0xDCBAAAAA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
+            0xDCBABBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a full heap block header", "Potentially exploitable security issue"),
+            
             0xDDDDDDDD: ("PoisonFree",            "a pointer read from poisoned freed memory",          "Potentially exploitable security issue"),
             
             0xE0E0E0E0: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),             
