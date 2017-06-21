@@ -2,6 +2,7 @@ import itertools, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasSendCommandAndReadOutput import cCdbWrapper_fasSendCommandAndReadOutput;
+from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
 from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
@@ -425,3 +426,8 @@ class cCdbWrapper(object):
   
   def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);
+  
+  def fAttachToProcessesForBinaryName(oCdbWrapper, sBinaryName):
+    oCdbWrapper.fAttachToProcessesForBinaryNames([sBinaryName]);
+  def fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames):
+    return cCdbWrapper_fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames);

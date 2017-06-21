@@ -156,6 +156,11 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
     return oBugId.__oCdbWrapper.fnApplicationRunTime();
   
+  def fAttachToProcessesForBinaryName(oBugId, sBinaryName):
+    return oBugId.__oCdbWrapper.fAttachToProcessesForBinaryName(sBinaryName);
+  def fAttachToProcessesForBinaryNames(oBugId, asBinaryNames):
+    return oBugId.__oCdbWrapper.fAttachToProcessesForBinaryNames(asBinaryNames);
+  
   def fbFinished(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
