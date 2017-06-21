@@ -6,7 +6,7 @@ aoBugTranslations = [
   cBugTranslation(
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "ntdll.dll!DebugBreakPoint",
+        "ntdll.dll!DbgBreakPoint",
       ],
     ],
   ),
