@@ -16,8 +16,7 @@ from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fR
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
 from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
-from cPLMApplication import cPLMApplication;
-from fasRunApplication import fasRunApplication;
+from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
 from Kill import fKillProcessesUntilTheyAreDead;
 from sOSISA import sOSISA;
@@ -52,6 +51,7 @@ class cCdbWrapper(object):
     sApplicationBinaryPath,
     auApplicationProcessIds,
     sApplicationPackageName,
+    sApplicationId,
     asApplicationArguments,
     asLocalSymbolPaths,
     asSymbolCachePaths, 
@@ -84,9 +84,8 @@ class cCdbWrapper(object):
     assert sum([sApplicationBinaryPath and 1 or 0, auApplicationProcessIds and 1 or 0, sApplicationPackageName and 1 or 0]), \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
-    # sApplicationPackageName is used to create a cPLMApplication instance later in this constructor.
+    oCdbWrapper.oUWPApplication = sApplicationPackageName and cUWPApplication(sApplicationPackageName, sApplicationId) or None;
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
-    oCdbWrapper.auProcessIdsPendingDelete = []; # There should only ever be one in this list, but that is not enforced.
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
     oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths or [];
     oCdbWrapper.asSymbolCachePaths = asSymbolCachePaths;
@@ -114,7 +113,6 @@ class cCdbWrapper(object):
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
-    oCdbWrapper.oPLMApplication = sApplicationPackageName and cPLMApplication(sApplicationPackageName, oCdbWrapper.sDebuggingToolsPath) or None;
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
     # Keep track of what the applications "main" processes are.
@@ -187,16 +185,6 @@ class cCdbWrapper(object):
         "Unexpected .attach output: %s" % repr(asAttachToProcess);
   
   def fStart(oCdbWrapper):
-    if oCdbWrapper.sApplicationBinaryPath or oCdbWrapper.auProcessIdsPendingAttach:
-      # If the application must be started using a command-line, or if we need to attach to existing processes,
-      # start the debugger and do so.
-      oCdbWrapper.__fStartDebugger();
-    if oCdbWrapper.oPLMApplication:
-      # Use PLMDebug to setup attaching to PLM processes and start the application. The debugger may not be started
-      # yet, as we may not have processes to attach to.
-      oCdbWrapper.oPLMApplication.fStart(oCdbWrapper);
-      
-  def __fStartDebugger(oCdbWrapper):
     global guSymbolOptions;
     oCdbWrapper.bDebuggerStarted = True;
     # Get the command line (without starting/attaching to a process)
@@ -223,11 +211,21 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbInterruptOnTimeoutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
     oCdbWrapper.oCdbCleanupThread = oCdbWrapper._foThread(cCdbWrapper_fCdbCleanupThread);
+    # We may need to start a dummy process if we're starting a UWP application. See below.
     if oCdbWrapper.sApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
       assert not oCdbWrapper.auProcessIdsPendingAttach, \
           "Cannot start a process and attach to processes at the same time";
       asCommandLine += [oCdbWrapper.sApplicationBinaryPath] + oCdbWrapper.asApplicationArguments;
+    elif oCdbWrapper.oUWPApplication:
+      assert len(oCdbWrapper.asApplicationArguments) <= 1, \
+          "You cannot specify multiple arguments for a UWP application.";
+      # Unfortunately, we cannot start cdb without starting an application, so we're going to start a dummy
+      # application that we can terminate once we've started and attached to the UWP application. This is going
+      # to be a python script that simply waits for a number of seconds. If cdb.exe does not attach to the UWP
+      # application before then, we'll report an error.
+      asCommandLine += [
+      ];
     else:
       assert oCdbWrapper.auProcessIdsPendingAttach, \
           "Must start a process or attach to one";

@@ -71,6 +71,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sStatus = "starting application";
     bAttachingToOrStartingApplication = True;
     bThreadsNeedToBeResumed = len(oCdbWrapper.auProcessIdsPendingAttach) > 0;
+    bLastExceptionWasIgnored = False;
+    # UWP apps cannot be started on the command line, so a dummy process is started (cdb terminates immediately
+    # when it has nothing to debug). The UWP app still needs to be started, the dummy process needs to be tracked and
+    # terminated once the UWP app is running.
+    bUWPApplicationNeedsToBeStarted = oCdbWrapper.oUWPApplication;
+    oUWPDummyProcess = None; # Set when cdb has started the dummy process 
+    bUWPDummyNeedsToBeKilled = False; # Set after UWP app is started, when dummy process can be killed.
     # An bug report will be created when needed; it is returned at the end
     oBugReport = None;
     # Memory can be allocated to be freed later in case the system has run low on memory when an analysis needs to be
@@ -109,47 +116,76 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           if oCdbWrapper.oBugReport: break;
         if oCdbWrapper.oBugReport: break;
         ### Attaching to or starting application #######################################################################
-        if bAttachingToOrStartingApplication:
-          if len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
-            # There are more processes to attach to:
-            asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
-                ".attach 0x%X; $$ Attaching to another process" % oCdbWrapper.auProcessIdsPendingAttach[0]);
-            assert asAttachToProcess == ["Attach will occur on next execution"], \
-                "Unexpected .attach output: %s" % repr(asAttachToProcess);
+        if bLastExceptionWasIgnored:
+           # We really shouldn't do anything at the moment because the last exception was a bit odd; e.g. one of the
+           # various events that are triggered by a new process.
+          bLastExceptionWasIgnored = False;
+        elif len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
+          # There are more processes to attach to:
+          asAttachToProcess = oCdbWrapper.fasSendCommandAndReadOutput( \
+              ".attach 0x%X; $$ Attaching to another process" % oCdbWrapper.auProcessIdsPendingAttach[0]);
+          assert asAttachToProcess == ["Attach will occur on next execution"], \
+              "Unexpected .attach output: %s" % repr(asAttachToProcess);
+        elif bUWPApplicationNeedsToBeStarted:
+          # Kill it so we are sure to run a fresh copy.
+          asTerminateUWPApplication = oCdbWrapper.fasSendCommandAndReadOutput(
+            ".terminatepackageapp %s; $$ Terminate UWP application" % oCdbWrapper.oUWPApplication.sPackageFullName,
+          );
+          if asTerminateUWPApplication:
+            assert asTerminateUWPApplication == ['The "terminatePackageApp" action will be completed on next execution.'], \
+                "Unexpected .terminatepackageapp output:\r\n%s" % "\r\n".join(asTerminateUWPApplication);
+          if len(oCdbWrapper.asApplicationArguments) == 0:
+            sStartUWPApplicationCommand = ".createpackageapp %s %s; $$ Starting UWP application" % \
+                (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId);
           else:
-            # We attached to or started the application, set up exception handling and resume threads if needed.
-            # Note to self: when rewriting the code, make sure not to set up exception handling before the debugger has
-            # attached to all processes. But do so before resuming the threads. Otherwise one or more of the processes
-            # can end up having only one thread that has a suspend count of 2 and no amount of resuming will cause the
-            # process to run. The reason for this is unknown, but if things are done in the correct order, this problem
-            # is avoided.
-            oCdbWrapper.fasSendCommandAndReadOutput("%s; $$ Setup exception handling" % sExceptionHandlingCommands);
-            if bThreadsNeedToBeResumed:
-              # If the debugger attached to processes, resume threads in all processes.
-              for uProcessId in oCdbWrapper.doProcess_by_uId.keys():
-                oCdbWrapper.fSelectProcess(uProcessId);
-                oCdbWrapper.fasSendCommandAndReadOutput("~*m; $$ Resume all threads");
-              oCdbWrapper.fasSendCommandAndReadOutput(
-                '.printf "Attaching to the application is complete and all threads have been resumed.\\r\\n";',
-                bShowCommandInHTMLReport = False,
-              );
-            else:
-              oCdbWrapper.fasSendCommandAndReadOutput(
-                '.printf "Starting the application is complete.\\r\\n";',
-                bShowCommandInHTMLReport = False,
-              );
-            if oCdbWrapper.fApplicationRunningCallback:
-              oCdbWrapper.fApplicationRunningCallback();
-            bAttachingToOrStartingApplication = False;
-        elif oCdbWrapper.fApplicationResumedCallback:
-          oCdbWrapper.fApplicationResumedCallback();
-        ### Check if page heap is enabled in all processes if requested ################################################
-        if dxConfig["bEnsurePageHeap"]:
-          for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
-            if not oProcess.bTerminated:
+            # This check should be superfluous, but it doesn't hurt to make sure.
+            assert len(oCdbWrapper.asApplicationArguments) == 1, \
+                "Expected exactly one argument";
+            sStartUWPApplicationCommand = ".createpackageapp %s %s %s; $$ Starting UWP application" % \
+                (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.asApplicationArguments[0]);
+          asStartUWPApplication = oCdbWrapper.fasSendCommandAndReadOutput(sStartUWPApplicationCommand);
+          assert asStartUWPApplication == ["Attach will occur on next execution"], \
+              "Unexpected .createpackageapp output: %s" % repr(asAttachToProcess);
+          bUWPApplicationNeedsToBeStarted = False; # We completed this task.
+          bUWPDummyNeedsToBeKilled = True; # And we need to perform another after starting the UWP application.
+        elif bAttachingToOrStartingApplication:
+          if bUWPDummyNeedsToBeKilled:
+            oUWPDummyProcess.fasExecuteCdbCommand(".kill; $$ Kill UWP Dummy process");
+            bUWPDummyNeedsToBeKilled = False;
+          # We attached to or started the application, set up exception handling and resume threads if needed.
+          # Note to self: when rewriting the code, make sure not to set up exception handling before the debugger has
+          # attached to all processes. But do so before resuming the threads. Otherwise one or more of the processes
+          # can end up having only one thread that has a suspend count of 2 and no amount of resuming will cause the
+          # process to run. The reason for this is unknown, but if things are done in the correct order, this problem
+          # is avoided.
+          oCdbWrapper.fasSendCommandAndReadOutput("%s; $$ Setup exception handling" % sExceptionHandlingCommands);
+          if bThreadsNeedToBeResumed:
+            # If the debugger attached to processes, resume threads in all processes.
+            for uProcessId in oCdbWrapper.doProcess_by_uId.keys():
+              oCdbWrapper.fSelectProcess(uProcessId);
+              oCdbWrapper.fasSendCommandAndReadOutput("~*m; $$ Resume all threads");
+            oCdbWrapper.fasSendCommandAndReadOutput(
+              '.printf "Attaching to the application is complete and all threads have been resumed.\\r\\n";',
+              bShowCommandInHTMLReport = False,
+            );
+          else:
+            oCdbWrapper.fasSendCommandAndReadOutput(
+              '.printf "Starting the application is complete.\\r\\n";',
+              bShowCommandInHTMLReport = False,
+            );
+          if oCdbWrapper.fApplicationRunningCallback:
+            oCdbWrapper.fApplicationRunningCallback();
+          bAttachingToOrStartingApplication = False;
+        ### Check if page heap is enabled in all processes and discard cached info #####################################
+        for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
+          if not oProcess.bTerminated:
+            if oProcess != oUWPDummyProcess and dxConfig["bEnsurePageHeap"]:
               oProcess.fEnsurePageHeapIsEnabled();
-            elif uProcessId in dauIgnoreNextExceptionCodes_by_uProcessId:
-              del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
+          elif uProcessId in dauIgnoreNextExceptionCodes_by_uProcessId:
+            del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
+        ### Call application resumed callback before throwing away cached information ##################################
+        if oCdbWrapper.fApplicationResumedCallback:
+          oCdbWrapper.fApplicationResumedCallback();
         ### Discard cached information about processes #################################################################
         for oProcess in oCdbWrapper.doProcess_by_uId.values():
           # All processes will no longer be new.
@@ -202,11 +238,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           oCdbWrapper.oCdbLock.release();
         sRunApplicationCommand = bLetApplicationHandleCurrentException and "gn" or "gh";
         bLetApplicationHandleCurrentException = False; # Assume we'll be handling the next exception ourselves.
-        sRunApplicationComment = bAttachingToOrStartingApplication and (
-          "Attaching to process %d/0x%X" % (oCdbWrapper.auProcessIdsPendingAttach[0], oCdbWrapper.auProcessIdsPendingAttach[0])
-        ) or (
-          "Running application"
-        );
+        if oCdbWrapper.auProcessIdsPendingAttach:
+          sRunApplicationComment = "Attaching to process %d/0x%X" % (oCdbWrapper.auProcessIdsPendingAttach[0], oCdbWrapper.auProcessIdsPendingAttach[0]);
+        elif oUWPDummyProcess:
+          sRunApplicationComment = "Starting UWP application %s" % oCdbWrapper.oUWPApplication.sPackageName;
+        else:
+          sRunApplicationComment = "Running application";
         try:
           asUnprocessedCdbOutput += oCdbWrapper.fasSendCommandAndReadOutput(
             "%s; $$ %s" % (sRunApplicationCommand, sRunApplicationComment),
@@ -220,7 +257,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # commands.
           if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
             oCdbWrapper.oCdbLock.acquire();
-      ### An exception was detected ####################################################################################
+      ### The debugger suspended the application #######################################################################
       # Find out what event caused the debugger break
       # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
       # appears to be caused by an error while executing the command (without an error message) as subsequent commands
@@ -283,6 +320,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       ) = oEventMatch.groups();
       if sIgnoredUnloadModule:
         # This exception makes no sense; ignore it.
+        bLastExceptionWasIgnored = True;
         continue;
       uProcessId = long(sProcessIdHex, 16);
       assert not sCreateExitProcessIdHex or sProcessIdHex == sCreateExitProcessIdHex, \
@@ -330,30 +368,44 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         assert oCdbWrapper.oCurrentProcess.uId == uProcessId, \
             "Expected the current process to be %d/0x%X but got %d/0x%X" % \
             (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.uId, oCdbWrapper.oCurrentProcess.uId);
-        # Make it a main process to if we're still attaching to or starting the application
-        if bAttachingToOrStartingApplication:
-          oCdbWrapper.aoMainProcesses.append(oCdbWrapper.oCurrentProcess);
-          # If we are attaching to processes, the current process should be the last one we tried to attach to:
+        if bUWPApplicationNeedsToBeStarted:
+          assert oUWPDummyProcess is None, \
+              "Cannot have two UWP dummy's; something is wrong";
+          # This must be the UWP Dummy process, as the UWP application has not been created yet; ignore it.
+          oUWPDummyProcess = oCdbWrapper.oCurrentProcess;
+        elif oCdbWrapper.oCurrentProcess == oUWPDummyProcess:
+          assert sCreateExitProcess != "Create", \
+              "Expected UWP process exit";
+          oUWPDummyProcess = None; 
+        else:
+          # Make it a main process to if we're still attaching to or starting the application
           if oCdbWrapper.auProcessIdsPendingAttach:
             uPendingAttachProcessId = oCdbWrapper.auProcessIdsPendingAttach.pop(0);
             assert uPendingAttachProcessId == uProcessId, \
                 "Expected to attach to process %d, got %d" % (uPendingAttachProcessId, uProcessId);
-            oCdbWrapper.fasSendCommandAndReadOutput(
-              '.printf "Attached to process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-              bShowCommandInHTMLReport = False,
-              bRetryOnTruncatedOutput = True,
-            );
-          else:
-            oCdbWrapper.fasSendCommandAndReadOutput(
-              '.printf "Started process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-              bShowCommandInHTMLReport = False,
-              bRetryOnTruncatedOutput = True,
-            );
-        # Make sure child processes of the new process are debugged as well.
-        oCdbWrapper.fasSendCommandAndReadOutput(
-          ".childdbg 1; $$ Debug child processes",
-          bRetryOnTruncatedOutput = True
-        );
+          if bAttachingToOrStartingApplication:
+            oCdbWrapper.aoMainProcesses.append(oCdbWrapper.oCurrentProcess);
+            # If we are attaching to processes, the current process should be the last one we tried to attach to:
+            if oCdbWrapper.auProcessIdsPendingAttach:
+              oCdbWrapper.fasSendCommandAndReadOutput(
+                '.printf "Attached to process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
+                bShowCommandInHTMLReport = False,
+                bRetryOnTruncatedOutput = True,
+              );
+            else:
+              oCdbWrapper.fasSendCommandAndReadOutput(
+                '.printf "Started process %d/0x%X (%s).\\r\\n";' % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
+                bShowCommandInHTMLReport = False,
+                bRetryOnTruncatedOutput = True,
+              );
+          # This event was explicitly to notify us of the new process; no more processing is needed.
+          if oCdbWrapper.fNewProcessCallback:
+            oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
+          # Make sure child processes of the new process are debugged as well.
+          oCdbWrapper.fasSendCommandAndReadOutput(
+            ".childdbg 1; $$ Debug child processes",
+            bRetryOnTruncatedOutput = True
+          );
         if sCreateExitProcess == "Create":
           # If the application creates a new process, a STATUS_BREAKPOINT exception may follow that signals the
           # same event; this exception should be ignored as we have already handled the new process.
@@ -364,9 +416,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # on x64 systems running a x86 process.
         if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
           dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(STATUS_WX86_BREAKPOINT);
-        # This event was explicitly to notify us of the new process; no more processing is needed.
-        if oCdbWrapper.fNewProcessCallback:
-          oCdbWrapper.fNewProcessCallback(oCdbWrapper.oCurrentProcess);
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
@@ -387,6 +436,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
           if len(auIgnoreNextExceptionCodes) == 0:
             del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
+          bLastExceptionWasIgnored = True;
           continue;
       ### Handle process termination ###################################################################################
       if sCreateExitProcess == "Exit":

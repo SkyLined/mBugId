@@ -1,3 +1,19 @@
+2017-06-21
+==========
+New features
++ Support for UWP apps (Universal Windows Platform apps, a.k.a. PLM apps,
+  Metro-style apps, store apps, and probably half a dozen other names).
+  You can run a UWP app by providing an `sApplicationPackageName` and an
+  `sApplicationId` argument to `cBugId`, rather than process ids to attach to
+  or a binary path to start. Note that this may not include some brokers used
+  by sandboxed UWP apps; you may have to find a way to automatically debug
+  those as well using `fAttachToProcessesForBinaryName`, as explained next.
++ `fAttachToProcessesForBinaryName` and `fAttachToProcessesForBinaryNames`
+  allow you to debug all processes that are running a given binary. At this
+  point you can only use it after starting cBugId, i.e. when you are already
+  debugging something else. (This was added as a hack to debug broker processes
+  of Microsoft Edge, which are created after Microsoft Edge starts).
+
 2017-06-19
 ==========
 New features

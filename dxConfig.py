@@ -157,7 +157,6 @@ dxConfig = {
                                         # during debugging will be checked to make sure page heap is enabled.
                                         # If page heap is not enabled as expected, an error is reported through the
                                         # error callback.
-  ### PLM Debugger helper
-  "sPLMDebugHelperPipeName": "BugId PLMDebug pipe", # The name of the pipe used for communication between the PLMDebug
-                                        # helper and BugId. Note that this must be a 
+  ### UWP applications
+  "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
 };
