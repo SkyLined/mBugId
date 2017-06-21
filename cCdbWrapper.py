@@ -225,6 +225,7 @@ class cCdbWrapper(object):
       # to be a python script that simply waits for a number of seconds. If cdb.exe does not attach to the UWP
       # application before then, we'll report an error.
       asCommandLine += [
+        sys.executable, "-c", "import time;time.sleep(%f)" % dxConfig["nUWPApplicationAttachTimeout"], 
       ];
     else:
       assert oCdbWrapper.auProcessIdsPendingAttach, \
