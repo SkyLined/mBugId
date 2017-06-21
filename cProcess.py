@@ -37,9 +37,9 @@ class cProcess(object):
     # In order to determine oProcess.oMainModule, we need it's base address. This is set by __fGetProcessInformation
     oProcess.__uMainModuleImageBaseAddress = None;
     
-    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sCdbId for every
-    # loaded module and returns all the values in this dict. Since this dict is cached, this only needs to be done
-    # once until the cache is invalidated.
+    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sCdbId for every loaded
+    # module and returns all the values in the first dict. Since this dict is cached, this only needs to be done once
+    # until the cache is invalidated.
     oProcess.__bAllModulesEnumerated = False;
   
   @property
