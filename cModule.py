@@ -29,7 +29,7 @@ class cModule(object):
       # It's deferred or otherwise not loaded: try to load symbols now.
       asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
         sCommand = "ld %s;" % oModule.sCdbId,
-        sComment = "Load symbols for module %s@0x" % (oModule.sCdbId, oModule.uStartAddress),
+        sComment = "Load symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
       );
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
