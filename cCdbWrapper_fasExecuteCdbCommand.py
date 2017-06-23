@@ -41,8 +41,6 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       # Add the command and the prompt to the output:
       oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
-  if dxConfig["bOutputStdIO"]:
-    print "cdb<%s" % repr(sCommand)[1:-1];
   if bIgnoreOutput:
     bUseMarkers = False;
   elif bUseMarkers:
@@ -50,10 +48,12 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       sPrintStartMarkerCommand,
       sCommand,
       sPrintEndMarkerCommand,
-      sComment and " $$ %s" % sComment or "",
+      sComment and (" $$ %s" % sComment) or "",
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
   while uTries:
+    if dxConfig["bOutputStdIO"]:
+      print "cdb<%s" % repr(sCommand)[1:-1];
     try:
       oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
     except Exception, oException:
