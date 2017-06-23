@@ -215,7 +215,7 @@ class cStack(object):
               );
               if oDirectCallMatch:
                 sCallModuleCdbId, sCallSymbol = oDirectCallMatch.groups();
-                oCallModule = oProcess.foGetModuleForCdbId(sCallModuleCdbId);
+                oCallModule = oProcess.foGetOrCreateModuleForCdbId(sCallModuleCdbId);
                 oCallFunction = oCallModule.foGetOrCreateFunctionForSymbol(sCallSymbol);
                 if oCallModule != oModule or oCallFunction != oFunction:
                   uAddress = None;

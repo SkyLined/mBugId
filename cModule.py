@@ -113,7 +113,56 @@ class cModule(object):
     ]);
   
   @staticmethod
-  def ftxParseListModulesOutputLine(sListModulesOutputLine):
+  def foGetOrCreateForStartAddress(oProcess, uStartAddress):
+    return cModule.__foGetOrCreateFrom_lmov_Output(oProcess, "lmov a 0x%X;" % uStartAddress);
+  @staticmethod
+  def foGetOrCreateForCdbId(oProcess, sCdbId):
+    return cModule.__foGetOrCreateFrom_lmov_Output(oProcess, "lmov m %s;" % sCdbId);
+  @staticmethod
+  def __foGetOrCreateFrom_lmov_Output(oProcess, s_lmov_Command):
+    as_lmov_Output = oProcess.fasExecuteCdbCommand(
+      sCommand = s_lmov_Command,
+      sComment = "Get module information",
+      bOutputIsInformative = True,
+    );
+    assert len(as_lmov_Output) > 2, \
+        "Expected at least three lines of module information output, got %d:\r\n%s" % \
+        (len(as_lmov_Output), "\r\n".join(as_lmov_Output));
+    assert re.match("^start\s+end\s+module name\s*$", as_lmov_Output[0]), \
+        "Unrecognized lmov output header: %s\r\n%s" % (repr(as_lmov_Output[0]), "\r\n".join(as_lmov_Output));
+    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
+    oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
+    oModule.fProcess_lmov_Output(as_lmov_Output);
+    return oModule;
+  @staticmethod
+  def faoGetOrCreateAll(oProcess):
+    as_lmo_Output = oProcess.fasExecuteCdbCommand(
+      sCommand = "lmo;",
+      sComment = "Get basic information on all loaded modules",
+      bOutputIsInformative = True,
+    );
+    assert len(as_lmo_Output) > 1, \
+        "Expected at least two lines of module information output, got %d:\r\n%s" % \
+        (len(as_lmo_Output), "\r\n".join(as_lmo_Output));
+    assert re.match("^start\s+end\s+module name\s*$", as_lmo_Output[0]), \
+        "Unrecognized list modules output header: %s\r\n%s" % (repr(as_lmo_Output[0]), "\r\n".join(as_lmo_Output));
+    aoModules = [];
+    for sLine in as_lmo_Output[1:]:
+      (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sLine);
+      aoModules.append(oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus));
+    return aoModules;
+  
+  def __fGetModuleSymbolAndVersionInformation(oModule):
+    # Gather version information and optionally returns output for use in HTML report.
+    # Also sets oModule.sFileVersion if possible.
+    oModule.fProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
+      sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
+      sComment = "Get module information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
+      bOutputIsInformative = True,
+    ));
+  
+  @staticmethod
+  def ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(s_lm_OutputLine):
     oInformationMatch = re.match(
       r"^\s*%s\s*$" % "\s+".join([
         r"([0-9a-f`]+)",                              # (start_address)
@@ -122,29 +171,17 @@ class cModule(object):
         r"\((deferred|(?:export|no|(?:private )?pdb) symbols)\)", # "(" symbol status ")"
         r".*?",                                       # symbol information.
       ]),
-      sListModulesOutputLine,
+      s_lm_OutputLine,
       re.I
     );
     assert oInformationMatch, \
-        "Unrecognized module basic information output: %s" % sListModulesOutputLine;
+        "Unrecognized module basic information output: %s" % s_lm_OutputLine;
     (sStartAddress, sEndAddress, sCdbId, sSymbolStatus) = oInformationMatch.groups();
     uStartAddress = long(sStartAddress.replace("`", ""), 16);
     uEndAddress = long(sEndAddress.replace("`", ""), 16);
     return (uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
   
-  def __fGetModuleSymbolAndVersionInformation(oModule):
-    # TODO: The HTML report output should really not be produced here (aka push the data). Rather, it should be created
-    # on demand using another function call when the report is created (aka pull the data). This would also do away
-    # with all references to oCdbWrapper
-    
-    # Gather version information and optionally returns output for use in HTML report.
-    # Also sets oModule.sFileVersion if possible.
-    oCdbWrapper = oModule.oProcess.oCdbWrapper;
-    asListModuleOutput = oModule.oProcess.fasExecuteCdbCommand(
-      sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
-      sComment = "Get module information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
-      bOutputIsInformative = True,
-    );
+  def fProcess_lmov_Output(oModule, as_lmov_Output):
     # Sample output:
     # |0:004> lmv m firefox
     # |start             end                 module name
@@ -173,13 +210,12 @@ class cModule(object):
     # |    LegalTrademarks:  Firefox is a Trademark of The Mozilla Foundation.
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
-    if oCdbWrapper.bGenerateReportHTML:
-      oModule.__atsModuleInformationNameAndValuePairs = [];
-    assert len(asListModuleOutput) > 2, \
-        "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(asListModuleOutput), "\r\n".join(asListModuleOutput));
-    assert re.match("^start\s+end\s+module name\s*$", asListModuleOutput[0]), \
-        "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(asListModuleOutput);
-    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParseListModulesOutputLine(asListModuleOutput[1]);
+    oModule.__atsModuleInformationNameAndValuePairs = [];
+    assert len(as_lmov_Output) > 2, \
+        "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(as_lmov_Output), "\r\n".join(as_lmov_Output));
+    assert re.match("^start\s+end\s+module name\s*$", as_lmov_Output[0]), \
+        "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(as_lmov_Output);
+    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
     assert oModule.uStartAddress == uStartAddress, \
         "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oModule.uStartAddress, uStartAddress);
     assert oModule.uEndAddress == uEndAddress, \
@@ -197,18 +233,17 @@ class cModule(object):
 #        "Module symbol status was given as %s, but is now reported to be %s" % (repr(oModule.__sSymbolStatus), repr(sSymbolStatus));
     
     dsValue_by_sName = {};
-    for sLine in asListModuleOutput[2:]:
+    for sLine in as_lmov_Output[2:]:
       # These lines different from the "name: value" format and handled separately:
       if sLine == "    Image was built with /Brepro flag.":
         continue; # Ignored.
       else:
         oNameAndValueMatch = re.match(r"^\s+([^:]+):\s+(.*?)\s*$", sLine);
         assert oNameAndValueMatch, \
-            "Unexpected list module output: %s\r\n%s" % (sLine, "\r\n".join(asListModuleOutput));
+            "Unexpected list module output: %s\r\n%s" % (sLine, "\r\n".join(as_lmov_Output));
         (sName, sValue) = oNameAndValueMatch.groups();
         dsValue_by_sName[sName] = sValue;
-        if oCdbWrapper.bGenerateReportHTML:
-          oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
+        oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
     if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
       if oModule.oProcess.sBasePath:
