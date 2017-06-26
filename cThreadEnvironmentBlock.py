@@ -37,7 +37,7 @@ class cThreadEnvironmentBlock(object):
     uTEBAddress = None;
     uStackTopAddress = None;
     uStackBottomAddress = None;
-    for sLine in asPageHeapOutput
+    for sLine in asPageHeapOutput:
       if sLine == "error InitTypeRead( TEB )...":
         continue; # Ignore this error;
       oHeaderMatch = re.match(r"^(Wow64 )?TEB(32)? at ([0-9A-Fa-f]+)$", sLine);
