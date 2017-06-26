@@ -9,8 +9,8 @@ def fasRunApplication(*asCommandLine):
     stderr = subprocess.PIPE,
     creationflags = subprocess.CREATE_NEW_PROCESS_GROUP,
   );
-  (sStdOut, sStdError) = oProcess.communicate();
-  assert not sStdError, \
+  (sStdOut, sStdErr) = oProcess.communicate();
+  assert not sStdErr, \
       "Error running %s:\r\n%s" % (sCommandLine, sStdErr);
   asStdOut = sStdOut.split("\r\n");
   if asStdOut[-1] == "":
