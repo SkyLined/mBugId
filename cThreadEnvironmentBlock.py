@@ -8,7 +8,8 @@ class cThreadEnvironmentBlock(object):
       sComment = "Get thread environment info",
       bOutputIsInformative = True,
     );
-    assert asPageHeapOutput, "Missing TEB info output";
+    assert asPageHeapOutput, \
+        "Missing TEB info output";
     # Sample output:
     # |0:000> !teb
     # |TEB at 00007ff65896e000
@@ -28,16 +29,37 @@ class cThreadEnvironmentBlock(object):
     # |    LastStatusValue:      c00000bb
     # |    Count Owned Locks:    0
     # |    HardErrorMode:        0
-    oHeaderMatch = re.match(r"^(Wow64 TEB32|TEB) at ([0-9A-Fa-f]+)$", asPageHeapOutput[0]);
-    assert oHeaderMatch, "Unexpected TEB info header:%s\r\n%s" % (asPageHeapOutput[0], "\r\n".join(asPageHeapOutput));
-    sTEBType, sTEBAddress = oHeaderMatch.groups();
-    uTEBAddress = long(sTEBAddress, 16);
-    # Unless it is explicitly mentioned to be a 32-bit TEB, determine TEB pointer size by looking at the length
-    # cdb reported the address in: 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
-    uTEBPointerSize = sTEBType == "Wow64 TEB32" or len(sTEBAddress) == 8 and 4 or 8;
+    # Note that the above lines starting with spaces may not be there in cases where there is an error.
+    # ---
+    # Sometimes this error is output:
+    # |error InitTypeRead( TEB32 )...
+    # It can show up at any location in the output.
+    sTEBType = None;
+    sTEBAddress = None;
     uStackTopAddress = None;
     uStackBottomAddress = None;
-    if len(asPageHeapOutput) == 2 and asPageHeapOutput[1] == "error InitTypeRead( TEB )...":
+    for sLine in asPageHeapOutput
+      if sLine == "error InitTypeRead( TEB )...":
+        continue; # Ignore this error;
+      oHeaderMatch = re.match(r"^(Wow64 TEB32|TEB) at ([0-9A-Fa-f]+)$", sLine);
+      if oHeaderMatch:
+        if sTEBType:
+          break; # This is the 64-bit entry that comes after the 32-bit. We only parse the 32-bit one, so stop.
+        sTEBType, sTEBAddress = oHeaderMatch.groups();
+        uTEBAddress = long(sTEBAddress, 16);
+        # Unless it is explicitly mentioned to be a 32-bit TEB, determine TEB pointer size by looking at the length
+        # cdb reported the address in: 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
+        uTEBPointerSize = sTEBType == "Wow64 TEB32" or len(sTEBAddress) == 8 and 4 or 8;
+      else:
+        oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
+        assert oLineMatch, \
+            "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asPageHeapOutput));
+        sName, sValue = oLineMatch.groups();
+        if sName == "StackBase":
+          uStackTopAddress = long(sValue, 16);
+        elif sName == "StackLimit":
+          uStackBottomAddress = long(sValue, 16);
+    if uStackTopAddress is None:
       # No additional information was provided, we'll have to grab it from the TEB outselves.
       # The TEB has a pointer to the stack top and bottom:
       # http://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FNT%20Objects%2FThread%2FTEB.html
@@ -65,15 +87,7 @@ class cThreadEnvironmentBlock(object):
         "poi(0x%X)" % (uTEBAddress + 2 * uTEBPointerSize),
         "Get stack bottom address from TEB"
       );
-    else:
-      for sLine in asPageHeapOutput[1:]:
-        oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
-        assert oLineMatch, "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asPageHeapOutput));
-        sName, sValue = oLineMatch.groups();
-        if sName == "StackBase":
-          uStackTopAddress = long(sValue, 16);
-        elif sName == "StackLimit":
-          uStackBottomAddress = long(sValue, 16);
+
     return cThreadEnvironmentBlock(
       uAddress = uTEBAddress,
       uStackTopAddress = uStackTopAddress,
