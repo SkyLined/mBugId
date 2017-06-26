@@ -182,10 +182,15 @@ class cProcess(object):
     return oProcess.__oMainModule;
   
   def foGetOrCreateModuleForStartAddress(oProcess, uStartAddress):
-    return cModule.foGetOrCreateForStartAddress(oProcess, uStartAddress);
+    for oModule in oProcess.__doModules_by_sCdbId.values():
+      if oModule.uStartAddress == uStartAddress:
+        return oModule;
+    return cModule.foCreateForStartAddress(oProcess, uStartAddress);
   
   def foGetOrCreateModuleForCdbId(oProcess, sCdbId):
-    return cModule.foGetOrCreateForCdbId(oProcess, sCdbId);
+    if sCdbId not in oProcess.__doModules_by_sCdbId:
+      return cModule.foCreateForCdbId(oProcess, sCdbId);
+    return oProcess.__doModules_by_sCdbId[sCdbId];
   
   def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):
     if sCdbId not in oProcess.__doModules_by_sCdbId:
