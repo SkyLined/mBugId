@@ -23,6 +23,11 @@ Improvements
 + Modules are now cached better, which should prevent a lot of superfluous cdb
   commands being executed and speed up analysis.
 
+BugFixes
+--------
++ Fixed uninitialized variables and properties in cUWPApplication.py
++ Better parsing of !teb output to work around some errors.
+
 2017-06-21
 ==========
 New features
