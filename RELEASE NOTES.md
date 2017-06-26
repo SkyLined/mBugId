@@ -1,6 +1,32 @@
+2017-06-26
+==========
+Notes
+-----
++ Start of ASan integration: this update includes bug translations for ASan
+  that should give you much better stack ids and help you track down the
+  function in which the issue is, not the ASan function that reported the issue.
+  This is part of an ongoing effort to integrate ASan into BugId.
++ Improvements made in this update may change the bug id of some crashes.
+  Hopefully these changes will be improvements, in that they better identify
+  the type of issue and location in the code. Let me know if this is not the
+  case.
+
+Improvements
+------------
++ Bug translations have been improved for Asan, Chrome, Edge, and V8.
++ Source code links have been added for Chrome ASan builds.
++ If the stack frame symbol and call instruction symbol agree on the function,
+  the stack frame is now used, because it has offset information.
++ If the call instruction symbol has an offset, it is ignored. A call is
+  is expected to always be to the first instruction of a function, so if there
+  is any offset, the symbol is assumed to tbe incorrect.
++ Modules are now cached better, which should prevent a lot of superfluous cdb
+  commands being executed and speed up analysis.
+
 2017-06-21
 ==========
 New features
+------------
 + Support for UWP apps (Universal Windows Platform apps, a.k.a. PLM apps,
   Metro-style apps, store apps, and probably half a dozen other names).
   You can run a UWP app by providing an `sApplicationPackageName` and an
