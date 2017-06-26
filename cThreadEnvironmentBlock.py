@@ -45,7 +45,7 @@ class cThreadEnvironmentBlock(object):
         if uTEBAddress is not None:
           break; # This is the 64-bit entry that comes after the 32-bit. We only parse the 32-bit one, so stop.
         sWow64, sTEBBits, sTEBAddress = oHeaderMatch.groups();
-        uTEBAddress = long(uTEBAddress, 16);
+        uTEBAddress = long(sTEBAddress, 16);
         # Unless it is explicitly mentioned to be a 32-bit TEB, determine TEB pointer size by looking at the length
         # cdb reported the address in: 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
         uTEBPointerSize = sTEBBits == "32" or len(sTEBAddress) == 8 and 4 or 8;
