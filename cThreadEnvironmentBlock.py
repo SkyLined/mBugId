@@ -34,22 +34,21 @@ class cThreadEnvironmentBlock(object):
     # Sometimes this error is output:
     # |error InitTypeRead( TEB32 )...
     # It can show up at any location in the output.
-    sTEBType = None;
     sTEBAddress = None;
     uStackTopAddress = None;
     uStackBottomAddress = None;
     for sLine in asPageHeapOutput
       if sLine == "error InitTypeRead( TEB )...":
         continue; # Ignore this error;
-      oHeaderMatch = re.match(r"^(Wow64 TEB32|TEB) at ([0-9A-Fa-f]+)$", sLine);
+      oHeaderMatch = re.match(r"^(Wow64 )?TEB(32)? at ([0-9A-Fa-f]+)$", sLine);
       if oHeaderMatch:
-        if sTEBType:
+        if sTEBAddress is not None:
           break; # This is the 64-bit entry that comes after the 32-bit. We only parse the 32-bit one, so stop.
-        sTEBType, sTEBAddress = oHeaderMatch.groups();
+        sWow64, sTEBBits, sTEBAddress = oHeaderMatch.groups();
         uTEBAddress = long(sTEBAddress, 16);
         # Unless it is explicitly mentioned to be a 32-bit TEB, determine TEB pointer size by looking at the length
         # cdb reported the address in: 16 hex digits means 64-bits (8 bytes), 8 hex digits means 32-bits (4 bytes).
-        uTEBPointerSize = sTEBType == "Wow64 TEB32" or len(sTEBAddress) == 8 and 4 or 8;
+        uTEBPointerSize = sTEBBits == "32" or len(sTEBAddress) == 8 and 4 or 8;
       else:
         oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
         assert oLineMatch, \
