@@ -139,6 +139,16 @@ aoBugTranslations.append(cBugTranslation(
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate a deprecated API was used.",
   sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
 ));
+# Assert -> Assert:RequiredQI
+aoBugTranslations.append(cBugTranslation(
+  sOriginalBugTypeId = "Assert",
+  asOriginalTopStackFrameSymbols = [
+    "edgehtml.dll!Abandonment::InduceRequiredQIAbandonment",
+  ],
+  sTranslatedBugTypeId = "Assert:QI",
+  sTranslatedBugDescription = "The application triggered a breakpoint to indicate a QueryInterface failed.",
+  sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
+));
 # FailFast -> OOM
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "FailFast",
