@@ -1,6 +1,6 @@
 from cSourceCodeLink import cSourceCodeLink;
 
-srBasePath = r"\w+:(\\\w+)*\\(build\\slave\\win-asan\\build|build\\slave\\syzygy_official\\build|win(64)?_pgo)";
+srBasePath = r"\w+:(\\\w+)*\\(build\\slave\\win-asan\\build|build\\slave\\syzygy_official\\build|build\\slave\\win_upload_clang\\build|win(64)?_pgo)";
 
 aoSourceCodeLinks = [
   cSourceCodeLink( # Blink
@@ -14,6 +14,10 @@ aoSourceCodeLinks = [
   cSourceCodeLink( # V8
     srPathHeader = srBasePath + r"\\src\\v8\\",
     sURLTemplate = "https://chromium.googlesource.com/v8/v8.git/+/master/%(path)s#%(line_number)s",
+  ),
+  cSourceCodeLink( # ASan/LLVM
+    srPathHeader = srBasePath + r"\\src\\third_party\\llvm\projects\\compiler-rt\\",
+    sURLTemplate = "https://github.com/llvm-mirror/compiler-rt/tree/master/%(path)s#L%(line_number)s",
   ),
   # Anything else is assumed to be part of chromium. This is very likely not correct, as there are bound to be more
   # exceptions, so please report if you find any!
