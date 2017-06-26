@@ -24,6 +24,8 @@ class cUWPApplication(object):
     
     # Find the package full name and family name
     asQueryOutput = fasRunApplication("powershell", "Get-AppxPackage %s" % oUWPApplication.sPackageName);
+    oUWPApplication.sPackageFullName = None;
+    oUWPApplication.sPackageFamilyName = None;
     for sLine in asQueryOutput:
       if sLine:
         oNameAndValueMatch = re.match(r"^(.*?)\s* : (.*)$", sLine);
