@@ -1,5 +1,4 @@
 import itertools, os, re, subprocess, sys, threading, time;
-from cCdbWrapper_fasGetStack import cCdbWrapper_fasGetStack;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
@@ -414,9 +413,6 @@ class cCdbWrapper(object):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);
   def fasExecuteCdbCommand(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fasGetStack(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fasGetStack(oCdbWrapper, *axArguments, **dxArguments);
   
   def fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments);

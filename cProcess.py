@@ -223,6 +223,9 @@ class cProcess(object):
   def fEnsurePageHeapIsEnabled(oProcess):
     return cProcess_fEnsurePageHeapIsEnabled(oProcess);
     
+  def fasGetStack(oProcess, sCdbCommand):
+    return cProcess_fasGetStack(oProcess, sCdbCommand);
+  
   def fasExecuteCdbCommand(oProcess, sCommand, sComment, **dxArguments):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();

@@ -113,15 +113,15 @@ class cModule(object):
     ]);
   
   @staticmethod
-  def foGetOrCreateForStartAddress(oProcess, uStartAddress):
-    return cModule.__foGetOrCreateFrom_lmov_Output(oProcess, "lmov a 0x%X;" % uStartAddress);
+  def foCreateForStartAddress(oProcess, uStartAddress):
+    return cModule.__foGetOrCreateFrom_lmov(oProcess, "a 0x%X;" % uStartAddress);
   @staticmethod
-  def foGetOrCreateForCdbId(oProcess, sCdbId):
-    return cModule.__foGetOrCreateFrom_lmov_Output(oProcess, "lmov m %s;" % sCdbId);
+  def foCreateForCdbId(oProcess, sCdbId):
+    return cModule.__foGetOrCreateFrom_lmov(oProcess, "m %s;" % sCdbId);
   @staticmethod
-  def __foGetOrCreateFrom_lmov_Output(oProcess, s_lmov_Command):
+  def __foGetOrCreateFrom_lmov(oProcess, s_lmov_Arguments):
     as_lmov_Output = oProcess.fasExecuteCdbCommand(
-      sCommand = s_lmov_Command,
+      sCommand = "lmov %s" % s_lmov_Arguments,
       sComment = "Get module information",
       bOutputIsInformative = True,
     );
@@ -134,6 +134,7 @@ class cModule(object):
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
     oModule.fProcess_lmov_Output(as_lmov_Output);
     return oModule;
+  
   @staticmethod
   def faoGetOrCreateAll(oProcess):
     as_lmo_Output = oProcess.fasExecuteCdbCommand(

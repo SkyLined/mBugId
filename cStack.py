@@ -2,6 +2,7 @@ import re;
 from cModule import cModule;
 from cStackFrame import cStackFrame;
 from dxConfig import dxConfig;
+from fxCallModuleAndFunctionFromCallInstructionForReturnAddress import fxCallModuleAndFunctionFromCallInstructionForReturnAddress;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
   # These warnings and errors are ignored:
@@ -60,11 +61,10 @@ class cStack(object):
   
   @classmethod
   def foCreateFromAddress(cStack, oProcess, pAddress, uSize):
-    oCdbWrapper = oProcess.oCdbWrapper;
     # Create the stack object
     oProcess.fSelectInCdb();
     uStackFramesCount = min(dxConfig["uMaxStackFramesCount"], uSize);
-    asStack = oCdbWrapper.fasGetStack("dps 0x%X L0x%X" % (pAddress, uStackFramesCount + 1));
+    asStack = oProcess.fasGetStack("dps 0x%X L0x%X" % (pAddress, uStackFramesCount + 1));
     if not asStack: return None;
     oStack = cStack(asStack);
     # Here are some lines you might expect to parse:
@@ -113,11 +113,11 @@ class cStack(object):
     oProcess.fSelectInCdb();
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip", "Get instruction pointer");
+    uInstructionPointer = oProcess.fuGetValue("@$ip", "Get instruction pointer");
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
-      asStackOutput = oCdbWrapper.fasExecuteCdbCommand(
+      asStackOutput = oProcess.fasExecuteCdbCommand(
         sCommand = "kn 0x%X;" % (uStackFramesCount + 1),
         sComment = "Get stack",
       );
@@ -172,61 +172,21 @@ class cStack(object):
           # We will retry this to see if any symbol problems have been resolved:
           break;
         if uReturnAddress:
-          # Check if we cached this:
+          # See if we can get better symbol information from the call instruction.
+          # First check cache.
           if uReturnAddress in dCache_toCallModuleAndFunction_by_uReturnAddress:
             toCallModuleAndFunction = dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress];
-            if toCallModuleAndFunction:
-              oModule, oFunction = dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress];
-              uAddress = None;
-              sUnloadedModuleFileName = None;
-              uModuleOffset = None;
-              iFunctionOffset = None; # Not known.
           else:
-            # The symbol may not be correct when using export symbols, or if we're in a small branch that is not marked
-            # correctly in the pdb (cdb will report the closest symbol, which may be for another function!).
-            # We do have a return address and there may be a CALL instruction right before the return address that we
-            # can use to find the correct symbol for the function.
-            asDisassemblyBeforeReturnAddressOutput = oCdbWrapper.fasExecuteCdbCommand(
-              sCommand = ".if($vvalid(0x%X, 1)) { .if (by(0x%X) == 0xe8) { .if($vvalid(0x%X, 4)) { u 0x%X L1; }; }; };" % \
-                  (uReturnAddress - 5, uReturnAddress - 5, uReturnAddress - 4, uReturnAddress -5),
-              sComment = "Get call instruction for %s" % sCdbSymbolOrAddress,
-            );
-            if len(asDisassemblyBeforeReturnAddressOutput) == 0:
-              dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = None;
-            else:
-              if len(asDisassemblyBeforeReturnAddressOutput) == 1:
-                sDissassemblyBeforeReturnAddress = asDisassemblyBeforeReturnAddressOutput[0];
-              else:
-                assert len(asDisassemblyBeforeReturnAddressOutput) == 2, \
-                    "Expected 1 or 2 lines of disassembly output, got %d:\r\n%s" % \
-                    (len(asDisassemblyBeforeReturnAddressOutput), "\r\n".join(asDisassemblyBeforeReturnAddressOutput));
-                # first line should be cdb_module_id ["!" function_name] [ "+"/"-" "0x" offset_from_module_or_function] ":"
-                assert re.match(r"^\s*\w+(?:!.+?)?(?:[\+\-]0x[0-9A-F]+)?:\s*$", asDisassemblyBeforeReturnAddressOutput[0], re.I), \
-                    "Unexpected disassembly output line 1:\r\n%s" % "\r\n".join(asDisassemblyBeforeReturnAddressOutput);
-                sDissassemblyBeforeReturnAddress = asDisassemblyBeforeReturnAddressOutput[1];
-              oDirectCallMatch = re.match(
-                r"^[0-9a-f`]+"                         # instruction_address
-                r"\s+e8[0-9a-f`]{8}"                   # space "e8" call_offset
-                r"\s+call"                             # space "call" 
-                r"\s+(\w+)!(.+?)"                      # space (cdb_module_id) "!" (function_name) 
-                r"\s+\([0-9a-f`]+\)"                   # space "(" address ")"
-                r"\s*$",                               # [space]
-                sDissassemblyBeforeReturnAddress, re.I,
-              );
-              if oDirectCallMatch:
-                sCallModuleCdbId, sCallSymbol = oDirectCallMatch.groups();
-                oCallModule = oProcess.foGetOrCreateModuleForCdbId(sCallModuleCdbId);
-                oCallFunction = oCallModule.foGetOrCreateFunctionForSymbol(sCallSymbol);
-                if oCallModule != oModule or oCallFunction != oFunction:
-                  uAddress = None;
-                  sUnloadedModuleFileName = None;
-                  oModule = oCallModule;
-                  uModuleOffset = None;
-                  oFunction = oCallFunction;
-                  iFunctionOffset = None; # Not known.
-                dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = (oCallModule, oCallFunction);
-              else:
-                dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = None;
+            toCallModuleAndFunction = fxCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress);
+            # Cache this info.
+            dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = toCallModuleAndFunction;
+          if toCallModuleAndFunction and (oModule, oFunction) != toCallModuleAndFunction:
+            # The call instruction for this return address is assumed to give us better information; use that:
+            (oModule, oFunction) = dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress];
+            uAddress = None;
+            sUnloadedModuleFileName = None;
+            uModuleOffset = None;
+            iFunctionOffset = None;
         # Symbols for a module with export symbol are untrustworthy unless the offset is zero. If the offset is not
         # zero, do not use the symbol, but rather the offset from the start of the module.
         if oFunction and iFunctionOffset not in xrange(dxConfig["uMaxExportFunctionOffset"]):
@@ -236,7 +196,7 @@ class cStack(object):
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uFrameSymbolAddress = oCdbWrapper.fuGetValue("%s%+d" % (oFunction.sName, iFunctionOffset), "Get address of symbol");
+              uFrameSymbolAddress = oProcess.fuGetValue("%s%+d" % (oFunction.sName, iFunctionOffset), "Get address of symbol");
               uModuleOffset = uFrameSymbolAddress - oModule.uStartAddress;
             oFunction = None;
             iFunctionOffset = None;
