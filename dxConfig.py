@@ -73,9 +73,9 @@ dxConfig = {
                                         # at all when part of the memory it attempts to disassemble is not readable.
   ### HTML Report Memory dump settings
   "uStackDumpSizeInPointers": 0x100,    # How many pointer sized values should a stack dump contain?
-  "uMaxMemoryDumpSize": 0x400,          # How many pointer sized values should a heap dump contain at most? This should
-                                        # be enough to include relevant information, but not so much that it causes a
-                                        # "Range error" in cdb. e.g. attempting to dump 0x6034C pointers will fail.
+                                        # so the dump includes as much relevant information as possible, but not so
+                                        # large that it causes a "Range error" in cdb. e.g. attempting to dump 0x6034C
+                                        # pointers will fail. I've set a reasonable default, feel free to experiment.
   ### HTML Report Stack settings
   "uMaxStackFramesCount": 40,           # How many stack frames are retreived for analysis?
   "uMinStackRecursionLoops": 3,         # How many recursive functions call loops are needed to assume a stack overflow

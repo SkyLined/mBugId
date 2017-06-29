@@ -6,7 +6,7 @@ from dxConfig import dxConfig;
 # 2) Rounds the start address down and the size up to align both with the pointer size of the ISA.
 def ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(uMostInterestingAddress, uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize): 
   uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
-  if uMemoryDumpSize > dxConfig["uMaxMemoryDumpSize"] * uPointerSize:
+  if uMemoryDumpSize > dxConfig["uMaxMemoryDumpSize"]:
     # Yes, we'll need to reduce the size of the memory dump; try to find out what parts are farthest away
     # from the exception address and remove those. uMemoryDumpStartAddress and/or uMemoryDumpSize are updated.
     uMemoryDumpSizeBeforeAddress = uMostInterestingAddress - uMemoryDumpStartAddress;
