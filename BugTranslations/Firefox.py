@@ -24,6 +24,11 @@ aoBugTranslations.append(cBugTranslation(
       "xul.dll!NS_ABORT_OOM",
     ],
   ],
+  aasAdditionalIrrelevantStackFrameSymbols = [
+    [
+      "mozglue.dll!moz_xmalloc",
+    ],
+  ],
   sTranslatedBugTypeId = "OOM",
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate it was unable to allocate enough memory.",
   sTranslatedSecurityImpact = None,
