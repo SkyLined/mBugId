@@ -264,7 +264,9 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     # Output the page heap information for reference
     if oPageHeapAllocation:
       sPageHeapOutputHTML = sBlockHTMLTemplate % {
-        "sName": "Page heap output for heap block at 0x%X" % oPageHeapAllocation.uBlockStartAddress,
+        "sName": oPageHeapAllocation.uBlockStartAddress is not None \
+            and "Page heap output for heap block at 0x%X" % oPageHeapAllocation.uBlockStartAddress \
+            or "Page heap output for heap block around 0x%X" % uCorruptionStartAddress,
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
           oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
