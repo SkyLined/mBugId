@@ -18,8 +18,10 @@ aoBugTranslations = [
     asOriginalTopStackFrameSymbols = [
       "*!__sanitizer::internal__exit",
     ],
-    asAdditionalIrrelevantStackFrameSymbols = [
-      "*!__sanitizer::Die",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!__sanitizer::Die",
+      ],
     ],
     sTranslatedBugTypeId = "ASan",
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected an issue.",
@@ -53,8 +55,10 @@ aoBugTranslations = [
       "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
       "*!__asan::ReportGenericError",
     ],
-    asAdditionalIrrelevantStackFrameSymbols = [
-      re.compile("^.*!__asan_report_load\d+$");
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        re.compile("^.*!__asan_report_load\d+$"),
+      ],
     ],
     sTranslatedBugTypeId = "ASan:Error",
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected something.",
