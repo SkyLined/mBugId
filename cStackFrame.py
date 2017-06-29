@@ -65,7 +65,7 @@ class cStackFrame(object):
   
   @property
   def sId(oStackFrame):
-    if oStackFrame.__sId is None and not oStackFrame.bIsInline and oStackFrame.sUniqueAddress is not None:
+    if oStackFrame.__sId is None and oStackFrame.sUniqueAddress is not None:
       oHasher = hashlib.md5();
       oHasher.update(oStackFrame.sUniqueAddress);
       oStackFrame.__sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
