@@ -1,3 +1,4 @@
+import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
@@ -14,24 +15,30 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
+    asOriginalTopStackFrameSymbols = [
+      "*!__sanitizer::internal__exit",
+    ],
+    asAdditionalIrrelevantStackFrameSymbols = [
+      "*!__sanitizer::Die",
+    ],
+    sTranslatedBugTypeId = "ASan",
+    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected an issue.",
+    sTranslatedSecurityImpact = "The security implications of this issue are unknown",
+  ),
+  cBugTranslation(
+    sOriginalBugTypeId = "ASan",
     aasOriginalTopStackFrameSymbols = [
       [
-        "*!__sanitizer::internal__exit",
-        "*!__sanitizer::Die",
         "*!__asan::AsanCheckFailed",
         "*!__sanitizer::CheckFailed",
         "*!__sanitizer::ReportAllocatorCannotReturnNull",
       ], [
-        "*!__sanitizer::internal__exit",
-        "*!__sanitizer::Die",
         "*!__asan::AsanCheckFailed",
         "*!__sanitizer::CheckFailed",
         "*!__sanitizer::ReportMmapFailureAndDie",
       ], [
-        "*!__sanitizer::internal__exit",
         "*!__sanitizer::ReportMmapFailureAndDie",
       ], [
-        "*!__sanitizer::internal__exit",
         "*!__sanitizer::Abort",
         "*!__asan::ReserveShadowMemoryRange",
       ],
@@ -41,19 +48,17 @@ aoBugTranslations = [
     sTranslatedSecurityImpact = None,
   ),
   cBugTranslation(
-    sOriginalBugTypeId = "Breakpoint",
-    aasOriginalTopStackFrameSymbols = [
-      [
-        "*!__sanitizer::internal__exit",
-        "*!__sanitizer::Die",
-        "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
-        "*!__asan::ReportGenericError",
-        "*!__asan_report_load1",
-      ],
+    sOriginalBugTypeId = "ASan",
+    asOriginalTopStackFrameSymbols = [
+      "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
+      "*!__asan::ReportGenericError",
     ],
-    sTranslatedBugTypeId = "ASan",
+    asAdditionalIrrelevantStackFrameSymbols = [
+      re.compile("^.*!__asan_report_load\d+$");
+    ],
+    sTranslatedBugTypeId = "ASan:Error",
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected something.",
-    sTranslatedSecurityImpact = "This may indicate an exploitable security issue",
+    sTranslatedSecurityImpact = "The security implications of this issue are unknown",
   ),
   # OOM (hide irrelevant frames only)
   cBugTranslation(
