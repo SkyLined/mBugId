@@ -28,6 +28,11 @@ aoBugTranslations.append(cBugTranslation(
       "EDGEHTML.dll!Abandonment::InduceAbandonment",
     ],
   ],
+  aasAdditionalIrrelevantStackFrameSymbols = [
+    [
+      "edgehtml.dll!Abandonment::AssertionFailed",
+    ],
+  ],
   sTranslatedBugTypeId = "Assert",
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
   sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
@@ -70,9 +75,9 @@ aoBugTranslations.append(cBugTranslation(
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate it was unable to allocate enough memory.",
   sTranslatedSecurityImpact = None,
 ));
-# Breakpoint -> Assert:HRESULT
+# Assert -> Assert:HRESULT
 aoBugTranslations.append(cBugTranslation(
-  sOriginalBugTypeId = "Breakpoint",
+  sOriginalBugTypeId = "Assert",
   aasOriginalTopStackFrameSymbols = [
     [
       "EDGEHTML.dll!Abandonment::CheckHRESULT",
@@ -84,7 +89,7 @@ aoBugTranslations.append(cBugTranslation(
   sTranslatedBugDescription = "The application triggered a breakpoint to indicate an unexpected HRESULT was detected.",
   sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
 ));
-# Breakpoint -> Assert:Arguments
+# Assert -> Assert:Arguments
 aoBugTranslations.append(cBugTranslation(
   sOriginalBugTypeId = "Assert",
   asOriginalTopStackFrameSymbols = [
