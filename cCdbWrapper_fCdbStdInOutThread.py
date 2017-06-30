@@ -477,6 +477,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           continue;
       ### Handle process termination ###################################################################################
       if sCreateExitProcess == "Exit":
+        # If we are still attaching to a UWP application and the dummy process dies, that means we were unable to
+        # attach in time (the dummy process self-terminates after a time-out). Ths most likely cause is running without
+        # administrator privileges.
+        assert not (bAttachingToOrStartingApplication and oCdbWrapper.oCurrentProcess == oUWPDummyProcess), \
+            "It appears that you are not able to debug the UWP application; are you running as administrator?";
         assert not bAttachingToOrStartingApplication, \
             "No processes are expected to terminated while attaching to or starting the application!";
         # A process was terminated. This may be the first time we hear of the process, i.e. the code above may have only
