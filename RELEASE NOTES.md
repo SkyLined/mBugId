@@ -1,3 +1,32 @@
+2017-06-30
+==========
+Changes to BugIds
+-----------------
++ Inline functions are now (again) part of the bug id location hash. I found
+  that with different builds, some functions may or may not be inlined and this
+  was causing the bugid location hash to be different for the same issue.
+
+Changes to dxConfig
+-------------------
++ The `uMaxMemoryDumpSize` setting in `dxConfig` is in *bytes* not *pointer*.
++ The `uStackDumpSize` setting in `dxConfig` has been renamed to
+  `uStackDumpSizeInPointers` to better explain its size unit.
+
+Improvements
+------------
++ Bug translations have been improved for various components.
++ Console background color is preserved.
++ Usage text highlighting is consistent.
++ Warn the user about potentially needing to cBugId with administrator rights
+  when cdb cannot attach to a process and the error indicates this may be the
+  cause.
+
+Bug fixes
+---------
++ The `uMaxMemoryDumpSize` setting in `dxConfig` is applied correctly.
++ When dumping a page heap allocation for a VERIFIER STOP, the address of the
+  heap block is only used when it is actually known.
+
 2017-06-26
 ==========
 Notes
@@ -13,7 +42,7 @@ Notes
 
 Improvements
 ------------
-+ Bug translations have been improved for Asan, Chrome, Edge, and V8.
++ Bug translations have been improved for ASan, Chrome, Edge, and V8.
 + Source code links have been added for Chrome ASan builds.
 + If the stack frame symbol and call instruction symbol agree on the function,
   the stack frame is now used, because it has offset information.
