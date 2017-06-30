@@ -256,21 +256,21 @@ if __name__ == "__main__":
         'Failed to start application "<invalid>": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA,    ["Nop"],                                                  None)); # No exceptions, just a clean program exit.
-      aoTests.append(cTest(sISA,    ["Breakpoint"],                                           "Breakpoint ed2.249"));
+      aoTests.append(cTest(sISA,    ["Breakpoint"],                                           "Breakpoint ed2.531"));
       if bQuickTestSuite:
         continue; # Just do a test without a crash and breakpoint.
       # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
-      aoTests.append(cTest(sISA,    ("Breakpoint",),                                          "Breakpoint ed2.249"));
-      aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.249"));
-      aoTests.append(cTest(sISA,    ["C++"],                                                 ("C++ ed2.249", "C++:cException ed2.249")));
-      aoTests.append(cTest(sISA,    ["IntegerDivideByZero"],                                  "IntegerDivideByZero ed2.249"));
+      aoTests.append(cTest(sISA,    ("Breakpoint",),                                          "Breakpoint ed2.531"));
+      aoTests.append(cTest(sISA,    ["CPUUsage"],                                             "CPUUsage ed2.531"));
+      aoTests.append(cTest(sISA,    ["C++"],                                                 ("C++ ed2.531", "C++:cException ed2.531")));
+      aoTests.append(cTest(sISA,    ["IntegerDivideByZero"],                                  "IntegerDivideByZero ed2.531"));
 # This test will throw a first chance integer overflow, but Visual Studio added an exception handler that then triggers
 # another exception, so the report is incorrect.
 #      aoTests.append(cTest(sISA,    ["IntegerOverflow"],                                      "IntegerOverflow xxx.ed2"));
-      aoTests.append(cTest(sISA,    ["Numbered", 0x41414141, 0x42424242],                     "0x41414141 ed2.249"));
+      aoTests.append(cTest(sISA,    ["Numbered", 0x41414141, 0x42424242],                     "0x41414141 ed2.531"));
       aoTests.append(cTest(sISA,    ["IllegalInstruction"],                                  ("IllegalInstruction f17.f17", "IllegalInstruction f17.ed2")));
       aoTests.append(cTest(sISA,    ["PrivilegedInstruction"],                               ("PrivilegedInstruction 0fc.0fc", "PrivilegedInstruction 0fc.ed2")));
-      aoTests.append(cTest(sISA,    ["StackExhaustion", 0x100],                               "StackExhaustion ed2.249"));
+      aoTests.append(cTest(sISA,    ["StackExhaustion", 0x100],                               "StackExhaustion ed2.531"));
       aoTests.append(cTest(sISA,    ["RecursiveCall", 2],                                     "RecursiveCall 950.6d1"));
       if bFullTestSuite:
         aoTests.append(cTest(sISA,  ["RecursiveCall", 1],                                     "RecursiveCall 950"));
@@ -281,105 +281,105 @@ if __name__ == "__main__":
       # depends on the build of the application and whether symbols are being used.
       aoTests.append(cTest(sISA,    ["PureCall"],                                             "PureCall 12d.838"));
       uTooMuchRam = sISA == "x64" and 0x100000000000 or 0xC0000000;
-      aoTests.append(cTest(sISA,    ["OOM", "HeapAlloc", uTooMuchRam],                        "OOM ed2.249"));
-      aoTests.append(cTest(sISA,    ["OOM", "C++", uTooMuchRam],                              "OOM ed2.249"));
+      aoTests.append(cTest(sISA,    ["OOM", "HeapAlloc", uTooMuchRam],                        "OOM ed2.531"));
+      aoTests.append(cTest(sISA,    ["OOM", "C++", uTooMuchRam],                              "OOM ed2.531"));
       # WRT
-      aoTests.append(cTest(sISA,    ["WRTOriginate", "0x87654321", "message"],                "Stowed[0x87654321] ed2.249"));
-      aoTests.append(cTest(sISA,    ["WRTLanguage",  "0x87654321", "message"],                "Stowed[0x87654321@cIUnknown] ed2.249"));
+      aoTests.append(cTest(sISA,    ["WRTOriginate", "0x87654321", "message"],                "Stowed[0x87654321] ed2.531"));
+      aoTests.append(cTest(sISA,    ["WRTLanguage",  "0x87654321", "message"],                "Stowed[0x87654321@cIUnknown] ed2.531"));
       # Double free
-      aoTests.append(cTest(sISA,    ["DoubleFree",                1],                         "DoubleFree[1] ed2.249"));
+      aoTests.append(cTest(sISA,    ["DoubleFree",                1],                         "DoubleFree[1] ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["DoubleFree",                2],                         "DoubleFree[2] ed2.249"));
-        aoTests.append(cTest(sISA,  ["DoubleFree",                3],                         "DoubleFree[3] ed2.249"));
-        aoTests.append(cTest(sISA,  ["DoubleFree",                4],                         "DoubleFree[4n] ed2.249"));
-      aoTests.append(cTest(sISA,    ["MisalignedFree",            1,  1],                     "MisalignedFree[1]+0 ed2.249"));
+        aoTests.append(cTest(sISA,  ["DoubleFree",                2],                         "DoubleFree[2] ed2.531"));
+        aoTests.append(cTest(sISA,  ["DoubleFree",                3],                         "DoubleFree[3] ed2.531"));
+        aoTests.append(cTest(sISA,  ["DoubleFree",                4],                         "DoubleFree[4n] ed2.531"));
+      aoTests.append(cTest(sISA,    ["MisalignedFree",            1,  1],                     "MisalignedFree[1]+0 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  2],                     "MisalignedFree[1]+1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            2,  4],                     "MisalignedFree[2]+2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            3,  6],                     "MisalignedFree[3]+3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            4,  8],                     "MisalignedFree[4n]+4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            5,  10],                    "MisalignedFree[4n+1]+4n+1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            2,  1],                     "MisalignedFree[2]@1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            3,  2],                     "MisalignedFree[3]@2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            4,  3],                     "MisalignedFree[4n]@3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            5,  4],                     "MisalignedFree[4n+1]@4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -1],                    "MisalignedFree[1]-1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -2],                    "MisalignedFree[1]-2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -3],                    "MisalignedFree[1]-3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -4],                    "MisalignedFree[1]-4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -5],                    "MisalignedFree[1]-4n-1 ed2.249"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  2],                     "MisalignedFree[1]+1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            2,  4],                     "MisalignedFree[2]+2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            3,  6],                     "MisalignedFree[3]+3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            4,  8],                     "MisalignedFree[4n]+4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            5,  10],                    "MisalignedFree[4n+1]+4n+1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            2,  1],                     "MisalignedFree[2]@1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            3,  2],                     "MisalignedFree[3]@2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            4,  3],                     "MisalignedFree[4n]@3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            5,  4],                     "MisalignedFree[4n+1]@4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -1],                    "MisalignedFree[1]-1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -2],                    "MisalignedFree[1]-2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -3],                    "MisalignedFree[1]-3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -4],                    "MisalignedFree[1]-4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  -5],                    "MisalignedFree[1]-4n-1 ed2.531"));
       # NULL pointers
-      aoTests.append(cTest(sISA,    ["AccessViolation",   "Read",     1],                     "AVR@NULL+1 ed2.249"));
+      aoTests.append(cTest(sISA,    ["AccessViolation",   "Read",     1],                     "AVR@NULL+1 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 2],                         "AVR@NULL+2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 3],                         "AVR@NULL+3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 4],                         "AVR@NULL+4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 5],                         "AVR@NULL+4n+1 ed2.249"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 2],                         "AVR@NULL+2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 3],                         "AVR@NULL+3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 4],                         "AVR@NULL+4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", 5],                         "AVR@NULL+4n+1 ed2.531"));
       uSignPadding = {"x86": 0, "x64": 0xFFFFFFFF00000000}[sISA];
-      aoTests.append(cTest(sISA,    ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFF],   "AVR@NULL-1 ed2.249"));
+      aoTests.append(cTest(sISA,    ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFF],   "AVR@NULL-1 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFE],   "AVR@NULL-2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFD],   "AVR@NULL-3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFC],   "AVR@NULL-4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFB],   "AVR@NULL-4n-1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFA],   "AVR@NULL-4n-2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF9],   "AVR@NULL-4n-3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF8],   "AVR@NULL-4n ed2.249"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFE],   "AVR@NULL-2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFD],   "AVR@NULL-3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFC],   "AVR@NULL-4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFB],   "AVR@NULL-4n-1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFA],   "AVR@NULL-4n-2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF9],   "AVR@NULL-4n-3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF8],   "AVR@NULL-4n ed2.531"));
       # These are detected by Page Heap / Application Verifier
-      aoTests.append(cTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],               "OOBW[1]-1~1#3416 ed2.249"));
+      aoTests.append(cTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],               "OOBW[1]-1~1#3416 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],               "OOBW[2]-2~2#5eb1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],               "OOBW[3]-3~3#bcd7 ed2.249"));
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],               "OOBW[4n]-4n~4n#6682 ed2.249"));
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],              ("OOBW[4n+1]-4n-1~4n+1#5b96 ed2.249", # x64: First byte written overwrites endstamp padding
-                                                                                              "OOBW[4n+1]-4n~4n#6682 ed2.249"))); # x86: First byte written overrwrites stack trace pointer and cannot be detected.
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.249")); # Last byte written is within bounds!
-        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.249")); # Last byte is within bounds!
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],               "OOBW[2]-2~2#5eb1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],               "OOBW[3]-3~3#bcd7 ed2.531"));
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],               "OOBW[4n]-4n~4n#6682 ed2.531"));
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],              ("OOBW[4n+1]-4n-1~4n+1#5b96 ed2.531", # x64: First byte written overwrites endstamp padding
+                                                                                              "OOBW[4n+1]-4n~4n#6682 ed2.531"))); # x86: First byte written overrwrites stack trace pointer and cannot be detected.
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531")); # Last byte written is within bounds!
+        aoTests.append(cTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531")); # Last byte is within bounds!
       # Page heap does not appear to work for x86 tests on x64 platform.
-      aoTests.append(cTest(sISA,    ["UseAfterFree", "Read",    1,  0],                       "UAFR[1]@0 ed2.249"));
+      aoTests.append(cTest(sISA,    ["UseAfterFree", "Read",    1,  0],                       "UAFR[1]@0 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   2,  1],                       "UAFW[2]@1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    3,  2],                       "UAFR[3]@2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   4,  3],                       "UAFW[4n]@3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    5,  4],                       "UAFR[4n+1]@4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   6,  5],                       "UAFW[4n+2]@4n+1 ed2.249"));
-      aoTests.append(cTest(sISA,    ["UseAfterFree", "Read",    1,  1],                       "OOBUAFR[1]+0 ed2.249"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   2,  1],                       "UAFW[2]@1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    3,  2],                       "UAFR[3]@2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   4,  3],                       "UAFW[4n]@3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    5,  4],                       "UAFR[4n+1]@4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   6,  5],                       "UAFW[4n+2]@4n+1 ed2.531"));
+      aoTests.append(cTest(sISA,    ["UseAfterFree", "Read",    1,  1],                       "OOBUAFR[1]+0 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   2,  3],                       "OOBUAFW[2]+1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    3,  5],                       "OOBUAFR[3]+2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   4,  7],                       "OOBUAFW[4n]+3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    5,  9],                       "OOBUAFR[4n+1]+4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   6, 11],                       "OOBUAFW[4n+2]+4n+1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -1],                       "OOBUAFR[1]-1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   1, -2],                       "OOBUAFW[1]-2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -3],                       "OOBUAFR[1]-3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   1, -4],                       "OOBUAFW[1]-4n ed2.249"));
-        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -5],                       "OOBUAFR[1]-4n-1 ed2.249"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   2,  3],                       "OOBUAFW[2]+1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    3,  5],                       "OOBUAFR[3]+2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   4,  7],                       "OOBUAFW[4n]+3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    5,  9],                       "OOBUAFR[4n+1]+4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   6, 11],                       "OOBUAFW[4n+2]+4n+1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -1],                       "OOBUAFR[1]-1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   1, -2],                       "OOBUAFW[1]-2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -3],                       "OOBUAFR[1]-3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Write",   1, -4],                       "OOBUAFW[1]-4n ed2.531"));
+        aoTests.append(cTest(sISA,  ["UseAfterFree", "Read",    1, -5],                       "OOBUAFR[1]-4n-1 ed2.531"));
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
-      aoTests.append(cTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],            "OOBR[4n]+4n ed2.249"));
+      aoTests.append(cTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],            "OOBR[4n]+4n ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xD, 5],            "OOBR[4n+1]+3 ed2.249"));
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xE, 5],            "OOBR[4n+2]+2 ed2.249"));
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],            "OOBR[4n+3]+1 ed2.249"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xD, 5],            "OOBR[4n+1]+3 ed2.531"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xE, 5],            "OOBR[4n+2]+2 ed2.531"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],            "OOBR[4n+3]+1 ed2.531"));
       # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
       # This is detected and reported by application verifier because the page heap suffix was modified.
-      aoTests.append(cTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],            "OOBW[4n]+0~4n#6682 ed2.249"));
+      aoTests.append(cTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],            "OOBW[4n]+0~4n#6682 ed2.531"));
       if bFullTestSuite:
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],            "OOBW[4n+1]+0~3#bcd7 ed2.249"));
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],            "OOBW[4n+2]+0~2#5eb1 ed2.249"));
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],            "OOBW[4n+3]+0~1#3416 ed2.249"));
-        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write", 0x10, 5],            "OOBW[4n]+0 ed2.249")); # First byte writen causes AV; no data hash
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],            "OOBW[4n+1]+0~3#bcd7 ed2.531"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],            "OOBW[4n+2]+0~2#5eb1 ed2.531"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],            "OOBW[4n+3]+0~1#3416 ed2.531"));
+        aoTests.append(cTest(sISA,  ["BufferOverrun",   "Heap", "Write", 0x10, 5],            "OOBW[4n]+0 ed2.531")); # First byte writen causes AV; no data hash
       # Stack based heap overflows can cause an access violation if the run off the end of the stack, or a debugbreak
       # when they overwrite the stack cookie and the function returns. Finding out how much to write to overwrite the
       # stack cookie but not run off the end of the stack requires a bit of dark magic. I've only tested these values
       # on x64!
       uSmash = sISA == "x64" and 0x200 or 0x100;
-      aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, uSmash],       "OOBW@Stack ed2.249"));
+      aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, uSmash],       "OOBW@Stack ed2.531"));
       # The OS does not allocate a guard page at the top of the stack. Subsequently, there may be a writable allocation
       # there, and a large enough stack overflow will write way past the end of the stack before causing an AV. This
       # causes a different BugId, so this test is not reliable at the moment.
       # TODO: Reimplement BugId and add feature that adds guard pages to all virtual allocations.
-      # aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, 0x100000],     "AVW[Stack]+0 ed2.249"));
+      # aoTests.append(cTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, 0x100000],     "AVW[Stack]+0 ed2.531"));
       
       if bFullTestSuite:
         for (uBaseAddress, sDescription) in [
@@ -396,27 +396,27 @@ if __name__ == "__main__":
           if uBaseAddress < (1 << 32) or sISA == "x64":
             # On x64, there are some limitations to exceptions occuring at addresses between the userland and kernelland
             # memory address ranges.
-            aoTests.append(cTest(sISA,  ["AccessViolation", "Read", uBaseAddress],              "AVR@%s ed2.249" % sDescription));
+            aoTests.append(cTest(sISA,  ["AccessViolation", "Read", uBaseAddress],              "AVR@%s ed2.531" % sDescription));
             if uBaseAddress >= 0x800000000000 and uBaseAddress < 0xffff800000000000:
-              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AV_@%s ed2.249" % sDescription));
+              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AV_@%s ed2.531" % sDescription));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],            "AVE@%s 46f.46f" % sDescription));
             else:
-              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AVW@%s ed2.249" % sDescription));
+              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AVW@%s ed2.531" % sDescription));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],            "AVE@%s 46f.ed2" % sDescription));
             aoTests.append(cTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ("AVE@%s f47.f47" % sDescription, "AVE@%s f47.ed2" % sDescription)));
       
       if bFullTestSuite:
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in ddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
-            aoTests.append(cTest(sISA,    ["AccessViolation", "Read", uBaseAddress],            "AVR@%s ed2.249" % sAddressId));
+            aoTests.append(cTest(sISA,    ["AccessViolation", "Read", uBaseAddress],            "AVR@%s ed2.531" % sAddressId));
             if bFullTestSuite:
-              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AVW@%s ed2.249" % sAddressId));
+              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AVW@%s ed2.531" % sAddressId));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Call", uBaseAddress],           ("AVE@%s f47.f47" % sAddressId, "AVE@%s f47.ed2" % sAddressId)));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ("AVE@%s 46f.46f" % sAddressId, "AVE@%s 46f.ed2" % sAddressId)));
           elif sISA == "x64":
-            aoTests.append(cTest(sISA,    ["AccessViolation", "Read", uBaseAddress],            "AVR@%s ed2.249" % sAddressId));
+            aoTests.append(cTest(sISA,    ["AccessViolation", "Read", uBaseAddress],            "AVR@%s ed2.531" % sAddressId));
             if bFullTestSuite:
-              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AV_@%s ed2.249" % sAddressId));
+              aoTests.append(cTest(sISA,  ["AccessViolation", "Write", uBaseAddress],           "AV_@%s ed2.531" % sAddressId));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Call", uBaseAddress],           ("AVE@%s f47.f47" % sAddressId, "AVE@%s f47.ed2" % sAddressId)));
               aoTests.append(cTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ("AVE@%s 46f.46f" % sAddressId, "AVE@%s 46f.ed2" % sAddressId)));
   print "* Starting tests...";
