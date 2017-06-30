@@ -5,6 +5,7 @@ from FileSystem import FileSystem;
 
 dsTip_by_sErrorCode = {
   "Win32 error 0n2": "Did you provide the correct the path and name of the executable?",
+  "Win32 error 0n5": "You may need to have administrator rights.",
   "NTSTATUS 0xC00000BB": "Are you using a 32-bit debugger with a 64-bit process?",
   "NTSTATUS 0xC000010A": "The process was terminated before the debugger could attach",
 };
