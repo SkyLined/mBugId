@@ -292,6 +292,13 @@ if __name__ == "__main__":
         aoTests.append(cTest(sISA,  ["DoubleFree",                2],                         "DoubleFree[2] ed2.531"));
         aoTests.append(cTest(sISA,  ["DoubleFree",                3],                         "DoubleFree[3] ed2.531"));
         aoTests.append(cTest(sISA,  ["DoubleFree",                4],                         "DoubleFree[4n] ed2.531"));
+        # Extra tests to check if the code deals correctly with memory areas too large to dump completely:
+        uMax = cBugId.dxConfig["uMaxMemoryDumpSize"];
+        aoTests.append(cTest(sISA,  ["DoubleFree",             uMax],                         "DoubleFree[4n] ed2.531"));
+        aoTests.append(cTest(sISA,  ["DoubleFree",         uMax + 1],                         "DoubleFree[4n+1] ed2.531"));
+        aoTests.append(cTest(sISA,  ["DoubleFree",         uMax + 4],                         "DoubleFree[4n] ed2.531"));
+        
+      # Misaligned free
       aoTests.append(cTest(sISA,    ["MisalignedFree",            1,  1],                     "MisalignedFree[1]+0 ed2.531"));
       if bFullTestSuite:
         aoTests.append(cTest(sISA,  ["MisalignedFree",            1,  2],                     "MisalignedFree[1]+1 ed2.531"));
