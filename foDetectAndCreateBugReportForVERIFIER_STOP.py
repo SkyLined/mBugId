@@ -122,6 +122,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     sBugTypeId = "MisalignedFree%s" % sHeapBlockAndOffsetId;
     sBugDescription = "The application attempted to free memory using a pointer that was %s." % sHeapBlockAndOffsetDescription;
     sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
+    if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+        sPageHeapHTMLOutputHeader = "Page heap output for heap block near 0x%X" % uVerifierStopHeapBlockAddress;
   elif sMessage == "block already freed":
     # |===========================================================
     # |VERIFIER STOP 00000007: pid 0x1358: block already freed
@@ -134,9 +136,18 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     # |This verifier stop is not continuable. Process will be terminated
     # |when you use the `go' debugger command.
     # |===========================================================
-    sBugTypeId = "DoubleFree[%s]" % (fsGetNumberDescription(oPageHeapAllocation.uBlockSize));
-    sBugDescription = "The application attempted to free a %d/0x%X byte heap block at address 0x%X twice" % \
-        (oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockStartAddress);
+    if oPageHeapAllocation.uBlockSize is None:
+      sBugTypeId = "DoubleFree[?]";
+      sBugDescription = "The application attempted to free a heap block of unknown size at address 0x%X twice" % \
+          (uVerifierStopHeapBlockAddress);
+      if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+        sPageHeapHTMLOutputHeader = "Page heap output for heap block near 0x%X" % uVerifierStopHeapBlockAddress;
+    else:
+      sBugTypeId = "DoubleFree[%s]" % fsGetNumberDescription(oPageHeapAllocation.uBlockSize);
+      sBugDescription = "The application attempted to free a %d/0x%X byte heap block at address 0x%X twice" % \
+          (oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockStartAddress);
+      if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+        sPageHeapHTMLOutputHeader = "Page heap output for heap block at 0x%X" % oPageHeapAllocation.uBlockStartAddress;
     sSecurityImpact = "Potentially exploitable security issue, if the attacker can force the application to " \
         "allocate memory between the two frees";
   elif sMessage == "corrupted heap pointer or using wrong heap":
@@ -155,11 +166,21 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
         "Missing 'Heap used in the call' value in the VERIFIER STOP message.\r\n%s" % "\r\n".join(asCdbOutput);
     assert uVerifierStopHeapBlockHandle is not None, \
         "Missing 'Heap owning the block' value in the VERIFIER STOP message.\r\n%s" % "\r\n".join(asCdbOutput);
-    sBugTypeId = "IncorrectHeap[%s]" % (fsGetNumberDescription(oPageHeapAllocation.uBlockSize));
-    sBugDescription = "The application provided an incorrect heap handle (0x%X) for a %d/0x%X byte heap block at " \
-        "address 0x%X which belongs to another heap (handle 0x%X)" % \
-        (uVerifierStopHeapHandle, oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockSize, \
-        oPageHeapAllocation.uBlockStartAddress, uVerifierStopHeapBlockHandle);
+    if oPageHeapAllocation.uBlockSize is None:
+      sBugTypeId = "IncorrectHeap[?]";
+      sBugDescription = "The application provided an incorrect heap handle (0x%X) for a heap block of unknown size " \
+          "near address 0x%X which belongs to another heap (handle 0x%X)" % \
+          (uVerifierStopHeapHandle, uVerifierStopHeapBlockAddress, uVerifierStopHeapBlockHandle);
+      if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+        sPageHeapHTMLOutputHeader = "Page heap output for heap block near 0x%X" % uVerifierStopHeapBlockAddress;
+    else:
+      sBugTypeId = "IncorrectHeap[%s]" % (fsGetNumberDescription(oPageHeapAllocation.uBlockSize));
+      sBugDescription = "The application provided an incorrect heap handle (0x%X) for a %d/0x%X byte heap block at " \
+          "address 0x%X which belongs to another heap (handle 0x%X)" % \
+          (uVerifierStopHeapHandle, oPageHeapAllocation.uBlockSize, oPageHeapAllocation.uBlockSize, \
+          oPageHeapAllocation.uBlockStartAddress, uVerifierStopHeapBlockHandle);
+      if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+        sPageHeapHTMLOutputHeader = "Page heap output for heap block at 0x%X" % oPageHeapAllocation.uBlockStartAddress;
     sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
   else:
     # Check the page heap data near the heap block for signs of corruption:
@@ -177,7 +198,9 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
           "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
               "\r\n".join(asRelevantLines);
       sBugTypeId = "OOBW";
-      uCorruptionStartAddress = sMessage == "corrupted start stamp" and oPageHeapAllocation.uStartStampAddress or oPageHeapAllocation.uEndStampAddress;
+      uCorruptionStartAddress = sMessage == "corrupted start stamp" \
+          and oPageHeapAllocation.uStartStampAddress \
+          or oPageHeapAllocation.uEndStampAddress;
       uCorruptionEndAddress = uCorruptionStartAddress + 4; # Stamps are 4 bytes
     elif sMessage in ["corrupted suffix pattern", "corrupted header"]:
       assert uCorruptionAddress is not None, \
@@ -197,7 +220,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       # Page heap sometimes does not free a heap block immediately, but overwrites the bytes with 0xF0. Verifier has
       # detected that one of the bytes changed value, which indicates a write-after-free. BugId will try to find all
       # bytes that were changed:
-      oCorruptionDetector.fbDetectCorruption(oPageHeapAllocation.uBlockStartAddress, [0xF0 for x in xrange(oPageHeapAllocation.uBlockSize)]);
+      oCorruptionDetector.fbDetectCorruption(
+        oPageHeapAllocation.uBlockStartAddress, [0xF0 for x in xrange(oPageHeapAllocation.uBlockSize)]        );
       uCorruptionStartAddress = uCorruptionAddress;
       uCorruptionEndAddress = uCorruptionStartAddress + 1; # We do not know the size, so assume one byte.
       sBugTypeId = "UAFW";
@@ -224,7 +248,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
         uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
     # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
     # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
-    sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription = ftsGetHeapBlockAndOffsetIdAndDescription(uCorruptionStartAddress, oPageHeapAllocation); 
+    sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription = \
+        ftsGetHeapBlockAndOffsetIdAndDescription(uCorruptionStartAddress, oPageHeapAllocation); 
     sBugTypeId += sHeapBlockAndOffsetId;
     sBugDescription = "Page heap detected heap corruption at 0x%X; %s." % (uCorruptionStartAddress, sHeapBlockAndOffsetDescription);
     if uCorruptionStartAddress == oPageHeapAllocation.uBlockEndAddress:
@@ -241,6 +266,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       asCorruptedBytes = oCorruptionDetector.fasCorruptedBytes();
       sBugDescription += " The following byte values were written to the corrupted area: %s." % ", ".join(asCorruptedBytes);
       sBugTypeId += oCorruptionDetector.fsCorruptionId() or "";
+    if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
+      sPageHeapHTMLOutputHeader = "Page heap output for heap block near 0x%X" % uCorruptionStartAddress;
   
   oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
   if oCdbWrapper.bGenerateReportHTML:
@@ -264,9 +291,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     # Output the page heap information for reference
     if oPageHeapAllocation:
       sPageHeapOutputHTML = sBlockHTMLTemplate % {
-        "sName": oPageHeapAllocation.uBlockStartAddress is not None \
-            and "Page heap output for heap block at 0x%X" % oPageHeapAllocation.uBlockStartAddress \
-            or "Page heap output for heap block around 0x%X" % uCorruptionStartAddress,
+        "sName": sPageHeapHTMLOutputHeader,
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
           oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
