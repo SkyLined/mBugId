@@ -108,7 +108,6 @@ class cCdbWrapper(object):
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
     
-    oCdbWrapper.oExtension = None; # The debugger extension is not loaded (yet).
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;

@@ -1,7 +1,6 @@
 import datetime, re, time;
 from cBugReport import cBugReport;
 from cCdbStoppedException import cCdbStoppedException;
-from cDebuggerExtension import cDebuggerExtension;
 from cProcess import cProcess;
 from daxExceptionHandling import daxExceptionHandling;
 from dxConfig import dxConfig;
@@ -68,9 +67,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sCommand = '.pcmd -s ".echo;";',
       sComment = "Output a CRLF after running the application",
     );
-    # Load the debugger extension
-    oCdbWrapper.oExtension = cDebuggerExtension.foLoad(oCdbWrapper);
-    
     if len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
       sStatus = "attaching to application";
     else:

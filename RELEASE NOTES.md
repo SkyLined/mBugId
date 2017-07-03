@@ -1,3 +1,13 @@
+2017-07-04
+==========
+Improvements
+------------
++ The debugger extension has been removed in favor of direct Windows API calls
+  to modify memory protection in a debugged process.
++ The bug reports now include the integrity level of the process in which the
+  bug was found and reports if it is not sandboxed (i.e. medium integrity or
+  higher).
+
 2017-07-03
 ==========
 Bug fixes
@@ -15,7 +25,6 @@ Bug fixes
 Improvements
 ------------
 + More module commands can now be retried if cdb truncates their output.
-
 
 2017-06-30
 ==========

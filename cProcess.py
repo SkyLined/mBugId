@@ -2,6 +2,7 @@ import os, re;
 from cModule import cModule;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
+from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -75,6 +76,16 @@ class cProcess(object):
     if oProcess.__uPageSize is None:
       oProcess.__uPageSize = oProcess.fuGetValue("@$pagesize", "Get page size for process");
     return oProcess.__uPageSize;
+  
+  @property
+  def uIntegrityLevel(oProcess):
+    # JIT with cache
+    try:
+      return oProcess.__uIntegrityLevel;
+    except:
+      from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
+      oProcess.__uIntegrityLevel = cProcess__fuGetIntegrityLevel(oProcess);
+      return oProcess.__uIntegrityLevel;
   
   def __fGetProcessInformation(oProcess):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
@@ -235,3 +246,4 @@ class cProcess(object):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();
     return oProcess.oCdbWrapper.fasExecuteCdbCommand(sCommand, sComment, **dxArguments);
+    

@@ -255,10 +255,11 @@ sReportHTMLTemplate = ("""
         <table>
           <tr><td>BugId:           </td><td><span class="Important"><b>%(sId)s</b></span></td></tr>
           <tr><td>Location:        </td><td><span class="Important">%(sBugLocation)s</span></td></tr>
+%(sOptionalSource)s
           <tr><td>Description:     </td><td><span class="Important">%(sBugDescription)s</span></td></tr>
           <tr><td>Version:         </td><td>%(sBinaryVersion)s</td></tr>
-%(sOptionalSource)s
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
+          <tr><td>Integrity level: </td><td><span class="Important">%(sIntegrityLevel)s</span></td></tr>
 %(sOptionalApplicationArguments)s
         </table>
         <br/>

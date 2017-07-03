@@ -1,20 +1,5 @@
 import re;
-
-PAGE_NOACCESS           =       0x1;
-PAGE_READONLY           =       0x2;
-PAGE_READWRITE          =       0x4;
-PAGE_WRITECOPY          =       0x8;
-PAGE_EXECUTE            =      0x10;
-PAGE_EXECUTE_READ       =      0x20;
-PAGE_EXECUTE_READWRITE  =      0x40;
-PAGE_EXECUTE_WRITECOPY  =      0x80;
-MEM_COMMIT              =    0x1000;
-MEM_RESERVE             =    0x2000;
-MEM_FREE                =   0x10000;
-MEM_PRIVATE             =   0x20000;
-MEM_MAPPED              =   0x40000;
-MEM_IMAGE               = 0x1000000;
-
+from WindowsAPI import *;
 
 class cVirtualAllocation(object):
   @staticmethod
@@ -153,23 +138,30 @@ class cVirtualAllocation(object):
       PAGE_EXECUTE_WRITECOPY: "PAGE_EXECUTE_WRITECOPY",
     }.get(uProtection);
   
-  def fbSetProtection(oVirtualAllocation, uProtection):
-    oCdbWrapper = oVirtualAllocation.oCdbWrapper;
-    if not oCdbWrapper.oExtension:
-      return False;
-    assert fsProtection(uProtection), \
+  def __fbSetProtection(oVirtualAllocation, uProtection):
+    assert oVirtualAllocation.fsProtection(uProtection), \
         "Invalid protection 0x%X" % uProtection;
-    uOldProtection = oCdbWrapper.oExtension.fuSetMemoryProtection(
-      oVirtualAllocation.uBaseAddress,
-      oVirtualAllocation.uSize,
-      oVirtualAllocation.uProtection
-    );
-    assert uOldProtection == oVirtualAllocation.uProtection, \
-      "Expected old memory protection to be 0x%X, but got 0x%X" % (oVirtualAllocation.uProtection, uOldProtection);
-    # Update internal value
-    oVirtualAllocation.uProtection = uProtection;
-    oVirtualAllocation.__fUpdateProtectionConvenience();
-    return True;
+    hProcess = KERNEL32.OpenProcess(PROCESS_VM_OPERATION, FALSE, oVirtualAllocation.oProcess.uId);
+    if hProcess == 0:
+      print "OpenProcess(...) => Error 0x%08X" % KERNEL32.GetLastError();
+      return None;
+    try:
+      dwOldProtectionFlags = DWORD();
+      lpAddress = LPVOID(oVirtualAllocation.uBaseAddress);
+      dwSize = SIZE_T(oVirtualAllocation.uSize);
+      flNewProtect = DWORD(uProtection);
+      lpflOldProtect = PDWORD(dwOldProtectionFlags);
+      if not KERNEL32.VirtualProtectEx( hProcess, lpAddress, dwSize, flNewProtect, lpflOldProtect):
+        print "VirtualProtectEx(...) => Error 0x%08X" % KERNEL32.GetLastError();
+        return None;
+      assert dwOldProtectionFlags.value == oVirtualAllocation.uProtection, \
+        "Expected old memory protection to be 0x%X, but got 0x%X" % (oVirtualAllocation.uProtection, uOldProtection);
+      # Update internal value
+      oVirtualAllocation.uProtection = uProtection;
+      oVirtualAllocation.__fUpdateProtectionConvenience();
+      return True;
+    finally:
+      KERNEL32.CloseHandle(hProcess);
   
   def fauGetBytesAtOffset(oVirtualAllocation, uOffset = 0, uSize = None):
     oCdbWrapper = oVirtualAllocation.oCdbWrapper;
@@ -183,10 +175,8 @@ class cVirtualAllocation(object):
       if not oVirtualAllocation.bReadable:
         # Make the memory readable if it is not
         uOriginalProtection = oVirtualAllocation.uProtection;
-        oCdbWrapper.oExtension.fuSetVirtualAllocationProtection(
-          oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize, PAGE_READONLY,
-          "Marking virtual allocation readable to extract contents",
-        );
+        assert oVirtualAllocation.__fbSetProtection(PAGE_READONLY), \
+            "Cannot modify virtual allocation protection";
       else:
         uOriginalProtection = None;
       oVirtualAllocation.__auBytes = oCdbWrapper.fauGetBytes(
@@ -194,10 +184,8 @@ class cVirtualAllocation(object):
       );
       if uOriginalProtection is not None:
         # Restore the original memory protection if it was changed.
-        oCdbWrapper.oExtension.fuSetVirtualAllocationProtection(
-          oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize, uOriginalProtection,
-          "Restoring virtual allocation protection after extracting contents",
-        );
+        assert oVirtualAllocation.__fbSetProtection(uOriginalProtection), \
+            "Cannot restore virtual allocation protection";
     return oVirtualAllocation.__auBytes[uOffset:uOffset + uSize];
   
   def fuGetValueAtOffset(oVirtualAllocation, uOffset, uSize):

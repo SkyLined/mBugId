@@ -213,6 +213,20 @@ class cBugReport(object):
           "sCollapsed": "Collapsed",
           "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
         });
+      # Get process integrity level.
+      if oBugReport.oProcess.uIntegrityLevel is None:
+        sIntegrityLevelHTML = "(unknown)";
+      else:
+        sIntegrityLevel =  " ".join([s for s in [
+          {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oBugReport.oProcess.uIntegrityLevel >> 12, "Unknown"),
+          "Integrity",
+          oBugReport.oProcess.uIntegrityLevel & 0x100 and "Plus",
+        ] if s]);
+        if oBugReport.oProcess.uIntegrityLevel >= 0x3000:
+          sIntegrityLevel += "; this process appears to run with elevated privileges!";
+        elif oBugReport.oProcess.uIntegrityLevel >= 0x2000:
+          sIntegrityLevel += "; this process appears to not be sandboxed!";
+        sIntegrityLevelHTML = "0x%X (%s)" % (oBugReport.oProcess.uIntegrityLevel, sIntegrityLevel);
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
@@ -235,6 +249,7 @@ class cBugReport(object):
                 "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
             "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
+            "sIntegrityLevel": sIntegrityLevelHTML,
             "sBlocks": "\r\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
             "sBugIdVersion": oVersionInformation.sCurrentVersion,
