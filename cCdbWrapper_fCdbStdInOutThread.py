@@ -144,13 +144,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             assert asTerminateUWPApplication == ['The "terminatePackageApp" action will be completed on next execution.'], \
                 "Unexpected .terminatepackageapp output:\r\n%s" % "\r\n".join(asTerminateUWPApplication);
           if len(oCdbWrapper.asApplicationArguments) == 0:
-            sStartUWPApplicationCommand = ".createpackageapp %s %s;" % \
+            # Note that the space between the application id and the command-terminating semi-colon MUST be there to
+            # make sure the semi-colon is not interpreted as part of the application id!
+            sStartUWPApplicationCommand = ".createpackageapp %s %s ;" % \
                 (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId);
           else:
             # This check should be superfluous, but it doesn't hurt to make sure.
             assert len(oCdbWrapper.asApplicationArguments) == 1, \
                 "Expected exactly one argument";
-            sStartUWPApplicationCommand = ".createpackageapp %s %s %s;" % \
+            # Note that the space between the argument and the command-terminating semi-colon MUST be there to make
+            # sure the semi-colon is not passed to the UWP app as part of the argument!
+            sStartUWPApplicationCommand = ".createpackageapp %s %s %s ;" % \
                 (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.asApplicationArguments[0]);
           asStartUWPApplication = oCdbWrapper.fasExecuteCdbCommand(
             sCommand = sStartUWPApplicationCommand,
