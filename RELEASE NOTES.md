@@ -1,3 +1,22 @@
+2017-07-03
+==========
+Bug fixes
+---------
++ Had to add a space to UWP commands send to cdb to prevent the command-
+  terminating semicolon from being mistaken to be part of the application id or
+  argument.
++ Handle cases where page heap prove little to no info better (i.e. don't
+  trigger uninitialize variable exceptions).
++ Fix limiting of memory dump sizes: I think there was an off-by-one-pointer
+  bug in the original code that would be caught later by an assert. This should
+  now be fixed and the size should be limited correctly. I've added tests to
+  check for this.
+
+Improvements
+------------
++ More module commands can now be retried if cdb truncates their output.
+
+
 2017-06-30
 ==========
 Changes to BugIds
