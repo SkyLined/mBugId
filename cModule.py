@@ -30,6 +30,7 @@ class cModule(object):
       asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
         sCommand = "ld %s;" % oModule.sCdbId,
         sComment = "Load symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
+        bRetryOnTruncatedOutput = True,
       );
       assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
           "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
@@ -51,6 +52,7 @@ class cModule(object):
       asDLLsOutput = oModule.oProcess.fasExecuteCdbCommand(
         sCommand = "!dlls -c 0x%X" % oModule.uStartAddress,
         sComment = "Get binary information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
+        bRetryOnTruncatedOutput = True,
         bOutputIsInformative = True,
       );
       if asDLLsOutput:
@@ -123,6 +125,7 @@ class cModule(object):
     as_lmov_Output = oProcess.fasExecuteCdbCommand(
       sCommand = "lmov %s" % s_lmov_Arguments,
       sComment = "Get module information",
+      bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     );
     assert len(as_lmov_Output) > 2, \
@@ -140,6 +143,7 @@ class cModule(object):
     as_lmo_Output = oProcess.fasExecuteCdbCommand(
       sCommand = "lmo;",
       sComment = "Get basic information on all loaded modules",
+      bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     );
     assert len(as_lmo_Output) > 1, \
@@ -159,6 +163,7 @@ class cModule(object):
     oModule.fProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
       sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
       sComment = "Get module information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
+      bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     ));
   
