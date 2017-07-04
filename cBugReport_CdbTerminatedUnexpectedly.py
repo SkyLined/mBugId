@@ -28,11 +28,12 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
+        "sOptionalSource": "",
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
         "sBinaryVersion": "Not available",
-        "sOptionalSource": "",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
+        "sOptionalIntegrityLevel": "",
         "sOptionalApplicationArguments": "",
         "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": sBlockHTMLTemplate % {

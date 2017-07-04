@@ -259,7 +259,7 @@ sReportHTMLTemplate = ("""
           <tr><td>Description:     </td><td><span class="Important">%(sBugDescription)s</span></td></tr>
           <tr><td>Version:         </td><td>%(sBinaryVersion)s</td></tr>
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
-          <tr><td>Integrity level: </td><td><span class="Important">%(sIntegrityLevel)s</span></td></tr>
+%(sOptionalIntegrityLevel)s
 %(sOptionalApplicationArguments)s
         </table>
         <br/>

@@ -215,7 +215,7 @@ class cBugReport(object):
         });
       # Get process integrity level.
       if oBugReport.oProcess.uIntegrityLevel is None:
-        sIntegrityLevelHTML = "(unknown)";
+        sOptionalIntegrityLevelHTML = "(unknown)";
       else:
         sIntegrityLevel =  " ".join([s for s in [
           {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oBugReport.oProcess.uIntegrityLevel >> 12, "Unknown"),
@@ -226,7 +226,10 @@ class cBugReport(object):
           sIntegrityLevel += "; this process appears to run with elevated privileges!";
         elif oBugReport.oProcess.uIntegrityLevel >= 0x2000:
           sIntegrityLevel += "; this process appears to not be sandboxed!";
-        sIntegrityLevelHTML = "0x%X (%s)" % (oBugReport.oProcess.uIntegrityLevel, sIntegrityLevel);
+        else:
+          sIntegrityLevel += "; this process appears to be sandboxed.";
+        sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
+            (oBugReport.oProcess.uIntegrityLevel, sIntegrityLevel);
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
@@ -247,9 +250,9 @@ class cBugReport(object):
                 "<tr><td>Source: </td><td>%s</td></tr>" % oBugReport.sBugSourceLocation or "",
             "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
                 "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
+            "sOptionalIntegrityLevel": sOptionalIntegrityLevelHTML,
             "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
-            "sIntegrityLevel": sIntegrityLevelHTML,
             "sBlocks": "\r\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
             "sBugIdVersion": oVersionInformation.sCurrentVersion,
