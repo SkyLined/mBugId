@@ -1,3 +1,12 @@
+2017-07-10
+==========
+Improvements
+------------
++ Better bug translations for Chrome, CPP, NTDLL and v8.
++ Better source links for Chrome.
++ CDB command comments are now back in the HTML report (they were accidentally
+  remove in a previous code change).
+
 2017-07-04
 ==========
 Improvements
