@@ -81,12 +81,24 @@ aoBugTranslations = [
     sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
     sTranslatedSecurityImpact = None,
   ),
+  # AVW@NULL -> Assert
+  cBugTranslation(
+    sOriginalBugTypeId = "AVW@NULL",
+    asOriginalTopStackFrameSymbols = [
+      "*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
+    ],
+    sTranslatedBugTypeId = "Assert",
+    sTranslatedBugDescription = "The application triggered a NULL pointer access violation to indicate an assertion failed.",
+    sTranslatedSecurityImpact = None,
+  ),
   # Assert -> hide irrelevant frames
   cBugTranslation(
     sOriginalBugTypeId = "Assert",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*blink::V8ScriptRunner::CallExtraOrCrash<2>",
+        "*!blink::V8ScriptRunner::CallExtraOrCrash<2>",
+      ],  [
+        "*!raise",
       ],
     ],
   ),

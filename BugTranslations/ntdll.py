@@ -36,6 +36,8 @@ aoBugTranslations = [
       ], [
         "ntdll.dll!RtlDebugFreeHeap",
       ], [
+        "ntdll.dll!RtlDeleteCriticalSection",
+      ], [
         "ntdll.dll!RtlFreeHeap",
       ], [
         "ntdll.dll!RtlpAllocateHeap",
@@ -43,6 +45,8 @@ aoBugTranslations = [
         "ntdll.dll!RtlpAllocateHeapInternal",
       ], [
         "ntdll.dll!RtlpAllocateHeapRaiseException",
+      ], [
+        "ntdll.dll!RtlpFreeDebugInfo",
       ], [
         "ntdll.dll!RtlpFreeHeap",
       ],

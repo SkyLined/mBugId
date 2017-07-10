@@ -1,4 +1,5 @@
 from cBugTranslation import cBugTranslation;
+import re;
 
 aoBugTranslations = [
   # C++ -> hide irrelevant frames
@@ -52,14 +53,16 @@ aoBugTranslations = [
       "*!__chkstk",
     ],
   ),
-  # OOM -> hide irrelevant frames
+  # Heap related issues -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = "OOM",
+    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "*!malloc",
       ], [
         "*!realloc",
+      ], [
+        "*!operator delete",
       ], [
         "*!operator new",
       ], [
