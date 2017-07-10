@@ -137,6 +137,11 @@ sReportHTMLTemplate = ("""
         font-weight: bold;
         white-space: pre;
       }
+      .CDBComment {
+        font-weight: bold;
+        white-space: pre;
+        background-color: rgba(255,255,0,0.1);
+      }
       .CDBCommandResult {
         font-weight: bold;
         white-space: pre;
