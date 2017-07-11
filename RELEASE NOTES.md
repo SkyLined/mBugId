@@ -1,3 +1,15 @@
+2017-07-11
+==========
+Changes to dxConfig and cBugId arguments.
+-----------------------------------------
+- Removed all console output from everywhere; cBugId is an engine to be used by
+  some other project, and therefore not supposed to output anything to the
+  console at any time; the project that uses it should output whatever
+  information it may want to present to the user. All `bOutput*` settings in
+  `dxConfig.py` have been removed and replaced by `fStdInInputCallback` and
+  `fStdOutOutputCallback`, similar to how stderr output was already being
+  handled.
+
 2017-07-10
 ==========
 Improvements
