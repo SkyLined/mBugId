@@ -3,12 +3,10 @@ from WindowsAPI import *;
 def cProcess__fuGetIntegrityLevel(oProcess):
   hProcess = KERNEL32.OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, oProcess.uId);
   if hProcess == 0:
-#    print "OpenProcess(..%d/0x%X...) => Error 0x%08X" % (oProcess.uId, oProcess.uId, KERNEL32.GetLastError());
     return None;
   try:
     hToken = HANDLE();
     if not KERNEL32.OpenProcessToken(hProcess, DWORD(TOKEN_QUERY), PHANDLE(hToken)):
-#      print "OpenProcessToken(...) => Error 0x%08X" % KERNEL32.GetLastError();
       return None;
     try:
       # Find out how large a TOKEN_MANDATORY_LABEL struct is:
@@ -23,7 +21,6 @@ def cProcess__fuGetIntegrityLevel(oProcess):
         # Get the TOKEN_MANDATORY_LABEL struct:
         poTokenMandatoryLabel = CAST(pTokenMandatoryLabelMemoryAddress, POINTER(TOKEN_MANDATORY_LABEL));
         if not ADVAPI32.GetTokenInformation(hToken, TokenIntegrityLevel, poTokenMandatoryLabel, dwTokenMandatoryLabelSize, PDWORD(dwTokenMandatoryLabelSize)):
-#          print "GetTokenInformation(...) => Error 0x%08X" % KERNEL32.GetLastError();
           return None;
         oTokenMandatoryLabel = poTokenMandatoryLabel.contents;
         # Found out the index of the last Sid Sub Authority

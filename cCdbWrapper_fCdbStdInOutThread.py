@@ -109,7 +109,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             if nTimeoutApplicationRunTime <= oCdbWrapper.nApplicationRunTime: # This timeout should be fired.
               oCdbWrapper.axTimeouts.remove(xTimeout);
               axTimeoutsToFire.append((fTimeoutCallback, axTimeoutCallbackArguments));
-#             print "@@@ firing timeout %.1f seconds late: %s" % (oCdbWrapper.nApplicationRunTime - nTimeoutApplicationRunTime, repr(fTimeoutCallback));
         finally:
           oCdbWrapper.oTimeoutsLock.release();
         for (fTimeoutCallback, axTimeoutCallbackArguments) in axTimeoutsToFire:

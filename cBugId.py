@@ -66,6 +66,8 @@ class cBugId(object):
     fInternalExceptionCallback = None,
     fFinishedCallback = None,
     fPageHeapNotEnabledCallback = None,
+    fStdInInputCallback = None,
+    fStdOutOutputCallback = None,
     fStdErrOutputCallback = None,
     fNewProcessCallback = None,
   ):
@@ -80,6 +82,8 @@ class cBugId(object):
     oBugId.__fInternalExceptionCallback = fInternalExceptionCallback;
     oBugId.__fFinishedCallback = fFinishedCallback;
     oBugId.__fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
+    oBugId.__fStdInInputCallback = fStdInInputCallback;
+    oBugId.__fStdOutOutputCallback = fStdOutOutputCallback;
     oBugId.__fStdErrOutputCallback = fStdErrOutputCallback;
     oBugId.__fNewProcessCallback = fNewProcessCallback;
     
@@ -119,6 +123,10 @@ class cBugId(object):
       fFinishedCallback = oBugId.__fFinishedHandler,
       fPageHeapNotEnabledCallback = oBugId.__fPageHeapNotEnabledCallback and \
           (lambda uProcessId, sBinaryName, bPreventable: oBugId.__fPageHeapNotEnabledCallback(oBugId, uProcessId, sBinaryName, bPreventable)),
+      fStdInInputCallback = oBugId.__fStdInInputCallback and \
+          (lambda sInput: oBugId.__fStdInInputCallback(oBugId, sInput)),
+      fStdOutOutputCallback = oBugId.__fStdOutOutputCallback and \
+          (lambda sOutput: oBugId.__fStdOutOutputCallback(oBugId, sOutput)),
       fStdErrOutputCallback = oBugId.__fStdErrOutputCallback and \
           (lambda sOutput: oBugId.__fStdErrOutputCallback(oBugId, sOutput)),
       fNewProcessCallback = oBugId.__fNewProcessCallback and \

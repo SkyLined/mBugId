@@ -1,7 +1,6 @@
 import time;
 
 def cCdbWrapper_fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments):
-#  print "@@@ timeout in %.1f seconds: %s" % (nTime, repr(fCallback));
   assert nTime >= 0, "Negative timeout time does not make sense";
   oCdbWrapper.oApplicationTimeLock.acquire();
   try:
@@ -15,7 +14,6 @@ def cCdbWrapper_fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments
   oCdbWrapper.oTimeoutsLock.acquire();
   try:
     oCdbWrapper.axTimeouts.append(xTimeout);
-#    print "@@@ number of timeouts: %d" % len(oCdbWrapper.axTimeouts);
   finally:
     oCdbWrapper.oTimeoutsLock.release();
   return xTimeout;
@@ -26,10 +24,5 @@ def cCdbWrapper_fClearTimeout(oCdbWrapper, xTimeout):
   try:
     if xTimeout in oCdbWrapper.axTimeouts:
       oCdbWrapper.axTimeouts.remove(xTimeout);
-#      print "@@@ cleared timeout: %s" % repr(fCallback);
-#    else:
-#      # Timeout has already fired and been removed.
-#      print "@@@ ignored clear fired timeout: %s" % repr(fCallback);
-#    print "@@@ number of timeouts: %d" % len(oCdbWrapper.axTimeouts);
   finally:
     oCdbWrapper.oTimeoutsLock.release();

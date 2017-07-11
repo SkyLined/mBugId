@@ -4,20 +4,6 @@ dxConfig = {
   ### cdb/kill binary settings
   "sDebuggingToolsPath_x86": dsDebuggingToolsPath_sISA.get("x86"),
   "sDebuggingToolsPath_x64": dsDebuggingToolsPath_sISA.get("x64"),
-  ### Console output
-  "bOutputStdIO": False,                # Output cdb input and output (commands send to cdb while debugging application
-                                        # and their output returned by cdb).
-#  "bOutputStdErr": True,               # This has been removed in favor of the cBugId.fStdErrOutputCallback argument:
-                                        # if you would like to see stderr output, add a handler for this callback to
-                                        # the arguments. The handler gets called once for each line of stderr output,
-                                        # which is passed in the first argument. Have your handler print this argument.
-  "bOutputFirstChanceExceptions": False, # Are first chance exceptions detected and output?
-#  "bOutputCommandLine": False,         # This has been removed in favor of the oCdbWrapper.sCdbCommandLine property:
-                                        # if you would like to see the command line, add a handler for 
-                                        # fApplicationRunningCallback to the arguments. This handler gets called once
-                                        # the debugger has started debugging the application. Have your handler print
-                                        # this property. You may also want to do the same for error callback handlers.
-  "bOutputProcesses": False,            # Output process details whenever one is created/attached to/terminated.
   ### Pointer settings
   "uMaxAddressOffset": 0x1000,          # How big an offset from a special address (such as NULL) do you expect in your
                                         # application? Anything within this range from a special address is considered

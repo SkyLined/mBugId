@@ -58,8 +58,8 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
   while uTries:
-    if dxConfig["bOutputStdIO"]:
-      print "cdb<%s" % repr(sCommand)[1:-1];
+    if oCdbWrapper.fStdInInputCallback:
+      oCdbWrapper.fStdInInputCallback(sCommand);
     try:
       oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
     except Exception, oException:

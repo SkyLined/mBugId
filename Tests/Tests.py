@@ -9,7 +9,7 @@ sys.path.extend([
 ]);
 
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
-bDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
+gbDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
@@ -58,6 +58,27 @@ class cTest(object):
       return "%s => %s" % ("Running <invalid>", repr(oTest.sExpectedFailedToDebugApplicationErrorMessage));
     return "%s on %s%s => %s" % (" ".join(oTest.asCommandLineArguments), oTest.sISA, oTest.bRunInShell and " (in child process)" or "", repr(oTest.sExpectedBugId));
   
+  def fOutputStdIn(oTest, oBugid, sInput):
+    oOutputLock and oOutputLock.acquire();
+    oTest.bHasOutputLock = True;
+    print "<stdin<%s" % sInput;
+    oOutputLock and oOutputLock.release();
+    oTest.bHasOutputLock = False;  
+
+  def fOutputStdOut(oTest, oBugid, sOutput):
+    oOutputLock and oOutputLock.acquire();
+    oTest.bHasOutputLock = True;
+    print "stdout>%s" % sOutput;
+    oOutputLock and oOutputLock.release();
+    oTest.bHasOutputLock = False;  
+
+  def fOutputStdErr(oTest, oBugid, sOutput):
+    oOutputLock and oOutputLock.acquire();
+    oTest.bHasOutputLock = True;
+    print "stderr>%s" % sOutput;
+    oOutputLock and oOutputLock.release();
+    oTest.bHasOutputLock = False;  
+
   def fRun(oTest, fErrorCallback):
     global bFailed, oOutputLock;
     oTest.fErrorCallback = fErrorCallback;
@@ -88,6 +109,9 @@ class cTest(object):
         fInternalExceptionCallback = oTest.fInternalExceptionHandler,
         fFailedToDebugApplicationCallback = oTest.fFailedToDebugApplicationHandler,
         fPageHeapNotEnabledCallback = oTest.fPageHeapNotEnabledHandler,
+        fStdInInputCallback = gbDebugIO and oTest.fOutputStdIn,
+        fStdOutOutputCallback = gbDebugIO and oTest.fOutputStdOut,
+        fStdErrOutputCallback = gbDebugIO and oTest.fOutputStdErr,
       );
       oTest.oBugId.fStart();
       oTest.oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
@@ -234,16 +258,14 @@ if __name__ == "__main__":
     elif asArgs[0] == "--quick": 
       bQuickTestSuite = True;
     elif asArgs[0] == "--debug": 
-      bDebugIO = True;
+      gbDebugIO = True;
       bGenerateReportHTML = True;
     else:
       break;
     asArgs.pop(0);
   if asArgs:
-    bDebugIO = True; # Single test: output stdio
+    gbDebugIO = True; # Single test: output stdio
     bGenerateReportHTML = True;
-  cBugId.dxConfig["bOutputStdIO"] = bDebugIO;
-  cBugId.dxConfig["bOutputStdErr"] = bDebugIO;
   if asArgs:
     aoTests.append(cTest(asArgs[0], asArgs[1:], None)); # Expect no exceptions.
   else:

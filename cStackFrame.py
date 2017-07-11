@@ -75,16 +75,13 @@ class cStackFrame(object):
     if sSymbol == None:
       # None means this frame should not have a symbol, if it does have a symbol, it does not match.
       bMatch = oStackFrame.sSimplifiedAddress is None;
-#      print "@@@ %s %s %s" % (sSymbol, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
       return bMatch;
     # This frame should have a symbol, if it does not have a symbol, it does not match.
     if oStackFrame.sSimplifiedAddress is None:
-#      print "@@@ %s %s %s" % (sSymbol, "!=", oStackFrame.sSimplifiedAddress);
       return False;
     if isinstance(sSymbol, cRegExp):
       # Regular expression match:
       bMatch = sSymbol.match(oStackFrame.sSimplifiedAddress) is not None;
-#      print "@@@ %s %s %s" % (sSymbol.pattern, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
     else:
       assert isinstance(sSymbol, str), \
         "symbol must be a string or a regular expression object, got %s:%s" % (type(sSymbol).__name__, repr(sSymbol));
@@ -104,5 +101,4 @@ class cStackFrame(object):
       else:
         # Match entire simplified address:
         bMatch = oStackFrame.sSimplifiedAddress.lower() == sSymbol.lower();
-#      print "@@@ %s %s %s" % (sSymbol, bMatch and "==" or "!=", oStackFrame.sSimplifiedAddress);
     return bMatch;

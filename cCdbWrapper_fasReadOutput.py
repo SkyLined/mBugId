@@ -71,8 +71,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       pass; # ignored.
     elif sChar in ("\n", ""):
       if sChar == "\n" or sLine:
-        if dxConfig["bOutputStdIO"]:
-          print "cdb>%s" % repr(sLine)[1:-1];
+        if oCdbWrapper.fStdOutOutputCallback:
+          oCdbWrapper.fStdOutOutputCallback(sLine);
         # Failure to attach will terminate cdb. This needs to be special cased:
         oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
         if oCannotAttachMatch:
@@ -103,11 +103,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
               bStartOfCommandOutput = sStartOfCommandOutputMarker and sIgnoredLine.endswith(sStartOfCommandOutputMarker);
               if bStartOfCommandOutput:
                 sIgnoredLine = sIgnoredLine[:-len(sStartOfCommandOutputMarker)]; # Remove the marker from the line;
-#            if sIgnoredLine:
-#              if sIgnoredLine == sLine:
-#                print "IGNORED %s" % repr(sIgnoredLine);
-#              else:
-#                print "IGNORED %s in %s" % (repr(sIgnoredLine), repr(sLine));
             if sIgnoredLine and bAddOutputToHTMLReport:
               sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
               sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
@@ -176,8 +171,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
       if oPromptMatch:
         oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-        if dxConfig["bOutputStdIO"]:
-          print "cdb>%s" % repr(sLine)[1:-1];
+        if oCdbWrapper.fStdOutOutputCallback:
+          oCdbWrapper.fStdOutOutputCallback(sLine);
         if not bIgnoreOutput:
           assert not sStartOfCommandOutputMarker, \
               "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);

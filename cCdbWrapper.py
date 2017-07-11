@@ -76,7 +76,9 @@ class cCdbWrapper(object):
     fInternalExceptionCallback,               # called when there is a bug in BugId itself.
     fFinishedCallback,                        # called when BugId is finished.
     fPageHeapNotEnabledCallback,              # called when page heap is not enabled for a particular binary.
-    fStdErrOutputCallback,                    # called whenever there is output on stderr
+    fStdInInputCallback,                      # called whenever a line of input is sent to stdin
+    fStdOutOutputCallback,                    # called whenever a line of output is read from stdout
+    fStdErrOutputCallback,                    # called whenever a line of output is read from stderr
     fNewProcessCallback,                      # called whenever there is a new process.
   ):
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
@@ -105,6 +107,8 @@ class cCdbWrapper(object):
     oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
     oCdbWrapper.fFinishedCallback = fFinishedCallback;
     oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
+    oCdbWrapper.fStdInInputCallback = fStdInInputCallback;
+    oCdbWrapper.fStdOutOutputCallback = fStdOutOutputCallback;
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
     
@@ -318,9 +322,8 @@ class cCdbWrapper(object):
   def __del__(oCdbWrapper):
     # Check to make sure the debugger process is not running
     oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-    if oCdbProcess and oCdbProcess.poll() is None:
-      print "*** INTERNAL ERROR: cCdbWrapper did not terminate, the cdb process is still running.";
-      oCdbProcess.terminate();
+    assert not oCdbProcess or oCdbProcess.poll() is not None, \
+        "cCdbWrapper is being destroyed while cdb is still running.";
   
   @property
   def bUsingSymbolServers(oCdbWrapper):

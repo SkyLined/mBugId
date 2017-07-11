@@ -11,43 +11,30 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oCdbWrapper,
   uRecursionLoopSize = None;
   uRecursionLoopCount = None;
   for uFirstLoopStartIndex in xrange(len(oStack.aoFrames) - 1):
-    #print "*" * 80;
-    #print "Start frame: %d %s" % (uFirstLoopStartIndex, oStack.aoFrames[uFirstLoopStartIndex].sAddress);
     # Find out how large at most a loop can be and still be repeated often enough for detection in the remaining stack:
     uRemainingStackSize = len(oStack.aoFrames) - uFirstLoopStartIndex;
     uMaxLoopSize = long(uRemainingStackSize / dxConfig["uMinStackRecursionLoops"]);
     for uLoopSize in xrange(1, min(uMaxLoopSize, dxConfig["uMaxStackRecursionLoopSize"])):
-      #print "  Checking for loops of size: %d starting at frame %d" % (uLoopSize, uFirstLoopStartIndex);
       uLoopCount = 0;
       while uFirstLoopStartIndex + (uLoopCount + 1) * uLoopSize < len(oStack.aoFrames):
         uNthLoopStartIndex = uFirstLoopStartIndex + uLoopCount * uLoopSize;
         for uFrameIndexInLoop in xrange(uLoopSize):
           oFirstLoopFrameAtIndex = oStack.aoFrames[uFirstLoopStartIndex + uFrameIndexInLoop];
           oNthLoopFrameAtIndex = oStack.aoFrames[uNthLoopStartIndex + uFrameIndexInLoop];
-          #print "    %d %s %s %d %s " % (
-          #  uFirstLoopStartIndex + uFrameIndexInLoop, oFirstLoopFrameAtIndex.sAddress, \
-          #  oFirstLoopFrameAtIndex.sAddress == oNthLoopFrameAtIndex.sAddress and "==" or "!=",
-          #  uNthLoopStartIndex + uFrameIndexInLoop, oNthLoopFrameAtIndex.sAddress
-          #);
           if oFirstLoopFrameAtIndex.sAddress != oNthLoopFrameAtIndex.sAddress:
             break;
         else:
           uLoopCount += 1;
-          #if uLoopCount == 1:
-          #  print "      Found a loop of %d frames repeated once starting at frame %d." % (uLoopSize, uFirstLoopStartIndex);
-          #else:
-          #  print "      Found a loop of %d frames repeated %d times starting at frame %d." % (uLoopSize, uLoopCount, uFirstLoopStartIndex);
           continue;
         # No more loops
         break;
       if uLoopCount < dxConfig["uMinStackRecursionLoops"]:
-        pass; #print "  - Not enough loops found";
+        pass;
       elif uRecursionLoopCount is not None and uLoopCount * uLoopSize <= uRecursionLoopCount * uRecursionLoopSize:
-        pass; #print "  - Loops contain less frames than or as many frames as best recursion found so far.";
+        pass;
         # We found enough loops to assume this is a stack recursion issue and this loop includes more frames than
         # any loop we have found so far, so this is a better result.
       else:
-        # print "  + Found a new best recursion!";
         uRecursionStartIndex = uFirstLoopStartIndex;
         uRecursionLoopSize = uLoopSize;
         uRecursionLoopCount = uLoopCount;

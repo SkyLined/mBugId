@@ -143,7 +143,6 @@ class cVirtualAllocation(object):
         "Invalid protection 0x%X" % uProtection;
     hProcess = KERNEL32.OpenProcess(PROCESS_VM_OPERATION, FALSE, oVirtualAllocation.oProcess.uId);
     if hProcess == 0:
-      print "OpenProcess(...) => Error 0x%08X" % KERNEL32.GetLastError();
       return None;
     try:
       dwOldProtectionFlags = DWORD();
@@ -152,7 +151,6 @@ class cVirtualAllocation(object):
       flNewProtect = DWORD(uProtection);
       lpflOldProtect = PDWORD(dwOldProtectionFlags);
       if not KERNEL32.VirtualProtectEx( hProcess, lpAddress, dwSize, flNewProtect, lpflOldProtect):
-        print "VirtualProtectEx(...) => Error 0x%08X" % KERNEL32.GetLastError();
         return None;
       assert dwOldProtectionFlags.value == oVirtualAllocation.uProtection, \
         "Expected old memory protection to be 0x%X, but got 0x%X" % (oVirtualAllocation.uProtection, uOldProtection);
