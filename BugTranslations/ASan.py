@@ -57,7 +57,7 @@ aoBugTranslations = [
     ],
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        re.compile("^.*!__asan_report_load\d+$"),
+        re.compile("^.*!__asan_report_(load|store)\d+$"),
       ],
     ],
     sTranslatedBugTypeId = "ASan:Error",
