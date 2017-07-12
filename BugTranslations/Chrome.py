@@ -15,7 +15,7 @@ aoBugTranslations = [
   # Breakpoint (hide irrelevant frames only)
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
-    asOriginalTopStackFrameSymbols = [
+    aasAdditionalIrrelevantStackFrameSymbols = [
       "*!base::debug::BreakDebugger",
     ],
   ),
@@ -56,13 +56,6 @@ aoBugTranslations = [
       "*!blink::reportFatalErrorInMainThread",
       "*!v8::Utils::ReportApiFailure",
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!v8::Utils::ApiCheck",
-      ], [
-        "*!`anonymous namespace'::Create", # Part of skia
-      ],
-    ],
     sTranslatedBugTypeId = "Assert",
     sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
     sTranslatedSecurityImpact = None,
@@ -72,11 +65,6 @@ aoBugTranslations = [
     asOriginalTopStackFrameSymbols = [
       "*!logging::LogMessage::~LogMessage",
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!blink::ReportFatalErrorInMainThread",
-      ],
-    ],
     sTranslatedBugTypeId = "Assert",
     sTranslatedBugDescription = "The application triggered a breakpoint to indicate an assertion failed.",
     sTranslatedSecurityImpact = None,
@@ -84,8 +72,10 @@ aoBugTranslations = [
   # AVW@NULL -> Assert
   cBugTranslation(
     sOriginalBugTypeId = "AVW@NULL",
-    asOriginalTopStackFrameSymbols = [
-      "*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
+      ],
     ],
     sTranslatedBugTypeId = "Assert",
     sTranslatedBugDescription = "The application triggered a NULL pointer access violation to indicate an assertion failed.",
@@ -96,11 +86,31 @@ aoBugTranslations = [
     sOriginalBugTypeId = "Assert",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
+        "*!abort",
+      ], [
+        "*!`anonymous namespace'::Create", # Part of skia
+      ], [
+        "*!blink::ReportFatalErrorInMainThread",
+      ], [
         "*!blink::V8ScriptRunner::CallExtraOrCrash<2>",
-      ],  [
+      ], [
         "*!raise",
+      ], [
+        "*!sk_abort_no_print",
+      ], [
+        "*!v8::Utils::ApiCheck",
       ],
     ],
+  ),
+  # Assert -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "Assert",
+    asOriginalTopStackFrameSymbols = [
+      "*!SkBitmap::allocPixels",
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application caused an access violation by writing to NULL to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
   ),
   # AVW@NULL -> OOM
   cBugTranslation(
@@ -124,18 +134,6 @@ aoBugTranslations = [
         "*!WTF::partitionsOutOfMemoryUsing512M",
       ], [
         "*!WTF::partitionExcessiveAllocationSize",
-      ], [
-        "*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
-        "*!raise",
-        "*!abort",
-        "*!sk_abort_no_print",
-        "*!SkBitmap::allocPixels",
-      ], [
-        "*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
-        "*!raise",
-        "*!abort",
-        "*!sk_abort_no_print",
-        "*!SkBitmap::allocPixels",
       ],
     ],
     sTranslatedBugTypeId = "OOM",
@@ -166,10 +164,6 @@ aoBugTranslations = [
         "*!sk_malloc_flags",
       ], [
         "*!sk_malloc_nothrow",
-      ], [
-        "*!SkBitmap::allocPixels",
-      ], [
-        "*!SkBitmap::allocN32Pixels",
       ], [
         "*!SkBitmap::allocPixels",
       ], [
