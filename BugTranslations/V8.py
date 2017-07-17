@@ -31,6 +31,8 @@ aoBugTranslations = [
       ], [
         "*!v8::base::OS::Abort",
       ], [
+        "*!v8::MaybeLocal<...>::ToLocalChecked",
+      ], [
         "*!v8::Utils::ReportApiFailure",
       ], [
         "*!v8::Utils::ApiCheck",

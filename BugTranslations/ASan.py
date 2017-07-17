@@ -13,6 +13,7 @@ aoBugTranslations = [
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
     sTranslatedSecurityImpact = None,
   ),
+  # Breakpoint --> ASan
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
     asOriginalTopStackFrameSymbols = [
@@ -27,28 +28,36 @@ aoBugTranslations = [
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected an issue.",
     sTranslatedSecurityImpact = "The security implications of this issue are unknown",
   ),
+  # IllegalInstruction --> ASan
   cBugTranslation(
-    sOriginalBugTypeId = "ASan",
-    aasOriginalTopStackFrameSymbols = [
+    sOriginalBugTypeId = "IllegalInstruction",
+    asOriginalTopStackFrameSymbols = [
+      "*!__sanitizer::Trap",
+    ],
+    sTranslatedBugTypeId = "ASan",
+    sTranslatedBugDescription = "ASan triggered an illegal instruction to indicate it detected an issue.",
+    sTranslatedSecurityImpact = "The security implications of this issue are unknown",
+  ),
+  # ASan -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = "Asan",
+    aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "*!__asan::AsanCheckFailed",
+      ], [
+        "*!__sanitizer::BlockingMutex::Lock",
+      ], [
         "*!__sanitizer::CheckFailed",
-        "*!__sanitizer::ReportAllocatorCannotReturnNull",
       ], [
-        "*!__asan::AsanCheckFailed",
-        "*!__sanitizer::CheckFailed",
-        "*!__sanitizer::ReportMmapFailureAndDie",
+        "*!__sanitizer::GenericScopedLock<...>::{ctor}",
       ], [
-        "*!__sanitizer::ReportMmapFailureAndDie",
+        "*!__sanitizer::StackTrace::Print",
       ], [
-        "*!__sanitizer::Abort",
-        "*!__asan::ReserveShadowMemoryRange",
+        "*!__sanitizer::Symbolizer::SymbolizePC",
       ],
     ],
-    sTranslatedBugTypeId = "OOM",
-    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
-    sTranslatedSecurityImpact = None,
   ),
+  # ASan --> ASan:Error
   cBugTranslation(
     sOriginalBugTypeId = "ASan",
     asOriginalTopStackFrameSymbols = [
@@ -63,6 +72,23 @@ aoBugTranslations = [
     sTranslatedBugTypeId = "ASan:Error",
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected something.",
     sTranslatedSecurityImpact = "The security implications of this issue are unknown",
+  ),
+  # ASan --> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "ASan",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "*!__sanitizer::ReportAllocatorCannotReturnNull",
+      ], [
+        "*!__sanitizer::ReportMmapFailureAndDie",
+      ], [
+        "*!__sanitizer::Abort",
+        "*!__asan::ReserveShadowMemoryRange",
+      ],
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
   ),
   # OOM (hide irrelevant frames only)
   cBugTranslation(

@@ -16,7 +16,9 @@ aoBugTranslations = [
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
     aasAdditionalIrrelevantStackFrameSymbols = [
-      "*!base::debug::BreakDebugger",
+      [
+        "*!base::debug::BreakDebugger",
+      ],
     ],
   ),
   # Breakpoint -> OOM
@@ -91,6 +93,8 @@ aoBugTranslations = [
         "*!`anonymous namespace'::Create", # Part of skia
       ], [
         "*!blink::ReportFatalErrorInMainThread",
+      ], [
+        "*!blink::V8ScriptRunner::CallExtraOrCrash",
       ], [
         "*!blink::V8ScriptRunner::CallExtraOrCrash<2>",
       ], [

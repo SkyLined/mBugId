@@ -47,6 +47,14 @@ class cBugTranslation(object):
     if aasAdditionalIrrelevantStackFrameSymbols is NOT_PROVIDED:
       aasAdditionalIrrelevantStackFrameSymbols = [];
     else:
+      for asAdditionalIrrelevantStackFrameSymbols in aasAdditionalIrrelevantStackFrameSymbols:
+        assert type(asAdditionalIrrelevantStackFrameSymbols) == list, \
+            "aasAdditionalIrrelevantStackFrameSymbols should be a list with lists, got list with %s:%s" % \
+            (type(asAdditionalIrrelevantStackFrameSymbols).__name__, repr(asAdditionalIrrelevantStackFrameSymbols));
+        for sAdditionalIrrelevantStackFrameSymbol in asAdditionalIrrelevantStackFrameSymbols:
+          assert type(sAdditionalIrrelevantStackFrameSymbol) in [str, cRegExp], \
+              "aasAdditionalIrrelevantStackFrameSymbols should be a list with lists with strs or regular expressions, got list with lists with %s:%s" % \
+              (type(sAdditionalIrrelevantStackFrameSymbol).__name__, repr(sAdditionalIrrelevantStackFrameSymbol));
       aasAdditionalIrrelevantStackFrameSymbols.sort(key=len, reverse=True);
     oBugTranslation.aasAdditionalIrrelevantStackFrameSymbols = aasAdditionalIrrelevantStackFrameSymbols;
     oBugTranslation.sTranslatedBugTypeId = sTranslatedBugTypeId;
