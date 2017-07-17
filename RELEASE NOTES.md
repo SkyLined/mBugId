@@ -1,3 +1,23 @@
+2017-07-17
+==========
+Bug fixes
+---------
++ When getting a "better" function symbol from a call instruction, any offset
+  was not detected if it was more than 15 (i.e. at least two hex digits). This
+  could lead to incorrect symbols being used. This change will modify the BugId
+  of some issues where this issue was previously triggered, but it should
+  make the results more accurate and helpful. 
+
+Improvements
+------------
++ Better bug translations for Asan, Chrome, and v8.
++ Change default number of stack frames to 100 (from 40) because I ran into
+  some cases where there were over 40 irrelevant functions on the stack, so
+  BugId was unable to determine the function in which the actual problem was.
+  (Background: ASan appears to use a recursive function call to do something
+  while reporting errors, which results in many ASan related functions on the
+  stack, which should be ignored).
+
 2017-07-11
 ==========
 Changes to dxConfig and cBugId arguments.
