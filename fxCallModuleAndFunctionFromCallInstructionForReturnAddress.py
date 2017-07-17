@@ -24,14 +24,12 @@ def fxCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturn
     sDissassemblyBeforeReturnAddress = asDisassemblyBeforeReturnAddressOutput[1];
   oDirectCallMatch = re.match(
     "^(?:%s)$" % "".join([
-      r"[0-9`a-f]+",                            # instruction_address
-      r"\s+" r"e8" r"[0-9`a-f]{8}",             # space "e8" call_offset
-      r"\s+" r"call",                           # space "call" 
-      r"\s+" r"(\w+)" r"!" r"(.+?)",            # space (cdb_module_id) "!" (function_name) 
-      r"("                                      # [
-        r"\s*" r"\+" r"\s*0x" r"[0-9`a-f]"      #   ([space] "+" [space] offset)
-      r")?",                                    # ]
-      r"\s+" r"\([0-9`a-f]+\)",                 # space "(" address ")"
+      r"[0-9`a-f]+",                                  # instruction_address
+      r"\s+" r"e8" r"[0-9`a-f]{8}",                   # space "e8" call_offset
+      r"\s+" r"call",                                 # space "call" 
+      r"\s+" r"(\w+)" r"!" r"(.+?)",                  # space (cdb_module_id) "!" (function_name) 
+      r"(" r"\s*" r"\+" r"\s*0x" r"[0-9`a-f]+" r")?", # [ [space] "+" [space] offset ]
+      r"\s+" r"\([0-9`a-f]+\)",                       # space "(" address ")"
     ]),
     sDissassemblyBeforeReturnAddress,
     re.I,
