@@ -64,7 +64,7 @@ dxConfig = {
                                         # large that it causes a "Range error" in cdb. e.g. attempting to dump 0x6034C
                                         # pointers will fail. I've set a reasonable default, feel free to experiment.
   ### HTML Report Stack settings
-  "uMaxStackFramesCount": 40,           # How many stack frames are retreived for analysis?
+  "uMaxStackFramesCount": 100,          # How many stack frames are retreived for analysis?
   "uMinStackRecursionLoops": 3,         # How many recursive functions call loops are needed to assume a stack overflow
                                         # is caused by such a loop?
   "uMaxStackRecursionLoopSize": 100,    # The maximum number of functions expected to be in a loop (less increases
