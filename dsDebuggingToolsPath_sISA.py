@@ -13,13 +13,14 @@ if sDebuggingToolsEnvironmentVariable_x86:
 sDebuggingToolsEnvironmentVariable_x64 = os.getenv("DebuggingTools_x64");
 if sDebuggingToolsEnvironmentVariable_x64:
   dasPotentialDebuggingToolsPaths_sISA["x64"].append(sDebuggingToolsEnvironmentVariable_x64.strip('"'));
-
+import sys
 # Add default installation paths:
 sProgramFilesPath_x86 = os.getenv("ProgramFiles(x86)") or os.getenv("ProgramFiles");
 sProgramFilesPath_x64 = os.getenv("ProgramW6432");
 dasPotentialDebuggingToolsPaths_sISA["x86"].extend([
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "10", "Debuggers", "x86"),
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "8.1", "Debuggers", "x86"),
+  os.path.join(sys.path[0], "BugId", "modules", "WinDbg-x86"),
 ]);
 if sOSISA == "x64":
   dasPotentialDebuggingToolsPaths_sISA["x64"].extend([
