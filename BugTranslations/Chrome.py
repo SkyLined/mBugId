@@ -157,6 +157,8 @@ aoBugTranslations = [
       ], [
         "*!base::PartitionAllocGenericFlags",
       ], [
+        "*!base::UncheckedCalloc",
+      ], [
         "*!base::UncheckedMalloc",
       ], [
         "*!blink::`anonymous namespace'::ArrayBufferAllocator::Allocate",
