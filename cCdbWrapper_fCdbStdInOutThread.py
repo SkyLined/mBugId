@@ -533,8 +533,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           bShowCommandInHTMLReport = False,
           bRetryOnTruncatedOutput = True,
         );
-        assert uBreakpointId in oCdbWrapper.dfCallback_by_uBreakpointId, \
-            "A breakpoint was encountered that was not set by BugId!";
         fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
         fBreakpointCallback(uBreakpointId);
         continue;
