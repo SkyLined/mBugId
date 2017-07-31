@@ -8,8 +8,6 @@ from NTSTATUS import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput):
-  if uExceptionCode not in [STATUS_BREAKPOINT, STATUS_WX86_BREAKPOINT]:
-    return None; # Not a VERIFIER STOP
   uErrorNumber = None;
   uProcessId = None;
   sMessage = None;
