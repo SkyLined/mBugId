@@ -275,7 +275,7 @@ if __name__ == "__main__":
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
     # This will try to debug a non-existing application and check that the error thrown matches the expected value.
     aoTests.append(cTest("x86",     None,                                                     None, \
-        'Failed to start application "<invalid>": Win32 error 0n2!\r\nDid you provide the correct the path and name of the executable?'));
+        'Failed to start application "<invalid>": Win32 error 0n2!\r\n- You may have provided an incorrect path to the executable.'));
     for sISA in asTestISAs:
       aoTests.append(cTest(sISA,    ["Nop"],                                                  None)); # No exceptions, just a clean program exit.
       aoTests.append(cTest(sISA,    ["Breakpoint"],                                           "Breakpoint ed2.531"));

@@ -3,11 +3,21 @@ from cCdbStoppedException import cCdbStoppedException;
 from dxConfig import dxConfig;
 from FileSystem import FileSystem;
 
-dsTip_by_sErrorCode = {
-  "Win32 error 0n2": "Did you provide the correct the path and name of the executable?",
-  "Win32 error 0n5": "You may need to have administrator rights.",
-  "NTSTATUS 0xC00000BB": "Are you using a 32-bit debugger with a 64-bit process?",
-  "NTSTATUS 0xC000010A": "The process was terminated before the debugger could attach",
+dsTips_by_sErrorCode = {
+  "Win32 error 0n2": "\r\n".join([
+    "- You may have provided an incorrect path to the executable."
+  ]),
+  "Win32 error 0n5": "\r\n".join([
+    "- You may have provided an incorrect path to the executable,"
+    "- you may not have the required permissions to read and/or execute the executable,"
+    "- you may need to run as an administrator."
+  ]),
+  "NTSTATUS 0xC00000BB": "\r\n".join([
+    "- You may be trying to debug a 64-bit process with a 64-bit debugger.",
+  ]),
+  "NTSTATUS 0xC000010A": "\r\n".join([
+    "- The process appears to have terminated right before the debugger could attach."
+  ]),
 };
 
 # This will be output right in the middle of a line. Luckily it ends with a CRLF, so we can remove it from
@@ -82,8 +92,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             sErrorMessage = "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
           else:
             sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
-          if sErrorCode in dsTip_by_sErrorCode:
-            sErrorMessage += "\r\n" + dsTip_by_sErrorCode[sErrorCode];
+          if sErrorCode in dsTips_by_sErrorCode:
+            sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
           oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
           oCdbWrapper.fStop();
         bConcatinateReturnedLineToNext = False;
