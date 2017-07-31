@@ -331,7 +331,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         if oCdbWrapper.nApplicationResumeDebuggerTime:
           # Add the time between when the application was resumed and when the event happened to the total application
           # run time.
-          oCdbWrapper.__nConfirmedApplicationRunTime += fnGetDebuggerTime(oEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTime;
+          oCdbWrapper.nConfirmedApplicationRunTime += fnGetDebuggerTime(oEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTime;
         # Mark the application as suspended by setting nApplicationResumeDebuggerTime to None.
         oCdbWrapper.nApplicationResumeDebuggerTime = None;
         oCdbWrapper.nApplicationResumeTime = None;
