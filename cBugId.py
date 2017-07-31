@@ -155,8 +155,8 @@ class cBugId(object):
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
-  def foSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
-    return oBugId.__oCdbWrapper.foSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
+  def foSetTimeout(oBugId, sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments):
+    return oBugId.__oCdbWrapper.foSetTimeout(sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, oTimeout):
     oBugId.__oCdbWrapper.fClearTimeout(oTimeout);
@@ -164,7 +164,7 @@ class cBugId(object):
   def fnApplicationRunTime(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
-    return oBugId.__oCdbWrapper.fnApplicationRunTime();
+    return oBugId.__oCdbWrapper.nApplicationRunTime;
   
   def fAttachToProcessesForBinaryName(oBugId, sBinaryName):
     return oBugId.__oCdbWrapper.fAttachToProcessesForBinaryName(sBinaryName);
