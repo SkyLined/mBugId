@@ -437,4 +437,4 @@ class cExcessiveCPUUsageDetector(object):
             if bDebugOutputGetUsageData: print "| %4X  %6s %s" % (uThreadId, nTime is None and "?" or ("+%.3f" % nTime), repr(sLine));
     if bDebugOutputGetUsageData: print "'".ljust(120, "-");
     oExcessiveCPUUsageDetector.ddnLastCPUTime_by_uThreadId_by_ProcessId = ddnCPUTime_by_uThreadId_by_uProcessId;
-    oExcessiveCPUUsageDetector.nLastRunTime = oCdbWrapper.fnApplicationRunTime();
+    oExcessiveCPUUsageDetector.nLastRunTime = oCdbWrapper.nApplicationRunTime;
