@@ -1,13 +1,12 @@
 import itertools, os, re, subprocess, sys, threading, time;
-from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
+from cCdbWrapper_fAskCdbToInterruptApplication import cCdbWrapper_fAskCdbToInterruptApplication;
+from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
 from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
-from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
-from cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts import cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
 from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
@@ -145,18 +144,11 @@ class cCdbWrapper(object):
     # See fSetCheckForExcessiveCPUUsageTimeout and cExcessiveCPUUsageDetector.py for more information
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
     # Keep track of timeouts that should fire at some point in the future and timeouts that should fire now.
-    oCdbWrapper.aoFutureTimeouts = [];
-    oCdbWrapper.aoCurrentTimeouts = [];
-    oCdbWrapper.oTimeoutsLock = threading.Lock();
-    # incremented whenever a CTRL+BREAK event is sent to cdb by the interrupt-on-timeout thread, so the stdio thread
-    # knows to expect a DBG_CONTROL_BREAK exception and won't report it as an error.
-    oCdbWrapper.uCdbBreakExceptionsPending = 0;
-    # oCdbLock is used by oCdbStdInOutThread and oCdbInterruptOnTimeoutThread to allow the former to execute commands
-    # (other than "g") without the later attempting to get cdb to suspend the application with a breakpoint, and vice
-    # versa. It's acquired on behalf of the former, to prevent the later from interrupting before the application has
-    # even started.
-    oCdbWrapper.oCdbLock = threading.Lock();
-    oCdbWrapper.oCdbLock.acquire();
+    oCdbWrapper.aoTimeouts = [];
+    oCdbWrapper.bApplicationIsRunnning = False; # Will be set to true while the application is running in cdb.
+    oCdbWrapper.bCdbHasBeenAskedToInterruptApplication = False; # Will be set to true while the application is running and being interrupted in cdb.
+    # Lock for the above four timeout and interrupt variables
+    oCdbWrapper.oTimeoutAndInterruptLock = threading.Lock();
     oCdbWrapper.bCdbStdInOutThreadRunning = True; # Will be set to false if the thread terminates for any reason.
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
@@ -184,7 +176,11 @@ class cCdbWrapper(object):
       oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
       oCdbWrapper.__fStartDebugger();
     else:
-      oCdbWrapper.fInterrupt(oCdbWrapper.__fActuallyAttachToProcessById, uProcessId);
+      oCdbWrapper.fInterrupt(
+        "Attaching to process",
+        oCdbWrapper.__fActuallyAttachToProcessById,
+        uProcessId
+      );
   
   def __fActuallyAttachToProcessById(oCdbWrapper, uProcessId):
     asAttachToProcess = oCdbWrapper.fasExecuteCdbCommand( \
@@ -214,13 +210,11 @@ class cCdbWrapper(object):
     if sSymbolsPath:
       asCommandLine += ["-y", sSymbolsPath];
     # Create a thread that interacts with the debugger to debug the application
-    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbStdInOutThread);
+    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdInOutThread);
     # Create a thread that reads stderr output and shows it in the console
-    oCdbWrapper.oCdbStdErrThread = oCdbWrapper._foThread(cCdbWrapper_fCdbStdErrThread);
-    # Create a thread that checks for a timeout to interrupt cdb when needed.
-    oCdbWrapper.oCdbInterruptOnTimeoutThread = oCdbWrapper._foThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
+    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdErrThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCdbCleanupThread = oCdbWrapper._foThread(cCdbWrapper_fCdbCleanupThread);
+    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbCleanupThread);
     # We may need to start a dummy process if we're starting a UWP application. See below.
     if oCdbWrapper.sApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
@@ -258,13 +252,15 @@ class cCdbWrapper(object):
     );
     oCdbWrapper.oCdbStdInOutThread.start();
     oCdbWrapper.oCdbStdErrThread.start();
-    oCdbWrapper.oCdbInterruptOnTimeoutThread.start();
     oCdbWrapper.oCdbCleanupThread.start();
   
-  def _foThread(oCdbWrapper, fActivity):
-    return threading.Thread(target = oCdbWrapper._fThreadWrapper, args = (fActivity,));
+  def foVitalThread(oCdbWrapper, fActivity):
+    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, True));
   
-  def _fThreadWrapper(oCdbWrapper, fActivity):
+  def foHelperThread(oCdbWrapper, fActivity):
+    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, False));
+  
+  def __fThreadWrapper(oCdbWrapper, fActivity, bVital):
     try:
       # If there is not exception callback, do not handle exceptions:
       if not oCdbWrapper.fInternalExceptionCallback:
@@ -284,24 +280,24 @@ class cCdbWrapper(object):
       if oCdbProcess.poll() is not None:
         oCdbWrapper.bCdbRunning = False;
         return;
-      oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-      # cdb is still running: try to terminate cdb the normal way.
-      try:
-        oCdbProcess.terminate();
-      except:
-        pass;
-      else:
+      if bVital:
+        # A vital thread terminated and cdb is still running: terminate cdb
+        try:
+          oCdbProcess.terminate();
+        except:
+          pass;
+        else:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        if oCdbProcess.poll() is not None:
+          oCdbWrapper.bCdbRunning = False;
+          return;
+        # cdb is still running: try to terminate cdb the hard way.
+        fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
+        # Make sure cdb finally died.
+        assert oCdbProcess.poll() is not None, \
+            "cdb did not die after killing it repeatedly";
         oCdbWrapper.bCdbRunning = False;
-        return;
-      if oCdbProcess.poll() is not None:
-        oCdbWrapper.bCdbRunning = False;
-        return;
-      # cdb is still running: try to terminate cdb the hard way.
-      fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
-      # Make sure cdb finally died.
-      assert oCdbProcess.poll() is not None, \
-          "cdb did not die after killing it repeatedly";
-      oCdbWrapper.bCdbRunning = False;
   
   def fStop(oCdbWrapper):
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
@@ -409,13 +405,13 @@ class cCdbWrapper(object):
   def fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   # Timeouts/interrupt
-  def foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments):
-    return cCdbWrapper_foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments);
+  def foSetTimeout(oCdbWrapper, sDescription, nTime, fCallback, *axCallbackArguments):
+    return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTime, fCallback, *axCallbackArguments);
   def fClearTimeout(oCdbWrapper, oTimeout):
     return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
-  def fInterrupt(oCdbWrapper, fCallback, *axCallbackArguments):
+  def fInterrupt(oCdbWrapper, sDescription, fCallback, *axCallbackArguments):
     # An interrupt is implemented as an immediate timeout
-    return cCdbWrapper_foSetTimeout(oCdbWrapper, 0, fCallback, *axCallbackArguments);
+    cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, 0, fCallback, *axCallbackArguments);
   # cdb I/O
   def fasReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);
@@ -439,5 +435,5 @@ class cCdbWrapper(object):
   def fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames):
     return cCdbWrapper_fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames);
   
-  def fMakeSureApplicationIsInterruptedToHandleTimeouts(oCdbWrapper):
-    cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts(oCdbWrapper);
+  def fAskCdbToInterruptApplication(oCdbWrapper):
+    cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);

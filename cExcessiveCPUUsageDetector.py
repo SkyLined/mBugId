@@ -40,11 +40,13 @@ class cExcessiveCPUUsageDetector(object):
           oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.oCleanupTimeout);
           oExcessiveCPUUsageDetector.oCleanupTimeout = None;
         oExcessiveCPUUsageDetector.oCleanupTimeout = oCdbWrapper.foSetTimeout(
+          sDescription = "Cleanup for excessive CPU Usage detector",
           nTime = 0,
           fCallback = oExcessiveCPUUsageDetector.fCleanup,
         );
       if nTimeout is not None:
         oExcessiveCPUUsageDetector.oStartTimeout = oCdbWrapper.foSetTimeout(
+          sDescription = "Start excessive CPU Usage detector",
           nTime = nTimeout, 
           fCallback = oExcessiveCPUUsageDetector.fStart,
         );
@@ -86,6 +88,7 @@ class cExcessiveCPUUsageDetector(object):
     try:
       nTimeout = dxConfig["nExcessiveCPUUsageCheckInterval"];
       oExcessiveCPUUsageDetector.oCheckUsageTimeout = oCdbWrapper.foSetTimeout(
+        sDescription = "Check CPU usage for excessive CPU Usage detector",
         nTime = nTimeout,
         fCallback = oExcessiveCPUUsageDetector.fCheckUsage,
       );
@@ -176,6 +179,7 @@ class cExcessiveCPUUsageDetector(object):
         # No thread suspected of excessive CPU usage: measure CPU usage over another interval.
         nTimeout = dxConfig["nExcessiveCPUUsageCheckInterval"];
         oExcessiveCPUUsageDetector.oCheckUsageTimeout = oCdbWrapper.foSetTimeout(
+          sDescription = "Check CPU usage for excessive CPU Usage detector",
           nTime = nTimeout,
           fCallback = oExcessiveCPUUsageDetector.fCheckUsage,
         );
@@ -243,6 +247,7 @@ class cExcessiveCPUUsageDetector(object):
     assert oExcessiveCPUUsageDetector.uWormBreakpointId is not None, \
         "Could not create breakpoint at 0x%X" % oExcessiveCPUUsageDetector.uLastInstructionPointer;
     oExcessiveCPUUsageDetector.oWormRunTimeout = oCdbWrapper.foSetTimeout(
+        sDescription = "Start worm for excessive CPU Usage detector",
         nTime = dxConfig["nExcessiveCPUUsageWormRunTime"],
         fCallback = oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout,
     );
@@ -307,6 +312,7 @@ class cExcessiveCPUUsageDetector(object):
       # Start a new timeout for the function that is now executing.
       oCdbWrapper.fClearTimeout(oExcessiveCPUUsageDetector.oWormRunTimeout);
       oExcessiveCPUUsageDetector.oWormRunTimeout = oCdbWrapper.foSetTimeout(
+        sDescription = "End worm for excessive CPU Usage detector",
         nTime = dxConfig["nExcessiveCPUUsageWormRunTime"],
         fCallback = oExcessiveCPUUsageDetector.fSetBugBreakpointAfterTimeout,
       );

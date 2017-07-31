@@ -4,31 +4,18 @@ from dxConfig import dxConfig;
 def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
   # Thread that checks if a timeout has fired every N seconds (N = nTimeoutInterruptGranularity in dxConfig.py).
   while 1:
-    bTimeout = False;
-    # Wait for cdb to be running or have terminated...
-    oCdbWrapper.oCdbLock.acquire();
+    oCdbWrapper.oTimeoutAndInterruptLock.acquire();
     try:
-      # Stop as soon as debugging has stopped.
-      if not oCdbWrapper.bCdbRunning: return;
-      if not oCdbWrapper.bCdbStdInOutThreadRunning: return;
-      # Get exclusive access to timeout info
-      oCdbWrapper.oTimeoutsLock.acquire();
-      try:
-        # If timeouts are already scheduled to fire, no need to schedule more here.
-        if oCdbWrapper.aoCurrentTimeouts:
+      if not oCdbWrapper.bApplicationIsRunnning or not oCdbWrapper.bCdbRunning or oCdbWrapper.bCdbHasBeenAskedToInterruptApplication:
+        return; # This thread is no longer needed.
+      # Time spent running before the application was resumed + time since the application was resumed.
+      nApplicationRunTime = oCdbWrapper.fnApplicationRunTime();
+      # See if any timeout should be fired:
+      for oTimeout in oCdbWrapper.aoTimeouts[:]:
+        if oTimeout.fbShouldFire(nApplicationRunTime):
+          oCdbWrapper.fAskCdbToInterruptApplication();
           return;
-        # Time spent running before the application was resumed + time since the application was resumed.
-        nApplicationRunTime = oCdbWrapper.fnApplicationRunTime();
-        # Mark all future timeouts that should fire as current
-        for oTimeout in oCdbWrapper.aoFutureTimeouts[:]:
-          if oTimeout.fbShouldFire(nApplicationRunTime):
-            oCdbWrapper.aoFutureTimeouts.remove(oTimeout);
-            oCdbWrapper.aoCurrentTimeouts.append(oTimeout);
-        # If any timeouts were marked as current, make sure the application is interrupted to handle them
-        if oCdbWrapper.aoCurrentTimeouts:
-          oCdbWrapper.fMakeSureApplicationIsInterruptedToHandleTimeouts();
-      finally:
-        oCdbWrapper.oTimeoutsLock.release();
     finally:
-      oCdbWrapper.oCdbLock.release();
+      oCdbWrapper.oTimeoutAndInterruptLock.release();
+    # Wait for a bit before checking again
     time.sleep(dxConfig["nTimeoutGranularity"]);

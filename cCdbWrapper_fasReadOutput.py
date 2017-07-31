@@ -1,5 +1,6 @@
 import re, time;
 from cCdbStoppedException import cCdbStoppedException;
+from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from dxConfig import dxConfig;
 from FileSystem import FileSystem;
 
@@ -36,7 +37,7 @@ rAlwaysIgnoredCdbOutputLine = re.compile("^(.*?)((?:\*\*\* )?(?:%s))$" % "|".joi
 
 def cCdbWrapper_fasReadOutput(oCdbWrapper,
   bOutputIsInformative = False,
-  bOutputCanContainApplicationOutput = False,
+  bApplicationWillBeRun = False,
   bHandleSymbolLoadErrors = True,
   bIgnoreOutput = False,
   srIgnoreErrors = None,
@@ -65,140 +66,160 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and (
       dxConfig["bShowAllCdbCommandsInReport"]
       or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"])
-      or bOutputCanContainApplicationOutput
+      or bApplicationWillBeRun
     );
     bAddImportantLinesToHTMLReport = oCdbWrapper.bGenerateReportHTML and (
-      bOutputCanContainApplicationOutput
+      bApplicationWillBeRun
       and oCdbWrapper.rImportantStdOutLines
     );
   if bAddOutputToHTMLReport:
     nStartTime = time.clock();
   sLine = "";
   asLines = [];
-  while 1:
-    sChar = oCdbWrapper.oCdbProcess.stdout.read(1);
-    if sChar == "\r":
-      pass; # ignored.
-    elif sChar in ("\n", ""):
-      if sChar == "\n" or sLine:
-        if oCdbWrapper.fStdOutOutputCallback:
-          oCdbWrapper.fStdOutOutputCallback(sLine);
-        # Failure to attach will terminate cdb. This needs to be special cased:
-        oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
-        if oCannotAttachMatch:
-          sProcessId, sApplicationExecutable, sErrorCode = oCannotAttachMatch.groups();
-          if sProcessId:
-            uProcessId = long(sProcessId);
-            sErrorMessage = "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
-          else:
-            sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
-          if sErrorCode in dsTips_by_sErrorCode:
-            sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
-          oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
-          oCdbWrapper.fStop();
-        bConcatinateReturnedLineToNext = False;
-        if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
-          # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
-          # first chance C++ exception happens. These lines are clutter and MSIE outputs a lot of them, so they are
-          # ignored here. TODO: find a way to break on second chance exceptions without getting a report about first
-          # chance exceptions.
-          pass; 
-        else:
-          asLines.append(sLine);
-          # Strip useless symbol warnings and errors:
-          if sIgnoredLine is not None:
-            if bIgnoreOutput:
-              bStartOfCommandOutput = False;
+  if bApplicationWillBeRun:
+    # Signal that the application is running and start the interrupt on timeout thread.
+    oCdbWrapper.oTimeoutAndInterruptLock.acquire();
+    try:
+      oCdbWrapper.bApplicationIsRunnning = True;
+      oInterruptOnTimeoutThread = oCdbWrapper.foHelperThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
+      oInterruptOnTimeoutThread.start();
+    finally:
+      oCdbWrapper.oTimeoutAndInterruptLock.release();
+  try: # "try:" because the oInterruptOnTimeoutThread thread needs to be stopped in a "finally:" if there is an exception.
+    while 1:
+      sChar = oCdbWrapper.oCdbProcess.stdout.read(1);
+      if sChar == "\r":
+        pass; # ignored.
+      elif sChar in ("\n", ""):
+        if sChar == "\n" or sLine:
+          if oCdbWrapper.fStdOutOutputCallback:
+            oCdbWrapper.fStdOutOutputCallback(sLine);
+          # Failure to attach will terminate cdb. This needs to be special cased:
+          oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
+          if oCannotAttachMatch:
+            sProcessId, sApplicationExecutable, sErrorCode = oCannotAttachMatch.groups();
+            if sProcessId:
+              uProcessId = long(sProcessId);
+              sErrorMessage = "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
             else:
-              bStartOfCommandOutput = sStartOfCommandOutputMarker and sIgnoredLine.endswith(sStartOfCommandOutputMarker);
-              if bStartOfCommandOutput:
-                sIgnoredLine = sIgnoredLine[:-len(sStartOfCommandOutputMarker)]; # Remove the marker from the line;
-            if sIgnoredLine and bAddOutputToHTMLReport:
-              sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBStdOut";
-              sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
-              # Add the line to the current block of I/O
-              oCdbWrapper.sCdbIOHTML += sLineHTML;
-              # Optionally add the line to the important output
-              if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine):
-                oCdbWrapper.sImportantOutputHTML += sLineHTML;
-            if bStartOfCommandOutput:
-              sReturnedLine = ""; # Start collecting lines to return to the caller.
-              sIgnoredLine = None; # Stop ignoring lines
-              sStartOfCommandOutputMarker = None; # Stop looking for the marker.
+              sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
+            if sErrorCode in dsTips_by_sErrorCode:
+              sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
+            oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
+            oCdbWrapper.fStop();
+          bConcatinateReturnedLineToNext = False;
+          if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
+            # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
+            # first chance C++ exception happens. These lines are clutter and MSIE outputs a lot of them, so they are
+            # ignored here. TODO: find a way to break on second chance exceptions without getting a report about first
+            # chance exceptions.
+            pass; 
           else:
-            oIgnoredCdbOutputLine = rAlwaysIgnoredCdbOutputLine.match(sReturnedLine);
-            if oIgnoredCdbOutputLine:
-              # Some cruft got injected into the line; remove it and pretend that it was output before the line:
-              sReturnedLine, sCruft = oIgnoredCdbOutputLine.groups();
-              if bAddOutputToHTMLReport:
-                sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
+            asLines.append(sLine);
+            # Strip useless symbol warnings and errors:
+            if sIgnoredLine is not None:
+              if bIgnoreOutput:
+                bStartOfCommandOutput = False;
+              else:
+                bStartOfCommandOutput = sStartOfCommandOutputMarker and sIgnoredLine.endswith(sStartOfCommandOutputMarker);
+                if bStartOfCommandOutput:
+                  sIgnoredLine = sIgnoredLine[:-len(sStartOfCommandOutputMarker)]; # Remove the marker from the line;
+              if sIgnoredLine and bAddOutputToHTMLReport:
+                sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBStdOut";
+                sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
                 # Add the line to the current block of I/O
                 oCdbWrapper.sCdbIOHTML += sLineHTML;
                 # Optionally add the line to the important output
-                if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine):
+                if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine):
                   oCdbWrapper.sImportantOutputHTML += sLineHTML;
-              # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
-              # this line and the next line:
-              bConcatinateReturnedLineToNext = True;
-              bEndOfCommandOutput = False;
+              if bStartOfCommandOutput:
+                sReturnedLine = ""; # Start collecting lines to return to the caller.
+                sIgnoredLine = None; # Stop ignoring lines
+                sStartOfCommandOutputMarker = None; # Stop looking for the marker.
             else:
-              bEndOfCommandOutput = sEndOfCommandOutputMarker and sReturnedLine.endswith(sEndOfCommandOutputMarker);
-              if bEndOfCommandOutput:
-                sReturnedLine = sReturnedLine[:-len(sEndOfCommandOutputMarker)]; # Remove the marker from the line;
-              if sReturnedLine:
+              oIgnoredCdbOutputLine = rAlwaysIgnoredCdbOutputLine.match(sReturnedLine);
+              if oIgnoredCdbOutputLine:
+                # Some cruft got injected into the line; remove it and pretend that it was output before the line:
+                sReturnedLine, sCruft = oIgnoredCdbOutputLine.groups();
                 if bAddOutputToHTMLReport:
-                  sClass = bOutputCanContainApplicationOutput and "CDBOrApplicationStdOut" or "CDBCommandResult";
-                  sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
+                  sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
                   # Add the line to the current block of I/O
-                  try:
-                    oCdbWrapper.sCdbIOHTML += sLineHTML;
-                  except MemoryError:
-                    # Try discarding part of the log to free up some memory and try again:
-                    oCdbWrapper.sCdbIOHTML = oCdbWrapper.sCdbIOHTML[len(sLineHTML) + 4096:];
-                    oCdbWrapper.sCdbIOHTML = "(The system was low on memory, so part of the log was discarded)<br/>..." + oCdbWrapper.sCdbIOHTML + sLineHTML;
-                asReturnedLines.append(sReturnedLine);
-            if bEndOfCommandOutput:
-              sEndOfCommandOutputMarker = None; # Stop looking for the marker.
-              sReturnedLine = None; # Stop collecting lines to return to the caller.
-              sIgnoredLine = ""; # Start ignoring lines
-      if sChar == "":
-        oCdbWrapper.bCdbRunning = False;
-        raise cCdbStoppedException();
-      sLine = "";
-      if sIgnoredLine is not None:
-        sIgnoredLine = "";
-      elif not bConcatinateReturnedLineToNext:
-        sReturnedLine = "";
-    else:
-      sLine += sChar;
-      if sIgnoredLine is None:
-        sReturnedLine += sChar;
+                  oCdbWrapper.sCdbIOHTML += sLineHTML;
+                  # Optionally add the line to the important output
+                  if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine):
+                    oCdbWrapper.sImportantOutputHTML += sLineHTML;
+                # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
+                # this line and the next line:
+                bConcatinateReturnedLineToNext = True;
+                bEndOfCommandOutput = False;
+              else:
+                bEndOfCommandOutput = sEndOfCommandOutputMarker and sReturnedLine.endswith(sEndOfCommandOutputMarker);
+                if bEndOfCommandOutput:
+                  sReturnedLine = sReturnedLine[:-len(sEndOfCommandOutputMarker)]; # Remove the marker from the line;
+                if sReturnedLine:
+                  if bAddOutputToHTMLReport:
+                    sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
+                    sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
+                    # Add the line to the current block of I/O
+                    try:
+                      oCdbWrapper.sCdbIOHTML += sLineHTML;
+                    except MemoryError:
+                      # Try discarding part of the log to free up some memory and try again:
+                      oCdbWrapper.sCdbIOHTML = oCdbWrapper.sCdbIOHTML[len(sLineHTML) + 4096:];
+                      oCdbWrapper.sCdbIOHTML = "(The system was low on memory, so part of the log was discarded)<br/>..." + oCdbWrapper.sCdbIOHTML + sLineHTML;
+                  asReturnedLines.append(sReturnedLine);
+              if bEndOfCommandOutput:
+                sEndOfCommandOutputMarker = None; # Stop looking for the marker.
+                sReturnedLine = None; # Stop collecting lines to return to the caller.
+                sIgnoredLine = ""; # Start ignoring lines
+        if sChar == "":
+          oCdbWrapper.bCdbRunning = False;
+          raise cCdbStoppedException();
+        sLine = "";
+        if sIgnoredLine is not None:
+          sIgnoredLine = "";
+        elif not bConcatinateReturnedLineToNext:
+          sReturnedLine = "";
       else:
-        sIgnoredLine += sChar;
-      # Detect the prompt. This only works if the prompt starts on a new line!
-      # The prompt normally contains pid and tid information, but for unknown reasons cdb can get confused about the
-      # process it is debugging and show "?:???>"
-      oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
-      if oPromptMatch:
-        oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-        if oCdbWrapper.fStdOutOutputCallback:
-          oCdbWrapper.fStdOutOutputCallback(sLine);
-        if not bIgnoreOutput:
-          assert not sStartOfCommandOutputMarker, \
-              "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);
-          # If there is an error during execution of the command, the end marker will not be output. In this case, see
-          # if it is an expected and ignored error, or thrown an assertion:
-          if sEndOfCommandOutputMarker and (not srIgnoreErrors or len(asReturnedLines) != 1 or not re.match(srIgnoreErrors, asReturnedLines[0])):
-            assert bDontAssertOnTruncatedOutput, \
-                "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
-            # Caller asked us not to assert, but return None instead:
-            return None;
-        if oCdbWrapper.bGenerateReportHTML:
-          # The prompt is always stored in a new block of I/O
-          oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
-        break;
+        sLine += sChar;
+        if sIgnoredLine is None:
+          sReturnedLine += sChar;
+        else:
+          sIgnoredLine += sChar;
+        # Detect the prompt. This only works if the prompt starts on a new line!
+        # The prompt normally contains pid and tid information, but for unknown reasons cdb can get confused about the
+        # process it is debugging and show "?:???>"
+        oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
+        if oPromptMatch:
+          oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
+          if oCdbWrapper.fStdOutOutputCallback:
+            oCdbWrapper.fStdOutOutputCallback(sLine);
+          if not bIgnoreOutput:
+            assert not sStartOfCommandOutputMarker, \
+                "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);
+            # If there is an error during execution of the command, the end marker will not be output. In this case, see
+            # if it is an expected and ignored error, or thrown an assertion:
+            if sEndOfCommandOutputMarker and (not srIgnoreErrors or len(asReturnedLines) != 1 or not re.match(srIgnoreErrors, asReturnedLines[0])):
+              assert bDontAssertOnTruncatedOutput, \
+                  "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
+              # Caller asked us not to assert, but return None instead:
+              bIgnoreOutput = True;
+              break;
+          if oCdbWrapper.bGenerateReportHTML:
+            # The prompt is always stored in a new block of I/O
+            oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
+          break;
+  finally:
+    if bApplicationWillBeRun:
+      oCdbWrapper.oTimeoutAndInterruptLock.acquire();
+      try:
+        # Signal that the application is no longer running and wait for the interrupt on timeout thread to stop.
+        oCdbWrapper.bApplicationIsRunnning = False;
+      finally:
+        oCdbWrapper.oTimeoutAndInterruptLock.release();
+      oInterruptOnTimeoutThread.join();
   if bIgnoreOutput:
-    return;
+    return None;
   del asLines;
   uIndex = 0;
   while uIndex < len(asReturnedLines):

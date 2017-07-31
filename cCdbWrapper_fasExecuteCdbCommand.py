@@ -19,7 +19,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     sComment,
     bOutputIsInformative = False,
     bShowCommandInHTMLReport = True,
-    bOutputCanContainApplicationOutput = False,
+    bApplicationWillBeRun = False,
     bHandleSymbolLoadErrors = True,
     bIgnoreOutput = False,
     srIgnoreErrors = False,
@@ -67,7 +67,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       raise cCdbStoppedException();
     asOutput = oCdbWrapper.fasReadOutput(
       bOutputIsInformative = bOutputIsInformative,
-      bOutputCanContainApplicationOutput = bOutputCanContainApplicationOutput,
+      bApplicationWillBeRun = bApplicationWillBeRun,
       bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
       bIgnoreOutput = bIgnoreOutput,
       srIgnoreErrors = uTries == 1 and srIgnoreErrors or False, # Only ignore errors the last try.

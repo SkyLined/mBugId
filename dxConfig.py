@@ -114,7 +114,7 @@ dxConfig = {
                                         # return to the topmost function. If you provide too large a value the CPU
                                         # using loop may finish, giving you invalid results.
   ### Timeouts
-  "nTimeoutGranularity": 1.0,           # How often to check for timeouts, in seconds. Making this value smaller causes
+  "nTimeoutGranularity": 0.01,          # How often to check for timeouts, in seconds. Making this value smaller causes
                                         # the timeouts to fire closer to the intended time, but slows down debugging.
                                         # Making the value larger can cause timeouts to fire a lot later than requested.
   ### C++ exception handling

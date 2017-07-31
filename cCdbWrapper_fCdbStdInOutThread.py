@@ -101,19 +101,23 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # Execute any pending timeout callbacks (this can happen when the interrupt on timeout thread has interrupted
         # the application or whenever the application is paused for another exception - the interrupt on timeout thread
         # is just there to make sure the application gets interrupted to do so when needed: otherwise the timeout may not
-        # fire until an exception happens by chance)
-        oCdbWrapper.oTimeoutsLock.acquire();
-        try:
-          for oTimeout in oCdbWrapper.aoFutureTimeouts[:]:
-            if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
-              oCdbWrapper.aoFutureTimeouts.remove(oTimeout);
-              oCdbWrapper.aoCurrentTimeouts.append(oTimeout);
-          aoTimeoutsToFire = oCdbWrapper.aoCurrentTimeouts;
-          oCdbWrapper.aoCurrentTimeouts = [];
-        finally:
-          oCdbWrapper.oTimeoutsLock.release();
-        for oTimeoutToFire in aoTimeoutsToFire:
-          oTimeoutToFire.fFire();
+        # fire until an exception happens by chance).
+        while 1:
+          # Timeouts can create new timeouts, which may need to fire immediately, so this is run in a loop until no more
+          # timeouts need to be fired.
+          aoTimeoutsToFire = [];
+          oCdbWrapper.oTimeoutAndInterruptLock.acquire();
+          try:
+            for oTimeout in oCdbWrapper.aoTimeouts[:]:
+              if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
+                oCdbWrapper.aoTimeouts.remove(oTimeout);
+                aoTimeoutsToFire.append(oTimeout);
+          finally:
+            oCdbWrapper.oTimeoutAndInterruptLock.release();
+          if not aoTimeoutsToFire:
+            break;
+          for oTimeoutToFire in aoTimeoutsToFire:
+            oTimeoutToFire.fFire();
           # The callback may have reported a bug, in which case we're done.
           if oCdbWrapper.oBugReport: break;
         if oCdbWrapper.oBugReport: break;
@@ -261,30 +265,20 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         finally:
           oCdbWrapper.oApplicationTimeLock.release();
         ### Resume application #########################################################################################
-        # Release the lock on cdb so the "interrupt on timeout" thread can attempt to interrupt cdb while the
-        # application is running.
-        if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
-          oCdbWrapper.oCdbLock.release();
         if oCdbWrapper.auProcessIdsPendingAttach:
           sRunApplicationComment = "Attaching to process %d/0x%X" % (oCdbWrapper.auProcessIdsPendingAttach[0], oCdbWrapper.auProcessIdsPendingAttach[0]);
         elif oUWPDummyProcess:
           sRunApplicationComment = "Starting UWP application %s" % oCdbWrapper.oUWPApplication.sPackageName;
         else:
           sRunApplicationComment = "Running application";
-        try:
-          asUnprocessedCdbOutput += oCdbWrapper.fasExecuteCdbCommand(
-            sCommand = "g%s;" % (bHideLastExceptionFromApplication and "h" or "n"),
-            sComment = sRunApplicationComment,
-            bShowCommandInHTMLReport = False,
-            bOutputIsInformative = True,
-            bOutputCanContainApplicationOutput = True,
-            bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
-          );
-        finally:
-          # Get a lock on cdb so the "interrupt on timeout" thread does not attempt to interrupt cdb while we execute
-          # commands.
-          if len(oCdbWrapper.auProcessIdsPendingAttach) == 0:
-            oCdbWrapper.oCdbLock.acquire();
+        asUnprocessedCdbOutput += oCdbWrapper.fasExecuteCdbCommand(
+          sCommand = "g%s;" % (bHideLastExceptionFromApplication and "h" or "n"),
+          sComment = sRunApplicationComment,
+          bShowCommandInHTMLReport = False,
+          bOutputIsInformative = True,
+          bApplicationWillBeRun = True, # This command will cause the application to run.
+          bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
+        );
         # The application should handle the next exception unless we explicitly want it to be hidden
         bHideLastExceptionFromApplication = True;
       ### The debugger suspended the application #######################################################################
@@ -518,19 +512,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         );
         uReserveRAMAllocated = 0;
       ### Handle timeout interrupt #####################################################################################
-      if uExceptionCode == DBG_CONTROL_BREAK:
-        # The interrupt on timeout thread can send a CTRL+BREAK to cdb, which causes a DBG_CONTROL_BREAK.
-        # This allow this thread to check if timeout handlers should be fired and do so before resuming the
-        # application.
-        assert oCdbWrapper.uCdbBreakExceptionsPending > 0, \
-          "cdb was interrupted unexpectedly";
+      if oCdbWrapper.bCdbHasBeenAskedToInterruptApplication and uExceptionCode == DBG_CONTROL_BREAK:
+        # cdb was asked to interrupt execution of the application by sending a CTRL+BREAK signal.
+        # This exception means it received the signal, so we can reset its state.
+        oCdbWrapper.bCdbHasBeenAskedToInterruptApplication = False;
+        # This exception is expect as a result and not a bug.
         oCdbWrapper.fasExecuteCdbCommand(
           sCommand = '.printf "The application was interrupted to handle a timeout.\\r\\n";',
           sComment = None,
           bShowCommandInHTMLReport = False,
           bRetryOnTruncatedOutput = True,
         );
-        oCdbWrapper.uCdbBreakExceptionsPending -= 1;
         continue;
       ### Handle hit breakpoint ########################################################################################
       if uBreakpointId is not None:
@@ -592,7 +584,5 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     pass;
   finally:
     oCdbWrapper.bCdbStdInOutThreadRunning = False;
-    # Release the lock on cdb so the "interrupt on timeout" thread can notice cdb has terminated
-    oCdbWrapper.oCdbLock.release();
   assert not oCdbWrapper.bCdbRunning, "Debugger did not terminate when requested";
 
