@@ -7,6 +7,7 @@ from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
+from cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts import cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
 from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
@@ -432,3 +433,6 @@ class cCdbWrapper(object):
     oCdbWrapper.fAttachToProcessesForBinaryNames([sBinaryName]);
   def fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames):
     return cCdbWrapper_fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames);
+  
+  def fMakeSureApplicationIsInterruptedToHandleTimeouts(oCdbWrapper):
+    cCdbWrapper_fMakeSureApplicationIsInterruptedToHandleTimeouts(oCdbWrapper);

@@ -17,19 +17,7 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
       try:
         for oTimeout in oCdbWrapper.aoTimeouts:
           if oTimeout.fbShouldFire(nApplicationRunTime):
-            # Let the StdIO thread know a break exception was sent so it knows to expected cdb to report one (otherwise
-            # it would get reported as a bug!).
-            oCdbWrapper.uCdbBreakExceptionsPending += 1;
-            for x in xrange(9): # Try up to 10 times, the first 9 times an error will cause a retry.
-              try:
-                oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT);
-              except:
-                if not oCdbWrapper.bCdbRunning: return;
-                time.sleep(0.1); # Sleep a bit, maybe the problem will go away?
-                continue;
-              break;
-            else:
-              oCdbWrapper.oCdbProcess.send_signal(signal.CTRL_BREAK_EVENT); # 10th time time; don't handle errors
+            oCdbWrapper.fMakeSureApplicationIsInterruptedToHandleTimeouts();
             break;
       finally:
         oCdbWrapper.oTimeoutsLock.release();
