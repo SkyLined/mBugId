@@ -146,4 +146,12 @@ dxConfig = {
                                         # error callback.
   ### UWP applications
   "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
+  ### Allow embedded commands in stdout/stderr output
+  # These two flags will cause cdb to look for specially crafted message in application output. These message can
+  # contain commands that will then be executed. This can be useful when debugging a crash where you can force the
+  # application to output such a specially crafted message at a critical time while reproducing an issue. For instance
+  # you can set a breakpoint that will add messages to the HTML report every time it is hit.
+  # See cCdbWrapper_fQueueCommandsEmbeddedInOutput.py for details.
+  "bExecuteCommandsEmbeddedInStdOut": False,  # Look for commands in stdout
+  "bExecuteCommandsEmbeddedInStdErr": False,  # Look for commands in stderr
 };

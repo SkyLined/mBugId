@@ -4,16 +4,17 @@ from cCdbWrapper_fAskCdbToInterruptApplication import cCdbWrapper_fAskCdbToInter
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
 from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
+from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
-from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
-from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
-from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
-from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
-from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
+from cCdbWrapper_fQueueCommandsEmbeddedInOutput import cCdbWrapper_fQueueCommandsEmbeddedInOutput;
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
 from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
+from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
+from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
+from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
+from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
@@ -440,3 +441,6 @@ class cCdbWrapper(object):
   
   def fAskCdbToInterruptApplication(oCdbWrapper):
     cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);
+  
+  def fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutputStreamName, sOutput):
+    cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutputStreamName, sOutput);
