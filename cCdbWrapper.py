@@ -159,7 +159,7 @@ class cCdbWrapper(object):
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
     oCdbWrapper.oApplicationTimeLock = threading.Lock();
-    oCdbWrapper.nApplicationRunTime = 0; # Total time spent running before last interruption
+    oCdbWrapper.__nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
     oCdbWrapper.oCdbProcess = None;
@@ -385,12 +385,15 @@ class cCdbWrapper(object):
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
     oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
   
-  def fnApplicationRunTime(oCdbWrapper):
+  @property
+  def nApplicationRunTime(oCdbWrapper):
+    # This can be exact (when the application is suspended) or an estimate (when the application is running).
+    if not oCdbWrapper.bApplicationIsRunnning:
+      # Fast and exact path.
+      return oCdbWrapper.__nConfirmedApplicationRunTime;
     oCdbWrapper.oApplicationTimeLock.acquire();
     try:
-      if oCdbWrapper.nApplicationResumeTime is None:
-        return oCdbWrapper.nApplicationRunTime;
-      return oCdbWrapper.nApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
+      return oCdbWrapper.__nConfirmedApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
     finally:
       oCdbWrapper.oApplicationTimeLock.release();
   
@@ -405,8 +408,8 @@ class cCdbWrapper(object):
   def fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   # Timeouts/interrupt
-  def foSetTimeout(oCdbWrapper, sDescription, nTime, fCallback, *axCallbackArguments):
-    return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTime, fCallback, *axCallbackArguments);
+  def foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments):
+    return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments);
   def fClearTimeout(oCdbWrapper, oTimeout):
     return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
   def fInterrupt(oCdbWrapper, sDescription, fCallback, *axCallbackArguments):

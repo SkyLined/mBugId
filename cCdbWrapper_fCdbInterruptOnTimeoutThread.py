@@ -8,11 +8,9 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
     try:
       if not oCdbWrapper.bApplicationIsRunnning or not oCdbWrapper.bCdbRunning or oCdbWrapper.bCdbHasBeenAskedToInterruptApplication:
         return; # This thread is no longer needed.
-      # Time spent running before the application was resumed + time since the application was resumed.
-      nApplicationRunTime = oCdbWrapper.fnApplicationRunTime();
       # See if any timeout should be fired:
       for oTimeout in oCdbWrapper.aoTimeouts[:]:
-        if oTimeout.fbShouldFire(nApplicationRunTime):
+        if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
           oCdbWrapper.fAskCdbToInterruptApplication();
           return;
     finally:
