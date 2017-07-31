@@ -101,18 +101,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # the application or whenever the application is paused for another exception - the interrupt on timeout thread
         # is just there to make sure the application gets interrupted to do so when needed: otherwise the timeout may not
         # fire until an exception happens by chance)
-        axTimeoutsToFire = [];
+        aoTimeoutsToFire = [];
         oCdbWrapper.oTimeoutsLock.acquire();
         try:
-          for xTimeout in oCdbWrapper.axTimeouts:
-            (nTimeoutApplicationRunTime, fTimeoutCallback, axTimeoutCallbackArguments) = xTimeout;
-            if nTimeoutApplicationRunTime <= oCdbWrapper.nApplicationRunTime: # This timeout should be fired.
-              oCdbWrapper.axTimeouts.remove(xTimeout);
-              axTimeoutsToFire.append((fTimeoutCallback, axTimeoutCallbackArguments));
+          for oTimeout in oCdbWrapper.aoTimeouts[:]:
+            if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
+              oCdbWrapper.aoTimeouts.remove(oTimeout);
+              aoTimeoutsToFire.append(oTimeout);
         finally:
           oCdbWrapper.oTimeoutsLock.release();
-        for (fTimeoutCallback, axTimeoutCallbackArguments) in axTimeoutsToFire:
-          fTimeoutCallback(*axTimeoutCallbackArguments);
+        for oTimeoutToFire in aoTimeoutsToFire:
+          oTimeoutToFire.fFire();
           # The callback may have reported a bug, in which case we're done.
           if oCdbWrapper.oBugReport: break;
         if oCdbWrapper.oBugReport: break;
@@ -518,7 +517,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         uReserveRAMAllocated = 0;
       ### Handle timeout interrupt #####################################################################################
       if uExceptionCode == DBG_CONTROL_BREAK:
-        # The interrupt on timeout thread can send a CTRL+C to cdb, which causes a DBG_CONTROL_BREAK.
+        # The interrupt on timeout thread can send a CTRL+BREAK to cdb, which causes a DBG_CONTROL_BREAK.
         # This allow this thread to check if timeout handlers should be fired and do so before resuming the
         # application.
         assert oCdbWrapper.uCdbBreakExceptionsPending > 0, \

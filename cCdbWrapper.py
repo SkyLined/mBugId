@@ -10,7 +10,7 @@ from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
 from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
-from cCdbWrapper_f_Timeout import cCdbWrapper_fxSetTimeout, cCdbWrapper_fClearTimeout;
+from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
 from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
@@ -144,7 +144,7 @@ class cCdbWrapper(object):
     # See fSetCheckForExcessiveCPUUsageTimeout and cExcessiveCPUUsageDetector.py for more information
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
     # Keep track of future timeouts and their callbacks
-    oCdbWrapper.axTimeouts = [];
+    oCdbWrapper.aoTimeouts = [];
     oCdbWrapper.oTimeoutsLock = threading.Lock();
     # incremented whenever a CTRL+BREAK event is sent to cdb by the interrupt-on-timeout thread, so the stdio thread
     # knows to expect a DBG_CONTROL_BREAK exception and won't report it as an error.
@@ -156,7 +156,7 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbLock = threading.Lock();
     oCdbWrapper.oCdbLock.acquire();
     oCdbWrapper.bCdbStdInOutThreadRunning = True; # Will be set to false if the thread terminates for any reason.
-    # Keep track of how long the application has been running, used for timeouts (see fxSetTimeout, fCdbStdInOutThread
+    # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
     # and resume the application as well as what time it thinks it was when an exception happened. The difference is
     # used to calculate how long the application has been running. We cannot simply use time.clock() before start/
@@ -403,13 +403,13 @@ class cCdbWrapper(object):
   def fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   # Timeouts/interrupt
-  def fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments):
-    return cCdbWrapper_fxSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments);
-  def fClearTimeout(oCdbWrapper, xTimeout):
-    return cCdbWrapper_fClearTimeout(oCdbWrapper, xTimeout);
+  def foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments):
+    return cCdbWrapper_foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments);
+  def fClearTimeout(oCdbWrapper, oTimeout):
+    return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
   def fInterrupt(oCdbWrapper, fCallback, *axCallbackArguments):
     # An interrupt is implemented as an immediate timeout
-    return cCdbWrapper_fxSetTimeout(oCdbWrapper, 0, fCallback, *axCallbackArguments);
+    return cCdbWrapper_foSetTimeout(oCdbWrapper, 0, fCallback, *axCallbackArguments);
   # cdb I/O
   def fasReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);

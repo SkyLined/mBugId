@@ -155,11 +155,11 @@ class cBugId(object):
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
-  def fxSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
-    return oBugId.__oCdbWrapper.fxSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
+  def foSetTimeout(oBugId, nTimeout, fCallback, *axTimeoutCallbackArguments):
+    return oBugId.__oCdbWrapper.foSetTimeout(nTimeout, fCallback, *axTimeoutCallbackArguments);
   
-  def fClearTimeout(oBugId, xTimeout):
-    oBugId.__oCdbWrapper.fClearTimeout(xTimeout);
+  def fClearTimeout(oBugId, oTimeout):
+    oBugId.__oCdbWrapper.fClearTimeout(oTimeout);
   
   def fnApplicationRunTime(oBugId):
     assert oBugId.__bStarted is True, \
