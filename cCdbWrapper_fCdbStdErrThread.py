@@ -19,7 +19,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
             oCdbWrapper.sImportantOutputHTML += sLineHTML;
         oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
         if dxConfig["bExecuteCommandsEmbeddedInStdErr"]:
-          oCdbWrapper.fsQueueCommandsEmbeddedInOutput(oCdbWrapper, sLine);
+          oCdbWrapper.fQueueCommandsEmbeddedInOutput(oCdbWrapper, sLine);
       if sChar == "":
         break;
       sLine = "";
