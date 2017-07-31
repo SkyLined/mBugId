@@ -242,6 +242,15 @@ class cProcess(object):
   def fasGetStack(oProcess, sCdbCommand):
     return cProcess_fasGetStack(oProcess, sCdbCommand);
   
+  def fuAddBreakpoint(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
+    return oProcess.oCdbWrapper.fuAddBreakpoint(
+      uAddress = uAddress,
+      fCallback = fCallback,
+      uProcessId = oProcess.uId,
+      uThreadId = uThreadId,
+      sCommand = sCommand,
+    );
+  
   def fasExecuteCdbCommand(oProcess, sCommand, sComment, **dxArguments):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();
