@@ -442,5 +442,5 @@ class cCdbWrapper(object):
   def fAskCdbToInterruptApplication(oCdbWrapper):
     cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);
   
-  def fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutputStreamName, sOutput):
-    cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutputStreamName, sOutput);
+  def fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput):
+    cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput);
