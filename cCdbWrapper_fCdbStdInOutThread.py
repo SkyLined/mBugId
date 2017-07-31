@@ -5,6 +5,7 @@ from cProcess import cProcess;
 from daxExceptionHandling import daxExceptionHandling;
 from dxConfig import dxConfig;
 from foDetectAndCreateBugReportForVERIFIER_STOP import foDetectAndCreateBugReportForVERIFIER_STOP;
+from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
 from NTSTATUS import *;
 
 def fnGetDebuggerTime(sDebuggerTime):
@@ -550,13 +551,21 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         bShowCommandInHTMLReport = False,
         bRetryOnTruncatedOutput = True,
       );
-      ### Handle VERIFIER STOP #########################################################################################
-      oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asUnprocessedCdbOutput);
-      asUnprocessedCdbOutput = [];
-      if oBugReport and oBugReport.sBugTypeId is not None:
-        # VERIFIER STOP detected.
-        oCdbWrapper.oBugReport = oBugReport;
-        break;
+      ### Triggering a breakpoint may indicate a third-party component reported a bug in stdout/stderr; look for that.
+      if uExceptionCode in [STATUS_BREAKPOINT, STATUS_WX86_BREAKPOINT]:
+        ### Handle VERIFIER STOP #########################################################################################
+        oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asUnprocessedCdbOutput);
+        asUnprocessedCdbOutput = [];
+        if oBugReport and oBugReport.sBugTypeId is not None:
+          # VERIFIER STOP detected.
+          oCdbWrapper.oBugReport = oBugReport;
+          break;
+        ### Handle ASan errors ###########################################################################################
+        oBugReport = foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode);
+        if oBugReport and oBugReport.sBugTypeId is not None:
+          # ASan error detected.
+          oCdbWrapper.oBugReport = oBugReport;
+          break;
       ### Handle bugs ##################################################################################################
       # If this exception is considered Create a bug report for the exception and stop debugging if it is indeed considerd a bug.
       oBugReport = cBugReport.foCreateForException(oCdbWrapper, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException);

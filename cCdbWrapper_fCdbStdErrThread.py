@@ -11,6 +11,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
       pass; # ignored.
     elif sChar in ("\n", ""):
       if sChar == "\n" or sLine:
+        oCdbWrapper.asStdErrOutput.append(sLine);
         if oCdbWrapper.bGenerateReportHTML:
           sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
           oCdbWrapper.sCdbIOHTML += sLineHTML;

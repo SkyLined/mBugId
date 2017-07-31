@@ -171,6 +171,10 @@ class cCdbWrapper(object):
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
     oCdbWrapper.oCdbProcess = None;
+    # We track stderr output, as it may contain information output by AddressSanitizer when it detects an issue. Once
+    # ASan is done outputting everthing it knows and causes an exception to terminate the application, we can analyze
+    # its output and use it to create a bug id & report.
+    oCdbWrapper.asStdErrOutput = [];
   
   def fAttachToProcessById(oCdbWrapper, uProcessId):
     if oCdbWrapper.oCdbProcess is None:

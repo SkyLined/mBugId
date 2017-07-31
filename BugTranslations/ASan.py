@@ -19,11 +19,6 @@ aoBugTranslations = [
     asOriginalTopStackFrameSymbols = [
       "*!__sanitizer::internal__exit",
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!__sanitizer::Die",
-      ],
-    ],
     sTranslatedBugTypeId = "ASan",
     sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected an issue.",
     sTranslatedSecurityImpact = "The security implications of this issue are unknown",
@@ -40,16 +35,26 @@ aoBugTranslations = [
   ),
   # ASan -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = "Asan",
+    sOriginalBugTypeId = re.compile("ASan(:.+)?"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
+        re.compile("^.*!__asan_report_(load|store)\d+$"),
+      ], [
         "*!__asan::AsanCheckFailed",
+      ], [
+        "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
+      ], [
+        "*!__asan::ReportGenericError",
       ], [
         "*!__sanitizer::BlockingMutex::Lock",
       ], [
         "*!__sanitizer::CheckFailed",
       ], [
+        "*!__sanitizer::Die",
+      ], [
         "*!__sanitizer::GenericScopedLock<...>::{ctor}",
+      ], [
+        "*!__sanitizer::internal__exit",
       ], [
         "*!__sanitizer::StackTrace::Print",
       ], [
@@ -57,28 +62,14 @@ aoBugTranslations = [
       ],
     ],
   ),
-  # ASan --> ASan:Error
-  cBugTranslation(
-    sOriginalBugTypeId = "ASan",
-    asOriginalTopStackFrameSymbols = [
-      "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
-      "*!__asan::ReportGenericError",
-    ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        re.compile("^.*!__asan_report_(load|store)\d+$"),
-      ],
-    ],
-    sTranslatedBugTypeId = "ASan:Error",
-    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected something.",
-    sTranslatedSecurityImpact = "The security implications of this issue are unknown",
-  ),
   # ASan --> OOM
   cBugTranslation(
     sOriginalBugTypeId = "ASan",
     aasOriginalTopStackFrameSymbols = [
       [
         "*!__sanitizer::ReportAllocatorCannotReturnNull",
+      ], [
+        "*!__sanitizer::ReturnNullOrDieOnFailure::OnOOM",
       ], [
         "*!__sanitizer::ReportMmapFailureAndDie",
       ], [
@@ -116,6 +107,8 @@ aoBugTranslations = [
         "*!__sanitizer::LoadedModule::set",
       ], [
         "*!__sanitizer::MmapAlignedOrDie",
+      ], [
+        "*!__sanitizer::MmapOrDie",
       ], [
         "*!__sanitizer::MmapOrDieOnFatalError",
       ], [
