@@ -282,7 +282,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # The application should handle the next exception unless we explicitly want it to be hidden
         bHideLastExceptionFromApplication = True;
       ### The debugger suspended the application #######################################################################
-      # Find out what event caused the debugger break
+      # Send a nop command to cdb in case the application being debugged is reading stdin as well: in that case it may
+      # eat the first char we try to send to cdb, which would otherwise cause a problem when cdb see only the part of
+      # the command after the first char.
+      asLastEventOutput = oCdbWrapper.fasExecuteCdbCommand(
+        sCommand = " ",
+        sComment = None,
+        bShowCommandInHTMLReport = False,
+        bIgnoreOutput = True,
+        bUseMarkers = False,
+      );
+      ### Handle the event #############################################################################################
       # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
       # appears to be caused by an error while executing the command (without an error message) as subsequent commands
       # are not getting executed. As a result, the .printf that outputs the "end marker" is never executed and
