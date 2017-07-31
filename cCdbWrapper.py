@@ -144,8 +144,9 @@ class cCdbWrapper(object):
     # You can tell BugId to check for excessive CPU usage among all the threads running in the application.
     # See fSetCheckForExcessiveCPUUsageTimeout and cExcessiveCPUUsageDetector.py for more information
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
-    # Keep track of future timeouts and their callbacks
-    oCdbWrapper.aoTimeouts = [];
+    # Keep track of timeouts that should fire at some point in the future and timeouts that should fire now.
+    oCdbWrapper.aoFutureTimeouts = [];
+    oCdbWrapper.aoCurrentTimeouts = [];
     oCdbWrapper.oTimeoutsLock = threading.Lock();
     # incremented whenever a CTRL+BREAK event is sent to cdb by the interrupt-on-timeout thread, so the stdio thread
     # knows to expect a DBG_CONTROL_BREAK exception and won't report it as an error.

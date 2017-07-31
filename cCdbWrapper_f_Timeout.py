@@ -14,7 +14,17 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments
   oTimeout = cTimeout(nTimeoutApplicationRunTime, fCallback, axCallbackArguments);
   oCdbWrapper.oTimeoutsLock.acquire();
   try:
-    oCdbWrapper.aoTimeouts.append(oTimeout);
+    # If would be nice to be able to interrupt an application immediately, but when I tried this in the stderr
+    # handling thread, the CTRL+BREAK terminated cdb immediately, rather than interrupt the application. So, we will
+    # queue the timeout, even if it should fire immediately and hope the interrupt-on-timeout thread will fire it soon.
+
+#    if nTime > 0:
+      # Queue this timeout
+      oCdbWrapper.aoFutureTimeouts.append(oTimeout);
+#    else:
+#      # Fire this timeout immediately
+#      oCdbWrapper.aoCurrentTimeouts.append(oTimeout);
+#      oCdbWrapper.fMakeSureApplicationIsInterruptedToHandleTimeouts();
   finally:
     oCdbWrapper.oTimeoutsLock.release();
   return oTimeout;
@@ -22,7 +32,9 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, nTime, fCallback, *axCallbackArguments
 def cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout):
   oCdbWrapper.oTimeoutsLock.acquire();
   try:
-    if oTimeout in oCdbWrapper.aoTimeouts:
+    if oTimeout in oCdbWrapper.aoFutureTimeouts:
       oCdbWrapper.aoFutureTimeouts.remove(oTimeout);
+    if oTimeout in oCdbWrapper.aoCurrentTimeouts:
+      oCdbWrapper.aoCurrentTimeouts.remove(oTimeout);
   finally:
     oCdbWrapper.oTimeoutsLock.release();

@@ -101,13 +101,14 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # the application or whenever the application is paused for another exception - the interrupt on timeout thread
         # is just there to make sure the application gets interrupted to do so when needed: otherwise the timeout may not
         # fire until an exception happens by chance)
-        aoTimeoutsToFire = [];
         oCdbWrapper.oTimeoutsLock.acquire();
         try:
-          for oTimeout in oCdbWrapper.aoTimeouts[:]:
+          for oTimeout in oCdbWrapper.aoFutureTimeouts[:]:
             if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
-              oCdbWrapper.aoTimeouts.remove(oTimeout);
-              aoTimeoutsToFire.append(oTimeout);
+              oCdbWrapper.aoFutureTimeouts.remove(oTimeout);
+              oCdbWrapper.aoCurrentTimeouts.append(oTimeout);
+          aoTimeoutsToFire = oCdbWrapper.aoCurrentTimeouts;
+          oCdbWrapper.aoCurrentTimeouts = [];
         finally:
           oCdbWrapper.oTimeoutsLock.release();
         for oTimeoutToFire in aoTimeoutsToFire:
