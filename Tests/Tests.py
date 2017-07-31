@@ -189,6 +189,10 @@ class cTest(object):
           bThisTestFailed = True;
         else:
           print "+ %s == None" % oTest;
+        if gbDebugIO:
+          print;
+          print "=" * 80;
+          print;
         bFailed = bThisTestFailed;
         if bThisTestFailed:
           oTest.fErrorCallback();
