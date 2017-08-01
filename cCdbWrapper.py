@@ -1,20 +1,15 @@
-import itertools, os, re, subprocess, sys, threading, time;
+import itertools, json, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fAskCdbToInterruptApplication import cCdbWrapper_fAskCdbToInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
-from cCdbWrapper_fauGetBytes import cCdbWrapper_fauGetBytes;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
 from cCdbWrapper_fQueueCommandsEmbeddedInOutput import cCdbWrapper_fQueueCommandsEmbeddedInOutput;
-from cCdbWrapper_fsGetSymbolForAddress import cCdbWrapper_fsGetSymbolForAddress;
-from cCdbWrapper_fsGetUnicodeString import cCdbWrapper_fsGetUnicodeString;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
-from cCdbWrapper_fuGetValue import cCdbWrapper_fuGetValue;
-from cCdbWrapper_fuGetValueForSymbol import cCdbWrapper_fuGetValueForSymbol;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
@@ -125,11 +120,11 @@ class cCdbWrapper(object):
     if bGenerateReportHTML:
       oCdbWrapper.sCdbIOHTML = ""; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
       oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.
+      if dxConfig["bLogInReport"]:
+        oCdbWrapper.sLogHTML = ""; # Logs various events that may be relevant
     oCdbWrapper.oBugReport = None; # Set to a bug report if a bug was detected in the application
     oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
-    if bGenerateReportHTML:
-      oCdbWrapper.sImportantOutputHTML = ""; # Lines from stdout/stderr that are marked as potentially important to understanding the bug.
     # cdb variables are in short supply, so a mechanism must be used to allocate and release them.
     # See fuGetVariableId and fReleaseVariableId for implementation details.
     oCdbWrapper.uAvailableVariableIds = list(xrange(20)); # $t0-$t19. 
@@ -149,7 +144,7 @@ class cCdbWrapper(object):
     oCdbWrapper.bApplicationIsRunnning = False; # Will be set to true while the application is running in cdb.
     oCdbWrapper.bCdbHasBeenAskedToInterruptApplication = False; # Will be set to true while the application is running and being interrupted in cdb.
     # Lock for the above four timeout and interrupt variables
-    oCdbWrapper.oTimeoutAndInterruptLock = threading.Lock();
+    oCdbWrapper.oTimeoutAndInterruptLock = threading.RLock();
     oCdbWrapper.bCdbStdInOutThreadRunning = True; # Will be set to false if the thread terminates for any reason.
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
@@ -159,7 +154,7 @@ class cCdbWrapper(object):
     # we can call time.clock(): this time would incorrectly be added to the time the application has spent running.
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
-    oCdbWrapper.oApplicationTimeLock = threading.Lock();
+    oCdbWrapper.oApplicationTimeLock = threading.RLock();
     oCdbWrapper.nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
@@ -398,11 +393,6 @@ class cCdbWrapper(object):
     finally:
       oCdbWrapper.oApplicationTimeLock.release();
   
-  # Get values
-  def fuGetValue(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fuGetValue(oCdbWrapper, *axArguments, **dxArguments);
-  def fuGetValueForSymbol(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fuGetValueForSymbol(oCdbWrapper, *axArguments, **dxArguments);
   # Breakpoints
   def fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fuAddBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
@@ -411,11 +401,11 @@ class cCdbWrapper(object):
   # Timeouts/interrupt
   def foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments):
     return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments);
-  def fClearTimeout(oCdbWrapper, oTimeout):
-    return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
   def fInterrupt(oCdbWrapper, sDescription, fCallback, *axCallbackArguments):
     # An interrupt is implemented as an immediate timeout
     cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, 0, fCallback, *axCallbackArguments);
+  def fClearTimeout(oCdbWrapper, oTimeout):
+    return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
   # cdb I/O
   def fasReadOutput(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fasReadOutput(oCdbWrapper, *axArguments, **dxArguments);
@@ -424,15 +414,6 @@ class cCdbWrapper(object):
   
   def fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fsGetUnicodeString(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fsGetUnicodeString(oCdbWrapper, *axArguments, **dxArguments);
-  
-  def fauGetBytes(oCdbWrapper, *axArguments, **dxArguments):
-    return cCdbWrapper_fauGetBytes(oCdbWrapper, *axArguments, **dxArguments);
   
   def fAttachToProcessesForBinaryName(oCdbWrapper, sBinaryName):
     oCdbWrapper.fAttachToProcessesForBinaryNames([sBinaryName]);
@@ -444,3 +425,8 @@ class cCdbWrapper(object):
   
   def fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput):
     cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput);
+  
+  def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
+    if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
+      oCdbWrapper.sLogHTML += "<span class=\"%s\">%s</span><br/>" % \
+          (oCdbWrapper.fsHTMLEncode(sMessageClass), oCdbWrapper.fsHTMLEncode(sMessage));

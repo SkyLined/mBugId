@@ -13,15 +13,26 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.oException = None;
     oBugReport.oStack = None;
     
-    if oCdbWrapper.bGenerateReportHTML:
-      oBugReport.sImportantOutputHTML = oCdbWrapper.sImportantOutputHTML;
+    asBlocksHTML = [];
+    
+    if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
+      asBlocksHTML.append(sBlockHTMLTemplate % {
+        "sName": "Application run log",
+        "sCollapsed": "Collapsible", # ...but not Collapsed
+        "sContent": oCdbWrapper.sLogHTML,
+      });
     oBugReport.sProcessBinaryName = "cdb.exe";
     
     oBugReport.sId = oBugReport.sBugTypeId;
     oBugReport.sStackId = None;
     oBugReport.sBugSourceLocation = None;
     oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
-    
+    # Add Cdb IO to HTML report
+    asBlocksHTML.append(sBlockHTMLTemplate % {
+      "sName": "Application and cdb output log",
+      "sCollapsed": "Collapsed",
+      "sContent": oCdbWrapper.sCdbIOHTML
+    });
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
       oBugReport.sReportHTML = sReportHTMLTemplate % {
@@ -35,10 +46,6 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sOptionalIntegrityLevel": "",
         "sOptionalApplicationArguments": "",
         "sBugIdVersion": oVersionInformation.sCurrentVersion,
-        "sBlocks": sBlockHTMLTemplate % {
-          "sName": "Application and cdb output log",
-          "sCollapsed": "Collapsed",
-          "sContent": oCdbWrapper.sCdbIOHTML
-        },
+        "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
       };

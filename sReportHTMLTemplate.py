@@ -223,6 +223,24 @@ sReportHTMLTemplate = ("""
       .StackFrameSource {
         color: grey;
       }
+      .LogProcess {
+      }
+      .LogException {
+      }
+      .LogBreakpoint {
+      }
+      .LogEmbeddedCommandsBreakpoint {
+      }
+      .LogStdErrOutput {
+        color: maroon;
+      }
+      .LogImportantStdErrOutput {
+      }
+      .LogStdOutOutput {
+        font-weight: bold;
+      }
+      .LogImportantStdOutOutput {
+      }
     </style>
     <script>
       function fAddClickHandler(oBlockHeaderElement) {

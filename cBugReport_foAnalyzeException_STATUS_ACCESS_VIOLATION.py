@@ -73,7 +73,7 @@ ddtsDetails_uSpecialAddress_sISA = {
   },
 };
 
-def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrapper, oException):
+def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oException):
   # Parameter[0] = access type (0 = read, 1 = write, 8 = execute)
   # Parameter[1] = address
   assert len(oException.auParameters) == 2, \
@@ -89,22 +89,22 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
     # e.g. the address is always reported as 0xFFFFFFFFFFFFFFFF and the access type is always "read".
     # A partial work-around is to get the address from the last instruction output, which can be retrieved by asking
     # cdb to output disassembly and address after each command. This may also tell us if the access type was "execute".
-    oCdbWrapper.fasExecuteCdbCommand(
+    oProcess.fasExecuteCdbCommand(
       sCommand = ".prompt_allow +dis +ea;",
       sComment = "Enable disassembly and address in cdb prompt",
     );
     # Do this twice in case the first time requires loading symbols, which can output junk that makes parsing ouput difficult.
-    oCdbWrapper.fasExecuteCdbCommand( \
+    oProcess.fasExecuteCdbCommand( \
       sCommand = "~s;",
       sComment = "Show disassembly and optional symbol loading stuff",
     );
-    asLastInstructionAndAddress = oCdbWrapper.fasExecuteCdbCommand(
+    asLastInstructionAndAddress = oProcess.fasExecuteCdbCommand(
       sCommand = "~s;",
       sComment = "Show disassembly",
       bOutputIsInformative = True,
     );
     # Revert to not showing disassembly and address:
-    oCdbWrapper.fasExecuteCdbCommand( \
+    oProcess.fasExecuteCdbCommand( \
       sCommand = ".prompt_allow -dis -ea;",
       sComment = "Revert to clean cdb prompt",
     );
@@ -185,13 +185,13 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
         and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAccessViolationAddress:
       oBugReport.oStack.aoFrames[0].sIsHiddenBecause = "called address";
   
-  dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oCdbWrapper.sCurrentISA];
+  dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
     sBugDescription = "Access violation while %s memory at 0x%X using %s." % \
         (sViolationTypeDescription, uAccessViolationAddress, sAddressDescription);
     iOffset = uAccessViolationAddress - uSpecialAddress;
     if iOffset != 0:
-      uOverflow = {"x86": 1 << 32, "x64": 1 << 64}[oCdbWrapper.sCurrentISA];
+      uOverflow = {"x86": 1 << 32, "x64": 1 << 64}[oProcess.sISA];
       if iOffset > dxConfig["uMaxAddressOffset"]: # Maybe this is wrapping:
         iOffset -= uOverflow;
       elif iOffset < -dxConfig["uMaxAddressOffset"]: # Maybe this is wrapping:
@@ -207,41 +207,41 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
   else:
     # This is not a special marker or NULL, so it must be an invalid pointer
     # Get information about the memory region:
-    oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oCdbWrapper, uAccessViolationAddress);
+    oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oProcess, uAccessViolationAddress);
     if oPageHeapAllocation:
       oBugReport.atxMemoryRemarks.extend(oPageHeapAllocation.fatxMemoryRemarks());
       fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
         oBugReport, \
         uAccessViolationAddress, sViolationTypeId, sViolationTypeDescription, \
         oPageHeapAllocation, \
-        oCdbWrapper.oCurrentProcess.uPointerSize, oCdbWrapper.bGenerateReportHTML,
+        oProcess.uPointerSize, oProcess.oCdbWrapper.bGenerateReportHTML,
       );
-      if oCdbWrapper.bGenerateReportHTML:
+      if oProcess.oCdbWrapper.bGenerateReportHTML:
         sPageHeapOutputHTML = sBlockHTMLTemplate % {
           "sName": "Page heap output for address 0x%X" % uAccessViolationAddress,
           "sCollapsed": "Collapsed",
           "sContent": "<pre>%s</pre>" % "\r\n".join([
-            oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
+            oProcess.oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
           ])
         };
         oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
     else:
-      oVirtualAllocation = cVirtualAllocation.foGetForAddress(oCdbWrapper, uAccessViolationAddress);
+      oVirtualAllocation = cVirtualAllocation.foGetForAddress(oProcess, uAccessViolationAddress);
       # See is page heap has more details on the address at which the access violation happened:
       if not oVirtualAllocation:
         oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;
         oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
         oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
       else:
-        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oCdbWrapper, oCdbWrapper.oCurrentProcess);
+        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oProcess);
         uOffsetFromTopOfStack = uAccessViolationAddress - oThreadEnvironmentBlock.uStackTopAddress;
         uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAccessViolationAddress;
-        if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= oCdbWrapper.oCurrentProcess.uPageSize:
+        if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= oProcess.uPageSize:
           oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromTopOfStack));
           oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes passed the top of the stack at 0x%X." % \
               (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromTopOfStack, uOffsetFromTopOfStack, oThreadEnvironmentBlock.uStackTopAddress);
           oBugReport.sSecurityImpact = "Potentially exploitable security issue.";
-        elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= oCdbWrapper.oCurrentProcess.uPageSize:
+        elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= oProcess.uPageSize:
           oBugReport.sBugTypeId = "AV%s[Stack]-%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromBottomOfStack));
           oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
               (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
@@ -252,7 +252,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
             oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
             oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
           else:
-            if oCdbWrapper.bGenerateReportHTML:
+            if oProcess.oCdbWrapper.bGenerateReportHTML:
               oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uBaseAddress, None));
               oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
             if oVirtualAllocation.bUnallocated:
@@ -276,10 +276,10 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oCdbWrappe
               oBugReport.sBugDescription = "Access violation while %s %s memory at 0x%X." % \
                   (sViolationTypeDescription, sMemoryProtectionsDescription, uAccessViolationAddress);
               oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or accessible memory be allocated the the address.";
-              if oCdbWrapper.bGenerateReportHTML:
+              if oProcess.oCdbWrapper.bGenerateReportHTML:
                 # Clamp size, potentially update start if size needs to shrink but end is not changed.
                 uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-                  uAccessViolationAddress, oCdbWrapper.oCurrentProcess.uPointerSize, oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize
+                  uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize
                 );
                 oBugReport.fAddMemoryDump(
                   uMemoryDumpStartAddress,

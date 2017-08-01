@@ -1,8 +1,12 @@
 import os, re;
 from cModule import cModule;
+from cProcess_fauGetBytes import cProcess_fauGetBytes;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
+from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
+from cProcess_fuGetValue import cProcess_fuGetValue;
+from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -74,7 +78,7 @@ class cProcess(object):
   @property
   def uPageSize(oProcess):
     if oProcess.__uPageSize is None:
-      oProcess.__uPageSize = oProcess.fuGetValue("@$pagesize", "Get page size for process");
+      oProcess.__uPageSize = oProcess.fuGetValueForRegister("$pagesize", "Get page size for process");
     return oProcess.__uPageSize;
   
   @property
@@ -224,12 +228,6 @@ class cProcess(object):
   def fSelectInCdb(oProcess):
     oProcess.oCdbWrapper.fSelectProcess(oProcess.uId);
   
-  def fuGetValue(oProcess, sValueName, sComment):
-    oCdbWrapper = oProcess.oCdbWrapper;
-    oProcess.fSelectInCdb();
-    uValue = oCdbWrapper.fuGetValue(sValueName, sComment);
-    return uValue;
-  
   def __str__(oProcess):
     return 'Process(%s %s #%d)' % (oProcess.sBinaryName, oProcess.sISA, oProcess.uProcessId);
   
@@ -255,4 +253,17 @@ class cProcess(object):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();
     return oProcess.oCdbWrapper.fasExecuteCdbCommand(sCommand, sComment, **dxArguments);
-    
+  
+  def fuGetValue(oProcess, sValue, sComment):
+    return cProcess_fuGetValue(oProcess, sValue, sComment);
+  def fuGetValueForRegister(oProcess, sRegister, sComment):
+    return cProcess_fuGetValueForRegister(oProcess, sRegister, sComment);
+  def fsGetSymbolForAddress(oProcess, sAddress, sComment):
+    return cCdbWrapper_fsGetSymbolForAddress(oProcess, sAddress, sComment);
+  def fsGetASCIIString(oProcess, sAddress, sComment):
+    return cProcess_fsGetASCIIString(oProcess, sAddress, sComment);
+  def fsGetUnicodeString(oProcess, sAddress, sComment):
+    return cProcess_fsGetUnicodeString(oProcess, sAddress, sComment);
+  def fauGetBytes(oCdbWrapper, uAddress, uSize, sComment):
+    return cProcess_fauGetBytes(oCdbWrapper, uAddress, uSize, sComment);
+  

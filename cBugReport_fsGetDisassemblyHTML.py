@@ -14,7 +14,9 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
     ]);
   return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
   
-def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
+def cBugReport_fsGetDisassemblyHTML(oBugReport, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
+  oProcess = oBugReport.oProcess;
+  oCdbWrapper = oProcess.oCdbWrapper;
   # See dxConfig.py for a description of these "magic" values.
   uDisassemblyBytesBefore = \
       dxConfig["uDisassemblyInstructionsBefore"] \
@@ -29,7 +31,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
     # Get disassembly before address
     uStartAddress = uAddress - uDisassemblyBytesBefore;
     # Note: cannot use "u {address} L{length}" as length is number of instructions, and we want number of bytes. 
-    asBeforeDisassembly = oCdbWrapper.fasExecuteCdbCommand(
+    asBeforeDisassembly = oProcess.fasExecuteCdbCommand(
       sCommand = ".if ($vvalid(0x%X, 0x%X)) { u 0x%X 0x%X; };" % \
           (uStartAddress, uDisassemblyBytesBefore, uStartAddress, uAddress - 1),
       sComment = "disassemble before address 0x%X" % uAddress,
@@ -49,7 +51,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, uAddress, sBeforeAd
               sBeforeAddressInstructionDescription)
         );
   if uDisassemblyBytesAfter > 0:
-    asAddressAtAndAfterDisassembly = oCdbWrapper.fasExecuteCdbCommand(
+    asAddressAtAndAfterDisassembly = oProcess.fasExecuteCdbCommand(
       sCommand = ".if ($vvalid(0x%X, 0x%X)) { u 0x%X L0x%X; };" % \
           (uAddress, uDisassemblyBytesAfter, uAddress, uDisassemblyBytesAfter),
       sComment = "Disassemble after address 0x%X" % uAddress, 

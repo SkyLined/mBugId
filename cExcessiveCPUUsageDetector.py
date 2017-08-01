@@ -190,7 +190,7 @@ class cExcessiveCPUUsageDetector(object):
       sCommand = '.printf "CPUUsage worm: %s\\r\\n"%s;' % \
           (sMessage, "".join([", 0x%X" % uArgument for uArgument in auArguments])),
       sComment = None,
-      bShowCommandInHTMLReport = False,
+      bShowOutputButNotCommandInHTMLReport = True,
     );
     assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
     if bDebugOutputWorm: print "@@@ %s" % asDebugOutput[0];
@@ -219,15 +219,16 @@ class cExcessiveCPUUsageDetector(object):
     
     # Select the relevant process and thread
     oCdbWrapper.fSelectProcessAndThread(uProcessId, uThreadId);
+    oWormProcess = oCdbWrapper.oCurrentProcess;
     oExcessiveCPUUsageDetector.uProcessId = uProcessId;
     oExcessiveCPUUsageDetector.uThreadId = uThreadId;
     oExcessiveCPUUsageDetector.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
-    uInstructionPointer = oCdbWrapper.fuGetValue("@$ip", "Get instruction pointer");
-    uStackPointer = oCdbWrapper.fuGetValue("@$csp", "Get stack pointer");
+    uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
+    uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
 # Ideally, we'de use the return address here but for some unknown reason cdb may not give a valid value at this point.
 # However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return addres will be
 # correct... sigh.
-#    uReturnAddress = oCdbWrapper.fuGetValue("@$ra", "Get return address");
+#    uReturnAddress = oExcessiveCPUUsageDetector.oWormProcess.fuGetValueForRegister("$ra", "Get return address");
     uBreakpointAddress = uInstructionPointer; # uReturnAddress would be preferred.
     oExcessiveCPUUsageDetector.fWormDebugOutput(
       "Starting at IP=%p by creating a breakpoint at IP=%p, SP=%p...",
@@ -254,8 +255,10 @@ class cExcessiveCPUUsageDetector(object):
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
     oExcessiveCPUUsageDetector.oLock.acquire();
     try:
-      uStackPointer = oCdbWrapper.fuGetValue("@$csp", "Get stack pointer");
-      uInstructionPointer = oCdbWrapper.fuGetValue("@$ip", "Get instruction pointer");
+      oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
+      oWormProcess = oCdbWrapper.oCurrentProcess;
+      uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
+      uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
       # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
       assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress, \
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
@@ -267,7 +270,7 @@ class cExcessiveCPUUsageDetector(object):
           uInstructionPointer, uStackPointer, oExcessiveCPUUsageDetector.uLastStackPointer
         );
         return;
-      uReturnAddress = oCdbWrapper.fuGetValue("@$ra", "Get return address");
+      uReturnAddress = oWormProcess.fuGetValueForRegister("$ra", "Get return address");
       if uInstructionPointer == uReturnAddress:
         oExcessiveCPUUsageDetector.fWormDebugOutput(
           "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by leaving breakpoint in place and adjusting expected SP...",
@@ -359,8 +362,10 @@ class cExcessiveCPUUsageDetector(object):
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
     oExcessiveCPUUsageDetector.oLock.acquire();
     try:
-      uStackPointer = oCdbWrapper.fuGetValue("@$csp", "Get stack pointer");
-      uInstructionPointer = oCdbWrapper.fuGetValue("@$ip", "Get instruction pointer");
+      oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
+      oWormProcess = oCdbWrapper.oCurrentProcess;
+      uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
+      uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
       # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
       assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress, \
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
@@ -385,7 +390,7 @@ class cExcessiveCPUUsageDetector(object):
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
           (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckInterval"]);
       sSecurityImpact = None;
-      oCdbWrapper.oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
+      oCdbWrapper.oBugReport = cBugReport.foCreate(oWormProcess, sBugTypeId, sBugDescription, sSecurityImpact);
       oCdbWrapper.oBugReport.bRegistersRelevant = False;
     finally:
       oExcessiveCPUUsageDetector.oLock.release();

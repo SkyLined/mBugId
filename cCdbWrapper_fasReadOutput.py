@@ -1,6 +1,7 @@
 import re, time;
 from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
+from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from dxConfig import dxConfig;
 from FileSystem import FileSystem;
 
@@ -47,7 +48,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                                       # should either precede or follow the command output markers. This allowing us
                                       # to ignore the application output and only return the command output to the
                                       # caller.
-  bDontAssertOnTruncatedOutput = False, # Return None instead so the caller can handle it.
 ):
   if bIgnoreOutput:
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and dxConfig["bShowAllCdbCommandsInReport"];
@@ -131,9 +131,13 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
                 # Add the line to the current block of I/O
                 oCdbWrapper.sCdbIOHTML += sLineHTML;
-                # Optionally add the line to the important output
-                if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine):
-                  oCdbWrapper.sImportantOutputHTML += sLineHTML;
+                if bApplicationWillBeRun:
+                  # Add the line to the log
+                  bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine);
+                  oCdbWrapper.fLogMessageInReport(
+                    bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput", 
+                    sIgnoredLine,
+                  );
               if bStartOfCommandOutput:
                 sReturnedLine = ""; # Start collecting lines to return to the caller.
                 sIgnoredLine = None; # Stop ignoring lines
@@ -148,8 +152,11 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                   # Optionally add the line to the important output
-                  if bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine):
-                    oCdbWrapper.sImportantOutputHTML += sLineHTML;
+                  bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sCruft);
+                  oCdbWrapper.fLogMessageInReport(
+                    bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput",
+                    sCruft,
+                  );
                 # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
                 # this line and the next line:
                 bConcatinateReturnedLineToNext = True;
@@ -163,12 +170,14 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                     sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
                     sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
                     # Add the line to the current block of I/O
-                    try:
-                      oCdbWrapper.sCdbIOHTML += sLineHTML;
-                    except MemoryError:
-                      # Try discarding part of the log to free up some memory and try again:
-                      oCdbWrapper.sCdbIOHTML = oCdbWrapper.sCdbIOHTML[len(sLineHTML) + 4096:];
-                      oCdbWrapper.sCdbIOHTML = "(The system was low on memory, so part of the log was discarded)<br/>..." + oCdbWrapper.sCdbIOHTML + sLineHTML;
+                    oCdbWrapper.sCdbIOHTML += sLineHTML;
+                    if bApplicationWillBeRun:
+                      # Add the line to the log
+                      bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine);
+                      oCdbWrapper.fLogMessageInReport(
+                        bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput", 
+                        sReturnedLine,
+                      );
                   asReturnedLines.append(sReturnedLine);
               if bEndOfCommandOutput:
                 sEndOfCommandOutputMarker = None; # Stop looking for the marker.
@@ -202,11 +211,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             # If there is an error during execution of the command, the end marker will not be output. In this case, see
             # if it is an expected and ignored error, or thrown an assertion:
             if sEndOfCommandOutputMarker and (not srIgnoreErrors or len(asReturnedLines) != 1 or not re.match(srIgnoreErrors, asReturnedLines[0])):
-              assert bDontAssertOnTruncatedOutput, \
-                  "No end marker: the command output appears to report an error:\r\n%s" % "\r\n".join([repr(sLine) for sLine in asLines]);
               # Caller asked us not to assert, but return None instead:
-              bIgnoreOutput = True;
-              break;
+              raise cEndOfCommandOutputMarkerMissingException(asReturnedLines);
           if oCdbWrapper.bGenerateReportHTML:
             # The prompt is always stored in a new block of I/O
             oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);

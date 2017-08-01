@@ -2,7 +2,7 @@ import re;
 
 class cThreadEnvironmentBlock(object):
   @staticmethod
-  def foCreateForCurrentThread(oCdbWrapper, oProcess):
+  def foCreateForCurrentThread(oProcess):
     asPageHeapOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!teb",
       sComment = "Get thread environment info",
@@ -78,11 +78,11 @@ class cThreadEnvironmentBlock(object):
       #   void *ArbitraryUserPointer;                 // size = pointer
       #   struct _NT_TIB *Self;                       // size = pointer
       # };                                            // total size =  7 * pointer
-      uStackTopAddress = oProcess.oCdbWrapper.fuGetValue(
+      uStackTopAddress = oProcess.fuGetValue(
         "poi(0x%X)" % (uTEBAddress + 1 * uTEBPointerSize),
         "Get stack top address from TEB"
       );
-      uStackBottomAddress = oProcess.oCdbWrapper.fuGetValue(
+      uStackBottomAddress = oProcess.fuGetValue(
         "poi(0x%X)" % (uTEBAddress + 2 * uTEBPointerSize),
         "Get stack bottom address from TEB"
       );

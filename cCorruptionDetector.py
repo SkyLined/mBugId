@@ -68,7 +68,6 @@ class cCorruptionDetector(object):
     ];
   
   def fsCorruptionId(oCorruptionDetector):
-    oCdbWrapper = oCorruptionDetector.oVirtualAllocation.oCdbWrapper;
     uCorruptionLength = oCorruptionDetector.uCorruptionEndAddress - oCorruptionDetector.uCorruptionStartAddress;
     sId = "~%s" % fsGetNumberDescription(uCorruptionLength);
     if dxConfig["uHeapCorruptedBytesHashChars"]:

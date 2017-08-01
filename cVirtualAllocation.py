@@ -3,8 +3,8 @@ from WindowsAPI import *;
 
 class cVirtualAllocation(object):
   @staticmethod
-  def foGetForAddress(oCdbWrapper, uAddress):
-    asVProtOutput = oCdbWrapper.fasExecuteCdbCommand(
+  def foGetForAddress(oProcess, uAddress):
+    asVProtOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!vprot 0x%X;" % uAddress,
       sComment = "Get memory protection information",
       bOutputIsInformative = True,
@@ -69,8 +69,7 @@ class cVirtualAllocation(object):
       elif sInfoType == "Type":
         uType = uValue;
     return cVirtualAllocation(
-      oCdbWrapper = oCdbWrapper,
-      oProcess = oCdbWrapper.oCurrentProcess,
+      oProcess = oProcess,
       uBaseAddress = uBaseAddress,
       uAllocationBaseAddress = uAllocationBaseAddress,
       uInitialProtection = uInitialProtection,
@@ -80,8 +79,7 @@ class cVirtualAllocation(object):
       uType = uType,
     );
   
-  def __init__(oVirtualAllocation, oCdbWrapper, oProcess, uBaseAddress, uAllocationBaseAddress, uInitialProtection, uSize, uState, uProtection, uType):
-    oVirtualAllocation.oCdbWrapper = oCdbWrapper;
+  def __init__(oVirtualAllocation, oProcess, uBaseAddress, uAllocationBaseAddress, uInitialProtection, uSize, uState, uProtection, uType):
     oVirtualAllocation.oProcess = oProcess;
     oVirtualAllocation.uBaseAddress = uBaseAddress;
     oVirtualAllocation.uAllocationBaseAddress = uAllocationBaseAddress;
@@ -162,7 +160,6 @@ class cVirtualAllocation(object):
       KERNEL32.CloseHandle(hProcess);
   
   def fauGetBytesAtOffset(oVirtualAllocation, uOffset = 0, uSize = None):
-    oCdbWrapper = oVirtualAllocation.oCdbWrapper;
     if not oVirtualAllocation.bAllocated:
       return None;
     if uSize is None:
@@ -177,7 +174,7 @@ class cVirtualAllocation(object):
             "Cannot modify virtual allocation protection";
       else:
         uOriginalProtection = None;
-      oVirtualAllocation.__auBytes = oCdbWrapper.fauGetBytes(
+      oVirtualAllocation.__auBytes = oVirtualAllocation.oProcess.fauGetBytes(
         oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize, "Get virtual allocation content",
       );
       if uOriginalProtection is not None:
@@ -187,7 +184,6 @@ class cVirtualAllocation(object):
     return oVirtualAllocation.__auBytes[uOffset:uOffset + uSize];
   
   def fuGetValueAtOffset(oVirtualAllocation, uOffset, uSize):
-    oCdbWrapper = oVirtualAllocation.oCdbWrapper;
     auBytes = oVirtualAllocation.fauGetBytesAtOffset(uOffset, uSize);
     if auBytes is None:
       return None;

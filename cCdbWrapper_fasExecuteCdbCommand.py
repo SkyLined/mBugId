@@ -1,5 +1,6 @@
 import re, threading;
 from cCdbStoppedException import cCdbStoppedException;
+from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from dxConfig import dxConfig;
 
 # It appears cdb can sometimes buffer output from the application and output it after the prompt is shown. This would
@@ -18,7 +19,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     sCommand,
     sComment,
     bOutputIsInformative = False,
-    bShowCommandInHTMLReport = True,
+    bShowOutputButNotCommandInHTMLReport = False, # Hide the command, but not its output
     bApplicationWillBeRun = False,
     bHandleSymbolLoadErrors = True,
     bIgnoreOutput = False,
@@ -26,12 +27,12 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
-  # Commands can only be execute from within the cCdbWrapper.fCdbStdInOutThread call.
-  assert  threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
+  # Commands can only be executed from within the cCdbWrapper.fCdbStdInOutThread call.
+  assert threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
   if oCdbWrapper.bGenerateReportHTML:
     bAddCommandToHTML = (
-      bShowCommandInHTMLReport # Always show
+      not bShowOutputButNotCommandInHTMLReport # Always show
       or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]) # Show if the user requests these
       or dxConfig["bShowAllCdbCommandsInReport"] # Show if the user requests all
     ) 
@@ -65,17 +66,17 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     except Exception, oException:
       oCdbWrapper.bCdbRunning = False;
       raise cCdbStoppedException();
-    asOutput = oCdbWrapper.fasReadOutput(
-      bOutputIsInformative = bOutputIsInformative,
-      bApplicationWillBeRun = bApplicationWillBeRun,
-      bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
-      bIgnoreOutput = bIgnoreOutput,
-      srIgnoreErrors = uTries == 1 and srIgnoreErrors or False, # Only ignore errors the last try.
-      sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
-      sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
-      bDontAssertOnTruncatedOutput = uTries > 1,
-    );
-    if asOutput is not None:
-      break; # No retries needed; it already succeeded.
-    uTries -= 1;
-  return asOutput;
+    try:
+      return oCdbWrapper.fasReadOutput(
+        bOutputIsInformative = bOutputIsInformative,
+        bApplicationWillBeRun = bApplicationWillBeRun,
+        bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
+        bIgnoreOutput = bIgnoreOutput,
+        srIgnoreErrors = uTries == 1 and srIgnoreErrors or False, # Only ignore errors the last try.
+        sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
+        sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
+      );
+    except cEndOfCommandOutputMarkerMissingException as oEndOfCommandOutputMarkerMissingException:
+      assert uTries > 1, \
+          "End-of-command-output marker missing:\r\n%s" % "\r\n".join(oEndOfCommandOutputMarkerMissingException.asCommandOutput);
+      uTries -= 1;

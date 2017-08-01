@@ -3,8 +3,8 @@ from cVirtualAllocation import cVirtualAllocation;
 
 class cPageHeapAllocation(object):
   @staticmethod
-  def foGetForAddress(oCdbWrapper, uAddress):
-    asPageHeapOutput = oCdbWrapper.fasExecuteCdbCommand(
+  def foGetForAddress(oProcess, uAddress):
+    asPageHeapOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!heap -p -a 0x%X;" % uAddress,
       sComment = "Get page heap information",
       bOutputIsInformative = True,
@@ -142,9 +142,9 @@ class cPageHeapAllocation(object):
           "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
       sBlockStartAddress, sBlockSize, sAllocationStartAddress, sAllocationSize = oBlockInformationMatch.groups();
       uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
-      uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - oCdbWrapper.oCurrentProcess.uPageSize; # Total size = allocation size + guard page size
-    oVirtualAllocation = cVirtualAllocation.foGetForAddress(oCdbWrapper, uAllocationStartAddress);
-    uPointerSize = oCdbWrapper.oCurrentProcess.uPointerSize;
+      uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - oProcess.uPageSize; # Total size = allocation size + guard page size
+    oVirtualAllocation = cVirtualAllocation.foGetForAddress(oProcess, uAllocationStartAddress);
+    uPointerSize = oProcess.uPointerSize;
     if bAllocated:
       uBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
       uBlockSize = long(sBlockSize.replace("`", ""), 16);

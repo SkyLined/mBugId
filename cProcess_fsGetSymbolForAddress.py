@@ -1,13 +1,13 @@
 import re;
 
-def cCdbWrapper_fsGetSymbolForAddress(oCdbWrapper, sAddress):
-  oCdbWrapper.fasExecuteCdbCommand(
+def cProcess_fsGetSymbolForAddress(oProcess, sAddress, sComment):
+  oProcess.fasExecuteCdbCommand(
     sCommand = '.printf "%%y\\n", %s;' % sAddress, 
-    sComment = "Get symbol warmup",
+    sComment = "Get symbol warmup (%s)" % sComment,
   );
-  asSymbolResult = oCdbWrapper.fasExecuteCdbCommand(
+  asSymbolResult = oProcess.fasExecuteCdbCommand(
     sCommand = '.printf "%%y\\n", %s;lmi a %s;' % (sAddress, sAddress),
-    sComment = "Get symbol",
+    sComment = "Get symbol (%s)" % sComment,
   );
   # Output for a NULL pointer:
   #   >00000000

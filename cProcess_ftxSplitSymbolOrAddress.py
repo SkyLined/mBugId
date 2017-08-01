@@ -1,8 +1,8 @@
 import re;
 import cModule;
+from fsCleanCdbSymbolWithOffset import fsCleanCdbSymbolWithOffset;
 
 def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
-  oCdbWrapper = oProcess.oCdbWrapper;
   oMatch = re.match(r"^\s*%s\s*$" % (
     r"(?:"                                # either {
       r"(0x[0-9A-F`]+)"                   #   ("0x" address)
@@ -42,7 +42,7 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
     # Any value referencing it will be converted to an address:
     sAddress = "SharedUserData";
     if sSymbol: sAddress += "!%s" % sSymbol;
-    uAddress = oCdbWrapper.fuGetValueForSymbol(sAddress);
+    uAddress = oProcess.fuGetValue(fsCleanCdbSymbolWithOffset(sAddress));
     if uModuleOffset: uAddress += uModuleOffset;
     if uSymbolOffset: uAddress += uSymbolOffset;
   else:

@@ -7,7 +7,7 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, 
   try:
     oCdbWrapper.oApplicationTimeLock.acquire();
     try:
-      nFireAtOrAfterApplicationRunTime = oCdbWrapper.nApplicationRunTime + nTimeToWait;
+      nFireAtOrAfterApplicationRunTime = nTimeToWait and oCdbWrapper.nApplicationRunTime + nTimeToWait;
       if oCdbWrapper.bApplicationIsRunnning:
         # The application is currently running, make an estimate for how long to determine when to stop the application:
         nFireAtOrAfterApplicationRunTime += time.clock() - oCdbWrapper.nApplicationResumeTime;

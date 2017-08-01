@@ -2,6 +2,7 @@ import re;
 from cModule import cModule;
 from cStackFrame import cStackFrame;
 from dxConfig import dxConfig;
+from fsCleanCdbSymbolWithOffset import fsCleanCdbSymbolWithOffset;
 from fxCallModuleAndFunctionFromCallInstructionForReturnAddress import fxCallModuleAndFunctionFromCallInstructionForReturnAddress;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
@@ -20,8 +21,8 @@ class cStack(object):
     uInstructionPointer, uReturnAddress,
     uAddress,
     sUnloadedModuleFileName,
-    oModule, uModuleOffset,
-    oFunction, iFunctionOffset,
+    oModule, uModuleOffset, #TODO naming inconsistency with iOffsetFromStartOfFunction
+    oFunction, iOffsetFromStartOfFunction,
     sSourceFilePath = None, uSourceFileLineNumber = None,
   ):
     # frames must be created in order:
@@ -36,7 +37,7 @@ class cStack(object):
       uAddress,
       sUnloadedModuleFileName,
       oModule, uModuleOffset, 
-      oFunction, iFunctionOffset,
+      oFunction, iOffsetFromStartOfFunction,
       sSourceFilePath, uSourceFileLineNumber,
     );
     oStack.aoFrames.append(oStackFrame);
@@ -85,7 +86,7 @@ class cStack(object):
       (
         uAddress,
         sUnloadedModuleFileName, oModule, uModuleOffset,
-        oFunction, iFunctionOffset
+        oFunction, iOffsetFromStartOfFunction
       ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
       uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
       uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
@@ -97,7 +98,7 @@ class cStack(object):
         uAddress = uAddress, 
         sUnloadedModuleFileName = sUnloadedModuleFileName,
         oModule = oModule, uModuleOffset = uModuleOffset, 
-        oFunction = oFunction, iFunctionOffset = iFunctionOffset,
+        oFunction = oFunction, iOffsetFromStartOfFunction = iOffsetFromStartOfFunction,
         sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
       );
       if uReturnAddress:
@@ -109,11 +110,9 @@ class cStack(object):
   
   @classmethod
   def foCreate(cStack, oProcess, uStackFramesCount):
-    oCdbWrapper = oProcess.oCdbWrapper;
-    oProcess.fSelectInCdb();
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    uInstructionPointer = oProcess.fuGetValue("@$ip", "Get instruction pointer");
+    uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
@@ -166,7 +165,7 @@ class cStack(object):
         (
           uAddress,
           sUnloadedModuleFileName, oModule, uModuleOffset,
-          oFunction, iFunctionOffset
+          oFunction, iOffsetFromStartOfFunction
         ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
         if oModule and not oModule.bSymbolsAvailable and uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
           # We will retry this to see if any symbol problems have been resolved:
@@ -186,20 +185,23 @@ class cStack(object):
             uAddress = None;
             sUnloadedModuleFileName = None;
             uModuleOffset = None;
-            iFunctionOffset = None;
+            iOffsetFromStartOfFunction = None;
         # Symbols for a module with export symbol are untrustworthy unless the offset is zero. If the offset is not
         # zero, do not use the symbol, but rather the offset from the start of the module.
-        if oFunction and iFunctionOffset not in xrange(dxConfig["uMaxExportFunctionOffset"]):
+        if oFunction and (iOffsetFromStartOfFunction not in xrange(dxConfig["uMaxExportFunctionOffset"])):
           if not oModule.bSymbolsAvailable:
             if uFrameInstructionPointer:
               # Calculate the offset the easy way.
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uFrameSymbolAddress = oProcess.fuGetValue("%s%+d" % (oFunction.sName, iFunctionOffset), "Get address of symbol");
-              uModuleOffset = uFrameSymbolAddress - oModule.uStartAddress;
+              uFunctionAddress = oProcess.fuGetValue(
+                fsCleanCdbSymbolWithOffset(oFunction.sName),
+                "Get address of symbol"
+              );
+              uModuleOffset = uFunctionAddress + iOffsetFromStartOfFunction - oModule.uStartAddress;
             oFunction = None;
-            iFunctionOffset = None;
+            iOffsetFromStartOfFunction = None;
         uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
         oStackFrame = oStack.foCreateAndAddStackFrame(
           uIndex = uFrameIndex,
@@ -209,7 +211,7 @@ class cStack(object):
           uAddress = uAddress, 
           sUnloadedModuleFileName = sUnloadedModuleFileName,
           oModule = oModule, uModuleOffset = uModuleOffset, 
-          oFunction = oFunction, iFunctionOffset = iFunctionOffset,
+          oFunction = oFunction, iOffsetFromStartOfFunction = iOffsetFromStartOfFunction,
           sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
         );
         if uReturnAddress:

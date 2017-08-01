@@ -2,7 +2,8 @@ import hashlib;
 from dxConfig import dxConfig;
 from SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
 
-def cBugReport_fxProcessStack(oBugReport, oCdbWrapper):
+def cBugReport_fxProcessStack(oBugReport):
+  oCdbWrapper = oBugReport.oProcess.oCdbWrapper;
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
   if oCdbWrapper.bGenerateReportHTML:
     asHTML = [];

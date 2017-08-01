@@ -42,17 +42,17 @@ class cStowedException(object):
       oStowedException.sDescription += " WRT Language exception class name: %s." % oStowedException.sWRTLanguageExceptionIUnkownClassName;
   
   @staticmethod
-  def faoCreate(oCdbWrapper, papStowedExceptionInformation, uStowedExceptionAddressesCount):
+  def faoCreate(oProcess, papStowedExceptionInformation, uStowedExceptionAddressesCount):
     aoStowedExceptions = [];
     for uIndex in xrange(uStowedExceptionAddressesCount):
-      ppStowedExceptionInformation = papStowedExceptionInformation + uIndex * oCdbWrapper.oCurrentProcess.uPointerSize;
-      pStowedExceptionInformation = oCdbWrapper.fuGetValue("poi(0x%X)" % ppStowedExceptionInformation, "Get stowed exception pointer #%d" % uIndex);
-      oStowedException = cStowedException.foCreate(oCdbWrapper, pStowedExceptionInformation);
+      ppStowedExceptionInformation = papStowedExceptionInformation + uIndex * oProcess.uPointerSize;
+      pStowedExceptionInformation = oProcess.fuGetValue("poi(0x%X)" % ppStowedExceptionInformation, "Get stowed exception pointer #%d" % uIndex);
+      oStowedException = cStowedException.foCreate(oProcess, pStowedExceptionInformation);
       aoStowedExceptions.append(oStowedException);
     return aoStowedExceptions;
 
   @staticmethod
-  def foCreate(oCdbWrapper, pStowedExceptionInformation):
+  def foCreate(oProcess, pStowedExceptionInformation):
     # Read STOWED_EXCEPTION_INFORMATION_V1 or STOWED_EXCEPTION_INFORMATION_V2 structure.
     # (See https://msdn.microsoft.com/en-us/library/windows/desktop/dn600343(v=vs.85).aspx)
     # Both start with a STOWED_EXCEPTION_INFORMATION_HEADER structure.
@@ -66,7 +66,7 @@ class cStowedException(object):
       ("Signature", 4),
     ];
     uStowedExceptionInformationHeaderStructureSize = fuStructureSize(axStowedExceptionInformationHeaderStructure);
-    auStowedExceptionInformationBytes = oCdbWrapper.fauGetBytes(
+    auStowedExceptionInformationBytes = oProcess.fauGetBytes(
       uAddress = pStowedExceptionInformation,
       uSize = uStowedExceptionInformationHeaderStructureSize,
       sComment = "Get STOWED_EXCEPTION_INFORMATION_HEADER",
@@ -105,23 +105,23 @@ class cStowedException(object):
     axStowedExceptionInformationStructure = axStowedExceptionInformationHeaderStructure + [
       ("ResultCode", 4),
       ("ExceptionForm_ThreadId", 4),
-      ("ExceptionAddress_ErrorText", oCdbWrapper.oCurrentProcess.uPointerSize),
+      ("ExceptionAddress_ErrorText", oProcess.uPointerSize),
       ("StackTraceWordSize", 4),
       ("StackTraceWords", 4),
-      ("StackTrace", oCdbWrapper.oCurrentProcess.uPointerSize),
+      ("StackTrace", oProcess.uPointerSize),
     ];
     if sSignature == "SE02":
       # These fields are only available in the STOWED_EXCEPTION_INFORMATION_V2 structure identified through the Signature field.
       axStowedExceptionInformationStructure += [
         ("NestedExceptionType", 4),
         # MSDN does not mention alignment, but a pointer must be 8 byte aligned on x64, so adding this:
-        ("alignment @ 0x24", oCdbWrapper.oCurrentProcess.uPointerSize == 8 and 4 or 0),
-        ("NestedException", oCdbWrapper.oCurrentProcess.uPointerSize),
+        ("alignment @ 0x24", oProcess.uPointerSize == 8 and 4 or 0),
+        ("NestedException", oProcess.uPointerSize),
       ];
     assert duStowedExceptionInformationHeader["Size"] == fuStructureSize(axStowedExceptionInformationStructure), \
         "STOWED_EXCEPTION_INFORMATION structure is 0x%X bytes, but should be 0x%X" % \
         (duStowedExceptionInformationHeader["Size"], fuStructureSize(axStowedExceptionInformationStructure));
-    auStowedExceptionInformationBytes += oCdbWrapper.fauGetBytes(
+    auStowedExceptionInformationBytes += oProcess.fauGetBytes(
       uAddress = pStowedExceptionInformation + uStowedExceptionInformationHeaderStructureSize,
       uSize = uRemainingSize,
       sComment = "Get remaining STOWED_EXCEPTION_INFORMATION (after the header)",
@@ -146,11 +146,13 @@ class cStowedException(object):
     ]) or None;
     if sSignature == "SE02" and sNestedExceptionType is not None:
       if sNestedExceptionType == "W32E":
-        oNestedException = cException.foCreateFromMemory(oCdbWrapper,
+        oNestedException = cException.foCreateFromMemory(
+          oProcess = oProcess,
           uExceptionRecordAddress = duStowedExceptionInformation["NestedException"],
         );
       elif sNestedExceptionType == "STOW":
-        oNestedException = cStowedException.foCreate(oCdbWrapper,
+        oNestedException = cStowedException.foCreate(
+          oProcess = oProcess,
           uStowedExceptionAddress = duStowedExceptionInformation["NestedException"],
         );
       elif sNestedExceptionType == "CLR1":
@@ -160,7 +162,8 @@ class cStowedException(object):
         # object that implements IUnknown. Apparently this object "contains all the information necessary recreate it
         # the exception a later point." (https://msdn.microsoft.com/en-us/library/dn302172(v=vs.85).aspx)
         # I have not been able to find more documentation for this, so this is based on reverse engineering.
-        sWRTLanguageExceptionIUnkownClassName = fsGetCPPObjectClassNameFromVFTable(oCdbWrapper,
+        sWRTLanguageExceptionIUnkownClassName = fsGetCPPObjectClassNameFromVFTable(
+          oProcess = oProcess,
           uCPPObjectAddress = duStowedExceptionInformation["NestedException"]
         );
     # Handle the two different forms:
@@ -176,7 +179,10 @@ class cStowedException(object):
     else:
       assert duStowedExceptionInformation["ExceptionForm"] == 2, \
           "Unexpected exception form %d" % duStowedExceptionInformation["ExceptionForm"];
-      sErrorText = oCdbWrapper.fsGetUnicodeString(duStowedExceptionInformation["ErrorText"]);
+      sErrorText = oProcess.fsGetUnicodeString(
+        duStowedExceptionInformation["ErrorText"],
+        "Get Stowed exception ErrorText string",
+      );
       oStowedException = cStowedException(
         uCode = duStowedExceptionInformation["ResultCode"],
         sErrorText = sErrorText,

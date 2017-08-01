@@ -27,22 +27,22 @@ class cException(object):
     oException.sSecurityImpact = None;
   
   @classmethod
-  def foCreateFromMemory(cException, oCdbWrapper, uExceptionRecordAddress):
-    return cException.foCreateHelper(oCdbWrapper,
+  def foCreateFromMemory(cException, oProcess, uExceptionRecordAddress):
+    return cException.foCreateHelper(oProcess,
       uExceptionRecordAddress = uExceptionRecordAddress,
       bApplicationCannotHandleException = False,
     );
     
   @classmethod
-  def foCreate(cException, oCdbWrapper, uCode, sCodeDescription, bApplicationCannotHandleException):
-    return cException.foCreateHelper(oCdbWrapper, 
+  def foCreate(cException, oProcess, uCode, sCodeDescription, bApplicationCannotHandleException):
+    return cException.foCreateHelper(oProcess, 
       uCode = uCode,
       sCodeDescription = sCodeDescription,
       bApplicationCannotHandleException = bApplicationCannotHandleException,
     );
 
   @classmethod
-  def foCreateHelper(cException, oCdbWrapper,
+  def foCreateHelper(cException, oProcess,
       # Either
         uExceptionRecordAddress = None,
       # Or
@@ -53,7 +53,7 @@ class cException(object):
   ):
     assert bApplicationCannotHandleException is not None, \
         "bApplicationCannotHandleException is required!";
-    asExceptionRecord = oCdbWrapper.fasExecuteCdbCommand(
+    asExceptionRecord = oProcess.fasExecuteCdbCommand(
       sCommand = ".exr %s;" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
       sComment = "Get exception record",
       bOutputIsInformative = True,
@@ -138,7 +138,7 @@ class cException(object):
         oException.uAddress,
         oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
         oException.oFunction, oException.iFunctionOffset
-      ) = oCdbWrapper.oCurrentProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
+      ) = oProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
       sCdbSymbolOrAddress = oException.sAddressSymbol;
       if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
         # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,

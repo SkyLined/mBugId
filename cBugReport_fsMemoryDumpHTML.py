@@ -68,13 +68,15 @@ def fasGetRemarksForRange(oBugReport, uAddress, uSize):
       asRemarksForRange.append(sFormat % sRemark);
   return asRemarksForRange;
 
-def cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, sDescription, uStartAddress, uEndAddress):
-  uPointerSize = oCdbWrapper.oCurrentProcess.uPointerSize;
+def cBugReport_fsMemoryDumpHTML(oBugReport, sDescription, uStartAddress, uEndAddress):
+  oProcess = oBugReport.oProcess;
+  oCdbWrapper = oProcess.oCdbWrapper;
+  uPointerSize = oProcess.uPointerSize;
   uAlignedStartAddress = uStartAddress - (uStartAddress % uPointerSize);
   uAlignedEndAddress = uEndAddress + uPointerSize - 1 - ((uEndAddress - 1) % uPointerSize);
   uAlignedSize = uAlignedEndAddress - uAlignedStartAddress;
   asMemoryTableHTML = [];
-  asMemoryDumpOutput = oCdbWrapper.fasExecuteCdbCommand(
+  asMemoryDumpOutput = oProcess.fasExecuteCdbCommand(
     sCommand = "dpp 0x%X L0x%X;" % (uAlignedStartAddress, uAlignedSize),
     sComment = "Get memory dump for 0x%X-0x%X" % (uStartAddress, uEndAddress),
     bOutputIsInformative = True

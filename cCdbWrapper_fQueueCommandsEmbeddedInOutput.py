@@ -6,51 +6,46 @@ def fExecuteCommands(oCdbWrapper, asCommands):
       sCommand,
       "command embedded in application output",
       bOutputIsInformative = True,
-      bShowCommandInHTMLReport = True,
       bUseMarkers = False,
     );
 
 def fSetBreakpoints(oCdbWrapper, asBreakpointAddressses):
+  bBreakpointsSet = False;
   for oProcess in oCdbWrapper.doProcess_by_uId.values():
-    for sBreakpointAddresss in asBreakpointAddressses:
+    for sBreakpointAddress in asBreakpointAddressses:
       uBreakpointAddress = oProcess.fuGetValue(
-        sValueName = sBreakpointAddresss,
+        sValue = sBreakpointAddress,
         sComment = "Resolve breakpoint address",
       );
       if uBreakpointAddress:
         oProcess.fuAddBreakpoint(
           uAddress = uBreakpointAddress,
           fCallback = lambda uBreakpointId: (
-            oCdbWrapper.fasExecuteCdbCommand(
-              sCommand = '.printf "The application hit a breakpoint at %s in process %d/0x%X.\\r\\n";' % (sBreakpointAddresss, oProcess.uId, oProcess.uId),
-              sComment = None,
-              bShowCommandInHTMLReport = False,
-              bRetryOnTruncatedOutput = True,
+            oCdbWrapper.fLogMessageInReport(
+              "LogEmbeddedCommandsBreakpoint",
+              "The application hit a breakpoint at %s in process %d/0x%X.\\r\\n" % (sBreakpointAddress, oProcess.uId, oProcess.uId),
             ),
           ), 
         );
-        oCdbWrapper.fasExecuteCdbCommand(
-          sCommand = '.printf "Added a breakpoint at %s in process %d/0x%X.\\r\\n";' % (sBreakpointAddresss, oProcess.uId, oProcess.uId),
-          sComment = None,
-          bShowCommandInHTMLReport = False,
-          bRetryOnTruncatedOutput = True,
+        oCdbWrapper.fLogMessageInReport(
+          "LogEmbeddedCommandsBreakpoint",
+          "Added a breakpoint at %s in process %d/0x%X.\\r\\n" % (sBreakpointAddress, oProcess.uId, oProcess.uId),
         );
-      else:
-        oCdbWrapper.fasExecuteCdbCommand(
-          sCommand = '.printf "Could not set a breakpoint at %s (unknown symbol) in process %d/0%X.\\r\\n";' % (sBreakpointAddresss, oProcess.uId, oProcess.uId),
-          sComment = None,
-          bShowCommandInHTMLReport = False,
-          bRetryOnTruncatedOutput = True,
-        );
+        bBreakpointsSet = True;
+  if not bBreakpointsSet:
+    oCdbWrapper.fLogMessageInReport(
+      "LogEmbeddedCommandsBreakpoint",
+      "Could not set any breakpoint at %s in any process." % sBreakpointAddress,
+    );
 
 def cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sLine):
   oEmbeddedCommandsMatch = re.search(r"<<<cCdb:ExecuteCommands:JSON(\[.+?\])>>>", sLine);
   if oEmbeddedCommandsMatch:
     sEmbeddedCommandsJSON = oEmbeddedCommandsMatch.group(1);
     asEmbeddedCommands = json.loads(sEmbeddedCommandsJSON);
-    oCdbWrapper.fInterrupt(fExecuteCommands, oCdbWrapper, asEmbeddedCommands);
+    oCdbWrapper.fInterrupt("Set breakpoints requested by embedded command", fExecuteCommands, oCdbWrapper, asEmbeddedCommands);
   oEmbeddedBreakpointsMatch = re.search(r"<<<cCdb:SetBreakpoints:JSON(\[.+?\])>>>", sLine);
   if oEmbeddedBreakpointsMatch:
     sEmbeddedBreakpointAddresssesJSON = oEmbeddedBreakpointsMatch.group(1);
     asEmbeddedBreakpointAddressses = json.loads(sEmbeddedBreakpointAddresssesJSON);
-    oCdbWrapper.fInterrupt(fSetBreakpoints, oCdbWrapper, asEmbeddedBreakpointAddressses);
+    oCdbWrapper.fInterrupt("Set breakpoints requested by embedded command", fSetBreakpoints, oCdbWrapper, asEmbeddedBreakpointAddressses);

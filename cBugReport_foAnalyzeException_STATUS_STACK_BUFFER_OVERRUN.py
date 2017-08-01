@@ -39,7 +39,7 @@ auErrorCodesForWhichAStackDumpIsUseful = [
   4, #BadStack
 ];
 
-def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWrapper, oException):
+def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oException):
   # Parameter[0] = fail fast code
   assert len(oException.auParameters) == 1, \
       "Unexpected number of fail fast exception parameters (%d vs 1)" % len(oException.auParameters);
@@ -53,13 +53,13 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oCdbWr
   else:
     oBugReport.sBugDescription = sFastFailCodeDescription;
   oBugReport.sSecurityImpact = sSecurityImpact;
-  if oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
-    uStackPointer = oCdbWrapper.oCurrentProcess.fuGetValue("@$csp", "Get stack pointer");
+  if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
+    uStackPointer = oProcess.fuGetValueForRegister("$csp", "Get stack pointer");
     # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
     oBugReport.fAddMemoryDump(
       uStackPointer,
-      uStackPointer + dxConfig["uStackDumpSizeInPointers"] * oCdbWrapper.oCurrentProcess.uPointerSize,
+      uStackPointer + dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize,
       "Stack",
     );
-    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oCdbWrapper.oCurrentProcess.uPointerSize));
+    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oProcess.uPointerSize));
   return oBugReport;

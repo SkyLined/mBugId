@@ -124,6 +124,7 @@ dxConfig = {
                                         # this setting is enabled, so you may still be able to detect an unhandled C++
                                         # exception through unexpected application termination.
   ### HTML Report debug output settings
+  "bLogInReport": False,                # Log relevant events in the HTML report
   "bShowAllCdbCommandsInReport": False, # Set to True to see all commands that are executed in cdb by BugId. Set to
                                         # False to let BugId determine what to show based on the
                                         # bShowInformativeCdbCommandsInReport setting below. Note that setting this

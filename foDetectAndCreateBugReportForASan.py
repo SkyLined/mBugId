@@ -315,10 +315,12 @@ def foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode):
       return;
     # We did not find a bug report.
     return;
+  oCdbWrapper.fSelectProcess(uProcessId);
+  oProcess = oCdbWrapper.oCurrentProcess;
   sBugTypeId = "ASan:%s" % sASanBugType;
   sBugDescription = "AddressSanitizer reported a %s on address 0x%X." % (sASanBugType, uProblemAddress);
   sSecurityImpact = dsSecurityImpact_by_sASanBugType.get(sASanBugType, "Unknown: this type of bug has not been analyzed before");
-  oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oCdbWrapper, uProblemAddress);
+  oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oProcess, uProblemAddress);
   if oPageHeapAllocation:
     atxMemoryRemarks.extend(oPageHeapAllocation.fatxMemoryRemarks());
     # Make sure entire page heap block is included in the memory dump.
@@ -330,7 +332,7 @@ def foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode):
     if oPageHeapAllocation.uEndAddress > uMemoryDumpEndAddress:
       uMemoryDumpEndAddress = oPageHeapAllocation.uEndAddress;
   
-  oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
+  oBugReport = cBugReport.foCreate(oProcess, sBugTypeId, sBugDescription, sSecurityImpact);
   if oCdbWrapper.bGenerateReportHTML:
     if uMemoryDumpStartAddress is None:
       # We know nothing about the layout of the memory region for which the problem was reported, but we do want to

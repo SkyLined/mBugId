@@ -68,6 +68,8 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     assert uErrorNumber is None, \
         "Detected the start of a VERIFIER STOP message but not the end\r\n%s" % "\r\n".join(asCdbOutput);
     return None; # No VERIFIER STOP in the output.
+  oCdbWrapper.fSelectProcess(uProcessId);
+  oProcess = oCdbWrapper.oCurrentProcess;
   if uErrorNumber == 0x303:
     # |=======================================
     # |VERIFIER STOP 0000000000000303: pid 0xB2C: NULL handle passed as parameter. A valid handle must be used.
@@ -99,12 +101,15 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     #   PVOID pUnknown_7;
     #   ULONG uHeapBlockSize; // The size of the heap block
     # This means we can read the address of the heap block by reading a pointer sized value at offset 4 * sizeof(PVOID).
-    puHeapBlockAddress = uVerifierStopHeapBlockAddress + 4 * oCdbWrapper.oCurrentProcess.uPointerSize;
-    uHeapBlockAddress = oCdbWrapper.oCurrentProcess.fuGetValue("poi(0x%X)" % puHeapBlockAddress, "Get heap block address from verifier data");
+    puHeapBlockAddress = uVerifierStopHeapBlockAddress + 4 * oProcess.uPointerSize;
+    uHeapBlockAddress = oProcess.fuGetValue(
+      "poi(0x%X)" % puHeapBlockAddress,
+      "Get heap block address from verifier data"
+    );
   else:
     # In all other cases, we trust verifier to provide the correct value:
     uHeapBlockAddress = uVerifierStopHeapBlockAddress;
-  oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oCdbWrapper, uHeapBlockAddress);
+  oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oProcess, uHeapBlockAddress);
   assert oPageHeapAllocation, \
       "No page heap report avaiable for address 0x%X" % uHeapBlockAddress;
   
@@ -267,7 +272,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     if oCdbWrapper.bGenerateReportHTML and oPageHeapAllocation:
       sPageHeapHTMLOutputHeader = "Page heap output for heap block near 0x%X" % uCorruptionStartAddress;
   
-  oBugReport = cBugReport.foCreate(oCdbWrapper, sBugTypeId, sBugDescription, sSecurityImpact);
+  oBugReport = cBugReport.foCreate(oProcess, sBugTypeId, sBugDescription, sSecurityImpact);
   if oCdbWrapper.bGenerateReportHTML:
     if uMemoryDumpStartAddress:
       oBugReport.fAddMemoryDump(

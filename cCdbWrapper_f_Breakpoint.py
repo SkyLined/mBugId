@@ -13,11 +13,6 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     uAddress, 
     sCommand and (' "%s"' % sCommand.replace("\\", "\\\\").replace('"', '\\"')) or ""
   );
-  oCdbWrapper.fasExecuteCdbCommand( \
-    sCommand = '.printf "Adding breakpoint %d at %%ly:\\r\\n", 0x%X;' % (uBreakpointId, uAddress),
-    sComment = None,
-    bShowCommandInHTMLReport = False,
-  );
   asBreakpointResult = oCdbWrapper.fasExecuteCdbCommand(
     sCommand = sBreakpointCommand,
     sComment = "Set breakpoint",
@@ -33,9 +28,17 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     and asBreakpointResult[3] == 'to track module load/unload state you must use BU.'
     and re.match(r'^bp%d at .* failed$' % uBreakpointId, asBreakpointResult[4])
   ):
-     return None;
+    oCdbWrapper.fLogMessageInReport(
+      "LogBreakpoint",
+      "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
+    );
+    return None;
   elif len(asBreakpointResult) == 1:
     if asBreakpointResult[0] == "Invalid address":
+      oCdbWrapper.fLogMessageInReport(
+        "LogBreakpoint",
+        "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
+      );
       return None;
     oActualBreakpointIdMatch = re.match(r"^breakpoint (\d+) (?:exists, redefining|redefined)$", asBreakpointResult[0]);
     assert oActualBreakpointIdMatch, \
@@ -45,11 +48,6 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     # location. If it was not, throw an exception.
     assert uBreakpointId not in oCdbWrapper.dfCallback_by_uBreakpointId, \
         "Two active breakpoints at the same location is not supported";
-    oCdbWrapper.fasExecuteCdbCommand(
-      sCommand = '.printf "  Breakpoint %d was recycled for this address\\r\\n";' % uBreakpointId,
-      sComment = None,
-      bShowCommandInHTMLReport = False,
-    );
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);

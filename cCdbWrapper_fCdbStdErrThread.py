@@ -15,8 +15,11 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
         if oCdbWrapper.bGenerateReportHTML:
           sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
           oCdbWrapper.sCdbIOHTML += sLineHTML;
-          if oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine):
-            oCdbWrapper.sImportantOutputHTML += sLineHTML;
+          bImportant = oCdbWrapper.rImportantStdErrLines and oCdbWrapper.rImportantStdErrLines.match(sLine);
+          oCdbWrapper.fLogMessageInReport(
+            bImportant and "LogImportantStdErrOutput" or "LogStdErrOutput",
+            sLine
+          );
         oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
         if dxConfig["bExecuteCommandsEmbeddedInStdErr"]:
           oCdbWrapper.fQueueCommandsEmbeddedInOutput(sLine);
