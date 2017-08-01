@@ -19,7 +19,6 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     
     oBugReport.sId = oBugReport.sBugTypeId;
     oBugReport.sStackId = None;
-    oBugReport.sBugLocation = None;
     oBugReport.sBugSourceLocation = None;
     oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
     
