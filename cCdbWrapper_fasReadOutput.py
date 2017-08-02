@@ -210,9 +210,11 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);
             # If there is an error during execution of the command, the end marker will not be output. In this case, see
             # if it is an expected and ignored error, or thrown an assertion:
-            if sEndOfCommandOutputMarker and (not srIgnoreErrors or len(asReturnedLines) != 1 or not re.match(srIgnoreErrors, asReturnedLines[0])):
-              # Caller asked us not to assert, but return None instead:
-              raise cEndOfCommandOutputMarkerMissingException(asReturnedLines);
+            if sEndOfCommandOutputMarker:
+              if not srIgnoreErrors or len(asReturnedLines) == 0 or not re.match(srIgnoreErrors, asReturnedLines[-1]):
+                # The end-of-command marker is missing unexpectdly.
+                raise cEndOfCommandOutputMarkerMissingException(asReturnedLines);
+              bIgnoreOutput = True; # This output is invalid because of an error
           if oCdbWrapper.bGenerateReportHTML:
             # The prompt is always stored in a new block of I/O
             oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
