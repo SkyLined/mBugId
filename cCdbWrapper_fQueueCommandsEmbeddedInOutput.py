@@ -10,7 +10,7 @@ def fExecuteCommands(oCdbWrapper, asCommands):
     );
 
 def fSetBreakpoints(oCdbWrapper, asBreakpointAddressses):
-  bBreakpointsSet = False;
+  asBreakpointsNotSetForAddresses = asBreakpointAddressses[:];
   for oProcess in oCdbWrapper.doProcess_by_uId.values():
     for sBreakpointAddress in asBreakpointAddressses:
       uBreakpointAddress = oProcess.fuGetValue(
@@ -31,11 +31,12 @@ def fSetBreakpoints(oCdbWrapper, asBreakpointAddressses):
           "LogEmbeddedCommandsBreakpoint",
           "Added a breakpoint at %s in process %d/0x%X.\\r\\n" % (sBreakpointAddress, oProcess.uId, oProcess.uId),
         );
-        bBreakpointsSet = True;
-  if not bBreakpointsSet:
+        if sBreakpointAddress in asBreakpointsNotSetForAddresses:
+          asBreakpointsNotSetForAddresses.remove(sBreakpointAddress);
+  for sBreakpointsNotSetForAddress in asBreakpointsNotSetForAddresses:
     oCdbWrapper.fLogMessageInReport(
       "LogEmbeddedCommandsBreakpoint",
-      "Could not set any breakpoint at %s in any process." % sBreakpointAddress,
+      "Could not set any breakpoint at %s in any process." % sBreakpointsNotSetForAddress,
     );
 
 def cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sLine):
