@@ -1,10 +1,10 @@
 import os, re;
 from cModule import cModule;
 from cProcess_fauGetBytes import cProcess_fauGetBytes;
-from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
-from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
+from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
+from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 
@@ -87,7 +87,6 @@ class cProcess(object):
     try:
       return oProcess.__uIntegrityLevel;
     except:
-      from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
       oProcess.__uIntegrityLevel = cProcess__fuGetIntegrityLevel(oProcess);
       return oProcess.__uIntegrityLevel;
   
