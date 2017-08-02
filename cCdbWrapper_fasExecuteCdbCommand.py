@@ -31,22 +31,18 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
   assert threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
   if oCdbWrapper.bGenerateReportHTML:
-    bAddCommandToHTML = (
-      not bShowOutputButNotCommandInHTMLReport # Always show
-      or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]) # Show if the user requests these
-      or dxConfig["bShowAllCdbCommandsInReport"] # Show if the user requests all
-    ) 
-    if bAddCommandToHTML or not bIgnoreOutput:
+    bAddCommandAndOutputToHTML = dxConfig["bShowAllCdbCommandsInReport"] or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]);
+    if bAddCommandAndOutputToHTML:
       oCdbWrapper.sCdbIOHTML += "<hr/>";
-    if bAddCommandToHTML:
-      # Add the command and the prompt to the output:
-      oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % \
-          oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
-      if sComment:
-        # Optionally add the comment.
-        oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span><br/>" % oCdbWrapper.fsHTMLEncode(sComment);
-      # End of line
-      oCdbWrapper.sCdbIOHTML += "<br/>";
+      if not bShowOutputButNotCommandInHTMLReport:
+        # Add the command and the prompt to the output:
+        oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % \
+            oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
+        if sComment:
+          # Optionally add the comment.
+          oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span><br/>" % oCdbWrapper.fsHTMLEncode(sComment);
+        # End of line
+        oCdbWrapper.sCdbIOHTML += "<br/>";
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
   if bIgnoreOutput:
     bUseMarkers = False;
