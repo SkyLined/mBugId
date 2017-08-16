@@ -252,6 +252,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         asCdbTimeOutput = oCdbWrapper.fasExecuteCdbCommand(
           sCommand = ".time;",
           sComment = "Get debugger time",
+          bRetryOnTruncatedOutput = True,
         );
         oTimeMatch = len(asCdbTimeOutput) > 0 and re.match(r"^Debug session time: (.*?)\s*$", asCdbTimeOutput[0]);
         assert oTimeMatch, "Failed to get debugger time!\r\n%s" % "\r\n".join(asCdbTimeOutput);
