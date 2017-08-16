@@ -7,7 +7,6 @@ from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fR
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
-from cCdbWrapper_fQueueCommandsEmbeddedInOutput import cCdbWrapper_fQueueCommandsEmbeddedInOutput;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
@@ -422,9 +421,6 @@ class cCdbWrapper(object):
   
   def fAskCdbToInterruptApplication(oCdbWrapper):
     cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);
-  
-  def fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput):
-    cCdbWrapper_fQueueCommandsEmbeddedInOutput(oCdbWrapper, sOutput);
   
   def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
