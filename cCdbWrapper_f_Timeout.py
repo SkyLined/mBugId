@@ -25,7 +25,7 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, 
 def cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout):
   oCdbWrapper.oTimeoutAndInterruptLock.acquire();
   try:
-    if oTimeout in oCdbWrapper.aoFutureTimeouts:
+    if oTimeout in oCdbWrapper.aoTimeouts:
       oCdbWrapper.aoTimeouts.remove(oTimeout);
   finally:
     oCdbWrapper.oTimeoutAndInterruptLock.release();
