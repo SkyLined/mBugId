@@ -1,13 +1,13 @@
 import os, re;
 from cModule import cModule;
 from cProcess_fauGetBytes import cProcess_fauGetBytes;
+from cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
-
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
     oProcess.oCdbWrapper = oCdbWrapper;
@@ -257,6 +257,8 @@ class cProcess(object):
     return cProcess_fuGetValue(oProcess, sValue, sComment);
   def fuGetValueForRegister(oProcess, sRegister, sComment):
     return cProcess_fuGetValueForRegister(oProcess, sRegister, sComment);
+  def fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment):
+    return cProcess_fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment);
   def fsGetSymbolForAddress(oProcess, sAddress, sComment):
     return cCdbWrapper_fsGetSymbolForAddress(oProcess, sAddress, sComment);
   def fsGetASCIIString(oProcess, sAddress, sComment):
