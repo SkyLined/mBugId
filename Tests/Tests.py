@@ -300,8 +300,8 @@ if __name__ == "__main__":
       aoTests.append(cTest(sISA,    ["RecursiveCall", 2],                                     "RecursiveCall 950.6d1"));
       if bFullTestSuite:
         aoTests.append(cTest(sISA,  ["RecursiveCall", 1],                                     "RecursiveCall 950"));
-        aoTests.append(cTest(sISA,  ["RecursiveCall", 3],                                     "RecursiveCall 950.c9e"));
-        aoTests.append(cTest(sISA,  ["RecursiveCall", 20],                                    "RecursiveCall 950.729"));
+        aoTests.append(cTest(sISA,  ["RecursiveCall", 3],                                     "RecursiveCall 950.4e9"));
+        aoTests.append(cTest(sISA,  ["RecursiveCall", 20],                                    "RecursiveCall 950.48b"));
       # A pure virtual function call should result in an AppExit exception. However, sometimes the "binary!purecall" or
       # "binary!_purecall" function can be found on the stack to destinguish these specific cases. Wether this works
       # depends on the build of the application and whether symbols are being used.
