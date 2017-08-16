@@ -21,8 +21,6 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
             sLine
           );
         oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
-        if dxConfig["bExecuteCommandsEmbeddedInStdErr"]:
-          oCdbWrapper.fQueueCommandsEmbeddedInOutput(sLine);
       if sChar == "":
         break;
       sLine = "";

@@ -94,8 +94,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "\n" or sLine:
           if oCdbWrapper.fStdOutOutputCallback:
             oCdbWrapper.fStdOutOutputCallback(sLine);
-          if dxConfig["bExecuteCommandsEmbeddedInStdOut"]:
-            oCdbWrapper.fQueueCommandsEmbeddedInOutput(sLine);
           # Failure to attach will terminate cdb. This needs to be special cased:
           oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
           if oCannotAttachMatch:
