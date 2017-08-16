@@ -1,3 +1,4 @@
+from dxConfig import dxConfig;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from sReportHTMLTemplate import sReportHTMLTemplate;
 from oVersionInformation import oVersionInformation;
