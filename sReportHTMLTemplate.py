@@ -277,6 +277,7 @@ sReportHTMLTemplate = ("""
       <div class="Content">
         <table>
           <tr><td>BugId:           </td><td><span class="Important"><b>%(sId)s</b></span></td></tr>
+%(sOptionalUniqueStackId)s
           <tr><td>Location:        </td><td><span class="Important">%(sBugLocation)s</span></td></tr>
 %(sOptionalSource)s
           <tr><td>Description:     </td><td><span class="Important">%(sBugDescription)s</span></td></tr>

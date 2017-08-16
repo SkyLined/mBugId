@@ -69,17 +69,17 @@ def cBugReport_fxProcessStack(oBugReport):
         asFrameNotesHTML and "<span class=\"StackFrameNotes\">(%s)</span>" % ", ".join(asFrameNotesHTML),
         sOptionalSourceHTML and "<span class=\"StackFrameSource\">[%s]</span>" % sOptionalSourceHTML,
       ] if s]));
-  # Get the stack ids:
+  # Get the stack ids: one that contains all the ids for all stack frames, and one that merges stack ids to fit the
+  # requested uStackHashFramesCount.
   asStackIds = [oStackFrame.sId for oStackFrame in aoStackFramesPartOfId];
+  oBugReport.sUniqueStackId = ".".join(asStackIds);
   if len(asStackIds) > dxConfig["uStackHashFramesCount"]:
     # There are too many stack hashes: concatinate all excessive hashes togerther with the last non-excessive one and
     # hash them again. This new has replaces them, bringing the number of hashes down to the maximum number. The last
     # hash is effectively a combination of all these hashes, guaranteeing a certain level of uniqueness.
-    sExcessIds = "";
-    while len(asStackIds) >= dxConfig["uStackHashFramesCount"]:
-      sExcessIds = asStackIds.pop() + sExcessIds;
     oHasher = hashlib.md5();
-    oHasher.update(sExcessIds);
+    while len(asStackIds) >= dxConfig["uStackHashFramesCount"]:
+      oHasher.update(asStackIds.pop());
     asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
   oBugReport.sStackId = ".".join(asStackIds);
   # Get the bug location.
