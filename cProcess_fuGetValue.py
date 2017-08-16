@@ -8,8 +8,10 @@ def cProcess_fuGetValue(oProcess, sValue, sComment):
   asCommandOutput = oProcess.fasExecuteCdbCommand(
     sCommand = '.printf "%%p\\n", %s;' % sValue,
     sComment = sComment,
-    srIgnoreErrors = r"^Couldn't resolve error at .*$",
+    srIgnoreErrors = r"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$",
   );
+  if asCommandOutput is None:
+    return None;
   uValueAtIndex = 0;
   if len(asCommandOutput) == 2 and asCommandOutput[0].startswith("Unable to read dynamic function table entry at "):
     # It looks like we can safely ignore this error: the next line should contain the value.
