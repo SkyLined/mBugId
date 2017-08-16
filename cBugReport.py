@@ -243,6 +243,8 @@ class cBugReport(object):
         try:
           oBugReport.sReportHTML = sReportHTMLTemplate % {
             "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
+            "sOptionalUniqueStackId": oBugReport.sUniqueStackId != oBugReport.sStackId and
+                "<tr><td>Full stack id:</td><td>%s</td></tr>" % oCdbWrapper.fsHTMLEncode(oBugReport.sUniqueStackId) or "",
             "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
             "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
             "sBinaryVersion": sBinaryVersionHTML,
