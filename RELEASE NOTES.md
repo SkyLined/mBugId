@@ -1,3 +1,19 @@
+2017-08-17
+==========
++ Fix stack hashes for recursive calls. At least, I hope. At some point I
+  decided to drop inlined functions from the stack hash for recursive function
+  calls, assuming that they did not add useful information. However, functions
+  may or may not be inlined by a compiler to optimize the code, and different
+  builds of the same code could therefore get a different BugId for the same
+  crash. To prevent this, I'm no longer ignoring inlined functions in the stack
+  hashes of recursive calls. I've modified the code that combines hashes to
+  reduce their number to the requested number as well, as I was not sure that
+  code worked correctly. The HTML report now also contains all the hashes of all
+  stack frames in the loop, so debugging this issue should be easier, if it
+  still exists. *Note that these changes may result in different BugIds for the
+  same recursive function call bug for different versions of BugId.*
+
+
 2017-07-17
 ==========
 Bug fixes
