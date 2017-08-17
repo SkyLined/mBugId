@@ -38,6 +38,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       # Create HTML details
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
+        "sOptionalUniqueStackId": "",
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
         "sOptionalSource": "",
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
