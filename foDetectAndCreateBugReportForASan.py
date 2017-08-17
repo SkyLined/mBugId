@@ -1,6 +1,7 @@
 import re;
 from cBugReport import cBugReport;
 from cPageHeapAllocation import cPageHeapAllocation;
+from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 dsSecurityImpact_by_sASanBugType = {
@@ -338,17 +339,21 @@ def foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode):
       # We know nothing about the layout of the memory region for which the problem was reported, but we do want to
       # dump it in the report, so we will output a region of a size that will hopefully be useful, but not too large
       # so as to bloat the report with irrelevant data.
-      uMemoryDumpStartAddress = uProblemAddress - 100;
-      uMemoryDumpEndAddress = uProblemAddress + 100;
-    # Make sure the problem address is in the memory dump
-    if uMemoryDumpStartAddress > uProblemAddress:
-      uMemoryDumpStartAddress = uProblemAddress;
-    elif uMemoryDumpEndAddress < uProblemAddress:
-      uMemoryDumpEndAddress = uProblemAddress;
+      uMemoryDumpStartAddress = uProblemAddress - 0x100;
+      uMemoryDumpSize = 0x200;
+    else:
+      # Make sure the problem address is in the memory dump
+      if uMemoryDumpStartAddress > uProblemAddress:
+        uMemoryDumpStartAddress = uProblemAddress;
+      elif uMemoryDumpEndAddress < uProblemAddress:
+        uMemoryDumpEndAddress = uProblemAddress;
+      uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+        uProblemAddress, oProcess.uPointerSize, uMemoryDumpStartAddress, uMemoryDumpEndAddress - uMemoryDumpStartAddress,
+      );
     # Dump memory
     oBugReport.fAddMemoryDump(
       uMemoryDumpStartAddress,
-      uMemoryDumpEndAddress,
+      uMemoryDumpStartAddress + uMemoryDumpSize,
       "Memory near heap block at 0x%X" % uMemoryDumpStartAddress,
     );
     for (sDescription, uAddress, uSize) in atxMemoryRemarks:
