@@ -190,13 +190,16 @@ class cBugReport(object):
       # Create and add disassembly blocks if needed:
       for oFrame in aoStackFramesPartOfId:
         if oFrame.uIndex == 0:
-          sBeforeAddressInstructionDescription = None;
-          sAtAddressInstructionDescription = "current instruction";
+          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+            uAddress = oFrame.uInstructionPointer,
+            sDescriptionOfInstructionAtAddress = "current instruction"
+          );
         else:
-          sBeforeAddressInstructionDescription = "call";
-          sAtAddressInstructionDescription = "return address";
-        sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(oFrame.uInstructionPointer, \
-            sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
+          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+            uAddress = oFrame.uInstructionPointer,
+            sDescriptionOfInstructionBeforeAddress = "call",
+            sDescriptionOfInstructionAtAddress = "return address"
+          );
         if sFrameDisassemblyHTML:
           asBlocksHTML.append(sBlockHTMLTemplate % {
             "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
@@ -295,5 +298,5 @@ class cBugReport(object):
     return cBugReport_fxProcessStack(oBugReport);
   def fsMemoryDumpHTML(oBugReport, sDescription, uStartAddress, uEndAddress):
     return cBugReport_fsMemoryDumpHTML(oBugReport, sDescription, uStartAddress, uEndAddress);
-  def fsGetDisassemblyHTML(oBugReport, uAddress, sBeforeAddressInstructionDescription = None, sAtAddressInstructionDescription = None):
-    return cBugReport_fsGetDisassemblyHTML(oBugReport, uAddress, sBeforeAddressInstructionDescription, sAtAddressInstructionDescription);
+  def fsGetDisassemblyHTML(oBugReport, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
+    return cBugReport_fsGetDisassemblyHTML(oBugReport, uAddress, sDescriptionOfInstructionBeforeAddress, sDescriptionOfInstructionAtAddress);
