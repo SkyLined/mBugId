@@ -1,5 +1,15 @@
 2017-08-17
 ==========
+A lot has been changed, but I was too busy to keep track of everything and
+release periodic updates. Unfortunately, this means that the below list may not
+be complete and that you may need to make a few changes to your code if you use
+cBugId directly.
+
+Bug fixes
+---------
++ When getting disassembly, part or all of the area we would like to disassemble
+  might be in memory that cannot be read. In this case, we'll try to shrink the
+  area until we are successful, or find we cannot disassemble anything.
 + Fix stack hashes for recursive calls. At least, I hope. At some point I
   decided to drop inlined functions from the stack hash for recursive function
   calls, assuming that they did not add useful information. However, functions
@@ -12,7 +22,36 @@
   stack frames in the loop, so debugging this issue should be easier, if it
   still exists. *Note that these changes may result in different BugIds for the
   same recursive function call bug for different versions of BugId.*
++ Attempt to fix the logging in HTML reports. Adding useful cdb output to HTML
+  reports has been neglected for some time, and bugs have snug in that make the
+  output less than complete or useful. I may decide to remove the fine-tuning
+  features to make it either fully on or off in the near future, in order to
+  simplify things.
++ Attempt to address an issue where a command-line utility being debugged that
+  is attempting to read from stdin may actually read a command send by cBugId
+  that was intended for cdb.exe. This is done by sending a dummy command, which
+  may or may not get "eaten" by the target application before sending commands
+  to cdb.exe (the application is supposed to be suspended, so won't "eat" more
+  than one line of input).
++ Fix errors when reporting internal errors, which were caused by changes made
+  to the bug report HTML template and a missing import; the code has been
+  updated to work with the new template.
++ Limit the size of memory dumps created when ASan reports an error and for
+  STATUS_STACK_BUFFER_OVERRUN exceptions to prevent assertion failures in code
+  that checks the size is limited.
++ Handle ambiguous symbol errors when getting a symbol's address.
++ More commands are repeated if cdb gives a temporary error.
 
+Improvements
+------------
++ Many methods that were process-specific were moved to the cProcess class in
+  order to prevent accidentally executing them on the wrong process.
++ Missing end-of-command-markers are handled by throwing a specific exception
+  that can be caught to handle them.
++ Stale and superfluous code has been removed.
++ Add complete list of stack hashes to HTML report for recursive calls with
+  large loops.
++ Timeout handle code was rewritten to be more robust and reliable.
 
 2017-07-17
 ==========
