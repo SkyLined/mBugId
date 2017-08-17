@@ -51,7 +51,9 @@ Improvements
 + Stale and superfluous code has been removed.
 + Add complete list of stack hashes to HTML report for recursive calls with
   large loops.
-+ Timeout handle code was rewritten to be more robust and reliable.
++ Timeout handle code was rewritten to be more robust and reliable. The code
+  now uses a cTimeout object to represent a timeout, and `fxSetTimeout` has
+  been renamed to `foSetTimeout` and returns a cTimeout instance.
 
 2017-07-17
 ==========
