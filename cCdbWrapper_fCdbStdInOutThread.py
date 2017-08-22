@@ -6,7 +6,7 @@ from daxExceptionHandling import daxExceptionHandling;
 from dxConfig import dxConfig;
 from foDetectAndCreateBugReportForVERIFIER_STOP import foDetectAndCreateBugReportForVERIFIER_STOP;
 from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
-from NTSTATUS import *;
+import mWindowsDefines;
 
 def fnGetDebuggerTime(sDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.
@@ -373,7 +373,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           sReason = "process terminated";
         oCdbWrapper.fApplicationSuspendedCallback(sReason);
       ### See if it was a debugger break-in for a new process that failed to load properly #############################
-      if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
+      if uExceptionCode == mWindowsDefines.STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not always get reported for the new process; see if there are any processes known to cdb
         # that we do not yet know about:
         asListProcesses = oCdbWrapper.fasExecuteCdbCommand(
@@ -457,7 +457,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # same event; this exception should be ignored as we have already handled the new process.
           # This is potentially unreliable: if this exception is not thrown, but the process does trigger a
           # breakpoint for some other reason, it will be ignored. However, I have never seen that happen.
-          dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [STATUS_BREAKPOINT];
+          dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [mWindowsDefines.STATUS_BREAKPOINT];
         else:
           oCdbWrapper.fLogMessageInReport(
             "LogProcess",
@@ -466,7 +466,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # And a STATUS_BREAKPOINT triggered to report a new process in turn can be followed by a STATUS_WX86_BREAKPOINT
         # on x64 systems running a x86 process.
         if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
-          dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(STATUS_WX86_BREAKPOINT);
+          dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(mWindowsDefines.STATUS_WX86_BREAKPOINT);
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
@@ -522,7 +522,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         );
         uReserveRAMAllocated = 0;
       ### Handle timeout interrupt #####################################################################################
-      if uExceptionCode == DBG_CONTROL_BREAK:
+      if uExceptionCode == mWindowsDefines.DBG_CONTROL_BREAK:
         # We asked cdb to suspend execution of the application by sending a CTRL+BREAK signal. This exception means
         # it received the signal and suspended the application. Let the interrupt-on-timeout thread know that it may
         # need to send another signal if it finds more timeouts need to be fired.
@@ -540,7 +540,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         continue;
       ### Analyze potential bugs #######################################################################################
       ### Triggering a breakpoint may indicate a third-party component reported a bug in stdout/stderr; look for that.
-      if uExceptionCode in [STATUS_BREAKPOINT, STATUS_WX86_BREAKPOINT]:
+      if uExceptionCode in [mWindowsDefines.STATUS_BREAKPOINT, mWindowsDefines.STATUS_WX86_BREAKPOINT]:
         ### Handle VERIFIER STOP #########################################################################################
         oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asUnprocessedCdbOutput);
         asUnprocessedCdbOutput = [];

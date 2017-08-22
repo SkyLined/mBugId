@@ -1,9 +1,9 @@
 import re;
 #from cException import cException; # moved to end of file to prevent circular reference
-from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
 from fduStructureData import fduStructureData;
 from fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
 from fuStructureSize import fuStructureSize;
+import mWindowsDefines;
 
 def fsSignature(uSignature):
   return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in xrange(3,-1,-1)]);
@@ -25,14 +25,17 @@ class cStowedException(object):
     oStowedException.oNestedException = oNestedException;
     oStowedException.sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName;
     # Create an exception id that uniquely identifies the exception and a description of the exception.
-    if oStowedException.uCode in dtsTypeId_and_sSecurityImpact_by_uExceptionCode:
-      oStowedException.sTypeId, oStowedException.sSecurityImpact = dtsTypeId_and_sSecurityImpact_by_uExceptionCode[oStowedException.uCode];
+    oWindowsDefine = mWindowsDefines.doWindowsDefines_by_uValue.get(uCode);
+    if oWindowsDefine:
+      oStowedException.sTypeId = oWindowsDefine.sTypeId;
+      oStowedException.sSecurityImpact = oWindowsDefine.sSecurityImpact;
+      oStowedException.sDescription = oWindowsDefine.sDescription;
     else:
-      oStowedException.sTypeId = "0x%08X" % oStowedException.uCode;
-      oStowedException.sSecurityImpact = "Unknown.";
-    oStowedException.sDescription = "Stowed exception code 0x%08X." % oStowedException.uCode;
+      oStowedException.sTypeId = "0x%08X" % uCode;
+      oStowedException.sSecurityImpact = "Unknown";
+      oStowedException.sDescription = "Unknown exception code 0x%08X" % uCode;
     if oStowedException.sErrorText:
-      oStowedException.sDescription += "Error: %s" % oStowedException.sErrorText;
+      oStowedException.sDescription += " Error: %s" % oStowedException.sErrorText;
     if oStowedException.oNestedException:
       oStowedException.sTypeId += "[%s]" % oStowedException.oNestedException.sTypeId;
       oStowedException.sDescription += " Nested exception: %s." % oStowedException.oNestedException.sDescription;

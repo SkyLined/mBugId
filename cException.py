@@ -1,8 +1,7 @@
 import re;
 from cStack import cStack;
 from cStowedException import cStowedException;
-from dtsTypeId_and_sSecurityImpact_by_uExceptionCode import dtsTypeId_and_sSecurityImpact_by_uExceptionCode;
-from NTSTATUS import *;
+import mWindowsDefines;
 
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
@@ -124,13 +123,18 @@ class cException(object):
         "Unexpected number of parameters (%d vs %d)" % (len(oException.auParameters), uParameterCount);
     # Now get a preliminary exception id that identifies the type of exception based on the exception code, as well as
     # preliminary security impact.
-    if oException.uCode in dtsTypeId_and_sSecurityImpact_by_uExceptionCode:
-      oException.sTypeId, oException.sSecurityImpact = dtsTypeId_and_sSecurityImpact_by_uExceptionCode[oException.uCode];
+    oWindowsDefine = mWindowsDefines.doWindowsDefines_by_uValue.get(uCode);
+    if oWindowsDefine:
+      oException.sTypeId = oWindowsDefine.sTypeId;
+      oException.sSecurityImpact = oWindowsDefine.sSecurityImpact;
+      oException.sDescription = oWindowsDefine.sDescription;
     else:
-      oException.sTypeId = "0x%08X" % oException.uCode;
+      oException.sTypeId = "0x%08X" % uCode;
       oException.sSecurityImpact = "Unknown";
-    # Save the description of the issue
-    oException.sDescription = "%s (code 0x%08X)" % (sCodeDescription, uCode);
+      if sCodeDescription:
+        oException.sDescription = "Unknown exception code 0x%08X (%s)" % (uCode, sCodeDescription);
+      else:
+        oException.sDescription = "Unknown exception code 0x%08X" % uCode;
 
     # Compare stack with exception information
     if oException.sAddressSymbol:
@@ -140,7 +144,7 @@ class cException(object):
         oException.oFunction, oException.iFunctionOffset
       ) = oProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
       sCdbSymbolOrAddress = oException.sAddressSymbol;
-      if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
+      if oException.uCode == mWindowsDefines.STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
         # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,
         # so do not try to check that exception information matches the first stack frame.
         return None;
@@ -152,7 +156,7 @@ class cException(object):
     # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
     # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
     # will be off-by-one.
-    if oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
+    if oException.uCode in [mWindowsDefines.STATUS_WX86_BREAKPOINT, mWindowsDefines.STATUS_BREAKPOINT]:
       oException.uInstructionPointer -= 1;
       if oException.uAddress is not None:
         oException.uAddress -= 1;

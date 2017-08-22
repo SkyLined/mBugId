@@ -4,7 +4,6 @@ from cCorruptionDetector import cCorruptionDetector;
 from cPageHeapAllocation import cPageHeapAllocation;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftsGetHeapBlockAndOffsetIdAndDescription import ftsGetHeapBlockAndOffsetIdAndDescription;
-from NTSTATUS import *;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput):
