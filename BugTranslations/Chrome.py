@@ -109,8 +109,12 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     sOriginalBugTypeId = "Assert",
-    asOriginalTopStackFrameSymbols = [
-      "*!SkBitmap::allocPixels",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "*!SkBitmap::allocPixels",
+      ], [
+        "*!FX_OutOfMemoryTerminate",
+      ],
     ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application caused an access violation by writing to NULL to indicate it was unable to allocate enough memory.",
