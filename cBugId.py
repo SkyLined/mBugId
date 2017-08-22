@@ -177,6 +177,7 @@ class cBugId(object):
     return oBugId.__oFinishedEvent.isSet();
   
   def __fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
+    oBugId.oBugReport = None;
     oBugId.__oFinishedEvent.set();
     # This error must be handled, or an assertion is thrown
     assert oBugId.__fFailedToDebugApplicationCallback, sErrorMessage;
