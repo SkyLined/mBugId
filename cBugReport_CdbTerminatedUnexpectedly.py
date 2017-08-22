@@ -28,13 +28,13 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sStackId = None;
     oBugReport.sBugSourceLocation = None;
     oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
-    # Add Cdb IO to HTML report
-    asBlocksHTML.append(sBlockHTMLTemplate % {
-      "sName": "Application and cdb output log",
-      "sCollapsed": "Collapsed",
-      "sContent": oCdbWrapper.sCdbIOHTML
-    });
     if oCdbWrapper.bGenerateReportHTML:
+      # Add Cdb IO to HTML report
+      asBlocksHTML.append(sBlockHTMLTemplate % {
+        "sName": "Application and cdb output log",
+        "sCollapsed": "Collapsed",
+        "sContent": oCdbWrapper.sCdbIOHTML
+      });
       # Create HTML details
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
