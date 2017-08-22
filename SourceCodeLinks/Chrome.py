@@ -3,7 +3,7 @@ from cSourceCodeLink import cSourceCodeLink;
 srBasePath = r"\w+:(\\\w+)*\\(%s)\\src" % "|".join([
   r"build\\slave\\(win-asan|syzygy_official|win_upload_clang)\\build",
   r"win_asan_release",
-  r"win(64)?_pgo",
+  r"win(64)?_(pgo|clang)",
 ]);
 
 aoSourceCodeLinks = [
