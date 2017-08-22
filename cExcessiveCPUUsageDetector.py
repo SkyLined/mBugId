@@ -193,7 +193,7 @@ class cExcessiveCPUUsageDetector(object):
       bShowOutputButNotCommandInHTMLReport = True,
     );
     assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
-    if bDebugOutputWorm: print "@@@ %s" % asDebugOutput[0];
+    if bDebugOutputWorm: print "@@@ %3.3f %s" % (oCdbWrapper.nApplicationRunTime, asDebugOutput[0]);
   
   def fInstallWorm(oExcessiveCPUUsageDetector, uProcessId, uThreadId, nTotalCPUUsagePercent):
     if bDebugOutput: print "@@@ Installing excessive CPU usage worm...";
