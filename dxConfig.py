@@ -96,8 +96,9 @@ dxConfig = {
   "bEnableSourceCodeSupport": True,     # Tell cdb to load source line symbols or not.
   "dsURLTemplate_by_srSourceFilePath": {}, # Used to translate source file paths to links to online code repository.
   ### Dump file settings
-  "bSaveDump": False,                   # Save a dump file.
-  "bOverwriteDump": False,              # Overwrite any existing dump file.
+  "bSaveDump": True,                   # Save a dump file.
+  "bOverwriteDump": True,              # Overwrite any existing dump file.
+  "sDumpPath": "",                      # path to save dump file.
   ### OOM mitigations
   "uReserveRAM": 0,                     # How many bytes of RAM should be allocate at start of debugging, so they can
                                         # be released later to allow analysis under low memory conditions.
@@ -147,4 +148,6 @@ dxConfig = {
                                         # error callback.
   ### UWP applications
   "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
+  ### dump MiniOptions
+  "sMiniOptions": "ma",   #https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-dump--create-dump-file-
 };
