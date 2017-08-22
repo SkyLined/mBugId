@@ -1,3 +1,29 @@
+2017-08-22
+==========
+Improvements
+------------
++ Replaced several files that were used for exception codes (NTSTATUS, HRESULT)
+  and information about their id, description, and severity with one file that
+  covers all Windows header file #defines I currently know of.
++ Added bug translations and source links
++ Add application run time to debug output when running CPU Usage worm. This
+  should help you determine progress.
++ Reduced default CPU Usage worm runtime to 1 second; this should be ample time
+  in most cases in my experience.
++ The tests have been rewritten to simplify them; they were needlessly complex
+  because they used to be run in parallel. Now that they are not run in
+  parallel any more, I was able to remove a lot of crap.
+
+Bug fixes
+---------
++ When failing to debug the application, cBugId.oBugReport is now set to None.
+  it was not set at all, which could lead to an exception if you tried to read
+  it.
++ When processing internal errors, do not try to handle HTML report data unless
+  the user requested a HTML report. The previous code would cause an exception
+  if the user did not want a HTML report, as it attempted to read a property
+  that was never set.
+
 2017-08-17
 ==========
 A lot has been changed, but I was too busy to keep track of everything and
