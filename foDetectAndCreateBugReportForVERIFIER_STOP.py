@@ -4,6 +4,7 @@ from cCorruptionDetector import cCorruptionDetector;
 from cPageHeapAllocation import cPageHeapAllocation;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftsGetHeapBlockAndOffsetIdAndDescription import ftsGetHeapBlockAndOffsetIdAndDescription;
+from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCdbOutput):
@@ -248,6 +249,10 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
         uMemoryDumpStartAddress = uCorruptionStartAddress;
       if uCorruptionEndAddress < uMemoryDumpStartAddress + uMemoryDumpSize:
         uMemoryDumpSize += uCorruptionEndAddress - (uMemoryDumpStartAddress + uMemoryDumpSize);
+      # Limit memory dump size
+      uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+        uMemoryDumpStartAddress, oProcess.uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize
+      );
     # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
     # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
     sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription = \
