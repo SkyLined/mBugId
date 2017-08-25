@@ -2,8 +2,15 @@
 ==========
 Bug fixes
 ---------
-+ Fix https://github.com/SkyLined/BugId/issues/38
++ Fix https://github.com/SkyLined/BugId/issues/38. This requires limiting the
+  maximum number of bytes in an allocation that cBugId tries to extract from a
+  process in one go. This limit is defined by `dxConfig["uMaxMemoryDumpSize"]`.
 + Fix https://github.com/SkyLined/BugId/issues/39
++ Add more option for memory dumps (https://github.com/SkyLined/cBugId/pull/8).
+  You can now specify a path where you want the dumps to be saved in
+  `dxConfig["sDumpPath"]` (`None` -> current directory, which is the same as
+  before this change) and the type of dump you want in `dxConfig["bFullDump"]`
+  (`True` -> full dump, `False` -> mini dump, the same as before this change).
 
 2017-08-22
 ==========
