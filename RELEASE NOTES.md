@@ -1,3 +1,9 @@
+2017-08-25
+==========
+Bug fixes
+---------
++ Fix https://github.com/SkyLined/BugId/issues/38
+
 2017-08-22
 ==========
 Improvements
