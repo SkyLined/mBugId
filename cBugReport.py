@@ -287,10 +287,14 @@ class cBugReport(object):
       sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
       # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
-      sValidDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
+      sDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
+      if dxConfig["sDumpFilePath"]:
+        sDumpFilePath = os.path.join(dxConfig["sDumpFilePath"], sDumpFileName);
+      else:
+        sDumpFilePath = sDumpFileName;
       sOverwriteFlag = dxConfig["bOverwriteDump"] and "/o" or "";
       oCdbWrapper.fasExecuteCdbCommand( \
-        sCommand = ".dump %s /ma \"%s\";" % (sOverwriteFlag, sValidDumpFileName),
+        sCommand = ".dump %s /%s \"%s\";" % (sOverwriteFlag, dxConfig["bFullDump"] and "f" or "ma", sDumpFilePath),
         sComment = "Save dump to file",
       );
   

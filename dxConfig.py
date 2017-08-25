@@ -98,6 +98,8 @@ dxConfig = {
   ### Dump file settings
   "bSaveDump": False,                   # Save a dump file.
   "bOverwriteDump": False,              # Overwrite any existing dump file.
+  "sDumpPath": None,                    # Path where you want cBugId to save dump file. None = current folder.
+  "bFullDump": False,                   # Create a full (True) or small memory dump (False).
   ### OOM mitigations
   "uReserveRAM": 0,                     # How many bytes of RAM should be allocate at start of debugging, so they can
                                         # be released later to allow analysis under low memory conditions.
