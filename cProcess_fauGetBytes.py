@@ -7,6 +7,7 @@ def cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment):
   asCommandOutput = oProcess.fasExecuteCdbCommand(
     sCommand = "db /c20 0x%X L0x%X;" % (uAddress, uSize),
     sComment = sComment,
+    bRetryOnTruncatedOutput = True,
   );
   uLineNumber = 0;
   for sLine in asCommandOutput:
