@@ -1,5 +1,6 @@
 import re;
 from WindowsAPI import *;
+from dxConfig import dxConfig;
 
 class cVirtualAllocation(object):
   @staticmethod
@@ -164,24 +165,33 @@ class cVirtualAllocation(object):
       return None;
     if uSize is None:
       uSize = oVirtualAllocation.uSize - uOffset;
+      if uSize > dxConfig["uMaxMemoryDumpSize"]:
+        uSize = dxConfig["uMaxMemoryDumpSize"];
     assert uOffset + uSize <= oVirtualAllocation.uSize, \
         "Cannot get 0x%X bytes at offset 0x%X from a 0x%X byte allocation!" % (uSize, uOffset, oVirtualAllocation.uSize);
-    if oVirtualAllocation.__auBytes is None:
-      if not oVirtualAllocation.bReadable:
-        # Make the memory readable if it is not
-        uOriginalProtection = oVirtualAllocation.uProtection;
-        assert oVirtualAllocation.__fbSetProtection(PAGE_READONLY), \
-            "Cannot modify virtual allocation protection";
-      else:
-        uOriginalProtection = None;
-      oVirtualAllocation.__auBytes = oVirtualAllocation.oProcess.fauGetBytes(
-        oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize, "Get virtual allocation content",
+    if oVirtualAllocation.uSize <= dxConfig["uMaxMemoryDumpSize"]:
+      # This is small enough to be cached.
+      if oVirtualAllocation.__auBytes is None:
+        if not oVirtualAllocation.bReadable:
+          # Make the memory readable if it is not
+          uOriginalProtection = oVirtualAllocation.uProtection;
+          assert oVirtualAllocation.__fbSetProtection(PAGE_READONLY), \
+              "Cannot modify virtual allocation protection";
+        else:
+          uOriginalProtection = None;
+        oVirtualAllocation.__auBytes = oVirtualAllocation.oProcess.fauGetBytes(
+          oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize, "Get virtual allocation content",
+        );
+        if uOriginalProtection is not None:
+          # Restore the original memory protection if it was changed.
+          assert oVirtualAllocation.__fbSetProtection(uOriginalProtection), \
+              "Cannot restore virtual allocation protection";
+      return oVirtualAllocation.__auBytes[uOffset:uOffset + uSize];
+    else:
+      # The allocation is too large to cache: simply read the requested bytes.
+      return oVirtualAllocation.oProcess.fauGetBytes(
+        oVirtualAllocation.uBaseAddress + uOffset, uSize, "Get virtual allocation content",
       );
-      if uOriginalProtection is not None:
-        # Restore the original memory protection if it was changed.
-        assert oVirtualAllocation.__fbSetProtection(uOriginalProtection), \
-            "Cannot restore virtual allocation protection";
-    return oVirtualAllocation.__auBytes[uOffset:uOffset + uSize];
   
   def fuGetValueAtOffset(oVirtualAllocation, uOffset, uSize):
     auBytes = oVirtualAllocation.fauGetBytesAtOffset(uOffset, uSize);

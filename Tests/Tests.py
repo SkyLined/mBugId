@@ -37,7 +37,7 @@ gbGenerateReportHTML = False;
 oOutputLock = threading.Lock();
 
 guLastLineLength = 0;
-def fOutput(sMessage, bCRLF = True):
+def fOutput(sMessage = "", bCRLF = True):
   global guLastLineLength
   oOutputLock and oOutputLock.acquire();
   sPaddedMessage = sMessage.ljust(guLastLineLength);
@@ -311,9 +311,11 @@ if __name__ == "__main__":
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],               "OOBW[3]-3~3#bcd7 ed2.531");
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],               "OOBW[4n]-4n~4n#6682 ed2.531");
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],              ("OOBW[4n+1]-4n-1~4n+1#5b96 ed2.531", # x64: First byte written overwrites endstamp padding
-                                                                                              "OOBW[4n+1]-4n~4n#6682 ed2.531")); # x86: First byte written overrwrites stack trace pointer and cannot be detected.
+                                                                               "OOBW[4n+1]-4n~4n#6682 ed2.531")); # x86: First byte written overrwrites stack trace pointer and cannot be detected.
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531"); # Last byte written is within bounds!
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531"); # Last byte is within bounds!
+        # Make sure very large allocations do not cause issues in cBugId
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 0x1000000, -4, 4],       "OOBW[4n]-4n~4n#6682 ed2.531");
       # Page heap does not appear to work for x86 tests on x64 platform.
       fTest(sISA,    ["UseAfterFree", "Read",    1,  0],                       "UAFR[1]@0 ed2.531");
       if bFullTestSuite:

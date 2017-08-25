@@ -1,6 +1,9 @@
 import re;
+from dxConfig import dxConfig;
 
 def cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment):
+  assert uSize <= dxConfig["uMaxMemoryDumpSize"], \
+      "Attempt to dump %d/0x%X bytes but the max is %d/0x%X" % (uSize, uSize, dxConfig["uMaxMemoryDumpSize"], dxConfig["uMaxMemoryDumpSize"]);
   auBytes = [];
   assert ";" not in sComment, \
       "Comments cannot have a semi-colon: %s" % repr(sComment);

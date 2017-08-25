@@ -147,4 +147,8 @@ dxConfig = {
                                         # error callback.
   ### UWP applications
   "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
+  ### cdb limits
+  "uMaxMemoryDumpSize": 0x4000,         # Do not ask cdb to dump more than this many bytes (cdb will report a
+                                        # `^ Range error in ' db /cXX 0xXXXX l<too big>` if you try to dump too many
+                                        # bytes).
 };
