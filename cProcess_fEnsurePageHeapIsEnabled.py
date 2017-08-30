@@ -98,4 +98,4 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   else:
     # This is fatal if it's preventable and there is no callback handler
     assert not bPreventable, \
-        "Full page heap is not enabled for %s in process %d/0x%X." % (sBinaryName, uProcessId, uProcessId);
+        "Full page heap is not enabled for %s in process %d/0x%X." % (oProcess.sBinaryName, oProcess.uId, oProcess.uId);
