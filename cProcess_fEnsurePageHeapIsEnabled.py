@@ -1,8 +1,11 @@
 import re;
-
+import WindowsRegistry;
 # Cache which binaries have page heap enabled/disabled. this assumes that the user does not modify the page heap
 # settings while BugId is running.
 gdbPageHeapEnabled_by_sBinaryName = {};
+guRequiredFlags = 0x02109870;
+
+sRegistryKeyBasePath = r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options";
 
 def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   if oProcess.bPageHeapEnabled is not None:
@@ -10,81 +13,16 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   if oProcess.sBinaryName in gdbPageHeapEnabled_by_sBinaryName:
     oProcess.bPageHeapEnabled = gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName];
     return;
-  asPageHeapStatusOutput = oProcess.fasExecuteCdbCommand(
-    sCommand = "!heap -p;",
-    sComment = "Get page heap status",
-  );
-  #### Page heap disabled ####################################################
-  # |    Active GlobalFlag bits:
-  # |        htc - Enable heap tail checking
-  # |        hfc - Enable heap free checking
-  # |        hpc - Enable heap parameter checking
-  # |    active heaps:
-  # |
-  # | - 2cb0000
-  # |          HEAP_GROWABLE HEAP_TAIL_CHECKING_ENABLED HEAP_FREE_CHECKING_ENABLED 
-  # | - 2f40000
-  # |          HEAP_GROWABLE HEAP_TAIL_CHECKING_ENABLED HEAP_FREE_CHECKING_ENABLED HEAP_CLASS_1 
-  #### Page heap enabled #####################################################
-  # |    Active GlobalFlag bits:
-  # |        scb - Enable system critical breaks
-  # |        hpa - Place heap allocations at ends of pages
-  # |
-  # |    StackTraceDataBase @ 04500000 of size 01000000 with 00000013 traces
-  # |
-  # |    PageHeap enabled with options:
-  # |        ENABLE_PAGE_HEAP
-  # |        COLLECT_STACK_TRACES
-  # |
-  # |    active heaps:
-  # |
-  # |    + 4370000
-  # |        ENABLE_PAGE_HEAP COLLECT_STACK_TRACES 
-  # |      NormalHeap - 5690000
-  # |          HEAP_GROWABLE 
-  # |    + 5500000
-  # |        ENABLE_PAGE_HEAP COLLECT_STACK_TRACES 
-  # |      NormalHeap - 5850000
-  # |          HEAP_GROWABLE HEAP_CLASS_1
-  ############################################################################
-  # It turns out that when a new process is created, the !heap command may be unable to provide us the information we
-  # need. This is probably because the process was just created and is still being initialized, so insufficient data
-  # is available at this point. I work around this by repeatedly calling this function, so we can try again and again
-  # until it works.
-  # Find the "Active GlobalFlag bits:"-header
-  for uPageHeapOptionsIndex in xrange(len(asPageHeapStatusOutput)):
-    if asPageHeapStatusOutput[uPageHeapOptionsIndex].strip() == "Active GlobalFlag bits:":
-      break;
-  else:
-    # The header was not found, try again later:
-    return;
-  asRequiredOptions = ["ENABLE_PAGE_HEAP", "COLLECT_STACK_TRACES"];
-  # Find the "PageHeap enabled with options:"-header and see if the required options come after it:
-  while uPageHeapOptionsIndex < len(asPageHeapStatusOutput):
-    bHeaderFound = asPageHeapStatusOutput[uPageHeapOptionsIndex].strip() == "PageHeap enabled with options:";
-    uPageHeapOptionsIndex += 1;
-    if bHeaderFound:
-      # Check the which options are reported after the header:
-      asEnabledOptions = [];
-      while uPageHeapOptionsIndex < len(asPageHeapStatusOutput):
-        sEnabledOption = asPageHeapStatusOutput[uPageHeapOptionsIndex].strip();
-        if not sEnabledOption:
-          # An empty line follow the options.
-          break;
-        if sEnabledOption in asRequiredOptions:
-          # Mark the required option as enabled
-          asEnabledOptions.append(sEnabledOption);
-        uPageHeapOptionsIndex += 1;
-      # See which required options are not enabled:
-      asMissingOptions = [s for s in asRequiredOptions if s not in asEnabledOptions];
-      if not asMissingOptions:
-        # Page heap is enabled correctly.
-        gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = True;
-        oProcess.bPageHeapEnabled = True;
-        return;
-      break;
-  gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = False;
+  oGlobalFlags = WindowsRegistry.fxGetValue("HKLM", r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName, "GlobalFlag");
+  if oGlobalFlags and oGlobalFlags.sType == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", oGlobalFlags.xValue):
+    uValue = long(oGlobalFlags.xValue[2:], 16);
+    if uValue & guRequiredFlags == guRequiredFlags:
+      # Page heap is not enabled with all the required options:
+      gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = True;
+      oProcess.bPageHeapEnabled = True;
+      return;
   # Page heap is not enabled or not all the required options are enabled
+  gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = False;
   oProcess.bPageHeapEnabled = False;
   # The "id" cdb uses to identify modules in symbols is normally based on the name of the module binary file.
   # However, for unknown reasons, cdb will sometimes use "imageXXXXXXXX", where XXXXXXXX is the hex address at
