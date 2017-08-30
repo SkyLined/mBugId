@@ -3,7 +3,7 @@ from cCdbStoppedException import cCdbStoppedException;
 from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from dxConfig import dxConfig;
 
-bLogCommandExecutionTime = False;
+gbLogCommandExecutionTime = False;
 
 # It appears cdb can sometimes buffer output from the application and output it after the prompt is shown. This would
 # cause this application output to be treated as part of the output of whatever command we are trying to execute if we
@@ -35,7 +35,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
   if oCdbWrapper.bGenerateReportHTML:
     bAddCommandAndOutputToHTML = dxConfig["bShowAllCdbCommandsInReport"] or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]);
     if bAddCommandAndOutputToHTML:
-      if bLogCommandExecutionTime:
+      if gbLogCommandExecutionTime:
         nStartTime = time.clock();
       oCdbWrapper.sCdbIOHTML += "<hr/>";
       if not bShowOutputButNotCommandInHTMLReport:
@@ -81,7 +81,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
           "End-of-command-output marker missing:\r\n%s" % "\r\n".join(oEndOfCommandOutputMarkerMissingException.asCommandOutput);
       uTries -= 1;
     finally:
-      if bAddCommandAndOutputToHTML and bLogCommandExecutionTime:
+      if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nEndTime = time.clock() - nStartTime;
         oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>" % nEndTime;
       
