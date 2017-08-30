@@ -143,10 +143,11 @@ dxConfig = {
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
   ### Page heap
-  "bEnsurePageHeap": True,              # If True, each process that BugId attaches to, creates, or which is created
+  "bEnsurePageHeap": False,             # If True, each process that BugId attaches to, creates, or which is created
                                         # during debugging will be checked to make sure page heap is enabled.
                                         # If page heap is not enabled as expected, an error is reported through the
-                                        # error callback.
+                                        # error callback. If False, BugId will only make sure page heap is enabled
+                                        # when a bug is detected.
   ### UWP applications
   "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
   ### cdb limits
