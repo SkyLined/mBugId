@@ -53,8 +53,8 @@ def fxGetValue(sHiveName, sKeyName, sValueName = None):
   assert uHive is not None, \
       "Unknown hive %s" % repr(sHiveName);
   oHive = _winreg.ConnectRegistry(None, uHive);
-  oKey = _winreg.OpenKey(oHive, sKeyName);
   try:
+    oKey = _winreg.OpenKey(oHive, sKeyName);
     xValue, uType = _winreg.QueryValueEx(oKey, sValueName);
   except WindowsError, oWindowsError:
     if oWindowsError.errno == 2:
