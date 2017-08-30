@@ -8,6 +8,7 @@ class cModule(object):
     oModule.uEndAddress = uEndAddress;
     oModule.sCdbId = sCdbId;
     oModule.__sSymbolStatus = sSymbolStatus; # Not exposed; use bSymbolsAvailable
+    oModule.__bSymbolLoadingFailed = False;
     # __fGetModuleSymbolAndVersionInformation needs only be called once:
     oModule.__bModuleSymbolAndVersionInformationAvailable = False; # set to false when __fGetModuleSymbolAndVersionInformation is called.
     oModule.__sBinaryPath = None;
@@ -25,7 +26,7 @@ class cModule(object):
   
   @property
   def bSymbolsAvailable(oModule):
-    if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
+    if not oModule.__bSymbolLoadingFailed and oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
       # It's deferred or otherwise not loaded: try to load symbols now.
       asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
         sCommand = "ld %s;" % oModule.sCdbId,
@@ -38,7 +39,18 @@ class cModule(object):
       # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
       oModule.__fGetModuleSymbolAndVersionInformation();
       assert oModule.__sSymbolStatus != "deferred", \
-          "Symbol loading reported success, but symbols are still reported as deferred";
+          "Symbols are still reported as deferred after attempting to load them";
+      if oModule.__sSymbolStatus in ["export symbols", "no symbols"]:
+        # Loading the symbols failed; force reload the module and overwriting any cached pdbs.
+        asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
+          sCommand = ".reload /f /o /v %s;" % oModule.__sBinaryName,
+          sComment = "Reload symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
+          bRetryOnTruncatedOutput = True,
+        );
+        oModule.__fGetModuleSymbolAndVersionInformation();
+        if oModule.__sSymbolStatus in ["export symbols", "no symbols"]:
+          # We cannot load symbols for this module for some reason.
+          oModule.__bSymbolLoadingFailed = True;
     return {
       "export symbols": False,
       "no symbols": False,
