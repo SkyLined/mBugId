@@ -1,4 +1,4 @@
-import re, time;
+import re;
 from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
@@ -72,8 +72,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       bApplicationWillBeRun
       and oCdbWrapper.rImportantStdOutLines
     );
-  if bAddOutputToHTMLReport:
-    nStartTime = time.clock();
   sLine = "";
   asLines = [];
   if bApplicationWillBeRun:
