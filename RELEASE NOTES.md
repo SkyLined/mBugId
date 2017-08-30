@@ -2,16 +2,19 @@
 ==========
 Improvements
 ------------
-+ Disable ensuring page heap is enabled for every process as this caused a
-  lot of overhead and slowed down cBugId significantly.
-+ Ensure page heap is enabled for a process if no page heap information is
-  available for an address in memory. This means the
++ Directly access the registry to ensure page heap is enabled for every process
+  as this is much faster than asking cdb, which speeds up cBugId significantly.
++ Always ensure page heap is enabled for a process if no page heap information
+  is available for an address in memory. This means the
   `fPageHeapNotEnabledCallback` can now be called even if
   `dxConfig["bEnsurePageHeap"]` is disabled. If you do not have a handler for
   this event, an exception will be raised. If you want to ignore missing page
   heap, you need to add a (dummy) handler to prevent this exception.
-+ If a page heap is not enabled for a binary, this is now cached as well, which
++ If page heap is not enabled for a binary, this is now cached as well, which
   should improve performance.
++ If symbol loading fails, try to force downloading the pdb from a symbol
+  server and overwrite the local cache. If this also fails, stop trying to load
+  the symbols.
 
 Bug fixes
 ---------
