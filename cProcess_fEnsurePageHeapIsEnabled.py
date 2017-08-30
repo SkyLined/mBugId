@@ -83,6 +83,7 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
         oProcess.bPageHeapEnabled = True;
         return;
       break;
+  gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = False;
   # Page heap is not enabled or not all the required options are enabled
   oProcess.bPageHeapEnabled = False;
   # The "id" cdb uses to identify modules in symbols is normally based on the name of the module binary file.
