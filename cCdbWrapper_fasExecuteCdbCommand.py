@@ -44,7 +44,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
             oCdbWrapper.fsHTMLEncode(sCommand, uTabStop = 8);
         if sComment:
           # Optionally add the comment.
-          oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span><br/>" % oCdbWrapper.fsHTMLEncode(sComment);
+          oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span>" % oCdbWrapper.fsHTMLEncode(sComment);
         # End of line
         oCdbWrapper.sCdbIOHTML += "<br/>";
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
