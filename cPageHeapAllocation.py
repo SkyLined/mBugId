@@ -74,8 +74,12 @@ class cPageHeapAllocation(object):
         "unable to resolve ntdll!RtlpStackTraceDataBase",
       ]), x)
     ];
+    if len(asPageHeapOutput) < 4:
+      # No page heap output; make sure it is enabled for this process.
+      oProcess.fEnsurePageHeapIsEnabled();
+      return;
     # TODO: error resolving symbol should be handled by attempting to reload them, similar to cCdbWrapper_fasGetStack
-    if len(asPageHeapOutput) < 4 or asPageHeapOutput[0].startswith("unable to resolve ntdll!"):
+    if asPageHeapOutput[0].startswith("unable to resolve ntdll!"):
       return None;
     assert re.match(r"^\s+address [0-9`a-f]+ found in\s*$", asPageHeapOutput[0]), \
         "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asPageHeapOutput);
