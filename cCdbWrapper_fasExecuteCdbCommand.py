@@ -4,6 +4,7 @@ from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerM
 from dxConfig import dxConfig;
 
 gbLogCommandExecutionTime = False;
+gbDebugIO = False; # Used for debugging cdb I/O issues
 
 # It appears cdb can sometimes buffer output from the application and output it after the prompt is shown. This would
 # cause this application output to be treated as part of the output of whatever command we are trying to execute if we
@@ -65,8 +66,10 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
     except Exception, oException:
       oCdbWrapper.bCdbRunning = False;
+      if gbDebugIO: print "\r>stdin:EOF>";
       raise cCdbStoppedException();
     try:
+      if gbDebugIO: print ">stdin>%s" % sCommand;
       return oCdbWrapper.fasReadOutput(
         bOutputIsInformative = bOutputIsInformative,
         bApplicationWillBeRun = bApplicationWillBeRun,

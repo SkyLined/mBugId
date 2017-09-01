@@ -1,5 +1,7 @@
 from dxConfig import dxConfig;
 
+gbDebugIO = False; # Used for debugging cdb I/O issues
+
 def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
   sLine = "";
   while 1:
@@ -10,6 +12,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
     if sChar == "\r":
       pass; # ignored.
     elif sChar in ("\n", ""):
+      if gbDebugIO: print "\r<stderr<%s" % sLine;
       if sChar == "\n" or sLine:
         oCdbWrapper.asStdErrOutput.append(sLine);
         if oCdbWrapper.bGenerateReportHTML:
@@ -22,9 +25,11 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
           );
         oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
       if sChar == "":
+        if gbDebugIO: print "\r<stderr:EOF<";
         break;
       sLine = "";
     else:
+      if gbDebugIO: print "\r<stderr<%s" % sLine,;
       sLine += sChar;
   oCdbWrapper.bCdbRunning = False;
 

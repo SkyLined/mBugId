@@ -5,6 +5,8 @@ from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerM
 from dxConfig import dxConfig;
 from FileSystem import FileSystem;
 
+gbDebugIO = False; # Used for debugging cdb I/O issues
+
 dsTips_by_sErrorCode = {
   "Win32 error 0n2": "\r\n".join([
     "- You may have provided an incorrect path to the executable."
@@ -89,6 +91,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       if sChar == "\r":
         pass; # ignored.
       elif sChar in ("\n", ""):
+        if gbDebugIO: print "\r<stdout<%s" % sLine;
         if sChar == "\n" or sLine:
           if oCdbWrapper.fStdOutOutputCallback:
             oCdbWrapper.fStdOutOutputCallback(sLine);
@@ -181,6 +184,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 sIgnoredLine = ""; # Start ignoring lines
         if sChar == "":
           oCdbWrapper.bCdbRunning = False;
+          if gbDebugIO: print "<stdout:EOF<";
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:
@@ -189,6 +193,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           sReturnedLine = "";
       else:
         sLine += sChar;
+        if gbDebugIO: print "\r<stdout<%s" % sLine,;
         if sIgnoredLine is None:
           sReturnedLine += sChar;
         else:
