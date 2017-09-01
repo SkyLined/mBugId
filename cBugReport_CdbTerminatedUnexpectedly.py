@@ -51,3 +51,5 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
       };
+    else:
+      oBugReport.sReportHTML = None;
