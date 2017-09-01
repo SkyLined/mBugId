@@ -577,5 +577,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     pass;
   finally:
     oCdbWrapper.bCdbStdInOutThreadRunning = False;
-  assert not oCdbWrapper.bCdbRunning, "Debugger did not terminate when requested";
+  assert not oCdbWrapper.bCdbRunning, \
+      "Debugger did not terminate when requested";
 
