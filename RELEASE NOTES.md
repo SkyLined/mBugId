@@ -1,3 +1,34 @@
+2017-09-18
+==========
+Improvements
+------------
++ Timeout callbacks now always get call with the cBugId instance as their first
+  argument. Any additional arguments are added after that. This brings the
+  callback in line with all other callbacks, which already got the cBugId
+  instance in their first argument.
++ `sReportHTML` is always set (to None if not requested). This makes it easier
+  for anyone using cBugId to check if there is a HTML report. (Attempts to
+  read this property would result in an exception before it no report was
+  generated, as the property would never get set).
++ Ignoring C++ exceptions is now implemented at run-time. This means you can
+  modify the `bIgnoreCPPExceptions` setting `dxConfig.py` after loading the
+  `cBugId` module. In earlier versions, modifying this setting after loading
+  the module would not change the behavior.
++ Ignoring WinRT exceptions is now also possible using the
+  `bIgnoreWinRTExceptions` setting in `dxConfig.py`. It works similar to
+  `bIgnoreCPPExceptions` and should also speed up debugging of applications
+  that use these exceptions frequently, such as Microsoft Internet Explorer and
+  Edge.
++ Improved bug translations.
++ Added more error codes and their descriptions, specifically for XAML and
+  WinRT.
++ Failure to debug the target is now handled better.
+
+Bug fixes
+---------
++ Certain stack traces errors reported by cdb were not handled correctly. This
+  should now be fixed.
+
 2017-08-30
 ==========
 Improvements
