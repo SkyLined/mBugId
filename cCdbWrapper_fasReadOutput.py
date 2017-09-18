@@ -108,6 +108,17 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
               sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
             oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
             oCdbWrapper.fStop();
+          # Failure to debug application must be special cased, for example:
+          # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
+          # |WaitForEvent failed, NTSTATUS 0xC000000D
+          oEventFailedMatch = re.match(r"^(ERROR: )?(\w+Event) failed, (NTSTATUS 0x[0-9a-fA-F])$", sLine);
+          if oEventFailedMatch:
+            sEventName, sErrorCode = oEventFailedMatch.groups();
+            sErrorMessage = "Failed to debug process: %s failed with %s" % (sEventName, sErrorCode);
+            if sErrorCode in dsTips_by_sErrorCode:
+              sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
+            oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
+            oCdbWrapper.fStop();
           bConcatinateReturnedLineToNext = False;
           if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
             # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
