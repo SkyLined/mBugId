@@ -2,7 +2,7 @@ import datetime, re, time;
 from cBugReport import cBugReport;
 from cCdbStoppedException import cCdbStoppedException;
 from cProcess import cProcess;
-from daxExceptionHandling import daxExceptionHandling;
+from fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
 from dxConfig import dxConfig;
 from foDetectAndCreateBugReportForVERIFIER_STOP import foDetectAndCreateBugReportForVERIFIER_STOP;
 from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
@@ -45,15 +45,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # BugId may need to ignore all but the first such exception. to be able to ignore exceptions, a dict contains the
     # exception code of the exception to ignore for each process.
     dauIgnoreNextExceptionCodes_by_uProcessId = {};
-    # Create a list of commands to set up event handling. The default for any exception not explicitly mentioned is to
-    # be handled as a second chance exception.
-    asExceptionHandlingCommands = ["sxd *"];
-    # request second chance debugger break for certain exceptions that indicate the application has a bug.
-    for sCommand, axExceptions in daxExceptionHandling.items():
-      for xException in axExceptions:
-        sException = isinstance(xException, str) and xException or ("0x%08X" % xException);
-        asExceptionHandlingCommands.append("%s %s" % (sCommand, sException));
-    sExceptionHandlingCommands = ";".join(asExceptionHandlingCommands) + ";";
+    # Create a list of commands to set up event handling.
+    sExceptionHandlingCommands = fsExceptionHandlingCdbCommands();
     
     # Read the initial cdb output related to starting/attaching to the first process.
     asIntialCdbOutput = oCdbWrapper.fasReadOutput();
