@@ -156,6 +156,8 @@ class cBugId(object):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
   
   def foSetTimeout(oBugId, sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments):
+    # The first argument of any callback on cBugId is the oBugId instance; add it:
+    axTimeoutCallbackArguments = [oBugId] + list(axTimeoutCallbackArguments);
     return oBugId.__oCdbWrapper.foSetTimeout(sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, oTimeout):
