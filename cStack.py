@@ -129,16 +129,24 @@ class cStack(object):
       # |36 0a19c854 77548e71 MSHTML+0x8d45e
       # |1b 0000008c`53b2c650 00007ffa`4631cfba ntdll!KiUserCallbackDispatcherContinue
       # |22 00000040`0597b770 00007ffa`36ddc0e3 0x40`90140fc3
+      # |---
       # |Could not allocate memory for stack trace
-      assert asStackOutput[0] in [
+      uStackStartIndex = 0;
+      while asStackOutput[uStackStartIndex] in [
+        "Unable to read dynamic function table list head",
+      ]:
+        # Ignored warning/error
+        uStackStartIndex += 1;
+      assert asStackOutput[uStackStartIndex] in [
         " # ChildEBP RetAddr  ",
         " # Child-SP          RetAddr           Call Site",
-        "Could not allocate memory for stack trace"
-      ], "Unknown stack header: %s\r\n%s" % (repr(asStackOutput[0]), "\r\n".join(asStackOutput));
+        "Could not allocate memory for stack trace",
+      ], "Unknown stack header: %s\r\n%s" % (repr(asStackOutput[uStackStartIndex]), "\r\n".join(asStackOutput));
+      uStackStartIndex += 1;
       oStack = cStack();
       uFrameInstructionPointer = uInstructionPointer;
       uFrameIndex = 0;
-      for sLine in asStackOutput[1:]:
+      for sLine in asStackOutput[uStackStartIndex:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
           continue;
         if uFrameIndex == uStackFramesCount:
