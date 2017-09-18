@@ -133,6 +133,10 @@ class cBugId(object):
           (lambda oProcess: oBugId.__fNewProcessCallback(oBugId, oProcess)),
     );
   
+  @property
+  def aoInternalExceptions(oBugId):
+    return oBugId.__oCdbWrapper.aoInternalExceptions[:];
+  
   def fStart(oBugId):
     oBugId.__bStarted = True;
     oBugId.__oCdbWrapper.fStart();

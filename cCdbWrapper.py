@@ -76,6 +76,7 @@ class cCdbWrapper(object):
     fStdErrOutputCallback,                    # called whenever a line of output is read from stderr
     fNewProcessCallback,                      # called whenever there is a new process.
   ):
+    oCdbWrapper.aoInternalExceptions = [];
     oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
     assert sum([sApplicationBinaryPath and 1 or 0, auApplicationProcessIds and 1 or 0, sApplicationPackageName and 1 or 0]), \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
@@ -257,16 +258,15 @@ class cCdbWrapper(object):
   
   def __fThreadWrapper(oCdbWrapper, fActivity, bVital):
     try:
-      # If there is not exception callback, do not handle exceptions:
-      if not oCdbWrapper.fInternalExceptionCallback:
-        return fActivity(oCdbWrapper);
-      else:
-        # If there is an exception callback, handle exceptions and pass them to the callback:
-        try:
-          fActivity(oCdbWrapper);
-        except Exception, oException:
-          cException, oException, oTraceBack = sys.exc_info();
+      try:
+        fActivity(oCdbWrapper);
+      except Exception, oException:
+        oCdbWrapper.aoInternalExceptions.append(oException);
+        cException, oException, oTraceBack = sys.exc_info();
+        if oCdbWrapper.fInternalExceptionCallback:
           oCdbWrapper.fInternalExceptionCallback(oException, oTraceBack);
+        else:
+          raise;
     finally:
       oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
       if not oCdbProcess:
