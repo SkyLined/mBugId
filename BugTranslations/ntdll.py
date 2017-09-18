@@ -30,6 +30,8 @@ aoBugTranslations = [
     sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
+        "ntdll.dll!FindNodeOrParent",
+      ], [
         "ntdll.dll!RtlAllocateHeap",
       ], [
         "ntdll.dll!RtlDebugAllocateHeap",
@@ -39,6 +41,8 @@ aoBugTranslations = [
         "ntdll.dll!RtlDeleteCriticalSection",
       ], [
         "ntdll.dll!RtlFreeHeap",
+      ], [
+        "ntdll.dll!RtlInsertElementGenericTableAvl",
       ], [
         "ntdll.dll!RtlpAllocateHeap",
       ], [

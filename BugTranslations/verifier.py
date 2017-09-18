@@ -12,6 +12,8 @@ aoBugTranslations = [
       ], [
         "verifier.dll!AVrfpDphCheckNormalHeapBlock",
       ], [
+        "verifier.dll!AVrfpDphCompareNodeForTable",
+      ], [
         "verifier.dll!AVrfpDphFindBusyMemory",
       ], [
         "verifier.dll!AVrfpDphFindBusyMemoryAndRemoveFromBusyList",
@@ -19,6 +21,8 @@ aoBugTranslations = [
         "verifier.dll!AVrfpDphFindBusyMemoryNoCheck",
       ], [
         "verifier.dll!AVrfpDphNormalHeapFree",
+      ], [
+        "verifier.dll!AVrfpDphPlaceOnBusyList",
       ], [
         "verifier.dll!AVrfpDphRaiseException",
       ], [
