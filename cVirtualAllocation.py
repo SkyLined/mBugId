@@ -176,7 +176,7 @@ class cVirtualAllocation(object):
           # Make the memory readable if it is not
           uOriginalProtection = oVirtualAllocation.uProtection;
           assert oVirtualAllocation.__fbSetProtection(PAGE_READONLY), \
-              "Cannot modify virtual allocation protection";
+              "Cannot modify virtual allocation protection: 0x%X" % KERNEL32.GetLastError();
         else:
           uOriginalProtection = None;
         oVirtualAllocation.__auBytes = oVirtualAllocation.oProcess.fauGetBytes(
@@ -185,7 +185,7 @@ class cVirtualAllocation(object):
         if uOriginalProtection is not None:
           # Restore the original memory protection if it was changed.
           assert oVirtualAllocation.__fbSetProtection(uOriginalProtection), \
-              "Cannot restore virtual allocation protection";
+              "Cannot restore virtual allocation protection: 0x%X" % KERNEL32.GetLastError();
       return oVirtualAllocation.__auBytes[uOffset:uOffset + uSize];
     else:
       # The allocation is too large to cache: simply read the requested bytes.
