@@ -10,7 +10,7 @@ Improvements
 Bug fixes
 ---------
 + Fix bug where Chrome paths could get a double slash in their path.
-
++ Fix module list output parsing bug.
 
 2017-09-18
 ==========
