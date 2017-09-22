@@ -1,3 +1,17 @@
+2017-09-22
+==========
+Improvements
+------------
++ Added more exception code details.
++ Added more Chrome OOM bug translations.
++ Added error code to assertion error when VitualAllocateEx fails in order to
+  find the root cause of https://github.com/SkyLined/BugId/issues/40.
+
+Bug fixes
+---------
++ Fix bug where Chrome paths could get a double slash in their path.
+
+
 2017-09-18
 ==========
 Improvements
