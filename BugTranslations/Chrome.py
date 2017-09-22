@@ -148,14 +148,54 @@ aoBugTranslations = [
     sTranslatedBugDescription = "The application caused an access violation by writing to NULL to indicate it was unable to allocate enough memory.",
     sTranslatedSecurityImpact = None,
   ),
+  # 0xE0000008 (win::kOomExceptionCode) -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "0xE0000008",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "*!base::`anonymous namespace'::OnNoMemory",
+      ], [
+        "*!WTF::partitionOutOfMemory",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsingLessThan16M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing16M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing32M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing64M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing128M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing256M",
+      ], [
+        "*!WTF::partitionsOutOfMemoryUsing512M",
+      ], [
+        "*!WTF::partitionExcessiveAllocationSize",
+      ],
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application caused an access violation by writing to NULL to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
+  ),
   # OOM -> hide irrelevant frames
   cBugTranslation(
     sOriginalBugTypeId = "OOM",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
+        re.compile("^.+!.+::CallNewHandler$"),
+      ], [
+        "*!_aligned_malloc",
+      ], [
+        "*!_aligned_offset_malloc_base",
+      ], [
         "*!`anonymous namespace'::DefaultWinHeapMallocImpl",
       ], [
         "*!`anonymous namespace'::DefaultWinHeapReallocImpl",
+      ], [
+        "*!base::AlignedMalloc",
+      ], [
+        "*!base::allocator::WinCallNewHandler",
       ], [
         "*!base::allocator::WinHeapMalloc",
       ], [
