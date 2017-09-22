@@ -253,15 +253,14 @@ class cModule(object):
     dsValue_by_sName = {};
     for sLine in as_lmov_Output[2:]:
       # These lines different from the "name: value" format and handled separately:
-      if sLine == "    Image was built with /Brepro flag.":
+      if sLine in ["    Image was built with /Brepro flag.", "Has CLR image header, track-debug-data flag not set"]:
         continue; # Ignored.
-      else:
-        oNameAndValueMatch = re.match(r"^\s+([^:]+):\s+(.*?)\s*$", sLine);
-        assert oNameAndValueMatch, \
-            "Unexpected list module output: %s\r\n%s" % (sLine, "\r\n".join(as_lmov_Output));
-        (sName, sValue) = oNameAndValueMatch.groups();
-        dsValue_by_sName[sName] = sValue;
-        oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
+      oNameAndValueMatch = re.match(r"^\s+([^:]+):\s+(.*?)\s*$", sLine);
+      assert oNameAndValueMatch, \
+          "Unexpected list module output: %s\r\n%s" % (sLine, "\r\n".join(as_lmov_Output));
+      (sName, sValue) = oNameAndValueMatch.groups();
+      dsValue_by_sName[sName] = sValue;
+      oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
     if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
       if oModule.oProcess.sBasePath:
