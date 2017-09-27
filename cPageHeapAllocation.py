@@ -87,6 +87,7 @@ class cPageHeapAllocation(object):
     assert oHeapTypeMatch, \
         "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asPageHeapOutput);
     sHeapType = oHeapTypeMatch.group(1); # "_HEAP" or "_DPH_HEAP_ROOT"
+    uAddressInVirtualAllocation = None;
     if sHeapType == "_HEAP":
       assert re.match( # line #3
         "^\s+%s\s*$" % "\s+".join([               # starts with spaces, separated by spaces and optionally end with spaces too
@@ -112,7 +113,7 @@ class cPageHeapAllocation(object):
           "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asPageHeapOutput);
       sBlockStartAddress, sBlockSize, sState = oBlockInformationMatch.groups();
       bAllocated = sState == "busy";
-      uAllocationStartAddress, uAllocationSize = None, None; # Not applicable
+      uAddressInVirtualAllocation = long(sBlockStartAddress.replace("`", ""), 16);
     else:
       oDPHHeapBlockTypeMatch = re.match( # line #3
         "^\s+%s\s*$" % "\s+".join([                 # starts with spaces, separated by spaces and optionally end with spaces too
@@ -147,7 +148,8 @@ class cPageHeapAllocation(object):
       sBlockStartAddress, sBlockSize, sAllocationStartAddress, sAllocationSize = oBlockInformationMatch.groups();
       uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
       uAllocationSize = long(sAllocationSize.replace("`", ""), 16) - oProcess.uPageSize; # Total size = allocation size + guard page size
-    oVirtualAllocation = cVirtualAllocation.foGetForAddress(oProcess, uAllocationStartAddress);
+      uAddressInVirtualAllocation = uAllocationStartAddress;
+    oVirtualAllocation = cVirtualAllocation.foGetForAddress(oProcess, uAddressInVirtualAllocation);
     uPointerSize = oProcess.uPointerSize;
     if bAllocated:
       uBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
