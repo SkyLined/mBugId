@@ -1,3 +1,27 @@
+2017-10-05
+==========
+Changed default settings
+------------------------
++ The default number of instructions shown in a disassembly before and after a
+  relevant instruction has been increased from 0x20 to 0x40 and from 0x10 to
+  0x20 respectively. This should make it easier to do a little reverse
+  engineering using the report and should not have much performance impact, as
+  getting a few extra instructions should not take too much time. This should
+  not have an impact on anything else.
+
+Bug fixes
+---------
++ Fixed an uninitialized variable exception in `!heap` output parsing.
+
+Code Improvements
+-----------------
++ Delete old code
++ Fix incorrectly named variables
++ Rename cPageHeapAllocation to cHeapAllocation.
++ Improve cHeapAllocation code.
++ Replaced some function calls that took a cProcess instance as an argument
+  with methods calls on the cProcess instance.
+
 2017-09-22
 ==========
 Improvements
