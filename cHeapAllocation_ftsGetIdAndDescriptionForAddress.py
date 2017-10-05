@@ -8,7 +8,7 @@ def fsNumberOfBytes(uNumberOfBytes):
   else:
     return "%d/0x%X bytes" % (uNumberOfBytes, uNumberOfBytes);
 
-def cHeapAllocation_ftsGetIdAndDescriptionForAddress(uAddress):
+def cHeapAllocation_ftsGetIdAndDescriptionForAddress(oHeapAllocation, uAddress):
   if oHeapAllocation.uBlockStartAddress is None:
     # This must be a full page heap allocation; uAllocation* should be set.
     assert oHeapAllocation.uBlockSize is None, \
