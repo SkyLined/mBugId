@@ -4,7 +4,7 @@ from dxConfig import dxConfig;
 
 class cVirtualAllocation(object):
   @staticmethod
-  def foGetForAddress(oProcess, uAddress):
+  def foGetForProcessAndAddress(oProcess, uAddress):
     asVProtOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!vprot 0x%X;" % uAddress,
       sComment = "Get memory protection information",

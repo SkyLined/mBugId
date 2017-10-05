@@ -1,4 +1,5 @@
 import os, re;
+from cHeapAllocation import cHeapAllocation;
 from cModule import cModule;
 from cProcess_fauGetBytes import cProcess_fauGetBytes;
 from cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
@@ -8,6 +9,8 @@ from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
+from cVirtualAllocation import cVirtualAllocation;
+
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
     oProcess.oCdbWrapper = oCdbWrapper;
@@ -265,6 +268,10 @@ class cProcess(object):
     return cProcess_fsGetASCIIString(oProcess, sAddress, sComment);
   def fsGetUnicodeString(oProcess, sAddress, sComment):
     return cProcess_fsGetUnicodeString(oProcess, sAddress, sComment);
-  
   def fauGetBytes(oProcess, uAddress, uSize, sComment):
     return cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment);
+  def foGetVirtualAllocationForAddress(oProcess, uAddress):
+    return cVirtualAllocation.foGetForProcessAndAddress(oProcess, uAddress);
+  def foGetHeapAllocationForAddress(oProcess, uAddress):
+    return cHeapAllocation.foGetForProcessAndAddress(oProcess, uAddress);
+

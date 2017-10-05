@@ -1,11 +1,11 @@
 import re;
 from cVirtualAllocation import cVirtualAllocation;
-from cPageHeapAllocation import cPageHeapAllocation;
+from cHeapAllocation import cHeapAllocation;
 from cThreadEnvironmentBlock import cThreadEnvironmentBlock;
 from dxConfig import dxConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation import fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation;
+from fSetBugReportPropertiesForAccessViolationUsingHeapAllocation import fSetBugReportPropertiesForAccessViolationUsingHeapAllocation;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 ddtsDetails_uSpecialAddress_sISA = {
@@ -207,26 +207,27 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
   else:
     # This is not a special marker or NULL, so it must be an invalid pointer
     # Get information about the memory region:
-    oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oProcess, uAccessViolationAddress);
-    if oPageHeapAllocation:
-      oBugReport.atxMemoryRemarks.extend(oPageHeapAllocation.fatxMemoryRemarks());
-      fSetBugReportPropertiesForAccessViolationUsingPageHeapAllocation(
+    oHeapAllocation = oProcess.foGetHeapAllocationForAddress(uAccessViolationAddress);
+    if oHeapAllocation:
+      oBugReport.atxMemoryRemarks.extend(oHeapAllocation.fatxMemoryRemarks());
+      fSetBugReportPropertiesForAccessViolationUsingHeapAllocation(
         oBugReport, \
         uAccessViolationAddress, sViolationTypeId, sViolationTypeDescription, \
-        oPageHeapAllocation, \
+        oHeapAllocation, \
         oProcess.uPointerSize, oProcess.oCdbWrapper.bGenerateReportHTML,
       );
       if oProcess.oCdbWrapper.bGenerateReportHTML:
-        sPageHeapOutputHTML = sBlockHTMLTemplate % {
-          "sName": "Page heap output for address 0x%X" % uAccessViolationAddress,
+        sCdbHeapOutputHTML = sBlockHTMLTemplate % {
+          "sName": "Heap information for block near address 0x%X" % (sHeapType, uAccessViolationAddress),
           "sCollapsed": "Collapsed",
           "sContent": "<pre>%s</pre>" % "\r\n".join([
-            oProcess.oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
+            oProcess.oCdbWrapper.fsHTMLEncode(sCdbHeapOutputLine, uTabStop = 8)
+            for sCdbHeapOutputLine in oHeapAllocation.asCdbHeapOutput
           ])
         };
-        oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
+        oBugReport.asExceptionSpecificBlocksHTML.append(sCdbHeapOutputHTML);
     else:
-      oVirtualAllocation = cVirtualAllocation.foGetForAddress(oProcess, uAccessViolationAddress);
+      oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAccessViolationAddress);
       # See is page heap has more details on the address at which the access violation happened:
       if not oVirtualAllocation:
         oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;

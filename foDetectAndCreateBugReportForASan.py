@@ -1,6 +1,6 @@
 import re;
 from cBugReport import cBugReport;
-from cPageHeapAllocation import cPageHeapAllocation;
+from cHeapAllocation import cHeapAllocation;
 from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
@@ -321,17 +321,17 @@ def foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode):
   sBugTypeId = "ASan:%s" % sASanBugType;
   sBugDescription = "AddressSanitizer reported a %s on address 0x%X." % (sASanBugType, uProblemAddress);
   sSecurityImpact = dsSecurityImpact_by_sASanBugType.get(sASanBugType, "Unknown: this type of bug has not been analyzed before");
-  oPageHeapAllocation = cPageHeapAllocation.foGetForAddress(oProcess, uProblemAddress);
-  if oPageHeapAllocation:
-    atxMemoryRemarks.extend(oPageHeapAllocation.fatxMemoryRemarks());
+  oHeapAllocation = oProcess.foGetHeapAllocationForAddress(uProblemAddress);
+  if oHeapAllocation:
+    atxMemoryRemarks.extend(oHeapAllocation.fatxMemoryRemarks());
     # Make sure entire page heap block is included in the memory dump.
-    if oPageHeapAllocation.uStartAddress < uMemoryDumpStartAddress:
-      uMemoryDumpStartAddress = oPageHeapAllocation.uStartAddress;
+    if oHeapAllocation.uStartAddress < uMemoryDumpStartAddress:
+      uMemoryDumpStartAddress = oHeapAllocation.uStartAddress;
       assert uMemoryDumpEndAddress - uMemoryDumpStartAddress == uMemoryDumpSize, \
           "Something, somewhere went wrong because 0x%X - 0x%X == 0x%X and not 0x%X" % \
           (uMemoryDumpEndAddress, uMemoryDumpStartAddress, uMemoryDumpEndAddress - uMemoryDumpStartAddress, uMemoryDumpSize);
-    if oPageHeapAllocation.uEndAddress > uMemoryDumpEndAddress:
-      uMemoryDumpEndAddress = oPageHeapAllocation.uEndAddress;
+    if oHeapAllocation.uEndAddress > uMemoryDumpEndAddress:
+      uMemoryDumpEndAddress = oHeapAllocation.uEndAddress;
   
   oBugReport = cBugReport.foCreate(oProcess, sBugTypeId, sBugDescription, sSecurityImpact);
   if oCdbWrapper.bGenerateReportHTML:
@@ -369,16 +369,16 @@ def foDetectAndCreateBugReportForASan(oCdbWrapper, uExceptionCode):
     };
     oBugReport.asExceptionSpecificBlocksHTML.append(sASanOutputHTML);
     # See if page heap can add info as well
-    if oPageHeapAllocation:
+    if oHeapAllocation:
       # Check the page heap data near the heap block for signs of corruption:
-      oCorruptionDetector = cCorruptionDetector.foCreateForPageHeapAllocation(oPageHeapAllocation);
-      if oPageHeapAllocation:
-        sPageHeapOutputHTML = sBlockHTMLTemplate % {
-          "sName": "Page heap output for heap block near 0x%X" % uProblemAddress,
+      oCorruptionDetector = cCorruptionDetector.foCreateForHeapAllocation(oHeapAllocation);
+      if oHeapAllocation:
+        sCdbHeapOutputHTML = sBlockHTMLTemplate % {
+          "sName": "Heap information for block near 0x%X" % uProblemAddress,
           "sCollapsed": "Collapsed",
           "sContent": "<pre>%s</pre>" % "\r\n".join([
-            oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oPageHeapAllocation.asPageHeapOutput
+            oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in oHeapAllocation.asCdbHeapOutput
           ])
         };
-        oBugReport.asExceptionSpecificBlocksHTML.append(sPageHeapOutputHTML);
+        oBugReport.asExceptionSpecificBlocksHTML.append(sCdbHeapOutputHTML);
   return oBugReport;

@@ -13,9 +13,9 @@ class cCorruptionDetector(object):
     oCorruptionDetector.uCorruptionEndAddress = None; # first non-corrupted byte after corruption
   
   @staticmethod
-  def foCreateForPageHeapAllocation(oPageHeapAllocation):
-    oCorruptionDetector = cCorruptionDetector(oPageHeapAllocation.oVirtualAllocation);
-    oPageHeapAllocation.fCheckForCorruption(oCorruptionDetector);
+  def foCreateForHeapAllocation(oHeapAllocation):
+    oCorruptionDetector = cCorruptionDetector(oHeapAllocation.oVirtualAllocation);
+    oHeapAllocation.fCheckForCorruption(oCorruptionDetector);
     return oCorruptionDetector;
   
   def fbDetectCorruption(oCorruptionDetector, uStartAddress, axExpectedBytes):
