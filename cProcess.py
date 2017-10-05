@@ -265,6 +265,6 @@ class cProcess(object):
     return cProcess_fsGetASCIIString(oProcess, sAddress, sComment);
   def fsGetUnicodeString(oProcess, sAddress, sComment):
     return cProcess_fsGetUnicodeString(oProcess, sAddress, sComment);
-  def fauGetBytes(oCdbWrapper, uAddress, uSize, sComment):
-    return cProcess_fauGetBytes(oCdbWrapper, uAddress, uSize, sComment);
   
+  def fauGetBytes(oProcess, uAddress, uSize, sComment):
+    return cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment);
