@@ -3,12 +3,12 @@ import re;
 class cThreadEnvironmentBlock(object):
   @staticmethod
   def foCreateForCurrentThread(oProcess):
-    asPageHeapOutput = oProcess.fasExecuteCdbCommand(
+    asCdbThreadOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!teb",
       sComment = "Get thread environment info",
       bOutputIsInformative = True,
     );
-    assert asPageHeapOutput, \
+    assert asCdbThreadOutput, \
         "Missing TEB info output";
     # Sample output:
     # |0:000> !teb
@@ -37,7 +37,7 @@ class cThreadEnvironmentBlock(object):
     uTEBAddress = None;
     uStackTopAddress = None;
     uStackBottomAddress = None;
-    for sLine in asPageHeapOutput:
+    for sLine in asCdbThreadOutput:
       if sLine == "error InitTypeRead( TEB )...":
         continue; # Ignore this error;
       oHeaderMatch = re.match(r"^(Wow64 )?TEB(32)? at ([0-9A-Fa-f]+)$", sLine);
@@ -52,7 +52,7 @@ class cThreadEnvironmentBlock(object):
       else:
         oLineMatch = re.match(r"^\s+([\w ]+):\s+([0-9A-Fa-f]+(?: \. [0-9A-Fa-f]+)?)$", sLine);
         assert oLineMatch, \
-            "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asPageHeapOutput));
+            "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asCdbThreadOutput));
         sName, sValue = oLineMatch.groups();
         if sName == "StackBase":
           uStackTopAddress = long(sValue, 16);
