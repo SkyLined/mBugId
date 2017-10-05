@@ -37,9 +37,9 @@ dxConfig = {
   "uStackHashFramesCount": 2,           # How many stack frames are hashed for the crash id?
   "uMaxStackFrameHashChars": 3,         # How many characters of hash to use in the id for each stack frame.
   ### HTML Report Disassembly settings
-  "uDisassemblyInstructionsBefore": 0x20, # How many instructions to disassemble before the current instruction or the
+  "uDisassemblyInstructionsBefore": 0x40, # How many instructions to disassemble before the current instruction or the
                                         # return address of the stack frame.
-  "uDisassemblyInstructionsAfter": 0x10, # How many instructions to disassemble after the current instruction or the
+  "uDisassemblyInstructionsAfter": 0x20, # How many instructions to disassemble after the current instruction or the
                                         # return address of the stack frame.
   "uDisassemblyAlignmentBytes": 10,     # How many instructions to start disassembling before an address in order to
                                         # make sure we don't start diassembling in the middle of the instruction that
