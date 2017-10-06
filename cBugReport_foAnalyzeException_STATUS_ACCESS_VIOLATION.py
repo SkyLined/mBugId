@@ -218,7 +218,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       );
       if oProcess.oCdbWrapper.bGenerateReportHTML:
         sCdbHeapOutputHTML = sBlockHTMLTemplate % {
-          "sName": "Heap information for block near address 0x%X" % (sHeapType, uAccessViolationAddress),
+          "sName": "Heap information for block near address 0x%X" % (uAccessViolationAddress,),
           "sCollapsed": "Collapsed",
           "sContent": "<pre>%s</pre>" % "\r\n".join([
             oProcess.oCdbWrapper.fsHTMLEncode(sCdbHeapOutputLine, uTabStop = 8)
