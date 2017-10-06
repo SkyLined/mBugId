@@ -1,3 +1,9 @@
+2017-10-06
+==========
+Bug fixes
+---------
++ Fixed two bugs introduced by yesterdays changes
+
 2017-10-05
 ==========
 Changed default settings
