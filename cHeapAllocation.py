@@ -260,6 +260,8 @@ class cHeapAllocation(object):
   @property
   def uPostBlockPaddingSize(oHeapAllocation):
     if oHeapAllocation.bPageHeap:
+      if oHeapAllocation.uBlockEndAddress is None:
+        return None;
       return oHeapAllocation.uAllocationEndAddress - oHeapAllocation.uBlockEndAddress;
     return 0;
   
