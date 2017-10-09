@@ -1,5 +1,5 @@
 import re;
-from WindowsAPI import *;
+from mWindowsAPI import *;
 from dxConfig import dxConfig;
 
 class cVirtualAllocation(object):

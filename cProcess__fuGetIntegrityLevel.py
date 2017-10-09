@@ -1,4 +1,4 @@
-from WindowsAPI import *;
+from mWindowsAPI import *;
 
 def cProcess__fuGetIntegrityLevel(oProcess):
   hProcess = KERNEL32.OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, oProcess.uId);
