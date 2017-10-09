@@ -1,6 +1,12 @@
 from mWindowsAPI import *;
 
+hProcessHeap = None;
 def cProcess__fuGetIntegrityLevel(oProcess):
+  global hProcessHeap;
+  if hProcessHeap is None:
+    hProcessHeap = KERNEL32.GetProcessHeap();
+    assert hProcessHeap != 0, \
+        "GetProcessHeap() => Error 0x%08X" % KERNEL32.GetLastError();
   hProcess = KERNEL32.OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, oProcess.uId);
   if hProcess == 0:
     return None;
