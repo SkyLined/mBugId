@@ -4,3 +4,6 @@
 [submodule "modules/Kill"]
 	path = modules/Kill
 	url = https://github.com/SkyLined/Kill
+[submodule "modules/mWindowsAPI"]
+	path = modules/mWindowsAPI
+	url = https://github.com/SkyLined/mWindowsAPI/
