@@ -20,6 +20,7 @@ import threading;
 for (sModule, sURL) in {
   "FileSystem": "https://github.com/SkyLined/FileSystem/",
   "Kill": "https://github.com/SkyLined/Kill/",
+  "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
 }.items():
   try:
     __import__(sModule, globals(), locals(), [], -1);

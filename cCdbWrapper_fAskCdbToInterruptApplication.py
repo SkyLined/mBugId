@@ -1,5 +1,5 @@
 import signal, time;
-from WindowsAPI import *;
+from mWindowsAPI import *;
 
 def cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper):
   assert oCdbWrapper.bApplicationIsRunnning, \
