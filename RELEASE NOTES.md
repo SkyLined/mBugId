@@ -1,3 +1,24 @@
+2017-10-10
+==========
+Improvements
+------------
++ All Windows API calls are not done through the mWindowsAPI sub-module.
++ Removed dependency on Kill sub-module by replacing calls to its code with
+  functions that use the mWindowsAPI sub-module to achieve the same. This
+  removes the need to call an executable to terminate a process, which should
+  speed things up.
++ mWindowsAPI sub-module calls are now used to enumerate running processes and
+  their executable names. This removes the need to parse cdb output to
+  enumerate all processes that run a particular executable, which should 
+  improve stability. It also makes determining the executable name for a
+  process more reliable.
++ cBugId now exposes the static method `fbTerminateProcessForId` which can be
+  called to terminate a process using it's process id.
++ cBugId now exposes `dsProcessesExecutableName_by_uId` which will generate a
+  dictionary that maps the current processes ids to their executable names.
+  Note that this is a snap-shot and the dictionary will not be updated when
+  new processes are created, or old processes terminate.
+
 2017-10-06
 ==========
 Bug fixes
