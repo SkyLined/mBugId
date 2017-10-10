@@ -40,16 +40,22 @@ from dxConfig import dxConfig;
 from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
 from fbTerminateProcessForId import fbTerminateProcessForId;
 
+class cMetaBugId(type):
+  @property
+  def dsProcessesExecutableName_by_uId(oMetaBugId):
+    return fdsProcessesExecutableName_by_uId();
+
+  @staticmethod
+  def fbTerminateProcessForId(oMetaBugId, uProcessId):
+    return fbTerminateProcessForId(uProcessId);
+
 class cBugId(object):
+  __metaclass__ = cMetaBugId;
   # This is not much more than a wrapper for cCdbWrapper which hides internal
   # functions and only exposes those things that should be exposed:
   oVersionInformation = oVersionInformation;
   sOSISA = sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
-  
-  @staticmethod
-  def fbTerminateProcessForId(uProcessId):
-    return fbTerminateProcessForId(uProcessId);
   
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
@@ -139,10 +145,6 @@ class cBugId(object):
       fNewProcessCallback = oBugId.__fNewProcessCallback and \
           (lambda oProcess: oBugId.__fNewProcessCallback(oBugId, oProcess)),
     );
-  
-  @property
-  def dsProcessesExecutableName_by_uId(oBugId):
-    return fdsProcessesExecutableName_by_uId();
   
   @property
   def aoInternalExceptions(oBugId):
