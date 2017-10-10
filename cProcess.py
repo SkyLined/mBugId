@@ -10,6 +10,7 @@ from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 from cVirtualAllocation import cVirtualAllocation;
+from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -25,6 +26,9 @@ class cProcess(object):
     # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
     oProcess.bPageHeapEnabled = None;
     
+    # oProcess.sBinaryName is only determined when needed
+    oProcess.__sBinaryName = None;
+
     # oProcess.sBasePath is only determined when needed and cached using __fGetProcessInformation
     oProcess.__sBasePath = None;
     
@@ -52,7 +56,9 @@ class cProcess(object):
   
   @property
   def sBinaryName(oProcess):
-    return oProcess.oMainModule.sBinaryName;
+    if oProcess.__sBinaryName is None:
+      oProcess.__sBinaryName = fdsProcessesExecutableName_by_uId()[oProcess.uId];
+    return oProcess.__sBinaryName;
   
   @property
   def sBasePath(oProcess):
