@@ -6,11 +6,10 @@ from cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
-from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 from cVirtualAllocation import cVirtualAllocation;
-from mWindowsAPI import fdsProcessesExecutableName_by_uId;
+from mWindowsAPI import fdsProcessesExecutableName_by_uId, fuGetProcessIntegrityLevelForId;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -92,12 +91,9 @@ class cProcess(object):
   
   @property
   def uIntegrityLevel(oProcess):
-    # JIT with cache
-    try:
-      return oProcess.__uIntegrityLevel;
-    except:
-      oProcess.__uIntegrityLevel = cProcess__fuGetIntegrityLevel(oProcess);
-      return oProcess.__uIntegrityLevel;
+    if oProcess.__uIntegrityLevel is None:
+      oProcess.__uIntegrityLevel = fuGetProcessIntegrityLevelForId(oProcess.uId);
+    return oProcess.__uIntegrityLevel;
   
   def __fGetProcessInformation(oProcess):
     # We want to know the main module, i.e. the binary for this process and the Instruction Set Architecture for this
