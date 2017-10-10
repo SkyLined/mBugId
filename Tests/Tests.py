@@ -13,7 +13,7 @@ gbDebugIO = False;           # Show cdb I/O during tests (you'll want to run onl
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
-from FileSystem import FileSystem;
+from mFileSystem import mFileSystem;
 from sOSISA import sOSISA;
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
 cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 10; # The test application is simple: CPU usage should be apparent after a few seconds.
@@ -24,7 +24,7 @@ asTestISAs = [sOSISA];
 if sOSISA == "x64":
   asTestISAs.append("x86");
 
-sReportsFolderName = FileSystem.fsPath(sBugIdFolderPath, "Tests", "Reports");
+sReportsFolderName = mFileSystem.fsPath(sBugIdFolderPath, "Tests", "Reports");
 
 dsBinaries_by_sISA = {
   "x86": os.path.join(sTestsFolderPath, r"bin\Tests_x86.exe"),
@@ -155,8 +155,8 @@ def fTest(sISA, axCommandLineArguments, sExpectedBugId, sExpectedFailedToDebugAp
           # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
           sDesiredReportFileName = "%s @ %s.html" % (oBugReport.sId, oBugReport.sBugLocation);
           # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
-          sValidReportFileName = FileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
-          FileSystem.fWriteDataToFile(
+          sValidReportFileName = mFileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
+          mFileSystem.fWriteDataToFile(
             oBugReport.sReportHTML,
             sReportsFolderName,
             sValidReportFileName,

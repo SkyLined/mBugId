@@ -3,7 +3,7 @@ from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from dxConfig import dxConfig;
-from FileSystem import FileSystem;
+from mFileSystem import mFileSystem;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
@@ -276,7 +276,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         sPDBFilePath = oBadPDBFileError.groups(1);
         # Try to delete the file. If this fails, wait a bit and retry. Repeat this a few times before giving up and
         # throwing an exception.
-        FileSystem.fbDeleteFile(sPDBFilePath);
+        mFileSystem.fbDeleteFile(sPDBFilePath);
       asReturnedLines.pop(uIndex);
       continue;
     oFailedToLoadSymbolsError = re.match(r"^\*\*\* ERROR: Module load completed but symbols could not be loaded for (?:.*\\)*([^\\]+)", sLine);

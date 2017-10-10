@@ -12,6 +12,7 @@ Improvements
   enumerate all processes that run a particular executable, which should 
   improve stability. It also makes determining the executable name for a
   process more reliable.
++ The FileSystem sub-module is now called mFileSystem.
 
 2017-10-06
 ==========

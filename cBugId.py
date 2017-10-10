@@ -1,4 +1,4 @@
-import threading;
+import os, sys, threading;
 
 """
                           __                     _____________                  
@@ -17,20 +17,34 @@ import threading;
                                                                                 
 """;
 
+# Augment the search path: look in main folder, parent folder or "modules" child folder, in that order.
+sMainFolderPath = os.path.abspath(os.path.dirname(__file__));
+sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
+sModuleFolderPath = os.path.join(sMainFolderPath, "modules");
+asAbsoluteLoweredSysPaths = [os.path.abspath(sPath).lower() for sPath in sys.path];
+sys.path += [sPath for sPath in [
+  sMainFolderPath,
+  sParentFolderPath,
+  sModuleFolderPath,
+] if sPath.lower() not in asAbsoluteLoweredSysPaths];
+
 for (sModule, sURL) in {
-  "FileSystem": "https://github.com/SkyLined/FileSystem/",
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
+  "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
 }.items():
   try:
     __import__(sModule, globals(), locals(), [], -1);
-  except ImportError:
-    print "*" * 80;
-    print "cBugId depends on %s, which you can download at:" % sModule;
-    print "    %s" % sURL;
-    print "After downloading, please save the code in the folder \"%s\"," % sModule;
-    print "\"modules\\%s\" or any other location where it can be imported." % sModule;
-    print "Once you have completed these steps, please try again.";
-    print "*" * 80;
+  except ImportError, oError:
+    if oError.message == "No module named %s" % sModuleName:
+      print "*" * 80;
+      print "cBugId depends on %s which you can download at:" % sModuleName;
+      print "    %s" % sDownloadURL;
+      print "After downloading, please save the code in this folder:";
+      print "    %s" % os.path.join(sModuleFolderPath, sModuleName);
+      print " - or -";
+      print "    %s" % os.path.join(sParentFolderPath, sModuleName);
+      print "Once you have completed these steps, please try again.";
+      print "*" * 80;
     raise;
 
 from cCdbWrapper import cCdbWrapper;

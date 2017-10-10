@@ -15,7 +15,7 @@ from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from cException import cException;
 from cStack import cStack;
 from dxConfig import dxConfig;
-from FileSystem import FileSystem;
+from mFileSystem import mFileSystem;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from oVersionInformation import oVersionInformation;
 from sReportHTMLTemplate import sReportHTMLTemplate;
@@ -287,7 +287,7 @@ class cBugReport(object):
       sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
       # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
-      sDumpFileName = FileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
+      sDumpFileName = mFileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
       if dxConfig["sDumpFilePath"]:
         sDumpFilePath = os.path.join(dxConfig["sDumpFilePath"], sDumpFileName);
       else:
