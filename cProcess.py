@@ -10,7 +10,7 @@ from cProcess__fuGetIntegrityLevel import cProcess__fuGetIntegrityLevel;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 from cVirtualAllocation import cVirtualAllocation;
-from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
+from mWindowsAPI import fdsProcessesExecutableName_by_uId;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):

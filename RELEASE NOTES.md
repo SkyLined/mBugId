@@ -12,12 +12,6 @@ Improvements
   enumerate all processes that run a particular executable, which should 
   improve stability. It also makes determining the executable name for a
   process more reliable.
-+ cBugId now exposes the static method `fbTerminateProcessForId` which can be
-  called to terminate a process using it's process id.
-+ cBugId now exposes `dsProcessesExecutableName_by_uId` which will generate a
-  dictionary that maps the current processes ids to their executable names.
-  Note that this is a snap-shot and the dictionary will not be updated when
-  new processes are created, or old processes terminate.
 
 2017-10-06
 ==========

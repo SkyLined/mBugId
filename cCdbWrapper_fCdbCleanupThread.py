@@ -1,5 +1,5 @@
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
-from fbTerminateProcessForId import fbTerminateProcessForId;
+from mWindowsAPI import fbTerminateProcessForId;
 
 def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.

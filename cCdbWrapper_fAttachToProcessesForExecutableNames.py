@@ -1,5 +1,5 @@
 import re;
-from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
+from mWindowsAPI import fdsProcessesExecutableName_by_uId;
 
 def cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asExecutableNames):
   asExecutableNamesLowered = [s.lower() for s in asExecutableNames];

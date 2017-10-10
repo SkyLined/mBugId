@@ -12,7 +12,7 @@ from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTi
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
-from fbTerminateProcessForId import fbTerminateProcessForId;
+from mWindowsAPI import fbTerminateProcessForId;
 from sOSISA import sOSISA;
 
 guSymbolOptions = sum([
