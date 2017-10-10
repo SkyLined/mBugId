@@ -43,6 +43,9 @@ class cProcess(object):
     # oProcess.uPageSize is only determined when needed and cached
     oProcess.__uPageSize = None;
     
+    # oProcess.__uIntegrityLevel is only determined when needed and cached
+    oProcess.__uIntegrityLevel = None;
+    
     # oProcess.oMainModule is only determined when needed and cached
     oProcess.__oMainModule = None; # .oMainModule is JIT
     # In order to determine oProcess.oMainModule, we need it's base address. This is set by __fGetProcessInformation
