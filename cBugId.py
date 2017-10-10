@@ -37,7 +37,7 @@ from cCdbWrapper import cCdbWrapper;
 from oVersionInformation import oVersionInformation;
 from sOSISA import sOSISA;
 from dxConfig import dxConfig;
-from fauGetAllProcessesIdsForExecutableNames import fauGetAllProcessesIdsForExecutableNames;
+from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
 from fbTerminateProcessForId import fbTerminateProcessForId;
 
 class cBugId(object):
@@ -46,10 +46,6 @@ class cBugId(object):
   oVersionInformation = oVersionInformation;
   sOSISA = sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
-  
-  @staticmethod
-  def fauGetAllProcessesIdsForExecutableNames(*asExecutableNames):
-    return fauGetAllProcessesIdsForExecutableNames(*asExecutableNames);
   
   @staticmethod
   def fbTerminateProcessForId(uProcessId):
@@ -143,6 +139,10 @@ class cBugId(object):
       fNewProcessCallback = oBugId.__fNewProcessCallback and \
           (lambda oProcess: oBugId.__fNewProcessCallback(oBugId, oProcess)),
     );
+  
+  @property
+  def dsProcessesExecutableName_by_uId(oBugId):
+    return fdsProcessesExecutableName_by_uId();
   
   @property
   def aoInternalExceptions(oBugId):

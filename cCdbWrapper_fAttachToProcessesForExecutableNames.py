@@ -1,9 +1,11 @@
 import re;
-from fauGetAllProcessesIdsForExecutableNames import fauGetAllProcessesIdsForExecutableNames;
+from fdsProcessesExecutableName_by_uId import fdsProcessesExecutableName_by_uId;
 
 def cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asExecutableNames):
-  auProcessIds = fauGetAllProcessesIdsForExecutableNames(*asExecutableNames);
-  for uProcessId in auProcessIds:
-    # If it is not yet being debugged, do so:
-    if uProcessId not in oCdbWrapper.doProcess_by_uId and uProcessId not in oCdbWrapper.auProcessIdsPendingAttach:
-      oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
+  asExecutableNamesLowered = [s.lower() for s in asExecutableNames];
+  for (uProcessId, sExecutableName) in fdsProcessesExecutableName_by_uId().items():
+    # If it is running one of the executables, check if it is being debugged:
+    if sExecutableName.lower() in asExecutableNamesLowered:
+      # If it is not yet being debugged, queue it for attaching:
+      if uProcessId not in oCdbWrapper.doProcess_by_uId and uProcessId not in oCdbWrapper.auProcessIdsPendingAttach:
+        oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
