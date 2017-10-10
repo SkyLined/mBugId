@@ -1,5 +1,5 @@
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
-import Kill;
+from fbTerminateProcessForId import fbTerminateProcessForId;
 
 def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
@@ -35,7 +35,8 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # the code. I have been unable to determine how this could happen but in an attempt to fix this, all process ids that
   # should be terminated are killed until they are confirmed they have terminated:
   if len(oCdbWrapper.doProcess_by_uId) > 0:
-    Kill.fKillProcessesUntilTheyAreDead(oCdbWrapper.doProcess_by_uId.keys());
+    for uProcessId in oCdbWrapper.doProcess_by_uId:
+      fbTerminateProcessForId(uProcessId);
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
   if oCdbWrapper.fFinishedCallback:

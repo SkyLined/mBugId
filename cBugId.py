@@ -19,7 +19,6 @@ import threading;
 
 for (sModule, sURL) in {
   "FileSystem": "https://github.com/SkyLined/FileSystem/",
-  "Kill": "https://github.com/SkyLined/Kill/",
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
 }.items():
   try:
@@ -38,13 +37,24 @@ from cCdbWrapper import cCdbWrapper;
 from oVersionInformation import oVersionInformation;
 from sOSISA import sOSISA;
 from dxConfig import dxConfig;
+from fauGetAllProcessesIdsForExecutableNames import fauGetAllProcessesIdsForExecutableNames;
+from fbTerminateProcessForId import fbTerminateProcessForId;
 
 class cBugId(object):
+  # This is not much more than a wrapper for cCdbWrapper which hides internal
+  # functions and only exposes those things that should be exposed:
   oVersionInformation = oVersionInformation;
   sOSISA = sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
   
-  # This is not much more than a wrapper for cCdbWrapper which only exposes those things that should be exposed:
+  @staticmethod
+  def fauGetAllProcessesIdsForExecutableNames(*asExecutableNames):
+    return fauGetAllProcessesIdsForExecutableNames(*asExecutableNames);
+  
+  @staticmethod
+  def fbTerminateProcessForId(uProcessId):
+    return fbTerminateProcessForId(uProcessId);
+  
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application?
     sApplicationBinaryPath = None,
@@ -173,10 +183,8 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
     return oBugId.__oCdbWrapper.nApplicationRunTime;
   
-  def fAttachToProcessesForBinaryName(oBugId, sBinaryName):
-    return oBugId.__oCdbWrapper.fAttachToProcessesForBinaryName(sBinaryName);
-  def fAttachToProcessesForBinaryNames(oBugId, asBinaryNames):
-    return oBugId.__oCdbWrapper.fAttachToProcessesForBinaryNames(asBinaryNames);
+  def fAttachToProcessesForExecutableNames(oBugId, *asBinaryNames):
+    return oBugId.__oCdbWrapper.fAttachToProcessesForExecutableNames(*asBinaryNames);
   
   def fbFinished(oBugId):
     assert oBugId.__bStarted is True, \

@@ -2,7 +2,7 @@ import itertools, json, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fAskCdbToInterruptApplication import cCdbWrapper_fAskCdbToInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
-from cCdbWrapper_fAttachToProcessesForBinaryNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
+from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForBinaryNames;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
@@ -12,7 +12,7 @@ from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTi
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
-from Kill import fKillProcessesUntilTheyAreDead;
+from fbTerminateProcessForId import fbTerminateProcessForId;
 from sOSISA import sOSISA;
 
 guSymbolOptions = sum([
@@ -288,7 +288,7 @@ class cCdbWrapper(object):
           oCdbWrapper.bCdbRunning = False;
           return;
         # cdb is still running: try to terminate cdb the hard way.
-        fKillProcessesUntilTheyAreDead([oCdbProcess.pid]);
+        fbTerminateProcessForId(oCdbProcess.pid);
         # Make sure cdb finally died.
         assert oCdbProcess.poll() is not None, \
             "cdb did not die after killing it repeatedly";
@@ -414,10 +414,8 @@ class cCdbWrapper(object):
   def fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments);
   
-  def fAttachToProcessesForBinaryName(oCdbWrapper, sBinaryName):
-    oCdbWrapper.fAttachToProcessesForBinaryNames([sBinaryName]);
-  def fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames):
-    return cCdbWrapper_fAttachToProcessesForBinaryNames(oCdbWrapper, asBinaryNames);
+  def fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames):
+    return cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames);
   
   def fAskCdbToInterruptApplication(oCdbWrapper):
     cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);
