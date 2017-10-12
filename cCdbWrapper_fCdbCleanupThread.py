@@ -1,5 +1,6 @@
+import time;
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
-from mWindowsAPI import fbTerminateProcessForId;
+from mWindowsAPI import *;
 
 def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
@@ -34,9 +35,17 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
   # There have also been cases where processes associated with an application were still running after this point in
   # the code. I have been unable to determine how this could happen but in an attempt to fix this, all process ids that
   # should be terminated are killed until they are confirmed they have terminated:
-  if len(oCdbWrapper.doProcess_by_uId) > 0:
-    for uProcessId in oCdbWrapper.doProcess_by_uId:
-      fbTerminateProcessForId(uProcessId);
+  uNumberOfTries = 10;
+  while oCdbWrapper.doProcess_by_uId:
+    auRunningProcessIds = fdsProcessesExecutableName_by_uId().keys();
+    for (uProcessId, oProcess) in oCdbWrapper.doProcess_by_uId.items():
+      if uProcessId not in auRunningProcessIds or fbTerminateProcessForId(uProcessId):
+        del oCdbWrapper.doProcess_by_uId[uProcessId];
+    if oCdbWrapper.doProcess_by_uId:
+      uNumberOfTries -= 1;
+      assert uNumberOfTries, \
+          "Cannot terminate all processes";
+      sleep(0.1);
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
   if oCdbWrapper.fFinishedCallback:
