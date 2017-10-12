@@ -1,3 +1,13 @@
+2017-10-12
+==========
+Improvements
+------------
++ Improve the way dangling processes are terminated in the cleanup thread.
+
+Bug fixes
+---------
++ Fixed missing property that would cause exceptions.
+
 2017-10-10
 ==========
 Improvements
