@@ -45,7 +45,7 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
       uNumberOfTries -= 1;
       assert uNumberOfTries, \
           "Cannot terminate all processes";
-      sleep(0.1);
+      time.sleep(0.1);
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
   if oCdbWrapper.fFinishedCallback:
