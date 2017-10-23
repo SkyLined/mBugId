@@ -1,5 +1,5 @@
 import re;
-import WindowsRegistry;
+import mWindowsRegistry;
 # Cache which binaries have page heap enabled/disabled. this assumes that the user does not modify the page heap
 # settings while BugId is running.
 gdbPageHeapEnabled_by_sBinaryName = {};
@@ -13,7 +13,7 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   if oProcess.sBinaryName in gdbPageHeapEnabled_by_sBinaryName:
     oProcess.bPageHeapEnabled = gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName];
     return;
-  oGlobalFlags = WindowsRegistry.fxGetValue("HKLM", r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName, "GlobalFlag");
+  oGlobalFlags = mWindowsRegistry.foGetValue("HKLM", r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName, "GlobalFlag");
   if oGlobalFlags and oGlobalFlags.sType == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", oGlobalFlags.xValue):
     uValue = long(oGlobalFlags.xValue[2:], 16);
     if uValue & guRequiredFlags == guRequiredFlags:
