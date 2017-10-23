@@ -1,3 +1,9 @@
+2017-10-23
+==========
+Improvements
+------------
++ Windows Registry access is now done through the mWindowsRegistry sub-module.
+
 2017-10-12
 ==========
 Improvements
