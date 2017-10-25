@@ -5,6 +5,11 @@ from cHeapAllocation_ftsGetIdAndDescriptionForAddress import cHeapAllocation_fts
 class cHeapAllocation(object):
   @staticmethod
   def foGetForProcessAndAddress(oProcess, uAddress):
+    return cHeapAllocation.foGetForProcessAddressAndSize(oProcess, uAddress, None);
+  @staticmethod
+  def foGetForProcessAddressAndSize(oProcess, uAddress, uSize):
+    # uSize is only used if page heap is enabled but it does not report the address and size of the heap block. In this
+    # case uAddress is assumed to point to the start of the heap block and uSize is assumed to be its size.
     uPointerSize = oProcess.uPointerSize;
     asCdbHeapOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!heap -p -a 0x%X;" % uAddress,
@@ -123,6 +128,10 @@ class cHeapAllocation(object):
       uHeapManagerBlockDataSize = long(sHeapManagerHeaderSizeInPointers.replace("`", ""), 16) * uPointerSize;
       uBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
       uBlockSize = long(sBlockSize.replace("`", ""), 16);
+      if uSize:
+        assert uBlockStartAddress == uAddress and uBlockSize == uSize, \
+            "The heap block was expected to be 0x%X bytes @ 0x%X, but reported to be 0x%X bytes @ 0x%X" % \
+            (uAddress, uSize, uBlockStartAddress, uBlockSize);
       bAllocated = sState == "busy";
       oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uBlockStartAddress);
     else:
@@ -161,10 +170,21 @@ class cHeapAllocation(object):
         sBlockSize,
         sAllocationStartAddress,
       ) = oBlockInformationMatch.groups();
-      uBlockStartAddress = sBlockStartAddress and long(sBlockStartAddress.replace("`", ""), 16) or None;
-      uBlockSize = sBlockSize and long(sBlockSize.replace("`", ""), 16) or None;
+      if sBlockStartAddress:
+        uBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
+        uBlockSize = long(sBlockSize.replace("`", ""), 16);
+      elif uSize:
+        # Information about the start address and size of the heap block appears to have been discarded by page heap,
+        # but we still know this somehow, as it was provided through the arguments.
+        uBlockStartAddress = uAddress;
+        uBlockSize = uSize;
+      else:
+        # We have no information about the start address and size of the heap block related to the given address.
+        uBlockStartAddress = None;
+        uBlockSize = None;
       uAllocationStartAddress = long(sAllocationStartAddress.replace("`", ""), 16);
       oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAllocationStartAddress);
+      # Find the heap manager (page heap) data that's stored before the heap block, if available.
       uHeapManagerBlockDataSize = sum([
         uPointerSize,      # ULONG StartStamp (with optional padding to pointer size)
         uPointerSize,      # PVOID Heap

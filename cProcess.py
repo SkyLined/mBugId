@@ -279,4 +279,6 @@ class cProcess(object):
     return cVirtualAllocation.foGetForProcessAndAddress(oProcess, uAddress);
   def foGetHeapAllocationForAddress(oProcess, uAddress):
     return cHeapAllocation.foGetForProcessAndAddress(oProcess, uAddress);
+  def foGetHeapAllocationForAddressAndSize(oProcess, uAddress, uSize):
+    return cHeapAllocation.foGetForProcessAddressAndSize(oProcess, uAddress, uSize);
 
