@@ -108,13 +108,33 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
   else:
     # In all other cases, we trust verifier to provide the correct value:
     uHeapBlockAddress = uVerifierStopHeapBlockAddress;
-  oHeapAllocation = oProcess.foGetHeapAllocationForAddress(uHeapBlockAddress);
+  oHeapAllocation = oProcess.foGetHeapAllocationForAddressAndSize(uHeapBlockAddress, uVerifierStopHeapBlockSize);
   assert oHeapAllocation, \
       "No page heap report avaiable for address 0x%X" % uHeapBlockAddress;
   
   uMemoryDumpStartAddress = None;
   atxMemoryRemarks = [];
-  if sMessage in ["corrupted start stamp", "corrupted end stamp"] \
+  if sMessage == "corrupted start stamp" and uCorruptedStamp == 0xABCDBBBA and not oHeapAllocation.oVirtualAllocation.bReserved:
+    # Verifier sometimes reports this and I am not sure what is going on. Page heap will report that the heap block was
+    # freed by the current function on the stack, while verifier reports this error almost immediately after that (from
+    # that same stack). However, the start stamp reported in the verifier error is a valid value indicating the memory
+    # was freed, so it makes no sense that it is reported as being corrupt. Also, there is no memory allocated at the
+    # given address; it is only reserved, so it cannot actually contain a value.
+    # I cannot think of any situation in which all this information is correct, and I suspect that verifier is
+    # reporting the wrong kind of error. However, I have been unable to find a reliable repro for this to debug, so I
+    # do not know exactly what is going on and what to report...
+    (sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription) = \
+        oHeapAllocation.ftsGetIdAndDescriptionForAddress(uVerifierStopHeapBlockAddress);
+    sBugTypeId = "UnknownVerifierError%s" % sHeapBlockAndOffsetId;
+    sBugDescription = "Application verifier reported a corrupt memory block, but no memory is allocated at the " \
+        "address provided. This suggests that the verfier report is incorrect. However, it is likely that the " \
+        "application does have some kind of memory corruption bug that triggers this report, but it is unknown " \
+        "what kind of bug that might be. If you can reliably reproduce this, please contact the author of BugId " \
+        "so this situation can be analyzed and BugId can be improved to report something more helpful here.";
+    sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
+    if oCdbWrapper.bGenerateReportHTML and oHeapAllocation:
+        sCdbHeapHTMLOutputHeader = "Heap information for block near 0x%X" % uVerifierStopHeapBlockAddress;
+  elif sMessage in ["corrupted start stamp", "corrupted end stamp"] \
       and oHeapAllocation.uBlockStartAddress != uVerifierStopHeapBlockAddress:
     # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
     # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
