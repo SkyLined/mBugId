@@ -59,7 +59,7 @@ class cProcess(object):
   @property
   def sBinaryName(oProcess):
     if oProcess.__sBinaryName is None:
-      oProcess.__sBinaryName = fdsProcessesExecutableName_by_uId()[oProcess.uId];
+      oProcess.__sBinaryName = fdsProcessesExecutableName_by_uId()[oProcess.uId].lower();
     return oProcess.__sBinaryName;
   
   @property
