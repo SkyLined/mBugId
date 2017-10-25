@@ -1,3 +1,12 @@
+2017-10-25
+==========
+Bug fixes
+---------
++ Process binary name is now lower-cased again. It was accidentally changed to
+  use whatever casing the file-system used recently. This made it harder to
+  match the the bug location id to previous location ids without having to
+  do a case-insensitive match. You can now do a case-sensitive match again.
+
 2017-10-23
 ==========
 Improvements
