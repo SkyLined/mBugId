@@ -49,7 +49,7 @@ for (sModule, sURL) in {
 
 from cCdbWrapper import cCdbWrapper;
 from oVersionInformation import oVersionInformation;
-from mWindowsAPI import *;
+from mWindowsAPI import fsGetOSISA;
 from dxConfig import dxConfig;
 
 class cBugId(object):
