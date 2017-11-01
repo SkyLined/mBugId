@@ -1,15 +1,14 @@
 import os, re;
-from cHeapAllocation import cHeapAllocation;
 from cModule import cModule;
 from cProcess_fauGetBytes import cProcess_fauGetBytes;
 from cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
 from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
+from cProcess_foGetHeapManagerDataForAddress import cProcess_foGetHeapManagerDataForAddress;
 from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess_fuGetValue import cProcess_fuGetValue;
 from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
-from cVirtualAllocation import cVirtualAllocation;
-from mWindowsAPI import fdsProcessesExecutableName_by_uId, fuGetProcessIntegrityLevelForId;
+from mWindowsAPI import *;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -275,10 +274,6 @@ class cProcess(object):
     return cProcess_fsGetUnicodeString(oProcess, sAddress, sComment);
   def fauGetBytes(oProcess, uAddress, uSize, sComment):
     return cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment);
-  def foGetVirtualAllocationForAddress(oProcess, uAddress):
-    return cVirtualAllocation.foGetForProcessAndAddress(oProcess, uAddress);
-  def foGetHeapAllocationForAddress(oProcess, uAddress):
-    return cHeapAllocation.foGetForProcessAndAddress(oProcess, uAddress);
-  def foGetHeapAllocationForAddressAndSize(oProcess, uAddress, uSize):
-    return cHeapAllocation.foGetForProcessAddressAndSize(oProcess, uAddress, uSize);
+  def foGetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
+    return cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType);
 

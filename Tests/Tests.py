@@ -9,7 +9,7 @@ sys.path.extend([
 ]);
 
 bDebugStartFinish = False;  # Show some output when a test starts and finishes.
-gbDebugIO = False;           # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
+gbDebugIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
 
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
@@ -305,17 +305,15 @@ if __name__ == "__main__":
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF9],   "AVR@NULL-4n-3 ed2.531");
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF8],   "AVR@NULL-4n ed2.531");
       # These are detected by Page Heap / Application Verifier
-      fTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],               "OOBW[1]-1~1#3416 ed2.531");
+      fTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],               "OOBW[1]-1~1 ed2.531");
       if bFullTestSuite:
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],               "OOBW[2]-2~2#5eb1 ed2.531");
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],               "OOBW[3]-3~3#bcd7 ed2.531");
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],               "OOBW[4n]-4n~4n#6682 ed2.531");
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],              ("OOBW[4n+1]-4n-1~4n+1#5b96 ed2.531", # x64: First byte written overwrites endstamp padding
-                                                                               "OOBW[4n+1]-4n~4n#6682 ed2.531")); # x86: First byte written overrwrites stack trace pointer and cannot be detected.
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531"); # Last byte written is within bounds!
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n#6682 ed2.531"); # Last byte is within bounds!
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],               "OOBW[2]-2~2 ed2.531");
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],               "OOBW[3]-3~3 ed2.531");
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],               "OOBW[4n]-4n~4n ed2.531");
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],               "OOBW[4n+1]-4n-1~4n+1 ed2.531");
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],               "OOBW[1]-4n~4n ed2.531"); # Last byte written is within bounds!
         # Make sure very large allocations do not cause issues in cBugId
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 0x1000000, -4, 4],       "OOBW[4n]-4n~4n#6682 ed2.531");
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 0x1000000, -4, 4],       "OOBW[4n]-4n~4n ed2.531");
       # Page heap does not appear to work for x86 tests on x64 platform.
       fTest(sISA,    ["UseAfterFree", "Read",    1,  0],                       "UAFR[1]@0 ed2.531");
       if bFullTestSuite:
@@ -344,11 +342,11 @@ if __name__ == "__main__":
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],            "OOBR[4n+3]+1 ed2.531");
       # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
       # This is detected and reported by application verifier because the page heap suffix was modified.
-      fTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],            "OOBW[4n]+0~4n#6682 ed2.531");
+      fTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],            "OOBW[4n]+0~4n ed2.531");
       if bFullTestSuite:
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],            "OOBW[4n+1]+0~3#bcd7 ed2.531");
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],            "OOBW[4n+2]+0~2#5eb1 ed2.531");
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],            "OOBW[4n+3]+0~1#3416 ed2.531");
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],            "OOBW[4n+1]+0~3 ed2.531");
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],            "OOBW[4n+2]+0~2 ed2.531");
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],            "OOBW[4n+3]+0~1 ed2.531");
         fTest(sISA,  ["BufferOverrun",   "Heap", "Write", 0x10, 5],            "OOBW[4n]+0 ed2.531"); # First byte writen causes AV; no data hash
       # Stack based heap overflows can cause an access violation if the run off the end of the stack, or a debugbreak
       # when they overwrite the stack cookie and the function returns. Finding out how much to write to overwrite the

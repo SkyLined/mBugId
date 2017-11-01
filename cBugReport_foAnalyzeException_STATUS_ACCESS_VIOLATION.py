@@ -1,11 +1,10 @@
 import re;
-from cVirtualAllocation import cVirtualAllocation;
-from cHeapAllocation import cHeapAllocation;
 from cThreadEnvironmentBlock import cThreadEnvironmentBlock;
 from dxConfig import dxConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from fSetBugReportPropertiesForAccessViolationUsingHeapAllocation import fSetBugReportPropertiesForAccessViolationUsingHeapAllocation;
+from fSetBugReportPropertiesForAccessViolationUsingHeapManagerData import fSetBugReportPropertiesForAccessViolationUsingHeapManagerData;
+from mWindowsAPI import cVirtualAllocation;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 ddtsDetails_uSpecialAddress_sISA = {
@@ -205,35 +204,26 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       oBugReport.sSecurityImpact = sSecurityImpact;
       break;
   else:
-    # This is not a special marker or NULL, so it must be an invalid pointer
+    # This is not a special marker or NULL, so it must be some corrupt pointer
     # Get information about the memory region:
-    oHeapAllocation = oProcess.foGetHeapAllocationForAddress(uAccessViolationAddress);
-    if oHeapAllocation:
-      oBugReport.atxMemoryRemarks.extend(oHeapAllocation.fatxMemoryRemarks());
-      fSetBugReportPropertiesForAccessViolationUsingHeapAllocation(
+    oHeapManagerData = oProcess.foGetHeapManagerDataForAddress(uAccessViolationAddress);
+    if oHeapManagerData:
+      oBugReport.atxMemoryRemarks.extend(oHeapManagerData.fatxMemoryRemarks());
+      fSetBugReportPropertiesForAccessViolationUsingHeapManagerData(
         oBugReport, \
         uAccessViolationAddress, sViolationTypeId, sViolationTypeDescription, \
-        oHeapAllocation, \
-        oProcess.uPointerSize, oProcess.oCdbWrapper.bGenerateReportHTML,
+        oHeapManagerData, \
+        oProcess.oCdbWrapper.bGenerateReportHTML,
       );
-      if oProcess.oCdbWrapper.bGenerateReportHTML:
-        sCdbHeapOutputHTML = sBlockHTMLTemplate % {
-          "sName": "Heap information for block near address 0x%X" % (uAccessViolationAddress,),
-          "sCollapsed": "Collapsed",
-          "sContent": "<pre>%s</pre>" % "\r\n".join([
-            oProcess.oCdbWrapper.fsHTMLEncode(sCdbHeapOutputLine, uTabStop = 8)
-            for sCdbHeapOutputLine in oHeapAllocation.asCdbHeapOutput
-          ])
-        };
-        oBugReport.asExceptionSpecificBlocksHTML.append(sCdbHeapOutputHTML);
     else:
-      oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAccessViolationAddress);
-      # See is page heap has more details on the address at which the access violation happened:
+      oVirtualAllocation = cVirtualAllocation.foGetForProcessIdAndAddress(oProcess.uId, uAccessViolationAddress);
+      # See if the address is valid:
       if not oVirtualAllocation:
         oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;
         oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
         oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
       else:
+        # See if the address is near the stack for the current thread:
         oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oProcess);
         uOffsetFromTopOfStack = uAccessViolationAddress - oThreadEnvironmentBlock.uStackTopAddress;
         uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAccessViolationAddress;
@@ -247,46 +237,43 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
           oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
               (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
           oBugReport.sSecurityImpact = "Potentially exploitable security issue.";
+        elif oVirtualAllocation.bReserved:
+          # No memory is allocated in this area, but is is reserved
+          oBugReport.sBugTypeId = "AV%s@Reserved" % sViolationTypeId;
+          oBugReport.sBugDescription = "Access violation at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
+              (uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation.uStartAddress, \
+              oVirtualAllocation.uStartAddress + oVirtualAllocation.uSize);
+          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
+              "memory be allocated at the address rather than reserved.";
+        elif oVirtualAllocation.bFree:
+          # No memory is allocated in this area
+          oBugReport.sBugTypeId = "AV%s@Unallocated" % sViolationTypeId;
+          oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
+          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
         else:
-          if not oVirtualAllocation:
-            oBugReport.sBugTypeId = "AV%s@Unallocated" % sViolationTypeId;
-            oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
-            oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
-          else:
-            if oProcess.oCdbWrapper.bGenerateReportHTML:
-              oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uBaseAddress, None));
-              oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
-            if oVirtualAllocation.bUnallocated:
-              oBugReport.sBugTypeId = "AV%s@Unallocated" % sViolationTypeId;
-              oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % \
-                  (sViolationTypeDescription, uAccessViolationAddress);
-              oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled or memory be allocate at the address.";
-            elif oVirtualAllocation.bReserved:
-              oBugReport.sBugTypeId = "AV%s@Reserved" % sViolationTypeId;
-              oBugReport.sBugDescription = "Access violation at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
-                  (uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation.uBaseAddress, \
-                  oVirtualAllocation.uBaseAddress + oVirtualAllocation.uSize);
-              oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
-                  "memory be allocated at the address rather than reserved.";
-            else:
-              sMemoryProtectionsDescription = {
-                0x01: "allocated but inaccessible", 0x02: "read-only",            0x04: "read- and writable",  0x08: "read- and writable",
-                0x10: "executable",                 0x20: "read- and executable",
-              }[oVirtualAllocation.uProtection];
-              oBugReport.sBugTypeId = "AV%s@Arbitrary" % sViolationTypeId;
-              oBugReport.sBugDescription = "Access violation while %s %s memory at 0x%X." % \
-                  (sViolationTypeDescription, sMemoryProtectionsDescription, uAccessViolationAddress);
-              oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or accessible memory be allocated the the address.";
-              if oProcess.oCdbWrapper.bGenerateReportHTML:
-                # Clamp size, potentially update start if size needs to shrink but end is not changed.
-                uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-                  uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uBaseAddress, oVirtualAllocation.uSize
-                );
-                oBugReport.fAddMemoryDump(
-                  uMemoryDumpStartAddress,
-                  uMemoryDumpStartAddress + uMemoryDumpSize,
-                  "Memory near access violation at 0x%X" % uAccessViolationAddress,
-                );
+          # Memory is allocated in this area, but apparantly not accessible in the way the code tried to.
+          if oProcess.oCdbWrapper.bGenerateReportHTML:
+            oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
+            oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
+          sMemoryProtectionsDescription = {
+            0x01: "allocated but inaccessible", 0x02: "read-only",            0x04: "read- and writable",  0x08: "read- and writable",
+            0x10: "executable",                 0x20: "read- and executable",
+          }[oVirtualAllocation.uProtection];
+          oBugReport.sBugTypeId = "AV%s@Arbitrary" % sViolationTypeId;
+          oBugReport.sBugDescription = "Access violation while %s %s memory at 0x%X." % \
+              (sViolationTypeDescription, sMemoryProtectionsDescription, uAccessViolationAddress);
+          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or accessible memory be allocated the the address.";
+          # Add a memory dump
+          if oProcess.oCdbWrapper.bGenerateReportHTML:
+            # Clamp size, potentially update start if size needs to shrink but end is not changed.
+            uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+              uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uStartAddress, oVirtualAllocation.uSize
+            );
+            oBugReport.fAddMemoryDump(
+              uMemoryDumpStartAddress,
+              uMemoryDumpStartAddress + uMemoryDumpSize,
+              "Memory near access violation at 0x%X" % uAccessViolationAddress,
+            );
   
   oBugReport.sBugDescription += sViolationTypeNotes;
   return oBugReport;
