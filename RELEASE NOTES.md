@@ -22,6 +22,7 @@ Improvements
   size of detectable corruption can differ between 32-bit and 64-bit and thus
   the corruption hash would too, defeating the entire goal of using this
   setting to get architecture independent bug ids.
++ mWindowsRegistry has been absorbed into mWindowsAPI.
 
 2017-10-25
 ==========
