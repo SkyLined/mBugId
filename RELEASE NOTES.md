@@ -1,3 +1,28 @@
+2017-11-01
+==========
+Improvements
+------------
++ Heap information and corruption detection has been rewritten to allow the
+  code to gather more information by directly finding and parsing page heap
+  structures in the target process. This has a large benefit in that it allows
+  me to get more information than cdb can provide and make sure the information
+  is correct. Also, I no longer need to work around some issues in cdb and
+  should be able to implement this for other memory managers more easily (e.g.
+  ASan).
++ The new page heap information and corruption detection should remove many, if
+  not all, cases where the exact size of a heap block cannot be determined. The
+  upshot is you should see less bug ids containing `[?]` (e.g. `UAF[?]-0x10`).
+  This does mean some bug ids will change.
++ These changes have not been tested with an ASan build yet, so that may be
+  completely broken at the moment. I apologize for this inconvenience; as soon
+  as I use an ASan build of an application, I will make sure to check that this
+  works, an hopefully improve that too.
++ If you use the `uArchitectureIndependentBugIdBits` setting in `dxConfig.py`,
+  corruption hashes will not longer be added to the bug id. This is because the
+  size of detectable corruption can differ between 32-bit and 64-bit and thus
+  the corruption hash would too, defeating the entire goal of using this
+  setting to get architecture independent bug ids.
+
 2017-10-25
 ==========
 Bug fixes
