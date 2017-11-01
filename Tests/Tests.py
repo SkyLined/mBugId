@@ -19,10 +19,14 @@ cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 10; # The test application 
 cBugId.dxConfig["uReserveRAM"] = 1024; # Simply test if reserving RAM works, not actually reserve any useful amount.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
-asTestISAs = {
-  "32bit": ["x86"],
-  "64bit": ["x64", "x86"],
+sPythonISA = {
+  "32bit": "x86",
+  "64bit": "x64",
 }[platform.architecture()[0]];
+asTestISAs = {
+  "x86": ["x86"],
+  "x64": ["x64", "x86"],
+}[sPythonISA];
 
 sReportsFolderName = mFileSystem.fsPath(sBugIdFolderPath, "Tests", "Reports");
 
@@ -123,7 +127,7 @@ def fTest(sISA, axCommandLineArguments, sExpectedBugId, sExpectedFailedToDebugAp
       sApplicationBinaryPath = sApplicationBinaryPath,
       asApplicationArguments = asApplicationArguments,
       asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
-      bGenerateReportHTML = bGenerateReportHTML,
+      bGenerateReportHTML = gbGenerateReportHTML,
       fInternalExceptionCallback = fInternalExceptionHandler,
       fFailedToDebugApplicationCallback = sExpectedFailedToDebugApplicationErrorMessage and fFailedToDebugApplicationHandler,
       fPageHeapNotEnabledCallback = fPageHeapNotEnabledHandler,
@@ -153,7 +157,7 @@ def fTest(sISA, axCommandLineArguments, sExpectedBugId, sExpectedFailedToDebugAp
         fOutput("+ %s" % sTestDescription);
         if gbGenerateReportHTML:
           # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
-          sDesiredReportFileName = "%s @ %s.html" % (oBugReport.sId, oBugReport.sBugLocation);
+          sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
           # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
           sValidReportFileName = mFileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
           mFileSystem.fWriteDataToFile(
@@ -195,22 +199,21 @@ if __name__ == "__main__":
   asArgs = sys.argv[1:];
   bQuickTestSuite = False;
   bFullTestSuite = False;
-  bGenerateReportHTML = False;
   while asArgs:
     if asArgs[0] == "--full": 
       bFullTestSuite = True;
-      bGenerateReportHTML = True;
+      gbGenerateReportHTML = True;
     elif asArgs[0] == "--quick": 
       bQuickTestSuite = True;
     elif asArgs[0] == "--debug": 
       gbDebugIO = True;
-      bGenerateReportHTML = True;
+      gbGenerateReportHTML = True;
     else:
       break;
     asArgs.pop(0);
   if asArgs:
     gbDebugIO = True; # Single test: output stdio
-    bGenerateReportHTML = True;
+    gbGenerateReportHTML = True;
   nStartTime = time.clock();
   if asArgs:
     fOutput("* Starting test...");
