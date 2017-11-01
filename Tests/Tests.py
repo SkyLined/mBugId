@@ -1,4 +1,4 @@
-import os, re, sys, threading, time, traceback;
+import os, platform, re, sys, threading, time, traceback;
 sTestsFolderPath = os.path.dirname(os.path.abspath(__file__));
 sBugIdFolderPath = os.path.dirname(sTestsFolderPath);
 sBaseFolderPath = os.path.dirname(sBugIdFolderPath);
@@ -14,15 +14,15 @@ gbDebugIO = False;           # Show cdb I/O during tests (you'll want to run onl
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
-from sOSISA import sOSISA;
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
 cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 10; # The test application is simple: CPU usage should be apparent after a few seconds.
 cBugId.dxConfig["uReserveRAM"] = 1024; # Simply test if reserving RAM works, not actually reserve any useful amount.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
-asTestISAs = [sOSISA];
-if sOSISA == "x64":
-  asTestISAs.append("x86");
+asTestISAs = {
+  "32bit": ["x86"],
+  "64bit": ["x64", "x86"],
+}[platform.architecture()[0]];
 
 sReportsFolderName = mFileSystem.fsPath(sBugIdFolderPath, "Tests", "Reports");
 

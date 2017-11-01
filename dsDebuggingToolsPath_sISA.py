@@ -1,5 +1,6 @@
 import os;
-from sOSISA import sOSISA;
+from mWindowsAPI import fsGetOSISA;
+sOSISA = fsGetOSISA();
 
 dasPotentialDebuggingToolsPaths_sISA = {"x86": [], "x64": []};
 

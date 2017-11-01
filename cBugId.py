@@ -49,14 +49,14 @@ for (sModule, sURL) in {
 
 from cCdbWrapper import cCdbWrapper;
 from oVersionInformation import oVersionInformation;
-from sOSISA import sOSISA;
+from mWindowsAPI import *;
 from dxConfig import dxConfig;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
   # functions and only exposes those things that should be exposed:
   oVersionInformation = oVersionInformation;
-  sOSISA = sOSISA;
+  sOSISA = fsGetOSISA();
   dxConfig = dxConfig; # Expose so external scripts can modify
   
   def __init__(oBugId,

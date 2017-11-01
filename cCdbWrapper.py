@@ -12,8 +12,7 @@ from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTi
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
-from mWindowsAPI import fbTerminateProcessForId;
-from sOSISA import sOSISA;
+from mWindowsAPI import fbTerminateProcessForId, fsGetOSISA;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -77,7 +76,7 @@ class cCdbWrapper(object):
     fNewProcessCallback,                      # called whenever there is a new process.
   ):
     oCdbWrapper.aoInternalExceptions = [];
-    oCdbWrapper.sCdbISA = sCdbISA or sOSISA;
+    oCdbWrapper.sCdbISA = sCdbISA or fsGetOSISA();
     assert sum([sApplicationBinaryPath and 1 or 0, auApplicationProcessIds and 1 or 0, sApplicationPackageName and 1 or 0]), \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
