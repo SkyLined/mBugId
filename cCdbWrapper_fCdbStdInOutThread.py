@@ -225,6 +225,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             oCdbWrapper.fLogMessageInReport(
               "LogProcess",
               "All threads in all processes have been resumed."
+            );
         ### Check if page heap is enabled in all processes and discard cached info #####################################
         for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
           if not oProcess.bTerminated:
