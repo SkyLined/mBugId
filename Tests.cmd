@@ -2,12 +2,14 @@
 SETLOCAL
 SET _NT_SYMBOL_PATH=
 
-:: If the user wants to run a full test-suite, new reports will be generated so the old ones must be deleted so as to
-:: not leave old reports intermingled with the new ones.
+REM If the user wants to run a full test-suite, new reports will be generated so the old ones must be deleted so as to
+REM not leave old reports intermingled with the new ones.
 IF "%~1" == "--full" (
-  DEL "Tests\Reports\*" /Q
-  :: If you can add the x86 and x64 binaries of python to the path, or add links to the local folder, tests will be run
-  :: in both
+  IF EXIST "Tests\Reports\*" (
+    DEL "Tests\Reports\*" /Q
+  )
+  REM If you can add the x86 and x64 binaries of python to the path, or add links to the local folder, tests will be run
+  REM in both
   WHERE PYTHON_X86 2>&1 >nul
   IF ERRORLEVEL 0 (
     WHERE PYTHON_X64 2>&1 >nul
