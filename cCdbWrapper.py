@@ -1,6 +1,6 @@
 import itertools, json, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
-from cCdbWrapper_fAskCdbToInterruptApplication import cCdbWrapper_fAskCdbToInterruptApplication;
+from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
@@ -43,8 +43,8 @@ class cCdbWrapper(object):
     sCdbISA,                                  # Which version of cdb should be used to debug this application? ("x86" or "x64")
     sApplicationBinaryPath,
     auApplicationProcessIds,
-    sApplicationPackageName,
-    sApplicationId,
+    sUWPApplicationPackageName,
+    sUWPApplicationId,
     asApplicationArguments,
     asLocalSymbolPaths,
     asSymbolCachePaths, 
@@ -53,9 +53,14 @@ class cCdbWrapper(object):
     rImportantStdOutLines,
     rImportantStdErrLines,
     bGenerateReportHTML,        
+    uProcessMaxMemoryUse,
+    uTotalMaxMemoryUse,
     fFailedToDebugApplicationCallback,        # called when the application cannot be started by the debugger, or the
                                               # debugger cannot attach to the given process ids. Arguments:
                                               # (oBugId, sErrorMessage).
+    fFailedToApplyMemoryLimitsCallback,       # called when a processes cannot be added to the job object that is used
+                                              # to limit the application's memory usage. Debugging can continue, but
+                                              # memory limits will not be enforced.
     fApplicationRunningCallback,              # called when the application is started in the debugger, or the
                                               # processes the debugger attached to have been resumed.
     fApplicationSuspendedCallback,            # called when the application is suspended to handle an exception,
@@ -77,10 +82,10 @@ class cCdbWrapper(object):
   ):
     oCdbWrapper.aoInternalExceptions = [];
     oCdbWrapper.sCdbISA = sCdbISA or fsGetOSISA();
-    assert sum([sApplicationBinaryPath and 1 or 0, auApplicationProcessIds and 1 or 0, sApplicationPackageName and 1 or 0]), \
+    assert sApplicationBinaryPath or auApplicationProcessIds or sUWPApplicationPackageName, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
-    oCdbWrapper.oUWPApplication = sApplicationPackageName and cUWPApplication(sApplicationPackageName, sApplicationId) or None;
+    oCdbWrapper.oUWPApplication = sUWPApplicationPackageName and cUWPApplication(sUWPApplicationPackageName, sUWPApplicationId) or None;
     oCdbWrapper.auProcessIdsPendingAttach = auApplicationProcessIds or [];
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
     oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths or [];
@@ -94,7 +99,10 @@ class cCdbWrapper(object):
     oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
     oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
+    oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
+    oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
     oCdbWrapper.fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
+    oCdbWrapper.fFailedToApplyMemoryLimitsCallback = fFailedToApplyMemoryLimitsCallback;
     oCdbWrapper.fApplicationRunningCallback = fApplicationRunningCallback;
     oCdbWrapper.fApplicationSuspendedCallback = fApplicationSuspendedCallback;
     oCdbWrapper.fApplicationResumedCallback = fApplicationResumedCallback;
@@ -141,7 +149,8 @@ class cCdbWrapper(object):
     # Keep track of timeouts that should fire at some point in the future and timeouts that should fire now.
     oCdbWrapper.aoTimeouts = [];
     oCdbWrapper.bApplicationIsRunnning = False; # Will be set to true while the application is running in cdb.
-    oCdbWrapper.bCdbHasBeenAskedToInterruptApplication = False; # Will be set to true while the application is running and being interrupted in cdb.
+    oCdbWrapper.uUtilityInterruptThreadId = None; # Will be set to the thread id in which we triggered an AV to
+                                                  # interrupt the application.
     # Lock for the above four timeout and interrupt variables
     oCdbWrapper.oTimeoutAndInterruptLock = threading.RLock();
     oCdbWrapper.bCdbStdInOutThreadRunning = True; # Will be set to false if the thread terminates for any reason.
@@ -189,8 +198,9 @@ class cCdbWrapper(object):
     global guSymbolOptions;
     oCdbWrapper.bDebuggerStarted = True;
     # Get the command line (without starting/attaching to a process)
+    fQuote = lambda sArgument: '"%s"' % sArgument.replace('"', '\\"');
     asCommandLine = [
-      os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe"),
+      fQuote(os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe")),
       "-o", # Debug any child processes spawned by the main processes as well.
       "-sflags", "0x%08X" % guSymbolOptions # Set symbol loading options (See above for details)
     ];
@@ -203,39 +213,29 @@ class cCdbWrapper(object):
       ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
     );
     if sSymbolsPath:
-      asCommandLine += ["-y", sSymbolsPath];
+      asCommandLine += ["-y", fQuote(sSymbolsPath)];
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdInOutThread);
     # Create a thread that reads stderr output and shows it in the console
     oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdErrThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
     oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbCleanupThread);
-    # We may need to start a dummy process if we're starting a UWP application. See below.
+    # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
+    # breakpoints triggered in the target application.
+    asCommandLine += [
+      fQuote(os.getenv("ComSpec")), "/K", fQuote("ECHO OFF"), 
+    ];
+    oCdbWrapper.uUtilityProcessId = None;
     if oCdbWrapper.sApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
       assert not oCdbWrapper.auProcessIdsPendingAttach, \
           "Cannot start a process and attach to processes at the same time";
-      asCommandLine += [oCdbWrapper.sApplicationBinaryPath] + oCdbWrapper.asApplicationArguments;
     elif oCdbWrapper.oUWPApplication:
       assert len(oCdbWrapper.asApplicationArguments) <= 1, \
           "You cannot specify multiple arguments for a UWP application.";
-      # Unfortunately, we cannot start cdb without starting an application, so we're going to start a dummy
-      # application that we can terminate once we've started and attached to the UWP application. This is going
-      # to be a python script that simply waits for a number of seconds. If cdb.exe does not attach to the UWP
-      # application before then, we'll report an error.
-      asCommandLine += [
-        sys.executable, "-c", "import time;time.sleep(%f)" % dxConfig["nUWPApplicationAttachTimeout"], 
-      ];
     else:
       assert oCdbWrapper.auProcessIdsPendingAttach, \
           "Must start a process or attach to one";
-      # If any processes must be attached to, add the first to the coommand line.
-      asCommandLine += ["-p", str(oCdbWrapper.auProcessIdsPendingAttach[0])];
-    # Quote any non-quoted argument that contain spaces:
-    asCommandLine = [
-      (x and (x[0] == '"' or x.find(" ") == -1)) and x or '"%s"' % x.replace('"', '\\"')
-      for x in asCommandLine
-    ];
     # Show the command line if requested.
     oCdbWrapper.sCdbCommandLine = " ".join(asCommandLine);
     oCdbWrapper.oCdbProcess = subprocess.Popen(
@@ -416,8 +416,8 @@ class cCdbWrapper(object):
   def fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames):
     return cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames);
   
-  def fAskCdbToInterruptApplication(oCdbWrapper):
-    cCdbWrapper_fAskCdbToInterruptApplication(oCdbWrapper);
+  def fInterruptApplication(oCdbWrapper):
+    cCdbWrapper_fInterruptApplication(oCdbWrapper);
   
   def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:

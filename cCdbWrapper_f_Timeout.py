@@ -15,9 +15,10 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, 
       oCdbWrapper.oApplicationTimeLock.release();
     oTimeout = cTimeout(sDescription, nFireAtOrAfterApplicationRunTime, fCallback, axCallbackArguments);
     oCdbWrapper.aoTimeouts.append(oTimeout);
-    if nTimeToWait == 0 and oCdbWrapper.bApplicationIsRunnning and not oCdbWrapper.bCdbHasBeenAskedToInterruptApplication:
-      # This timeout should fire immediately, but the application is running and cdb has not been interrupted
-      oCdbWrapper.fAskCdbToInterruptApplication();
+    if nTimeToWait == 0 and oCdbWrapper.bApplicationIsRunnning and not oCdbWrapper.uUtilityInterruptThreadId:
+      # This timeout should fire immediately, but the application is currently running and not been interrupted, so
+      # interrupt it to be able to fire the timeout asap.
+      oCdbWrapper.fInterruptApplication();
   finally:
     oCdbWrapper.oTimeoutAndInterruptLock.release();
   return oTimeout;

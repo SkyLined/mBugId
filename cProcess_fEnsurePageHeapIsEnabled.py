@@ -35,7 +35,7 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   bPreventable = re.match(r"image[0-9a-f]{8}", oProcess.oMainModule.sCdbId, re.I) is None;
   # Report it
   if oProcess.oCdbWrapper.fPageHeapNotEnabledCallback:
-    oProcess.oCdbWrapper.fPageHeapNotEnabledCallback(oProcess.uId, oProcess.sBinaryName, bPreventable);
+    oProcess.oCdbWrapper.fPageHeapNotEnabledCallback(oProcess, bPreventable);
   else:
     # This is fatal if it's preventable and there is no callback handler
     assert not bPreventable, \

@@ -1,4 +1,10 @@
 from dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
+
+uKiloByte = 10 ** 3;
+uMegaByte = 10 ** 6;
+uGigaByte = 10 ** 9;
+uTeraByte = 10 ** 12;
+
 # Add default values where no values have been supplied:
 dxConfig = {
   ### cdb/kill binary settings
@@ -100,9 +106,6 @@ dxConfig = {
   "bOverwriteDump": False,              # Overwrite any existing dump file.
   "sDumpPath": None,                    # Path where you want cBugId to save dump file. None = current folder.
   "bFullDump": False,                   # Create a full (True) or small memory dump (False).
-  ### OOM mitigations
-  "uReserveRAM": 0,                     # How many bytes of RAM should be allocate at start of debugging, so they can
-                                        # be released later to allow analysis under low memory conditions.
   ### Excessive CPU usage detection
   "nExcessiveCPUUsageCheckInterval": 10.0, # How many seconds to gather thread CPU usage data.
   "nExcessiveCPUUsagePercent": 90,      # How long do all threads in all processes for the application need to use the
@@ -159,4 +162,9 @@ dxConfig = {
   "uMaxMemoryDumpSize": 0x4000,         # Do not ask cdb to dump more than this many bytes (cdb will report a
                                         # `^ Range error in ' db /cXX 0xXXXX l<too big>` if you try to dump too many
                                         # bytes).
+  "uReservedMemory": 10 * uMegaByte,    # Reserve some memory for analysis of crashes. This memory is freed before
+                                        # analysis of an exception starts and reallocated if the exception was not
+                                        # found to be a bug. If the memory limits applied to the application and/or
+                                        # its processes do not prevent a system-wide low-memory situation, this may
+                                        # allow BugId to continue operating as expected.
 };

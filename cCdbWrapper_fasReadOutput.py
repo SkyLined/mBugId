@@ -95,19 +95,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "\n" or sLine:
           if oCdbWrapper.fStdOutOutputCallback:
             oCdbWrapper.fStdOutOutputCallback(sLine);
-          # Failure to attach will terminate cdb. This needs to be special cased:
-          oCannotAttachMatch = re.match(r"^Cannot (?:debug pid (\d+)|execute '(.*?)'), (Win32 error 0n\d+|NTSTATUS 0x\w+)\s*$", sLine);
-          if oCannotAttachMatch:
-            sProcessId, sApplicationExecutable, sErrorCode = oCannotAttachMatch.groups();
-            if sProcessId:
-              uProcessId = long(sProcessId);
-              sErrorMessage = "Failed to attach to process %d/0x%X: %s!" % (uProcessId, uProcessId, sErrorCode);
-            else:
-              sErrorMessage = "Failed to start application \"%s\": %s!" % (sApplicationExecutable, sErrorCode);
-            if sErrorCode in dsTips_by_sErrorCode:
-              sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
-            oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
-            oCdbWrapper.fStop();
           # Failure to debug application must be special cased, for example:
           # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
           # |WaitForEvent failed, NTSTATUS 0xC000000D

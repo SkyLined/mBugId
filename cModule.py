@@ -88,7 +88,7 @@ class cModule(object):
       if oModule.__sBinaryName is None:
         oModule.__fGetModuleSymbolAndVersionInformation();
       return oModule.__sBinaryName;
-    return os.path.basename(oModule.sBinaryPath).lower();
+    return os.path.basename(oModule.sBinaryPath);
   
   # The below are never available until __fGetModuleSymbolAndVersionInformation is called:
   @property
@@ -105,11 +105,11 @@ class cModule(object):
   
   @property
   def sSimplifiedName(oModule):
-    return oModule.sBinaryName;
+    return oModule.sBinaryName.lower();
   
   @property
   def sUniqueName(oModule):
-    return oModule.sBinaryName;
+    return oModule.sBinaryName.lower();
   
   @property
   def sInformationHTML(oModule):
@@ -141,10 +141,10 @@ class cModule(object):
       bOutputIsInformative = True,
     );
     assert len(as_lmov_Output) > 2, \
-        "Expected at least three lines of module information output, got %d:\r\n%s" % \
-        (len(as_lmov_Output), "\r\n".join(as_lmov_Output));
+        "Expected at least three lines of \"lmov %s\" output, got %d:\r\n%s" % \
+        (s_lmov_Arguments, len(as_lmov_Output), "\r\n".join(as_lmov_Output));
     assert re.match("^start\s+end\s+module name\s*$", as_lmov_Output[0]), \
-        "Unrecognized lmov output header: %s\r\n%s" % (repr(as_lmov_Output[0]), "\r\n".join(as_lmov_Output));
+        "Unrecognized \"lmov %s\" output header: %s\r\n%s" % (s_lmov_Arguments, repr(as_lmov_Output[0]), "\r\n".join(as_lmov_Output));
     (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
     oModule.fProcess_lmov_Output(as_lmov_Output);

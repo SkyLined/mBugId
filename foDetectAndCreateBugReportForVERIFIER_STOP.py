@@ -185,13 +185,22 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       assert uCorruptionAddress is None, \
           "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
               "\r\n".join(asRelevantLines);
-      sBugTypeId = "OOBW";
-      if sMessage == "corrupted start stamp":
-        uCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("StartStamp");
-        uCorruptionEndAddress = uCorruptionStartAddress + oPageHeapManagerData.fuHeapBlockHeaderFieldSize("StartStamp");
+      if not oPageHeapManagerData.oHeapBlockHeader:
+        # This makes no sense: there is no heap block header because the memory is really freed by verifier but left
+        # reserved to prevent it from being reallocated. So the start and end stamp no longer exist...
+        assert oPageHeapManagerData.oVirtualAllocation.bReserved, \
+            "This is even more unexpected.";
+        sBugTypeId = "UnknownVerifierError";
+        uCorruptionStartAddress = None;
+        uCorruptionEndAddress = None;
       else:
-        uCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("EndStamp");
-        uCorruptionEndAddress = uCorruptionStartAddress + oPageHeapManagerData.fuHeapBlockHeaderFieldSize("EndStamp");
+        sBugTypeId = "OOBW";
+        if sMessage == "corrupted start stamp":
+          uCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("StartStamp");
+          uCorruptionEndAddress = uCorruptionStartAddress + oPageHeapManagerData.fuHeapBlockHeaderFieldSize("StartStamp");
+        else:
+          uCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("EndStamp");
+          uCorruptionEndAddress = uCorruptionStartAddress + oPageHeapManagerData.fuHeapBlockHeaderFieldSize("EndStamp");
     elif sMessage in ["corrupted suffix pattern", "corrupted header"]:
       assert uCorruptionAddress is not None, \
           "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
@@ -225,7 +234,7 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
     
     # If the corruption starts before or ends after the heap block, expand the memory dump to include the entire
     # corrupted region.
-    if oCdbWrapper.bGenerateReportHTML:
+    if uCorruptionStartAddress and oCdbWrapper.bGenerateReportHTML:
       # Limit memory dump size
       uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
         uCorruptionStartAddress, oProcess.uPointerSize, uCorruptionStartAddress, uMemoryDumpEndAddress - uMemoryDumpStartAddress

@@ -8,10 +8,9 @@ def fSetBugReportPropertiesForAccessViolationUsingHeapManagerData(
   oHeapManagerData,
   bGenerateReportHTML,
 ):
-  if bGenerateReportHTML:
+  if bGenerateReportHTML and oHeapManagerData.uMemoryDumpStartAddress:
     uMemoryDumpStartAddress = oHeapManagerData.uMemoryDumpStartAddress;
     uMemoryDumpSize = oHeapManagerData.uMemoryDumpSize;
-  if bGenerateReportHTML:
     if uAccessViolationAddress < oHeapManagerData.uHeapBlockStartAddress:
       uPrefix = oHeapManagerData.uHeapBlockStartAddress - uAccessViolationAddress;
       uMemoryDumpStartAddress -= uPrefix;

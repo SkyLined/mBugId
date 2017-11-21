@@ -1,3 +1,71 @@
+2017-11-21
+==========
+New features
+------------
++ Added optional `uProcessMaxMemoryUse` and `uTotalMaxMemoryUse` arguments to
+  `cBugId` constructor, which can be used to try to limit the amount of memory
+  each process of the application or the all processes of the application
+  combined can allocate, respectively. The values are the maximum amounts in
+  bytes. This feature is implemented using Job Objects. Since no process can be
+  added to more than one Job Object, cBugId will not be able to apply this
+  limit if a process is already added to a Job Object. Also, if the application
+  attempts to add a process to a Job Object after cBugId has applied the memory
+  limits, this will fail. I am not currently aware of any application that
+  tries to add any of its processes to a Job object after cBugId does, but
+  please do report if this breaks any application. Note that if you specify
+  `None` for both values, no Job Object is created and no processes are added
+  to a Job Object by cBugId.
++ Added optional `fFailedToApplyMemoryLimitsCallback` argument to `cBugId`
+  constructor, which takes a function that will be called if the
+  `uProcessMaxMemoryUse` and/or `uTotalMaxMemoryUse` memory limits cannot be
+  applied. The arguments passed to this callback function are `oBugId`,
+  `uProcessId`, `sProcessBinaryName`, and `sProcessCommandLine`.
+
+Changes to BugIds
+----------------
++ `oBugReport.sBugLocation` and stack hashes will now use the lowercase name of
+  the process' binary, to prevent different values being returned if the case
+  of the binary name changes.
+
+Improvements
+------------
++ The `uReserveRAM` setting in dxConfig has been replaced with the
+  `uReservedMemory` setting. It is still used to reserve some memory, to be
+  released when an exception needs to be analyzed in order to allow BugId to
+  operate under low-memory situations. The allocation should now be more
+  robust, and this feature should be more reliable.
++ A "utility" process is started in the debugger before it attaches to or
+  starts the target application. cBugId will trigger a breakpoint in this
+  utility process whenever it needs to interrupt cdb.exe. This allows it to
+  reliably determine if any breakpoint was triggered by cBugId itself or by the
+  target application: the former breakpoints will always happen in the utility
+  process while the later never will. This utility process does away with the
+  need for a separate "UWP dummy" process, as it can perform that role as well.
+  Furthermore, it makes it easier to reliably detect when cdb.exe cannot start
+  an application given a command-line because the specified binary cannot be
+  found.
++ Improved and added bug translations.
++ Process information including the binary name and path, command line, ISA,
+  and pointer size is determined through direct Windows API calls. This is less
+  error prone than the old code which parsing the output of cdb commands for
+  this information.
+
+Cosmetic Changes
+----------------
++ Renamed `cBugId` constructor's `sApplicationPackageName` and `sApplicationId`
+  arguments to `sUWPApplicationPackageName` and `sUWPApplicationId`
+  respectively.
+
+Bug fixes
+---------
++ The path to cdb.exe and the path to the symbols will now be quoted in the cdb
+  command line to prevent confusion in cases where either path contains spaces.
++ Added code to handle a weird, contradictory VERIFIER STOP error so I can
+  hopefully get more information about it.
++ Fix bug where a memory dump was attempted on memory that had been freed,
+  which could potentially lead to an exception.
+
+
 2017-11-01
 ==========
 Improvements

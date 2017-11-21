@@ -6,12 +6,20 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
   while 1:
     oCdbWrapper.oTimeoutAndInterruptLock.acquire();
     try:
-      if not oCdbWrapper.bApplicationIsRunnning or not oCdbWrapper.bCdbRunning or oCdbWrapper.bCdbHasBeenAskedToInterruptApplication:
-        return; # This thread is no longer needed.
-      # See if any timeout should be fired:
+      if any([
+        # If the application is no longer running...
+        not oCdbWrapper.bApplicationIsRunnning,
+        # ...or cdb.exe if no longer running...
+        not oCdbWrapper.bCdbRunning,
+        # ...or the application is about to be interrupted already...
+        oCdbWrapper.uUtilityInterruptThreadId is not None,
+      ]):
+        # .... then this thread is no longer needed.
+        return; 
+      # Otherwise, check if any timeout should be fired:
       for oTimeout in oCdbWrapper.aoTimeouts[:]:
         if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
-          oCdbWrapper.fAskCdbToInterruptApplication();
+          oCdbWrapper.fInterruptApplication();
           return;
     finally:
       oCdbWrapper.oTimeoutAndInterruptLock.release();
