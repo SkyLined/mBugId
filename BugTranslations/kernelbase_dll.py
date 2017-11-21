@@ -10,8 +10,6 @@ aoBugTranslations = [
         "kernelbase.dll!RaiseException",
       ], [
         "kernelbase.dll!RaiseFailFastException",
-      ], [
-        "kernelbase.dll!wil::details::DebugBreak",
       ],
     ],
   ),
@@ -20,7 +18,7 @@ aoBugTranslations = [
     sOriginalBugTypeId = "OOM",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "KERNELBASE.dll!TerminateProcessOnMemoryExhaustion",
+        "kernelbase.dll!TerminateProcessOnMemoryExhaustion",
       ],
     ],
   ),
