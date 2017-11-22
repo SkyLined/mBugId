@@ -192,13 +192,10 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             );
             assert asCreateProcessOutput and asCreateProcessOutput[0].startswith("CommandLine: "), \
                 "Unexpected .create output first line: %s" % repr(asCreateProcessOutput);
-            if (
-              len(asCreateProcessOutput) == 3 \
-              and asCreateProcessOutput[1:] == [
-                  "Cannot execute '%s', Win32 error 0n2" % oCdbWrapper.sApplicationBinaryPath,
-                  '    "The system cannot find the file specified."',
-              ]
-            ):
+            if len(asCreateProcessOutput) == 3 and asCreateProcessOutput[1:] == [
+              "Cannot execute '%s', Win32 error 0n2" % oCdbWrapper.sApplicationBinaryPath,
+              '    "The system cannot find the file specified."',
+            ]:
               oCdbWrapper.fFailedToDebugApplicationCallback(
                 "The executable \"%s\" was not found." % oCdbWrapper.sApplicationBinaryPath,
               );
