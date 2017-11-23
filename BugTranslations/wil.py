@@ -32,6 +32,8 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "*!wil::details::in1diag3::FailFast_Hr",
+      ], [
+        "*!wil::details::in1diag3::FailFast_Unexpected",
       ],
     ],
     sTranslatedBugTypeId = "Assert",

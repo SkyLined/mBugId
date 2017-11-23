@@ -5,19 +5,19 @@ aoBugTranslations = [
   cBugTranslation(
     sOriginalBugTypeId = "Assert",
     asOriginalTopStackFrameSymbols = [
-      "msiso.dll!CIsoMalloc::_InitializeEntry",
+      "*!CIsoMalloc::_InitializeEntry",
     ],
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "msIso.dll!CIsoScope::_AllocArtifact",
+        "*!CIsoScope::_AllocArtifact",
       ], [
-        "msIso.dll!CIsoSList::AllocArtifact",
+        "*!CIsoSList::AllocArtifact",
       ], [
-        "msIso.dll!CIsoScope::_AllocMessageBuffer",
+        "*!CIsoScope::_AllocMessageBuffer",
       ], [
-        "msIso.dll!CIsoScope::AllocMessageBuffer",
+        "*!CIsoScope::AllocMessageBuffer",
       ], [
-        "msIso.dll!IsoAllocMessageBuffer",
+        "*!IsoAllocMessageBuffer",
       ],
     ],
     sTranslatedBugTypeId = "OOM",

@@ -7,10 +7,10 @@ from Cpp import aoBugTranslations as aoBugTranslations_Cpp;
 from edgehtml_dll import aoBugTranslations as aoBugTranslations_edgehtml_dll;
 from edgecontent_dll import aoBugTranslations as aoBugTranslations_edgecontent_dll;
 from Firefox import aoBugTranslations as aoBugTranslations_Firefox;
+from iso import aoBugTranslations as aoBugTranslations_iso;
 from jscript9_dll import aoBugTranslations as aoBugTranslations_jscript9_dll;
 from kernelbase_dll import aoBugTranslations as aoBugTranslations_kernelbase_dll;
 from mshtml_dll import aoBugTranslations as aoBugTranslations_mshtml_dll;
-from msIso_dll import aoBugTranslations as aoBugTranslations_msIso_dll;
 from ntdll_dll import aoBugTranslations as aoBugTranslations_ntdll_dll;
 from RTC import aoBugTranslations as aoBugTranslations_RTC;
 from SlashGS import aoBugTranslations as aoBugTranslations_SlashGS;
@@ -29,10 +29,10 @@ for aoBugTranslations_X in [
   aoBugTranslations_edgehtml_dll,
   aoBugTranslations_edgecontent_dll,
   aoBugTranslations_Firefox,
-  aoBugTranslations_kernelbase_dll,
+  aoBugTranslations_iso,
   aoBugTranslations_jscript9_dll,
+  aoBugTranslations_kernelbase_dll,
   aoBugTranslations_mshtml_dll,
-  aoBugTranslations_msIso_dll,
   aoBugTranslations_ntdll_dll,
   aoBugTranslations_RTC,
   aoBugTranslations_SlashGS,
