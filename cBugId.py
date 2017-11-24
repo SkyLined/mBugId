@@ -28,13 +28,13 @@ sys.path += [sPath for sPath in [
   sModuleFolderPath,
 ] if sPath.lower() not in asAbsoluteLoweredSysPaths];
 
-for (sModule, sURL) in {
+for (sModuleName, sURL) in {
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
   "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
 }.items():
   try:
-    __import__(sModule, globals(), locals(), [], -1);
-  except ImportError, oError:
+    __import__(sModuleName, globals(), locals(), [], -1);
+  except ImportError as oError:
     if oError.message == "No module named %s" % sModuleName:
       print "*" * 80;
       print "cBugId depends on %s which you can download at:" % sModuleName;
