@@ -1,3 +1,27 @@
+2017-11-24
+==========
+Improvements
+------------
++ Processes are started directly by cBugId through Windows API calls, rather
+  than by cdb.exe through the `.create` command. The later did not handle
+  spaces in paths, which broke cBugId for certain applications. This also
+  allows cBugId to redirect stdout and stderr and separate it from cdb.exe
+  stdout and stderr. AFAIK this should remove any chance of the application
+  output mixing with cdb.exe output. Added benefit is that parsing cdb.exe
+  output and detecting application output to be stored in the report are both
+  much more reliable.
++ More/better bug translations
+
+New features
+------------
++ Added optional `fLogMessageCallback` argument. Value should be a function,
+  which gets called whenever there is something worth logging. The arguments
+  pass to this function are `oBugId`, `sMessageClass`, and `sMessage`.
++ Added optional `fApplicationStdOurOrErrOutputCallback` argument. Value should
+  be a function, which gets called the application outputs anything to stdout
+  or stderr.
+
+
 2017-11-21
 ==========
 New features
