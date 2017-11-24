@@ -5,22 +5,28 @@ Improvements
 + Processes are started directly by cBugId through Windows API calls, rather
   than by cdb.exe through the `.create` command. The later did not handle
   spaces in paths, which broke cBugId for certain applications. This also
-  allows cBugId to redirect stdout and stderr and separate it from cdb.exe
-  stdout and stderr. AFAIK this should remove any chance of the application
-  output mixing with cdb.exe output. Added benefit is that parsing cdb.exe
-  output and detecting application output to be stored in the report are both
-  much more reliable.
+  allows cBugId to redirect stdin, stdout and stderr and separate it from
+  cdb.exe stdin, stdout and stderr. AFAIK this should remove any chance of the
+  application reading the commands cBugId sends to cdb.exe as its input and
+  prevents the application's output mixing with cdb.exe output. This has
+  several benefits:
+  - Parsing cdb.exe output is more reliable, as the application output can no
+    longer get mixed in.
+  - Recording application output reliably is now possible.
+  - The application can read from stdin, allowing cBugId to work on console
+    applications while you interact with them. E.g. you can run
+    `BugId.py %ComSpec%`, type commands and see cmd.exe output the results.
 + More/better bug translations
 
 New features
 ------------
 + Added optional `fLogMessageCallback` argument. Value should be a function,
   which gets called whenever there is something worth logging. The arguments
-  pass to this function are `oBugId`, `sMessageClass`, and `sMessage`.
-+ Added optional `fApplicationStdOurOrErrOutputCallback` argument. Value should
+  passed to this function are `oBugId`, `sMessageClass`, and `sMessage`.
++ Added optional `fApplicationStdOutOrErrOutputCallback` argument. Value should
   be a function, which gets called the application outputs anything to stdout
-  or stderr.
-
+  or stderr. The arguments passed to this function are `oBugId`, `uProcessId`,
+  `sBinaryName`, `sCommandLine`, `sStdOutOrErr`, and `sMessage`.
 
 2017-11-21
 ==========
