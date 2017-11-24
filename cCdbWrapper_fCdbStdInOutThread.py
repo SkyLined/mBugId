@@ -177,6 +177,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             oConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
               sBinaryPath = oCdbWrapper.sApplicationBinaryPath,
               asArguments = oCdbWrapper.asApplicationArguments,
+              bRedirectStdIn = False,
               bSuspended = True,
             );
             if oConsoleProcess is None:
@@ -202,16 +203,19 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
               "Process %d was started using binary %s and arguments %s." % \
                   (oConsoleProcess.uId, repr(oCdbWrapper.sApplicationBinaryPath), repr(oCdbWrapper.asApplicationArguments)),
             );
-            # Create helper threads that read the applications stdout and stderr (if any). No references to these
+            # Create helper threads that read the application's output to stdout and stderr. No references to these
             # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
-            # application and save it in the report.
+            # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
+            # after the process terminates, or this cdb stdio thread dies.
+            sBinaryName = oConsoleProcess.oInformation.sBinaryName;
+            sCommandLine = oConsoleProcess.oInformation.sCommandLine;
             oCdbWrapper.foHelperThread(
-                oCdbWrapper.fApplicationStdOurOrErrThread,
-                oConsoleProcess.uId, oConsoleProcess.oStdOutPipe, "StdOut",
+                oCdbWrapper.fApplicationStdOutOrErrThread,
+                oConsoleProcess.uId, sBinaryName, sCommandLine, oConsoleProcess.oStdOutPipe, "StdOut",
             ).start();
             oCdbWrapper.foHelperThread(
-                oCdbWrapper.fApplicationStdOurOrErrThread,
-                oConsoleProcess.uId, oConsoleProcess.oStdErrPipe, "StdErr",
+                oCdbWrapper.fApplicationStdOutOrErrThread,
+                oConsoleProcess.uId, sBinaryName, sCommandLine, oConsoleProcess.oStdErrPipe, "StdErr",
             ).start();
             # Tell cdb to attach to the process.
             if not oCdbWrapper.fbAttachToProcessForId(oConsoleProcess.uId):
@@ -609,10 +613,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sComment = "Terminate cdb",
       bIgnoreOutput = True,
       bUseMarkers = False
-    ); # This is not going to end up in the report.
+    );
+    # Wait for cdb to truely terminate
+    oCdbWrapper.oCdbProcess.wait();
   except cCdbStoppedException as oCdbStoppedException:
     pass;
   finally:
+    # Terminate cdb if it has not yet been terminated for some reason.
+    if oCdbWrapper.bCdbRunning:
+      fbTerminateProcessForId(oCdbWrapper.oCdbProcess.pid);
+    assert oCdbWrapper.oCdbProcess.poll() != None, \
+        "Cdb Should not be running anymore!";
     # Close all open pipes to console processes.
     for oConsoleProcess in doConsoleProcess_by_uId.values():
       # Make sure the console process is killed because I am not sure if it is. If it still exists and it is suspended,

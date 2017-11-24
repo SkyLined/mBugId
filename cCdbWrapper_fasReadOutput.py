@@ -182,6 +182,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "":
           oCdbWrapper.bCdbRunning = False;
           if gbDebugIO: print "<stdout:EOF<";
+          oCdbWrapper.oCdbProcess.wait(); # This should not take long!
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:

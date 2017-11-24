@@ -263,8 +263,8 @@ class cModule(object):
       oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
     if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
-      if oModule.oProcess.sBasePath:
-        sBinaryPath = os.path.join(oModule.oProcess.sBasePath, dsValue_by_sName["Image path"]);
+      if oModule.oProcess.sBinaryBasePath:
+        sBinaryPath = os.path.join(oModule.oProcess.sBinaryBasePath, dsValue_by_sName["Image path"]);
       else:
         sBinaryPath = os.path.abspath(dsValue_by_sName["Image path"]);
       # The above is kinda hacky, so check that the file exists before assuming the value is correct:

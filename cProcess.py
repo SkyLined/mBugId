@@ -50,7 +50,7 @@ class cProcess(object):
   
   @property
   def sBinaryName(oProcess):
-    return os.path.basename(oProcess.__foGetProcessInformation().sBinaryPath);
+    return oProcess.__foGetProcessInformation().sBinaryName;
   
   @property
   def sSimplifiedBinaryName(oProcess):
@@ -60,7 +60,7 @@ class cProcess(object):
     return oProcess.sBinaryName.lower();
   
   @property
-  def sBasePath(oProcess):
+  def sBinaryBasePath(oProcess):
     return os.path.dirname(oProcess.__foGetProcessInformation().sBinaryPath);
   
   @property

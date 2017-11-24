@@ -89,7 +89,7 @@ class cBugId(object):
     fStdErrOutputCallback = None,
     fNewProcessCallback = None,
     fLogMessageCallback = None,
-    fApplicationStdOurOrErrOutputCallback = None,
+    fApplicationStdOutOrErrOutputCallback = None,
   ):
     oBugId.__fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
     oBugId.__fFinishedCallback = fFinishedCallback;
@@ -119,33 +119,34 @@ class cBugId(object):
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
       # All callbacks are wrapped to insert this cBugId instance as the first argument.
       fFailedToDebugApplicationCallback = oBugId.__fFailedToDebugApplicationHandler,
-      fFailedToApplyMemoryLimitsCallback = fFailedToApplyMemoryLimitsCallback and \
-          (lambda oProcess: fFailedToApplyMemoryLimitsCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine)),
-      fApplicationRunningCallback = fApplicationRunningCallback and \
-          (lambda: fApplicationRunningCallback(oBugId)),
-      fApplicationSuspendedCallback = fApplicationSuspendedCallback and \
-          (lambda sReason: fApplicationSuspendedCallback(oBugId, sReason)),
-      fApplicationResumedCallback = fApplicationResumedCallback and \
-          (lambda: fApplicationResumedCallback(oBugId)),
-      fMainProcessTerminatedCallback = fMainProcessTerminatedCallback and \
-          (lambda oProcess: fMainProcessTerminatedCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine)),
-      fInternalExceptionCallback = fInternalExceptionCallback and \
-          (lambda oException, oTraceBack: fInternalExceptionCallback(oBugId, oException, oTraceBack)),
+      fFailedToApplyMemoryLimitsCallback = lambda oProcess: fFailedToApplyMemoryLimitsCallback and \
+          fFailedToApplyMemoryLimitsCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
+      fApplicationRunningCallback = lambda: fApplicationRunningCallback and \
+          fApplicationRunningCallback(oBugId),
+      fApplicationSuspendedCallback = lambda sReason: fApplicationSuspendedCallback and \
+          fApplicationSuspendedCallback(oBugId, sReason),
+      fApplicationResumedCallback = lambda: fApplicationResumedCallback and \
+          fApplicationResumedCallback(oBugId),
+      fMainProcessTerminatedCallback = lambda oProcess: fMainProcessTerminatedCallback and \
+          fMainProcessTerminatedCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
+      fInternalExceptionCallback = lambda oException, oTraceBack: fInternalExceptionCallback and \
+          fInternalExceptionCallback(oBugId, oException, oTraceBack),
       fFinishedCallback = oBugId.__fFinishedHandler,
-      fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback and \
-          (lambda oProcess, bPreventable: fPageHeapNotEnabledCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine, bPreventable)),
-      fStdInInputCallback = fStdInInputCallback and \
-          (lambda sInput: fStdInInputCallback(oBugId, sInput)),
-      fStdOutOutputCallback = fStdOutOutputCallback and \
-          (lambda sOutput: fStdOutOutputCallback(oBugId, sOutput)),
-      fStdErrOutputCallback = fStdErrOutputCallback and 
-          (lambda sOutput: fStdErrOutputCallback(oBugId, sOutput)),
-      fNewProcessCallback = fNewProcessCallback and \
-          (lambda oProcess: fNewProcessCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine)),
-      fLogMessageCallback = fLogMessageCallback and \
-          (lambda sMessageClass, sMessage: fLogMessageCallback(oBugId, sMessageClass, sMessage)),
-      fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback and \
-          (lambda uProcessId, sStdOutOrErr, sMessage: fApplicationStdOurOrErrOutputCallback(oBugId, uProcessId, sStdOutOrErr, sMessage)),
+      fPageHeapNotEnabledCallback = lambda oProcess, bPreventable: fPageHeapNotEnabledCallback and \
+          fPageHeapNotEnabledCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine, bPreventable),
+      fStdInInputCallback = lambda sInput: fStdInInputCallback and \
+          fStdInInputCallback(oBugId, sInput),
+      fStdOutOutputCallback = lambda sOutput: fStdOutOutputCallback and \
+          fStdOutOutputCallback(oBugId, sOutput),
+      fStdErrOutputCallback = lambda sOutput: fStdErrOutputCallback and 
+          fStdErrOutputCallback(oBugId, sOutput),
+      fNewProcessCallback = lambda oProcess: fNewProcessCallback and \
+          fNewProcessCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
+      fLogMessageCallback = lambda sMessageClass, sMessage: fLogMessageCallback and \
+          fLogMessageCallback(oBugId, sMessageClass, sMessage),
+      fApplicationStdOutOrErrOutputCallback = lambda uProcessId, sBinaryName, sCommandLine, sStdOutOrErr, sMessage: \
+          fApplicationStdOutOrErrOutputCallback and \
+          fApplicationStdOutOrErrOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sStdOutOrErr, sMessage),
     );
   
   @property

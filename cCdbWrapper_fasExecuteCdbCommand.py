@@ -67,6 +67,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     except Exception, oException:
       oCdbWrapper.bCdbRunning = False;
       if gbDebugIO: print "\r>stdin:EOF>";
+      oCdbWrapper.oCdbProcess.wait(); # This should not take long!
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;

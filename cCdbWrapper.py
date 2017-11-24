@@ -2,7 +2,7 @@ import itertools, json, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
-from cCdbWrapper_fApplicationStdOurOrErrThread import cCdbWrapper_fApplicationStdOurOrErrThread;
+from cCdbWrapper_fApplicationStdOutOrErrThread import cCdbWrapper_fApplicationStdOutOrErrThread;
 from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
 from cCdbWrapper_fbAttachToProcessForId import cCdbWrapper_fbAttachToProcessForId;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
@@ -83,7 +83,7 @@ class cCdbWrapper(object):
     fStdErrOutputCallback,                    # called whenever a line of output is read from stderr
     fNewProcessCallback,                      # called whenever there is a new process.
     fLogMessageCallback,                      # called whenever there a log message is generated
-    fApplicationStdOurOrErrOutputCallback,    # called whenever the target application outputs to stdout or stderr.
+    fApplicationStdOutOrErrOutputCallback,    # called whenever the target application outputs to stdout or stderr.
   ):
     oCdbWrapper.aoInternalExceptions = [];
     oCdbWrapper.sCdbISA = sCdbISA or fsGetOSISA();
@@ -120,7 +120,7 @@ class cCdbWrapper(object):
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
     oCdbWrapper.fLogMessageCallback = fLogMessageCallback;
-    oCdbWrapper.fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback;
+    oCdbWrapper.fApplicationStdOutOrErrOutputCallback = fApplicationStdOutOrErrOutputCallback;
     
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
@@ -447,5 +447,5 @@ class cCdbWrapper(object):
   def fCdbInterruptOnTimeoutThread(oCdbWrapper):
     return cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper);
   
-  def fApplicationStdOurOrErrThread(oCdbWraper, uProcessId, oStdOutOrErrPipe, sStdOutOrErr):
-    return cCdbWrapper_fApplicationStdOurOrErrThread(oCdbWraper, uProcessId, oStdOutOrErrPipe, sStdOutOrErr);
+  def fApplicationStdOutOrErrThread(oCdbWraper, uProcessId, sBinaryName, sCommandLine, oStdOutOrErrPipe, sStdOutOrErr):
+    return cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWraper, uProcessId, sBinaryName, sCommandLine, oStdOutOrErrPipe, sStdOutOrErr);

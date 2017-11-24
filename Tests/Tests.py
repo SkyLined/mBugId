@@ -120,9 +120,9 @@ def fTest(
   def fLogMessageHandler(oBugId, sMessageClass, sMessage):
     if gbDebugIO: fOutput("log>%s: %s" % (sMessageClass, sMessage));
     asLog.append("log>%s: %s" % (sMessageClass, sMessage));
-  def fApplicationStdOurOrErrOutputCallback(oBugId, uProcessId, sStdOutOrErr, sMessage):
-    if gbDebugIO: fOutput("app:%d/0x%X:%s> %s" % (uProcessId, uProcessId, sStdOutOrErr, sMessage));
-    asLog.append("app:%d/0x%X:%s> %s" % (uProcessId, uProcessId, sStdOutOrErr, sMessage));
+  def fApplicationStdOutOrErrOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sStdOutOrErr, sMessage):
+    if gbDebugIO: fOutput("process %d/0x%X (%s): %s> %s" % (uProcessId, uProcessId, sBinaryName, sStdOutOrErr, sMessage));
+    asLog.append("process %d/0x%X (%s): %s> %s" % (uProcessId, uProcessId, sBinaryName, sStdOutOrErr, sMessage));
   
   
   def fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
@@ -191,7 +191,7 @@ def fTest(
       fStdOutOutputCallback = fStdOutOutputHandler,
       fStdErrOutputCallback = fStdErrOutputHandler,
       fLogMessageCallback =  fLogMessageHandler,
-      fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback,
+      fApplicationStdOutOrErrOutputCallback = fApplicationStdOutOrErrOutputCallback,
     );
     oBugId.fStart();
     oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
