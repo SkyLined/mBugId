@@ -17,6 +17,10 @@ Improvements
     applications while you interact with them. E.g. you can run
     `BugId.py %ComSpec%`, type commands and see cmd.exe output the results.
 + More/better bug translations
++ Better synchronisation of cdb termination. I am not sure if this used to
+  cause any problems, but recent changes caused deadlocks, which revealed that
+  cdb may not be terminated when the code assumes it is. This has been resolved
+  and cdb should now always be terminated before the stdin/stdout thread dies.
 
 New features
 ------------
