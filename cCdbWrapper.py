@@ -2,9 +2,12 @@ import itertools, json, os, re, subprocess, sys, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
+from cCdbWrapper_fApplicationStdOurOrErrThread import cCdbWrapper_fApplicationStdOurOrErrThread;
 from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
+from cCdbWrapper_fbAttachToProcessForId import cCdbWrapper_fbAttachToProcessForId;
 from cCdbWrapper_f_Breakpoint import cCdbWrapper_fuAddBreakpoint, cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
+from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
@@ -79,6 +82,8 @@ class cCdbWrapper(object):
     fStdOutOutputCallback,                    # called whenever a line of output is read from stdout
     fStdErrOutputCallback,                    # called whenever a line of output is read from stderr
     fNewProcessCallback,                      # called whenever there is a new process.
+    fLogMessageCallback,                      # called whenever there a log message is generated
+    fApplicationStdOurOrErrOutputCallback,    # called whenever the target application outputs to stdout or stderr.
   ):
     oCdbWrapper.aoInternalExceptions = [];
     oCdbWrapper.sCdbISA = sCdbISA or fsGetOSISA();
@@ -114,6 +119,8 @@ class cCdbWrapper(object):
     oCdbWrapper.fStdOutOutputCallback = fStdOutOutputCallback;
     oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
     oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
+    oCdbWrapper.fLogMessageCallback = fLogMessageCallback;
+    oCdbWrapper.fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback;
     
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
@@ -215,11 +222,11 @@ class cCdbWrapper(object):
     if sSymbolsPath:
       asCommandLine += ["-y", fQuote(sSymbolsPath)];
     # Create a thread that interacts with the debugger to debug the application
-    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdInOutThread);
+    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbStdInOutThread);
     # Create a thread that reads stderr output and shows it in the console
-    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbStdErrThread);
+    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbStdErrThread);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foVitalThread(cCdbWrapper_fCdbCleanupThread);
+    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbCleanupThread);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application.
     asCommandLine += [
@@ -249,16 +256,16 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbStdErrThread.start();
     oCdbWrapper.oCdbCleanupThread.start();
   
-  def foVitalThread(oCdbWrapper, fActivity):
-    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, True));
+  def foVitalThread(oCdbWrapper, fActivity, *asActivityArguments):
+    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, True, asActivityArguments));
   
-  def foHelperThread(oCdbWrapper, fActivity):
-    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, False));
+  def foHelperThread(oCdbWrapper, fActivity, *asActivityArguments):
+    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, False, asActivityArguments));
   
-  def __fThreadWrapper(oCdbWrapper, fActivity, bVital):
+  def __fThreadWrapper(oCdbWrapper, fActivity, bVital, asActivityArguments):
     try:
       try:
-        fActivity(oCdbWrapper);
+        fActivity(*asActivityArguments);
       except Exception, oException:
         oCdbWrapper.aoInternalExceptions.append(oException);
         cException, oException, oTraceBack = sys.exc_info();
@@ -416,10 +423,29 @@ class cCdbWrapper(object):
   def fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames):
     return cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames);
   
+  def fbAttachToProcessForId(oCdbWrapper, uProcessId):
+    return cCdbWrapper_fbAttachToProcessForId(oCdbWrapper, uProcessId);
+  
   def fInterruptApplication(oCdbWrapper):
     cCdbWrapper_fInterruptApplication(oCdbWrapper);
   
   def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
+    oCdbWrapper.fLogMessageCallback(sMessageClass, sMessage);
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
       oCdbWrapper.sLogHTML += "<span class=\"%s\">%s</span><br/>" % \
           (oCdbWrapper.fsHTMLEncode(sMessageClass), oCdbWrapper.fsHTMLEncode(sMessage));
+  
+  def fCdbStdInOutThread(oCdbWrapper):
+    return cCdbWrapper_fCdbStdInOutThread(oCdbWrapper);
+  
+  def fCdbStdErrThread(oCdbWrapper):
+    return cCdbWrapper_fCdbStdErrThread(oCdbWrapper);
+  
+  def fCdbCleanupThread(oCdbWrapper):
+    return cCdbWrapper_fCdbCleanupThread(oCdbWrapper);
+  
+  def fCdbInterruptOnTimeoutThread(oCdbWrapper):
+    return cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper);
+  
+  def fApplicationStdOurOrErrThread(oCdbWraper, uProcessId, oStdOutOrErrPipe, sStdOutOrErr):
+    return cCdbWrapper_fApplicationStdOurOrErrThread(oCdbWraper, uProcessId, oStdOutOrErrPipe, sStdOutOrErr);

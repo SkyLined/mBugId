@@ -8,7 +8,8 @@ from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
 from fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
 
 import mWindowsDefines;
-from mWindowsAPI import cJobObject, fbTerminateThreadForId, foCreateVirtualAllocationInProcessForId;
+from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, \
+    cConsoleProcess, fsGetProcessISAForId, fbTerminateProcessForId;
 
 def fnGetDebuggerTime(sDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.
@@ -78,13 +79,16 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sStatus = "attaching to application";
     else:
       sStatus = "starting application";
-    bThreadsNeedToBeResumed = False;
+    auProcessIdsThatNeedToBeResumed = [];
     bLastExceptionWasIgnored = False;
     # We start a utility process in which we can trigger breakpoints to distinguish them from breakpoints in the
     # target application.
     # The application needs to be started, but only once, so we set a flag to remind us to do so and unset it when it's done.
     bApplicationNeedsToBeStarted = oCdbWrapper.oUWPApplication or oCdbWrapper.sApplicationBinaryPath;
     bCdbHasAttachedToApplication = False;
+    # When a new process is created, stdout/stderr reading threads are created. These will not stop reading when the
+    # process terminates, so we need to close these handles when it does. In order to do that we track them here:
+    doConsoleProcess_by_uId = {};
     # An bug report will be created when needed; it is returned at the end
     oBugReport = None;
     while ( # run this loop while...
@@ -134,22 +138,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         elif len(oCdbWrapper.auProcessIdsPendingAttach) > 0:
           # There are more processes to attach to:
           uProcessId = oCdbWrapper.auProcessIdsPendingAttach[0];
-          asAttachToProcess = oCdbWrapper.fasExecuteCdbCommand(
-            sCommand = ".attach 0x%X;" % uProcessId,
-            sComment = "Attach to process %d" % uProcessId,
-          );
-          if asAttachToProcess == [
-            "Cannot debug pid %d, Win32 error 0x87" % uProcessId,
-            '    "The parameter is incorrect."',
-            "Unable to initialize target, Win32 error 0n87"
-          ]:
+          if not oCdbWrapper.fbAttachToProcessForId(uProcessId):
             oCdbWrapper.fFailedToDebugApplicationCallback(
               "Unable to attach to process %d/0x%X" % (uProcessId, uProcessId),
             );
             oCdbWrapper.fStop();
             return;
-          assert asAttachToProcess == ["Attach will occur on next execution"], \
-              "Unexpected .attach output: %s" % repr(asAttachToProcess);
         elif bApplicationNeedsToBeStarted:
           if oCdbWrapper.oUWPApplication:
             # Kill it so we are sure to run a fresh copy.
@@ -180,30 +174,53 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             assert asStartUWPApplicationOutput == ["Attach will occur on next execution"], \
                 "Unexpected .createpackageapp output: %s" % repr(asStartUWPApplicationOutput);
           else:
-            # Quote the path and any argument if it contains spaces:
-            asCommandLine = [
-              (s and (s[0] == '"' or s.find(" ") == -1)) and s or '"%s"' % s.replace('"', '\\"')
-              for s in [oCdbWrapper.sApplicationBinaryPath] + oCdbWrapper.asApplicationArguments
-            ];
-            sCommandLine = " ".join(asCommandLine);
-            asCreateProcessOutput = oCdbWrapper.fasExecuteCdbCommand(
-              sCommand = ".create %s ;" % sCommandLine,
-              sComment = "Start application command",
+            oConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
+              sBinaryPath = oCdbWrapper.sApplicationBinaryPath,
+              asArguments = oCdbWrapper.asApplicationArguments,
+              bSuspended = True,
             );
-            assert asCreateProcessOutput and asCreateProcessOutput[0].startswith("CommandLine: "), \
-                "Unexpected .create output first line: %s" % repr(asCreateProcessOutput);
-            if len(asCreateProcessOutput) == 3 and asCreateProcessOutput[1:] == [
-              "Cannot execute '%s', Win32 error 0n2" % oCdbWrapper.sApplicationBinaryPath,
-              '    "The system cannot find the file specified."',
-            ]:
+            if oConsoleProcess is None:
               oCdbWrapper.fFailedToDebugApplicationCallback(
-                "The executable \"%s\" was not found." % oCdbWrapper.sApplicationBinaryPath,
+                "Unable to start a new process for binary \"%s\"." % oCdbWrapper.sApplicationBinaryPath,
               );
               oCdbWrapper.fStop();
               return;
-            assert len(asCreateProcessOutput) == 2 \
-                and asCreateProcessOutput[1] == "Create will proceed with next execution", \
-                "Unexpected .create output: %s" % repr(asCreateProcessOutput);
+            doConsoleProcess_by_uId[oConsoleProcess.uId] = oConsoleProcess;
+            # a 32-bit debugger cannot debug 64-bit processes. Report this.
+            if oCdbWrapper.sCdbISA == "x86":
+              if fsGetProcessISAForId(oConsoleProcess.uId) == "x64":
+                assert fbTerminateProcessForId(oConsoleProcess.uId), \
+                    "failed to terminate recentl started process %d/0x%X" % \
+                    (oConsoleProcess.uId, oConsoleProcess.uId);
+                oCdbWrapper.fFailedToDebugApplicationCallback(
+                  "Unable to debug a 64-bit process using 32-bit cdb.",
+                );
+                oCdbWrapper.fStop();
+                return;
+            oCdbWrapper.fLogMessageInReport(
+              "LogProcess",
+              "Process %d was started using binary %s and arguments %s." % \
+                  (oConsoleProcess.uId, repr(oCdbWrapper.sApplicationBinaryPath), repr(oCdbWrapper.asApplicationArguments)),
+            );
+            # Create helper threads that read the applications stdout and stderr (if any). No references to these
+            # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
+            # application and save it in the report.
+            oCdbWrapper.foHelperThread(
+                oCdbWrapper.fApplicationStdOurOrErrThread,
+                oConsoleProcess.uId, oConsoleProcess.oStdOutPipe, "StdOut",
+            ).start();
+            oCdbWrapper.foHelperThread(
+                oCdbWrapper.fApplicationStdOurOrErrThread,
+                oConsoleProcess.uId, oConsoleProcess.oStdErrPipe, "StdErr",
+            ).start();
+            # Tell cdb to attach to the process.
+            if not oCdbWrapper.fbAttachToProcessForId(oConsoleProcess.uId):
+              oCdbWrapper.fFailedToDebugApplicationCallback(
+                "Unable to attach to new process %d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId),
+              );
+              oCdbWrapper.fStop();
+              return;
+            auProcessIdsThatNeedToBeResumed.append(oConsoleProcess.uId);
           bApplicationNeedsToBeStarted = False; # We completed this task.
         else:
           # We are not attaching to or starting the application, so the application should now be run. If this is the
@@ -212,16 +229,17 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             bCdbHasAttachedToApplication = True;
             if oCdbWrapper.fApplicationRunningCallback:
               oCdbWrapper.fApplicationRunningCallback();
-          # if threads need to be resumed, do so:
-          if bThreadsNeedToBeResumed:
-            for oProcess in oCdbWrapper.doProcess_by_uId.values():
-              oProcess.fasExecuteCdbCommand(
-                sCommand = "~*m;",
-                sComment = "Resume all threads",
-              );
+          # if threads in any process need to be resumed, do so:
+          while auProcessIdsThatNeedToBeResumed:
+            uProcessId = auProcessIdsThatNeedToBeResumed.pop();
+            oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+            oProcess.fasExecuteCdbCommand(
+              sCommand = "~*m;",
+              sComment = "Resume all threads",
+            );
             oCdbWrapper.fLogMessageInReport(
               "LogProcess",
-              "All threads in all processes have been resumed."
+              "All threads in process %d have been resumed." % uProcessId,
             );
         ### Check if page heap is enabled in all processes and discard cached info #####################################
         for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
@@ -234,7 +252,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         if oCdbWrapper.fApplicationResumedCallback:
           oCdbWrapper.fApplicationResumedCallback();
         ### Discard cached information about processes #################################################################
-        for oProcess in oCdbWrapper.doProcess_by_uId.values():
+        for (uProcessId, oProcess) in oCdbWrapper.doProcess_by_uId.items():
           # All processes will no longer be new.
           oProcess.bNew = False;
           # All processes that were terminated should be removed from the list of known processes:
@@ -250,7 +268,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # situation.
         if dxConfig["uReservedMemory"]:
           if oReservedMemoryVirtualAllocation is None:
-            oReservedMemoryVirtualAllocation = foCreateVirtualAllocationInProcessForId(
+            oReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateInProcessForId(
               uProcessId = oCdbWrapper.oCdbProcess.pid,
               uSize = dxConfig["uReservedMemory"],
             );
@@ -399,7 +417,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         oCdbWrapper.uUtilityInterruptThreadId = None;
         # Make sure all threads in all process of the application are resumed, as they were suspended by the
         # cCdbWrapper.fInterruptApplication call.
-        oCdbWrapper.bThreadsNeedToBeResumed = True;
+        auProcessIdsThatNeedToBeResumed.extend(oCdbWrapper.doProcess_by_uId.keys());
         continue;
       # If the application was not suspended on purpose to attach to another process, report it:
       if bCdbHasAttachedToApplication and oCdbWrapper.fApplicationSuspendedCallback:
@@ -530,6 +548,15 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             "LogProcess",
             "Terminated process %d/0x%X." % (uProcessId, uProcessId),
           );
+        # If we have console stdin/stdout/stderr pipes, close them:
+        oConsoleProcess = doConsoleProcess_by_uId.get(uProcessId);
+        if oConsoleProcess:
+          del doConsoleProcess_by_uId[uProcessId];
+          # Unfortunately, the console process still exists, but it is suspended. For unknown reasons, attempting to
+          # close the handles now will hang until the process is resumed. Since this will not happen unless we continue
+          # and let cdb resume, this causes a deadlock. To avoid this we will start another thread that will close the
+          # handles. It will hang until we've resumed cdb (or terminated, whatever comes first).
+          oCdbWrapper.foHelperThread(oConsoleProcess.fClose).start();
         # This event was explicitly to notify us of the terminated process; no more processing is needed.
         continue;
       assert bCdbHasAttachedToApplication, \
@@ -586,6 +613,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
   except cCdbStoppedException as oCdbStoppedException:
     pass;
   finally:
+    # Close all open pipes to console processes.
+    for oConsoleProcess in doConsoleProcess_by_uId.values():
+      # Make sure the console process is killed because I am not sure if it is. If it still exists and it is suspended,
+      # attempting to close the pipes will hang indefintely (this is AFAIK an undocumented bug in CloseHandle).
+      fbTerminateProcessForId(oConsoleProcess.uId);
+      oConsoleProcess.fClose();
     oCdbWrapper.bCdbStdInOutThreadRunning = False;
   assert not oCdbWrapper.bCdbRunning, \
       "Debugger did not terminate when requested";

@@ -1,6 +1,5 @@
 import re;
 from cCdbStoppedException import cCdbStoppedException;
-from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from dxConfig import dxConfig;
 from mFileSystem import mFileSystem;
@@ -81,7 +80,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
     oCdbWrapper.oTimeoutAndInterruptLock.acquire();
     try:
       oCdbWrapper.bApplicationIsRunnning = True;
-      oInterruptOnTimeoutThread = oCdbWrapper.foHelperThread(cCdbWrapper_fCdbInterruptOnTimeoutThread);
+      oInterruptOnTimeoutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbInterruptOnTimeoutThread);
       oInterruptOnTimeoutThread.start();
     finally:
       oCdbWrapper.oTimeoutAndInterruptLock.release();

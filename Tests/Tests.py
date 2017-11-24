@@ -14,6 +14,13 @@ gbDebugIO = False;          # Show cdb I/O during tests (you'll want to run only
 from cBugId import cBugId;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
+from mWindowsAPI import fsGetOSISA;
+
+dsComSpec_by_sISA = {};
+dsComSpec_by_sISA[fsGetOSISA()] = os.path.join(os.environ.get("WinDir"), "System32", "cmd.exe");
+if fsGetOSISA() == "x64":
+  dsComSpec_by_sISA["x86"] = os.path.join(os.environ.get("WinDir"), "SysWOW64", "cmd.exe");
+
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
 cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 10; # The test application is simple: CPU usage should be apparent after a few seconds.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
@@ -47,7 +54,7 @@ guLargeHeapBlockSize = 0x00800000; # Should be large to detect potential issues 
 
 guLastLineLength = 0;
 def fOutput(sMessage = "", bCRLF = True):
-  global guLastLineLength
+  global guLastLineLength;
   oOutputLock and oOutputLock.acquire();
   sPaddedMessage = sMessage.ljust(guLastLineLength);
   if bCRLF:
@@ -84,7 +91,7 @@ def fTest(
   sFailedToDebugApplicationErrorMessage = None;
   if sExpectedFailedToDebugApplicationErrorMessage:
     sExpectedBugLocation = None;
-    sTestDescription = "%s => %s" % ("Running <invalid>", repr(sExpectedFailedToDebugApplicationErrorMessage));
+    sTestDescription = "%s => %s" % ("Running %s" % sApplicationBinaryPath, repr(sExpectedFailedToDebugApplicationErrorMessage));
   else:
     sExpectedBugLocation = "%s!%s" % \
         (os.path.basename(sApplicationBinaryPath).lower(), sExpectedBugLocationFunctionName or "wmain");
@@ -93,23 +100,30 @@ def fTest(
 
   if bRunInShell:
     asApplicationArguments = ["/C", sApplicationBinaryPath] + asApplicationArguments; 
-    sApplicationBinaryPath = os.environ.get("ComSpec");
+    sApplicationBinaryPath = dsComSpec_by_sISA[sISA];
   
   if bDebugStartFinish:
     fOutput("* Started %s" % sTestDescription);
   else:
     fOutput("* %s" % sTestDescription, bCRLF = False);
   
-  asStdIO = [];
-  def fOutputStdIn(oBugId, sInput):
+  asLog = [];
+  def fStdInInputHandler(oBugId, sInput):
     if gbDebugIO: fOutput("stdin<%s" % sInput);
-    asStdIO.append("stdin<%s" % sInput);
-  def fOutputStdOut(oBugId, sOutput):
+    asLog.append("stdin<%s" % sInput);
+  def fStdOutOutputHandler(oBugId, sOutput):
     if gbDebugIO: fOutput("stdout>%s" % sOutput);
-    asStdIO.append("stdout>%s" % sOutput);
-  def fOutputStdErr(oBugId, sOutput):
+    asLog.append("stdout>%s" % sOutput);
+  def fStdErrOutputHandler(oBugId, sOutput):
     if gbDebugIO: fOutput("stderr>%s" % sOutput);
-    asStdIO.append("stderr>%s" % sOutput);
+    asLog.append("stderr>%s" % sOutput);
+  def fLogMessageHandler(oBugId, sMessageClass, sMessage):
+    if gbDebugIO: fOutput("log>%s: %s" % (sMessageClass, sMessage));
+    asLog.append("log>%s: %s" % (sMessageClass, sMessage));
+  def fApplicationStdOurOrErrOutputCallback(oBugId, uProcessId, sStdOutOrErr, sMessage):
+    if gbDebugIO: fOutput("app:%d/0x%X:%s> %s" % (uProcessId, uProcessId, sStdOutOrErr, sMessage));
+    asLog.append("app:%d/0x%X:%s> %s" % (uProcessId, uProcessId, sStdOutOrErr, sMessage));
+  
   
   def fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
     global gbTestFailed;
@@ -117,9 +131,9 @@ def fTest(
       return;
     gbTestFailed = True;
     if not gbDebugIO: 
-      for sLine in asStdIO:
+      for sLine in asLog:
         fOutput(sLine);
-    fOutput("- Failed test: %s" % " ".join(asCommandLine));
+    fOutput("- Failed test: %s" % sTestDescription);
     fOutput("  Expected:    %s" % repr(sExpectedFailedToDebugApplicationErrorMessage));
     fOutput("  Error:       %s" % repr(sErrorMessage));
     oBugId.fStop();
@@ -128,10 +142,10 @@ def fTest(
     global gbTestFailed;
     gbTestFailed = True;
     if not gbDebugIO: 
-      for sLine in asStdIO:
+      for sLine in asLog:
         fOutput(sLine);
     fOutput("@" * 80);
-    fOutput("- An internal exception has occured in test: %s" % " ".join(asCommandLine));
+    fOutput("- An internal exception has occured in test: %s" % sTestDescription);
     fOutput("  %s" % repr(oException));
     fOutput("  Stack:");
     txStack = traceback.extract_tb(oTraceBack);
@@ -155,10 +169,10 @@ def fTest(
     global gbTestFailed;
     gbTestFailed = True;
     if not gbDebugIO: 
-      for sLine in asStdIO:
+      for sLine in asLog:
         fOutput(sLine);
     fOutput("- Failed to apply memory limits to process %d/0x%X (%s: %s) for test: %s" % \
-        (uProcessId, uProcessId, sBinaryName, sCommandLine, " ".join(asCommandLine)));
+        (uProcessId, uProcessId, sBinaryName, sCommandLine, sTestDescription));
     oBugId.fStop();
   
   try:
@@ -173,9 +187,11 @@ def fTest(
       fFailedToDebugApplicationCallback = sExpectedFailedToDebugApplicationErrorMessage and fFailedToDebugApplicationHandler,
       fFailedToApplyMemoryLimitsCallback = fFailedToApplyMemoryLimitsHandler, 
       fPageHeapNotEnabledCallback = fPageHeapNotEnabledHandler,
-      fStdInInputCallback = fOutputStdIn,
-      fStdOutOutputCallback = fOutputStdOut,
-      fStdErrOutputCallback = fOutputStdErr,
+      fStdInInputCallback = fStdInInputHandler,
+      fStdOutOutputCallback = fStdOutOutputHandler,
+      fStdErrOutputCallback = fStdErrOutputHandler,
+      fLogMessageCallback =  fLogMessageHandler,
+      fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback,
     );
     oBugId.fStart();
     oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
@@ -189,7 +205,7 @@ def fTest(
       if not oBugReport:
         gbTestFailed = True;
         if not gbDebugIO: 
-          for sLine in asStdIO:
+          for sLine in asLog:
             fOutput(sLine);
         fOutput("- Failed test: %s" % sTestDescription);
         fOutput("  Test should have reported a bug in the application.");
@@ -216,7 +232,7 @@ def fTest(
       else:
         gbTestFailed = True;
         if not gbDebugIO: 
-          for sLine in asStdIO:
+          for sLine in asLog:
             fOutput(sLine);
         fOutput("- Failed test: %s" % sTestDescription);
         fOutput("  Test reported a different bug than expected in the application.");
@@ -226,7 +242,7 @@ def fTest(
     elif oBugReport:
       gbTestFailed = True;
       if not gbDebugIO: 
-        for sLine in asStdIO:
+        for sLine in asLog:
           fOutput(sLine);
       fOutput("- Failed test: %s" % sTestDescription);
       fOutput("  Test reported an unexpected bug in the application.");
@@ -280,10 +296,10 @@ if __name__ == "__main__":
     # This will try to debug a non-existing application and check that the error thrown matches the expected value.
     fTest("x86",     None,                                                      None, \
         sApplicationBinaryPath = "<invalid>", \
-        sExpectedFailedToDebugApplicationErrorMessage = "The executable \"<invalid>\" was not found.");
+        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary \"<invalid>\".");
     fTest("x86",     None,                                                      None, \
         sApplicationBinaryPath = "does not exist", \
-        sExpectedFailedToDebugApplicationErrorMessage = "The executable \"does not exist\" was not found.");
+        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary \"does not exist\".");
     for sISA in asTestISAs:
       fTest(sISA,    ["Nop"],                                                   None); # No exceptions, just a clean program exit.
       fTest(sISA,    ["Breakpoint"],                                            "Breakpoint ed2.531");

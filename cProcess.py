@@ -41,11 +41,16 @@ class cProcess(object):
     # until the cache is invalidated.
     oProcess.__bAllModulesEnumerated = False;
   
-  @property
-  def sBinaryName(oProcess):
+  def __foGetProcessInformation(oProcess):
     if oProcess.__oProcessInformation is None:
       oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-    return os.path.basename(oProcess.__oProcessInformation.sBinaryPath);
+      assert oProcess.__oProcessInformation.sBinaryPath is not None, \
+          "You cannot get process information for a 64-bit process from 32-bit Python";
+    return oProcess.__oProcessInformation;
+  
+  @property
+  def sBinaryName(oProcess):
+    return os.path.basename(oProcess.__foGetProcessInformation().sBinaryPath);
   
   @property
   def sSimplifiedBinaryName(oProcess):
@@ -56,21 +61,15 @@ class cProcess(object):
   
   @property
   def sBasePath(oProcess):
-    if oProcess.__oProcessInformation is None:
-      oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-    return os.path.dirname(oProcess.__oProcessInformation.sBinaryPath);
+    return os.path.dirname(oProcess.__foGetProcessInformation().sBinaryPath);
   
   @property
   def sCommandLine(oProcess):
-    if oProcess.__oProcessInformation is None:
-      oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-    return oProcess.__oProcessInformation.sCommandLine;
+    return oProcess.__foGetProcessInformation().sCommandLine;
   
   @property
   def sISA(oProcess):
-    if oProcess.__oProcessInformation is None:
-      oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-    return oProcess.__oProcessInformation.sISA;
+    return oProcess.__foGetProcessInformation().sISA;
   
   @property
   def uPointerSize(oProcess):
@@ -91,10 +90,8 @@ class cProcess(object):
   @property
   def oMainModule(oProcess):
     if oProcess.__oMainModule is None:
-      if oProcess.__oProcessInformation is None:
-        oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-      oProcess.__oMainModule = oProcess.foGetOrCreateModuleForStartAddress( \
-          oProcess.__oProcessInformation.uBinaryStartAddress);
+      uMainModuleStartAddress = oProcess.__foGetProcessInformation().uBinaryStartAddress;
+      oProcess.__oMainModule = oProcess.foGetOrCreateModuleForStartAddress(uMainModuleStartAddress);
     return oProcess.__oMainModule;
   
   def foGetOrCreateModuleForStartAddress(oProcess, uStartAddress):

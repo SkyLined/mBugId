@@ -88,6 +88,8 @@ class cBugId(object):
     fStdOutOutputCallback = None,
     fStdErrOutputCallback = None,
     fNewProcessCallback = None,
+    fLogMessageCallback = None,
+    fApplicationStdOurOrErrOutputCallback = None,
   ):
     oBugId.__fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
     oBugId.__fFinishedCallback = fFinishedCallback;
@@ -140,6 +142,10 @@ class cBugId(object):
           (lambda sOutput: fStdErrOutputCallback(oBugId, sOutput)),
       fNewProcessCallback = fNewProcessCallback and \
           (lambda oProcess: fNewProcessCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine)),
+      fLogMessageCallback = fLogMessageCallback and \
+          (lambda sMessageClass, sMessage: fLogMessageCallback(oBugId, sMessageClass, sMessage)),
+      fApplicationStdOurOrErrOutputCallback = fApplicationStdOurOrErrOutputCallback and \
+          (lambda uProcessId, sStdOutOrErr, sMessage: fApplicationStdOurOrErrOutputCallback(oBugId, uProcessId, sStdOutOrErr, sMessage)),
     );
   
   @property
