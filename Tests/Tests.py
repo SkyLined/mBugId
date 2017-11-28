@@ -218,17 +218,6 @@ def fTest(
         sExpectedBugLocation == oBugReport.sBugLocation
       ):
         fOutput("+ %s" % sTestDescription);
-        if gbGenerateReportHTML:
-          # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
-          sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
-          # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
-          sValidReportFileName = mFileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
-          mFileSystem.fWriteDataToFile(
-            oBugReport.sReportHTML,
-            sReportsFolderName,
-            sValidReportFileName,
-            fbRetryOnFailure = lambda: False,
-          );
       else:
         gbTestFailed = True;
         if not gbDebugIO: 
@@ -251,6 +240,18 @@ def fTest(
       fOutput("               %s" % (oBugReport.sBugDescription));
     else:
       fOutput("+ %s" % sTestDescription);
+    if gbGenerateReportHTML and oBugReport:
+      # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
+      sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
+      # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
+      sValidReportFileName = mFileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
+      mFileSystem.fWriteDataToFile(
+        oBugReport.sReportHTML,
+        sReportsFolderName,
+        sValidReportFileName,
+        fbRetryOnFailure = lambda: False,
+      );
+      fOutput("  Wrote report: %s" % sDesiredReportFileName);
     if gbDebugIO:
       fOutput();
       fOutput("=" * 80);
