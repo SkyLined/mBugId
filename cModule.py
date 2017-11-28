@@ -42,8 +42,8 @@ class cModule(object):
           "Symbols are still reported as deferred after attempting to load them";
       if oModule.__sSymbolStatus in ["export symbols", "no symbols"]:
         # Loading the symbols failed; force reload the module and overwriting any cached pdbs.
-        asLoadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
-          sCommand = ".reload /f /o /v %s;" % oModule.__sBinaryName,
+        asIgnoredReloadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
+          sCommand = "!sym noisy; .block {.reload /f /o /v %s;}; !sym quiet;" % oModule.__sBinaryName,
           sComment = "Reload symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
           bRetryOnTruncatedOutput = True,
         );
