@@ -1,3 +1,22 @@
+2017-11-29
+==========
+BugId changes
+-------------
++ Improved `wil` bug translations
+
+Internal changes
+----------------
++ Reworked threading system to track all threads so we can find any threads
+  do not terminate as expected.
++ Tests now always write HTML report when requested.
++ Module symbols are loaded "noisy" for debugging failures to load them.
++ `mWindowsAPI` is used for getting values for exception code defines.
++ `mWindowsDefines` has been modified into `cWindowsStatusOrError`; this offers
+  slight improved naming for clarity. It also no longer exports any exception
+  code defines, as `mWindowsAPI` is now used for these. All calls to
+  `mWindowsDefines.doWindowsDefines_by_uValue.get` have been replaced by calls
+  to `cWindowsStatusOrError.foGetForCode()`.
+
 2017-11-24
 ==========
 Improvements
