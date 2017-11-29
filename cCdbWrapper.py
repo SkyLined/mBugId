@@ -1,4 +1,4 @@
-import itertools, json, os, re, subprocess, sys, threading, time;
+import itertools, json, os, re, subprocess, sys, thread, threading, time;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
@@ -122,6 +122,8 @@ class cCdbWrapper(object):
     oCdbWrapper.fLogMessageCallback = fLogMessageCallback;
     oCdbWrapper.fApplicationStdOutOrErrOutputCallback = fApplicationStdOutOrErrOutputCallback;
     
+    # This is where we keep track of the threads that are executing (for debug purposes):
+    oCdbWrapper.adxThreads = [];
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
@@ -222,11 +224,11 @@ class cCdbWrapper(object):
     if sSymbolsPath:
       asCommandLine += ["-y", fQuote(sSymbolsPath)];
     # Create a thread that interacts with the debugger to debug the application
-    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbStdInOutThread);
+    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdInOutThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
-    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbStdErrThread);
+    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdErrThread, bVital = True);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foVitalThread(oCdbWrapper.fCdbCleanupThread);
+    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbCleanupThread, bVital = True);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application.
     asCommandLine += [
@@ -256,16 +258,28 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbStdErrThread.start();
     oCdbWrapper.oCdbCleanupThread.start();
   
-  def foVitalThread(oCdbWrapper, fActivity, *asActivityArguments):
-    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, True, asActivityArguments));
+  def foHelperThread(oCdbWrapper, fActivity, *axActivityArguments, **dxFlags):
+    for sFlag in dxFlags:
+      assert sFlag in ["bVital"], \
+          "Unknown flag %s" % sFlag;
+    bVital = dxFlags.get("bVital", False);
+    try:
+      return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (bVital, fActivity, axActivityArguments));
+    except thread.error as oException:
+      # We cannot create another thread. The most obvious reason for this error is that there are too many threads
+      # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
+      # running threads, so we might detect any threads that should have terminated but haven't.
+      print "Threads:";
+      for dxThread in oCdbWrapper.adxThreads:
+        print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
+      raise;
   
-  def foHelperThread(oCdbWrapper, fActivity, *asActivityArguments):
-    return threading.Thread(target = oCdbWrapper.__fThreadWrapper, args = (fActivity, False, asActivityArguments));
-  
-  def __fThreadWrapper(oCdbWrapper, fActivity, bVital, asActivityArguments):
+  def __fThreadWrapper(oCdbWrapper, bVital, fActivity, axActivityArguments):
+    dxThread = {"fActivity": fActivity, "oThread": threading.currentThread(), "axActivityArguments": axActivityArguments}; 
+    oCdbWrapper.adxThreads.append(dxThread);
     try:
       try:
-        fActivity(*asActivityArguments);
+        fActivity(*axActivityArguments);
       except Exception, oException:
         oCdbWrapper.aoInternalExceptions.append(oException);
         cException, oException, oTraceBack = sys.exc_info();
@@ -274,31 +288,21 @@ class cCdbWrapper(object):
         else:
           raise;
     finally:
-      oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-      if not oCdbProcess:
-        oCdbWrapper.bCdbRunning = False;
-        return;
-      if oCdbProcess.poll() is not None:
-        oCdbWrapper.bCdbRunning = False;
-        return;
-      if bVital:
-        # A vital thread terminated and cdb is still running: terminate cdb
-        try:
-          oCdbProcess.terminate();
-        except:
-          pass;
-        else:
+      try:
+        if bVital and oCdbWrapper.bCdbRunning:
+          oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
+          if not oCdbProcess:
+            oCdbWrapper.bCdbRunning = False;
+            return;
+          if oCdbProcess.poll() is not None:
+            oCdbWrapper.bCdbRunning = False;
+            return;
+          # A vital thread terminated and cdb is still running: terminate cdb
+          assert fbTerminateProcessForId(oCdbProcess.pid), \
+              "Could not terminate cdb";
           oCdbWrapper.bCdbRunning = False;
-          return;
-        if oCdbProcess.poll() is not None:
-          oCdbWrapper.bCdbRunning = False;
-          return;
-        # cdb is still running: try to terminate cdb the hard way.
-        fbTerminateProcessForId(oCdbProcess.pid);
-        # Make sure cdb finally died.
-        assert oCdbProcess.poll() is not None, \
-            "cdb did not die after killing it repeatedly";
-        oCdbWrapper.bCdbRunning = False;
+      finally:
+        oCdbWrapper.adxThreads.remove(dxThread);
   
   def fStop(oCdbWrapper):
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;

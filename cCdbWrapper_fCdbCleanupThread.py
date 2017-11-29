@@ -1,4 +1,4 @@
-import time;
+import time, threading;
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 from mWindowsAPI import *;
 
@@ -46,6 +46,20 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
       assert uNumberOfTries, \
           "Cannot terminate all processes";
       time.sleep(0.1);
+  # Wait for all other threads to terminate.
+  oCurrentThread = threading.currentThread();
+#  print "Waiting for threads...";
+  # When a thread is started, information about it is added to a list. When the thread terminates, it's information is
+  # removed from the list. This function runs in a separate thread as well. While there is more than one itme in the
+  # list, we wait for the termination of each _other_ thread who's information is in the list. Once there is only one
+  # thread left (the thread running this function), we are sure that BugId has come to a full stop.
+  while len(oCdbWrapper.adxThreads) > 1:
+    for dxThread in oCdbWrapper.adxThreads:
+      oThread = dxThread["oThread"];
+      if oThread != oCurrentThread:
+#        print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
+        oThread.join();
+  # Report this if it was not expected.
   if not bTerminationWasExpected:
     oCdbWrapper.oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, uExitCode);
   if oCdbWrapper.fFinishedCallback:
