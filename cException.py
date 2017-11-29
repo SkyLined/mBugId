@@ -1,7 +1,7 @@
 import re;
 from cStack import cStack;
 from cStowedException import cStowedException;
-import mWindowsDefines;
+from cWindowsStatusOrError import cWindowsStatusOrError;
 from mWindowsAPI.mDefines import *;
 
 class cException(object):
@@ -124,11 +124,11 @@ class cException(object):
         "Unexpected number of parameters (%d vs %d)" % (len(oException.auParameters), uParameterCount);
     # Now get a preliminary exception id that identifies the type of exception based on the exception code, as well as
     # preliminary security impact.
-    oWindowsDefine = mWindowsDefines.doWindowsDefines_by_uValue.get(uCode);
-    if oWindowsDefine:
-      oException.sTypeId = oWindowsDefine.sTypeId;
-      oException.sSecurityImpact = oWindowsDefine.sSecurityImpact;
-      oException.sDescription = oWindowsDefine.sDescription;
+    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uCode);
+    if oWindowsStatusOrError:
+      oException.sTypeId = oWindowsStatusOrError.sTypeId;
+      oException.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
+      oException.sDescription = oWindowsStatusOrError.sDescription;
     else:
       oException.sTypeId = "0x%08X" % uCode;
       oException.sSecurityImpact = "Unknown";

@@ -3,7 +3,7 @@ import re;
 from fduStructureData import fduStructureData;
 from fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
 from fuStructureSize import fuStructureSize;
-import mWindowsDefines;
+from cWindowsStatusOrError import cWindowsStatusOrError;
 
 def fsSignature(uSignature):
   return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in xrange(3,-1,-1)]);
@@ -25,11 +25,11 @@ class cStowedException(object):
     oStowedException.oNestedException = oNestedException;
     oStowedException.sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName;
     # Create an exception id that uniquely identifies the exception and a description of the exception.
-    oWindowsDefine = mWindowsDefines.doWindowsDefines_by_uValue.get(uCode);
-    if oWindowsDefine:
-      oStowedException.sTypeId = oWindowsDefine.sTypeId;
-      oStowedException.sSecurityImpact = oWindowsDefine.sSecurityImpact;
-      oStowedException.sDescription = oWindowsDefine.sDescription;
+    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uCode);
+    if oWindowsStatusOrError:
+      oStowedException.sTypeId = oWindowsStatusOrError.sTypeId;
+      oStowedException.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
+      oStowedException.sDescription = oWindowsStatusOrError.sDescription;
     else:
       oStowedException.sTypeId = "0x%08X" % uCode;
       oStowedException.sSecurityImpact = "Unknown";
