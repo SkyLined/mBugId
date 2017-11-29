@@ -19,19 +19,18 @@ from mFileSystem import mFileSystem;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from oVersionInformation import oVersionInformation;
 from sReportHTMLTemplate import sReportHTMLTemplate;
-import mWindowsDefines;
-  
+from mWindowsAPI.mDefines import *;
 
 dfoAnalyzeException_by_uExceptionCode = {
-  mWindowsDefines.CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
-  mWindowsDefines.STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
-  mWindowsDefines.STATUS_FAIL_FAST_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION,
-  mWindowsDefines.STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
-  mWindowsDefines.STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
-  mWindowsDefines.STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
-  mWindowsDefines.STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
-  mWindowsDefines.STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
-  mWindowsDefines.WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
+  CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
+  STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
+  STATUS_FAIL_FAST_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION,
+  STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
+  STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
+  STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
+  STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
+  STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
+  WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
 class cBugReport(object):
   def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
@@ -72,7 +71,7 @@ class cBugReport(object):
   @classmethod
   def foCreateForException(cBugReport, oProcess, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
-    if uExceptionCode == mWindowsDefines.STATUS_STACK_OVERFLOW:
+    if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
       uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
     oException = cException.foCreate(oProcess, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException);

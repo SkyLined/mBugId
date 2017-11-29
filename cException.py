@@ -2,6 +2,7 @@ import re;
 from cStack import cStack;
 from cStowedException import cStowedException;
 import mWindowsDefines;
+from mWindowsAPI.mDefines import *;
 
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
@@ -144,7 +145,7 @@ class cException(object):
         oException.oFunction, oException.iFunctionOffset
       ) = oProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
       sCdbSymbolOrAddress = oException.sAddressSymbol;
-      if oException.uCode == mWindowsDefines.STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
+      if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
         # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,
         # so do not try to check that exception information matches the first stack frame.
         return None;
@@ -156,7 +157,7 @@ class cException(object):
     # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
     # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
     # will be off-by-one.
-    if oException.uCode in [mWindowsDefines.STATUS_WX86_BREAKPOINT, mWindowsDefines.STATUS_BREAKPOINT]:
+    if oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
       oException.uInstructionPointer -= 1;
       if oException.uAddress is not None:
         oException.uAddress -= 1;

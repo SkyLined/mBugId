@@ -6,10 +6,9 @@ from dxConfig import dxConfig;
 from foDetectAndCreateBugReportForVERIFIER_STOP import foDetectAndCreateBugReportForVERIFIER_STOP;
 from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
 from fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
-
-import mWindowsDefines;
 from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, \
     cConsoleProcess, fsGetProcessISAForId, fbTerminateProcessForId;
+from mWindowsAPI.mDefines import *;
 
 def fnGetDebuggerTime(sDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.
@@ -393,7 +392,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       uBreakpointId = sBreakpointId and long(sBreakpointId);
       ### Handle exceptions in the utility process #####################################################################
       if oCdbWrapper.uUtilityProcessId is None:
-        assert uExceptionCode == mWindowsDefines.STATUS_BREAKPOINT, \
+        assert uExceptionCode == STATUS_BREAKPOINT, \
             "An unexpected exception 0x%08X happened in the utility process before the debugger appears to have attached to it!" % uExceptionCode;
         # The first exception is the breakpoint triggered after creating the processes.
         # Set up exception handling and record the utility process' id.
@@ -412,7 +411,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             "An exception 0x%08X happened unexpectedly in the utility process!" % uExceptionCode;
         assert uThreadId == oCdbWrapper.uUtilityInterruptThreadId, \
             "An exception 0x%08X happened in an unexpected thread 0x%08X in the utility process!" % (uExceptionCode, uThreadId);
-        assert uExceptionCode == mWindowsDefines.STATUS_ACCESS_VIOLATION, \
+        assert uExceptionCode == STATUS_ACCESS_VIOLATION, \
             "An unexpected exception 0x%08X happened in the utility process!" % uExceptionCode;
         # Terminate the thread in which we triggered an AV, so the utility process can continue running.
         assert fbTerminateThreadForId(oCdbWrapper.uUtilityInterruptThreadId), \
@@ -435,7 +434,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           sReason = "process terminated";
         oCdbWrapper.fApplicationSuspendedCallback(sReason);
       ### See if it was a debugger break-in for a new process that failed to load properly #############################
-      if uExceptionCode == mWindowsDefines.STATUS_WAKE_SYSTEM_DEBUGGER:
+      if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
         # This exception does not always get reported for the new process; see if there are any processes known to cdb
         # that we do not yet know about:
         asListProcesses = oCdbWrapper.fasExecuteCdbCommand(
@@ -507,14 +506,14 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           # same event; this exception should be ignored as we have already handled the new process.
           # This is potentially unreliable: if this exception is not thrown, but the process does trigger a
           # breakpoint for some other reason, it will be ignored. However, I have never seen that happen.
-          dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [mWindowsDefines.STATUS_BREAKPOINT];
+          dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [STATUS_BREAKPOINT];
         else:
-          assert uExceptionCode == mWindowsDefines.STATUS_BREAKPOINT, \
+          assert uExceptionCode == STATUS_BREAKPOINT, \
               "Expected this to be a debug breakpoint because the debugger attached to a new process";
         # And a STATUS_BREAKPOINT triggered to report a new process in turn can be followed by a STATUS_WX86_BREAKPOINT
         # on x64 systems running a x86 process.
         if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
-          dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(mWindowsDefines.STATUS_WX86_BREAKPOINT);
+          dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(STATUS_WX86_BREAKPOINT);
         continue;
       else:
         oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
@@ -581,7 +580,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         oReservedMemoryVirtualAllocation = None;
       ### Analyze potential bugs #######################################################################################
       ### Triggering a breakpoint may indicate a third-party component reported a bug in stdout/stderr; look for that.
-      if uExceptionCode in [mWindowsDefines.STATUS_BREAKPOINT, mWindowsDefines.STATUS_WX86_BREAKPOINT]:
+      if uExceptionCode in [STATUS_BREAKPOINT, STATUS_WX86_BREAKPOINT]:
         ### Handle VERIFIER STOP #########################################################################################
         oBugReport = foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asUnprocessedCdbOutput);
         asUnprocessedCdbOutput = [];
