@@ -18,7 +18,7 @@ import os, sys, threading;
 """;
 
 # Augment the search path: look in main folder, parent folder or "modules" child folder, in that order.
-sMainFolderPath = os.path.abspath(os.path.dirname(__file__));
+sMainFolderPath = os.path.dirname(os.path.abspath(__file__));
 sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
 sModuleFolderPath = os.path.join(sMainFolderPath, "modules");
 asAbsoluteLoweredSysPaths = [os.path.abspath(sPath).lower() for sPath in sys.path];
