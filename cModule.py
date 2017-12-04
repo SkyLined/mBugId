@@ -183,11 +183,11 @@ class cModule(object):
   def ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(s_lm_OutputLine):
     oInformationMatch = re.match(
       r"^\s*%s\s*$" % "\s+".join([
-        r"([0-9a-f`]+)",                              # (start_address)
-        r"([0-9a-f`]+)",                              # (end_address)
-        r"(\w+)(?:\s+C)?",                            # (cdb_module_id) [ space "C" ] # not sure what this "C" means
-        r"\((deferred|(?:export|no|(?:private )?pdb) symbols)\)", # "(" symbol status ")"
-        r".*?",                                       # symbol information.
+        r"([0-9a-f`]+)",             # (start_address)
+        r"([0-9a-f`]+)",             # (end_address)
+        r"(\w+)(?:\s+\w+)?",         # (cdb_module_id) [ space char ] # char can be "C" or "T" - no idea what it means
+        r"\((deferred|(?:export|no|(?:private )?pdb) symbols)\)", # "(" (symbol_status) " symbols)"
+        r".*?",                      # symbol information.
       ]),
       s_lm_OutputLine,
       re.I
