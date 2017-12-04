@@ -46,6 +46,17 @@ aoBugTranslations = [
     sTranslatedBugDescription = "Pure virtual function call (R6025).",
     sTranslatedSecurityImpact = "This is a potentially exploitable security issue",
   ),
+  # PureCall -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = "PureCall",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!_purecall",
+      ], [
+        "*!purecall",
+      ],
+    ],
+  ),
   # StackExhaustion (hide irrelevant frames)
   cBugTranslation(
     sOriginalBugTypeId = "StackExhaustion",
