@@ -92,8 +92,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       elif sChar in ("\n", ""):
         if gbDebugIO: print "\r<stdout<%s" % sLine;
         if sChar == "\n" or sLine:
-          if oCdbWrapper.fStdOutOutputCallback:
-            oCdbWrapper.fStdOutOutputCallback(sLine);
+          oCdbWrapper.fbFireEvent("Cdb stdout output", sLine);
           # Failure to debug application must be special cased, for example:
           # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
           # |WaitForEvent failed, NTSTATUS 0xC000000D
@@ -103,8 +102,9 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             sErrorMessage = "Failed to debug process: %s failed with %s" % (sEventName, sErrorCode);
             if sErrorCode in dsTips_by_sErrorCode:
               sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
-            oCdbWrapper.fFailedToDebugApplicationCallback(sErrorMessage);
-            oCdbWrapper.fStop();
+            assert oCdbWrapper.fbFireEvent("Failed to debug application", sErrorMessage), \
+                sErrorMessage;
+            oCdbWrapper.fTerminate();
           bConcatinateReturnedLineToNext = False;
           if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
             # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
@@ -202,8 +202,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
         if oPromptMatch:
           oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-          if oCdbWrapper.fStdOutOutputCallback:
-            oCdbWrapper.fStdOutOutputCallback(sLine);
+          oCdbWrapper.fbFireEvent("Cdb stdout output", sLine);
           if not bIgnoreOutput:
             assert not sStartOfCommandOutputMarker, \
                 "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);

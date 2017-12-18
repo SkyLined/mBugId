@@ -3,6 +3,7 @@ import re;
 class cThreadEnvironmentBlock(object):
   @staticmethod
   def foCreateForCurrentThread(oProcess):
+    #TODO: Use NtQueryInformationThread to gather this information.
     asCdbThreadOutput = oProcess.fasExecuteCdbCommand(
       sCommand = "!teb",
       sComment = "Get thread environment info",

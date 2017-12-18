@@ -241,15 +241,22 @@ def foDetectAndCreateBugReportForVERIFIER_STOP(oCdbWrapper, uExceptionCode, asCd
       );
     # Get a human readable description of the start offset of corruption relative to the heap block, where corruption
     # starting before or inside the heap block will be relative to the start, and corruption after it to the end.
-    (sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription) = \
-        oPageHeapManagerData.ftsGetIdAndDescriptionForAddress(uCorruptionStartAddress); 
-    sBugTypeId += sHeapBlockAndOffsetId;
-    sBugDescription = "Heap corruption detected at 0x%X; %s." % (uCorruptionStartAddress, sHeapBlockAndOffsetDescription);
-    if uCorruptionStartAddress == oPageHeapManagerData.uHeapBlockEndAddress:
-      sBugDescription += " This appears to be a classic buffer-overrun vulnerability.";
-      sSecurityImpact = "Potentially highly exploitable security issue.";
+    if uCorruptionStartAddress is None:
+      (sHeapBlockId, sHeapBlockDescription) = \
+          oPageHeapManagerData.ftsGetIdAndDescription(); 
+      sBugTypeId += sHeapBlockId;
+      sBugDescription = "Heap corruption reported but not detected in %s." % sHeapBlockDescription;
+      sSecurityImpact = "Unknown - Application Verifier reported this but it could not be confirmed.";
     else:
-      sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled.";
+      (sHeapBlockAndOffsetId, sHeapBlockAndOffsetDescription) = \
+          oPageHeapManagerData.ftsGetIdAndDescriptionForAddress(uCorruptionStartAddress); 
+      sBugTypeId += sHeapBlockAndOffsetId;
+      sBugDescription = "Heap corruption detected at 0x%X; %s." % (uCorruptionStartAddress, sHeapBlockAndOffsetDescription);
+      if uCorruptionStartAddress == oPageHeapManagerData.uHeapBlockEndAddress:
+        sBugDescription += " This appears to be a classic buffer-overrun vulnerability.";
+        sSecurityImpact = "Potentially highly exploitable security issue.";
+      else:
+        sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled.";
     if oPageHeapManagerData.bCorruptionDetected:
       sBugTypeId += oPageHeapManagerData.sCorruptionId;
   

@@ -53,3 +53,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       };
     else:
       oBugReport.sReportHTML = None;
+  
+  def fReport(oBugReport, oCdbWrapper):
+    assert oCdbWrapper.fbFireEvent("Bug report", oBugReport), \
+        "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";

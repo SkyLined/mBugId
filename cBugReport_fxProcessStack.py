@@ -2,8 +2,7 @@ import hashlib;
 from dxConfig import dxConfig;
 from SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
 
-def cBugReport_fxProcessStack(oBugReport):
-  oCdbWrapper = oBugReport.oProcess.oCdbWrapper;
+def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
   if oCdbWrapper.bGenerateReportHTML:
     asHTML = [];
@@ -12,7 +11,7 @@ def cBugReport_fxProcessStack(oBugReport):
   # If no frames have been marked as part of the id, mark as many as the default settings request:
   bCanBeHidden = True;
   bIdFramesMarked = False;
-  for oStackFrame in oBugReport.oStack.aoFrames:
+  for oStackFrame in oStack.aoFrames:
     if oStackFrame.sIsHiddenBecause is not None:
       assert bCanBeHidden, \
         "Cannot have a hidden frame after a non-hidden frame";
@@ -25,14 +24,14 @@ def cBugReport_fxProcessStack(oBugReport):
   if not bIdFramesMarked:
     # Mark up to `uStackHashFramesCount` frames as part of the id
     uFramesToBeMarkedCount = dxConfig["uStackHashFramesCount"];
-    for oStackFrame in oBugReport.oStack.aoFrames:
+    for oStackFrame in oStack.aoFrames:
       if uFramesToBeMarkedCount == 0:
         break;
       if oStackFrame.sIsHiddenBecause is None and oStackFrame.sId:
         oStackFrame.bIsPartOfId = True;
         uFramesToBeMarkedCount -= 1;
   
-  for oStackFrame in oBugReport.oStack.aoFrames:
+  for oStackFrame in oStack.aoFrames:
     if oCdbWrapper.bGenerateReportHTML:
       asFrameHTMLClasses = ["StackFrame"];
       asFrameNotesHTML = [];
@@ -87,13 +86,13 @@ def cBugReport_fxProcessStack(oBugReport):
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
     oBugReport.sBugLocation = oTopIdStackFrame.sSimplifiedAddress;
-    if oBugReport.oProcess and oTopIdStackFrame.oModule != oBugReport.oProcess.oMainModule:
+    if oProcess and oTopIdStackFrame.oModule != oProcess.oMainModule:
       # Exception did not happen in the process' binary: add process' binary name to the location:
-      oBugReport.sBugLocation = "%s!%s" % (oBugReport.oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
+      oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
     if oTopIdStackFrame.sSourceFilePath:
       oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
   if oCdbWrapper.bGenerateReportHTML:
-    if oBugReport.oStack.bPartialStack:
+    if oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
     sHTML = "".join([
       asHTML      and "<ol>%s</ol>" % "".join(["<li>%s</li>" % s for s in asHTML]) or "",

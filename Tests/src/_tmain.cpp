@@ -414,6 +414,14 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Writing at offset %Id/0x%IX to a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
       *(pMemory + iOffset) = BYTE_TO_WRITE;
+    } else if (_tcsicmp(asArguments[2], _T("Call")) == 0) {
+      _ftprintf(stderr, _T("Calling offset %Id/0x%IX in a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
+          iOffset, iOffset, uSize, uSize, pMemory);
+      fCall(pMemory + iOffset);
+    } else if (_tcsicmp(asArguments[2], _T("Jump")) == 0) {
+      _ftprintf(stderr, _T("Jumping to offset %Id/0x%IX in a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
+          iOffset, iOffset, uSize, uSize, pMemory);
+      fJump(pMemory + iOffset);
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
       return 1;

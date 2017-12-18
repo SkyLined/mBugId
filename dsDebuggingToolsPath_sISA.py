@@ -1,13 +1,12 @@
 import os;
-from mWindowsAPI import fsGetOSISA;
-sOSISA = fsGetOSISA();
+from mWindowsAPI import oSystemInfo;
 
 dasPotentialDebuggingToolsPaths_sISA = {"x86": [], "x64": []};
 
 # Add "cdb", "cdb_x86" and "cdb_x64" environment variables if provided:
 sDebuggingToolsEnvironmentVariable = os.getenv("DebuggingTools");
 if sDebuggingToolsEnvironmentVariable:
-  dasPotentialDebuggingToolsPaths_sISA[sOSISA].append(sDebuggingToolsEnvironmentVariable.strip('"'));
+  dasPotentialDebuggingToolsPaths_sISA[oSystemInfo.sOSISA].append(sDebuggingToolsEnvironmentVariable.strip('"'));
 sDebuggingToolsEnvironmentVariable_x86 = os.getenv("DebuggingTools_x86");
 if sDebuggingToolsEnvironmentVariable_x86:
   dasPotentialDebuggingToolsPaths_sISA["x86"].append(sDebuggingToolsEnvironmentVariable_x86.strip('"'));
@@ -22,7 +21,7 @@ dasPotentialDebuggingToolsPaths_sISA["x86"].extend([
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "10", "Debuggers", "x86"),
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "8.1", "Debuggers", "x86"),
 ]);
-if sOSISA == "x64":
+if oSystemInfo.sOSISA == "x64":
   dasPotentialDebuggingToolsPaths_sISA["x64"].extend([
     os.path.join(sProgramFilesPath_x64, "Windows Kits", "10", "Debuggers", "x64"),
     os.path.join(sProgramFilesPath_x64, "Windows Kits", "8.1", "Debuggers", "x64"),

@@ -107,7 +107,7 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
         r"([0-9`a-f]+)",                          # (sBlockStartAddress)
         r"([0-9`a-f]+)",                          # (sBlockSize)
         r"\-",                                    # "-"
-        r"\(" r"(busy|free DelayedFree)" r"\)",   # "(" (sState)  ")"
+        r"\(" r"(busy|free|DelayedFree)" r"\)",   # "(" (sState)  ")"
       ]),
       asCdbHeapOutput[3],
     );
@@ -121,11 +121,11 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
       sState,
     ) = oBlockInformationMatch.groups();
     uHeapEntryStartAddress = long(sHeapEntryStartAddress.replace("`", ""), 16);
-    uHeapEntrySize = long(sHeapEntrySize.replace("`", ""), 16) * oProcess.uPointerSize;
+    uHeapEntrySize = long(sHeapEntrySizeInPointers.replace("`", ""), 16) * oProcess.uPointerSize;
     uHeapBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
     uHeapBlockSize = long(sBlockSize.replace("`", ""), 16);
     bAllocated = sState == "busy";
-    oVirtualAllocation = cVirtualAllocation.foGetForProcessIdAndAddress(oProcess.uId, uHeapBlockStartAddress);
+    oVirtualAllocation = cVirtualAllocation(oProcess.uId, uHeapBlockStartAddress);
     assert oVirtualAllocation, \
       "Cannot find virtual allocation for heap block at 0x%X" % uHeapBlockStartAddress;
     from cWindowsHeapManagerData import cWindowsHeapManagerData;

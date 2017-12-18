@@ -166,7 +166,7 @@ def foReadStructureFromVirtualAllocationAndAddress(cStructure, oVirtualAllocatio
 
 def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformationStartAddress):
   # DPH_HEAP_BLOCK structures are stored sequentially in a virtual allocation.
-  oAllocationInformationVirtualAllocation = cVirtualAllocation.foGetForProcessIdAndAddress(oProcess.uId, uAllocationInformationStartAddress);
+  oAllocationInformationVirtualAllocation = cVirtualAllocation(oProcess.uId, uAllocationInformationStartAddress);
   assert oAllocationInformationVirtualAllocation, \
       "Cannot find virtual allocation for page heap allocation information at 0x%X" % uAllocationInformationStartAddress;
   if gbDebugOutput: oAllocationInformationVirtualAllocation.fDump("oAllocationInformationVirtualAllocation");
@@ -182,7 +182,7 @@ def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformat
   return oAllocationInformation;
 
 def foGetVirtualAllocationForProcessAndAddress(oProcess, uAddressInVirtualAllocation):
-  oVirtualAllocation = cVirtualAllocation.foGetForProcessIdAndAddress(oProcess.uId, uAddressInVirtualAllocation);
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInVirtualAllocation);
   assert oVirtualAllocation, \
       "Cannot find virtual allocation for page heap block allocation at 0x%X" % uAddressInVirtualAllocation;
   if gbDebugOutput: oVirtualAllocation.fDump("oVirtualAllocation");

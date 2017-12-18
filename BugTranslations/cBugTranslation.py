@@ -29,8 +29,8 @@ class cBugTranslation(object):
             "aasOriginalTopStackFrameSymbols should be a list with lists, got list with %s:%s" % \
             (type(asOriginalTopStackFrameSymbols).__name__, repr(asOriginalTopStackFrameSymbols));
         for sOriginalTopStackFrameSymbol in asOriginalTopStackFrameSymbols:
-          assert type(sOriginalTopStackFrameSymbol) == str, \
-              "aasOriginalTopStackFrameSymbols should be a list with lists with strs, got list with lists with %s:%s" % \
+          assert type(sOriginalTopStackFrameSymbol) in [str, cRegExp], \
+              "aasOriginalTopStackFrameSymbols should be a list with lists with strs or regular expressions, got list with lists with %s:%s" % \
               (type(sOriginalTopStackFrameSymbol).__name__, repr(sOriginalTopStackFrameSymbol));
       aasOriginalTopStackFrameSymbols.sort(key=len, reverse=True);
       oBugTranslation.aasOriginalTopStackFrameSymbols = aasOriginalTopStackFrameSymbols;
@@ -81,7 +81,8 @@ class cBugTranslation(object):
     # If this translation is specific to certain top stack frames, check if it should be applied:
     if oBugTranslation.aasOriginalTopStackFrameSymbols is not NOT_PROVIDED:
       for asOriginalTopStackFrameSymbols in oBugTranslation.aasOriginalTopStackFrameSymbols:
-        if oBugReport.oStack.fbTopFramesMatchSymbols(asOriginalTopStackFrameSymbols, sHideWithReason = "this frame was used to translate this bug"):
+        if oBugReport.oStack.fbTopFramesMatchSymbols(asOriginalTopStackFrameSymbols, \
+            sHideWithReason = "this frame was used to translate this bug"):
           # Yes, and the top stack frames are hidden, so we've already translated it:
 #          print "@@@ top frames";
           bTranslated = True;
@@ -94,7 +95,8 @@ class cBugTranslation(object):
       for asAdditionalIrrelevantStackFrameSymbols in oBugTranslation.aasAdditionalIrrelevantStackFrameSymbols:
         # Note that these should be ordered from longest to shortest array ^^^
         # This is done in the cBugTranslation constructor.
-        if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, sHideWithReason = "this frame is irrelevant to this bug"):
+        if oBugReport.oStack.fbTopFramesMatchSymbols(asAdditionalIrrelevantStackFrameSymbols, \
+            sHideWithReason = "this frame is irrelevant to this bug"):
 #          print "@@@ hidden frames";
           bAdditionalIrrelevantFramesWereHidden = True;
           bTranslated = True;

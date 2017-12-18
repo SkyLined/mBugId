@@ -4,7 +4,7 @@ from dxConfig import dxConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
 from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from fSetBugReportPropertiesForAccessViolationUsingHeapManagerData import fSetBugReportPropertiesForAccessViolationUsingHeapManagerData;
-from mWindowsAPI import cVirtualAllocation;
+from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 ddtsDetails_uSpecialAddress_sISA = {
@@ -13,47 +13,31 @@ ddtsDetails_uSpecialAddress_sISA = {
   # that are sufficiently far away from eachother to be recognisable after adding offsets.
   "x86": {              # Id                      Description                                           Security impact
             # https://en.wikipedia.org/wiki/Magic_number_(programming)#Magic_debug_values
-            0x00000000: ("NULL",                  "a NULL ptr",                                         None),
-            
-            0xA0A0A0A0: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary", "Potentially exploitable security issue"),       
+            0xA0A0A0A0: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary", "Potentially exploitable security issue"),
             # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
             0xABCDAAAA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
-            0xABCDBBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a full heap block header", "Potentially exploitable security issue"),       
-            
+            0xABCDBBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a full heap block header", "Potentially exploitable security issue"),
             0xBBADBEEF: ("Assertion",             "an address that indicates an assertion has failed",  None),
-            
             0xBAADF00D: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
-            
             0xCCCCCCCC: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
-            
             0xC0C0C0C0: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
-            
             0xCDCDCDCD: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
-            
             0xD0D0D0D0: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
             # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
             0xDCBAAAAA: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a heap block header", "Potentially exploitable security issue"),
             0xDCBABBBB: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary in a full heap block header", "Potentially exploitable security issue"),
-            
             0xDDDDDDDD: ("PoisonFree",            "a pointer read from poisoned freed memory",          "Potentially exploitable security issue"),
-            
             0xE0E0E0E0: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),             
             # https://hg.mozilla.org/releases/mozilla-beta/rev/8008235a2429
             0xE4E4E4E4: ("PoisonUninitialized",   "a pointer that was not initialized",                 "Potentially exploitable security issue"),
             0xE5E5E5E5: ("PoisonFree",            "a pointer read from poisoned freed memory",          "Potentially exploitable security issue"),
-            
             0xF0090100: ("Poison",                "a pointer read from poisoned memory",                "Potentially exploitable security issue"),
-            
             0xF0DE7FFF: ("Poison",                "a pointer read from poisoned memory",                "Potentially exploitable security issue"),
-            
             0xF0F0F0F0: ("PoisonFree",            "a pointer read from poisoned freed memory",          "Potentially exploitable security issue"),
-            
             0xFDFDFDFD: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary", "Potentially exploitable security issue"),
-            
             0xFEEEFEEE: ("PoisonFree",            "a pointer read from poisoned freed memory",          "Potentially exploitable security issue"),
   },
   "x64": {              # Id                      Description                                           Security impact
-    0x0000000000000000: ("NULL",                  "a NULL ptr",                                         None),
     # Note that on x64, addresses with the most significant bit set cannot be allocated in user-land. Since BugId is expected to analyze only user-land
     # applications, accessing such an address is not expected to be an exploitable security issue.
     0xBAADF00DBAADF00D: ("PoisonUninitialized",   "a pointer that was not initialized",                 None),
@@ -73,6 +57,7 @@ ddtsDetails_uSpecialAddress_sISA = {
 };
 
 def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oException):
+  oCdbWrapper = oProcess.oCdbWrapper;
   # Parameter[0] = access type (0 = read, 1 = write, 8 = execute)
   # Parameter[1] = address
   assert len(oException.auParameters) == 2, \
@@ -184,10 +169,58 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAccessViolationAddress:
       oBugReport.oStack.aoFrames[0].sIsHiddenBecause = "called address";
   
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
+  
+  # Try various ways of handling this AV:
+  for fbAccessViolationHandled in [
+    fbAccessViolationIsNULLPointer,
+    fbAccessViolationIsCollateralPoisonPointer,
+    fbAccessViolationIsHeapManagerPointer,
+    fbAccessViolationIsStackPointer,
+    fbAccessViolationIsSpecialPointer,
+    fbAccessViolationIsAllocatedPointer,
+    fbAccessViolationIsReservedPointer,
+    fbAccessViolationIsFreePointer,
+    fbAccessViolationIsInvalidPointer,
+  ]:
+    if fbAccessViolationHandled(
+      oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+    ):
+      # Once it's handled, stop trying other handlers
+      break;
+  else:
+    # Unable to handle (should not be possible!)
+    raise AssertionError("Could not handle AV%s@0x%08X" % (sViolationTypeId, uAccessViolationAddress));
+  
+  oBugReport.sBugDescription += sViolationTypeNotes;
+  
+  return oBugReport;
+
+def fbAccessViolationIsNULLPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  if uAccessViolationAddress == 0:
+    sOffset = "";
+  elif uAccessViolationAddress < oSystemInfo.uAllocationAddressGranularity:
+    sOffset = "+%s" % fsGetNumberDescription(uAccessViolationAddress, "+");
+  else:
+    uAccessViolationNegativeOffset = {"x86": 1 << 32, "x64": 1 << 64}[oProcess.sISA] - uAccessViolationAddress;
+    if uAccessViolationNegativeOffset >= oSystemInfo.uAllocationAddressGranularity:
+      return False;
+    sOffset = "-%s" % fsGetNumberDescription(uAccessViolationNegativeOffset, "-");
+  oBugReport.sBugTypeId = "AV%s@NULL%s" % (sViolationTypeId, sOffset);
+  oBugReport.sBugDescription = "Access violation while %s memory at 0x%X using a NULL pointer." % \
+      (sViolationTypeDescription, uAccessViolationAddress);
+  oBugReport.sSecurityImpact = None;
+  # You normally cannot allocate memory at address 0, so it is impossible for an exploit to avoid this exception.
+  # Therefore there is no collateral bug handling.
+  return True;
+
+def fbAccessViolationIsSpecialPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
   dtsDetails_uSpecialAddress = ddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
-    sBugDescription = "Access violation while %s memory at 0x%X using %s." % \
-        (sViolationTypeDescription, uAccessViolationAddress, sAddressDescription);
     iOffset = uAccessViolationAddress - uSpecialAddress;
     if iOffset != 0:
       uOverflow = {"x86": 1 << 32, "x64": 1 << 64}[oProcess.sISA];
@@ -200,80 +233,241 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       sSign = iOffset < 0 and "-" or "+";
       sOffset = iOffset != 0 and "%s%s" % (sSign, fsGetNumberDescription(uOffset, sSign)) or "";
       oBugReport.sBugTypeId = "AV%s@%s%s" % (sViolationTypeId, sSpecialAddressId, sOffset);
-      oBugReport.sBugDescription = sBugDescription;
+      oBugReport.sBugDescription = "Access violation while %s memory at 0x%X using %s." % \
+        (sViolationTypeDescription, uAccessViolationAddress, sAddressDescription);
       oBugReport.sSecurityImpact = sSecurityImpact;
-      break;
+      oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+        fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+      );
+      return True;
+  return False;
+
+def fbAccessViolationIsCollateralPoisonPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  iOffset = oCdbWrapper.oCollateralBugHandler.fiGetOffsetForPoisonedAddress(oProcess, uAccessViolationAddress);
+  if iOffset is None:
+    # This is not near the poisoned address used by collateral
+    return False;
+  sSign = iOffset < 0 and "-" or "+";
+  sOffset = "%s%s" % (sSign, fsGetNumberDescription(abs(iOffset), sSign));
+  oBugReport.sBugTypeId = "AV%s@Poison%s" % (sViolationTypeId, sOffset);
+  oBugReport.sBugDescription = "Access violation while %s memory at 0x%X using a poisoned value provided by cBugId." % \
+    (sViolationTypeDescription, uAccessViolationAddress);
+  oBugReport.sSecurityImpact = "Highly likely to be an exploitable security issue if your exploit can poison this value.";
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+  );
+  return True;
+
+def fbAccessViolationIsHeapManagerPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  # This is not a special marker or NULL, so it must be some corrupt pointer
+  # Get information about the memory region:
+  oHeapManagerData = oProcess.foGetHeapManagerDataForAddress(uAccessViolationAddress);
+  if not oHeapManagerData:
+    return False;
+  oBugReport.atxMemoryRemarks.extend(oHeapManagerData.fatxMemoryRemarks());
+  fSetBugReportPropertiesForAccessViolationUsingHeapManagerData(
+    oBugReport, \
+    uAccessViolationAddress, sViolationTypeId, sViolationTypeDescription, \
+    oHeapManagerData, \
+    oProcess.oCdbWrapper.bGenerateReportHTML,
+  );
+  if (
+    sViolationTypeDescription == "R" and \
+    oHeapManagerData.oVirtualAllocation and \
+    oHeapManagerData.oVirtualAllocation.bAllocated and \
+    uAccessViolationAddress >= oHeapManagerData.uHeapBlockStartAddress and \
+    uAccessViolationAddress < oHeapManagerData.uHeapBlockEndAddress
+  ):
+    uPointerSizedValue = oHeapManagerData.oVirtualAllocation.fuReadValueForOffsetAndSize(
+      uAccessViolationAddress - oHeapManagerData.uHeapBlockStartAddress,
+      oProcess.uPointerSize,
+    );
   else:
-    # This is not a special marker or NULL, so it must be some corrupt pointer
-    # Get information about the memory region:
-    oHeapManagerData = oProcess.foGetHeapManagerDataForAddress(uAccessViolationAddress);
-    if oHeapManagerData:
-      oBugReport.atxMemoryRemarks.extend(oHeapManagerData.fatxMemoryRemarks());
-      fSetBugReportPropertiesForAccessViolationUsingHeapManagerData(
-        oBugReport, \
-        uAccessViolationAddress, sViolationTypeId, sViolationTypeDescription, \
-        oHeapManagerData, \
-        oProcess.oCdbWrapper.bGenerateReportHTML,
+    uPointerSizedValue = None;
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId, uPointerSizedValue = uPointerSizedValue)
+  );
+  return True;
+
+def fbAccessViolationIsInvalidPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  # See if the address is valid:
+  if not oVirtualAllocation.bInvalid:
+    return False;
+  oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;
+  oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
+  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
+  # You normally cannot allocate memory at an invalid address, so it is impossible for an exploit to avoid this
+  # exception. Therefore there is no collateral bug handling.
+  return True;
+
+def fbAccessViolationIsStackPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  # See if the address is near the stack for the current thread:
+  oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oProcess);
+  uOffsetFromTopOfStack = uAccessViolationAddress - oThreadEnvironmentBlock.uStackTopAddress;
+  uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAccessViolationAddress;
+  if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= oProcess.uPageSize:
+    oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromTopOfStack));
+    oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes passed the top of the stack at 0x%X." % \
+        (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromTopOfStack, uOffsetFromTopOfStack, oThreadEnvironmentBlock.uStackTopAddress);
+  elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= oProcess.uPageSize:
+    oBugReport.sBugTypeId = "AV%s[Stack]-%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromBottomOfStack));
+    oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
+        (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
+  else:
+    return False;
+  oBugReport.sSecurityImpact = "Potentially exploitable security issue.";
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+  );
+  return True;
+
+def fbAccessViolationIsReservedPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  if not oVirtualAllocation.bReserved:
+    return False;
+  # No memory is allocated in this area, but is is reserved
+  oBugReport.sBugTypeId = "AV%s@Reserved" % sViolationTypeId;
+  oBugReport.sBugDescription = "Access violation at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
+      (uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation.uStartAddress, \
+      oVirtualAllocation.uStartAddress + oVirtualAllocation.uSize);
+  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
+      "memory be allocated at the address rather than reserved.";
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+  );
+  return True;
+
+def fbAccessViolationIsFreePointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  if not oVirtualAllocation.bFree:
+    return False;
+  # No memory is allocated in this area
+  oBugReport.sBugTypeId = "AV%s@Unallocated" % sViolationTypeId;
+  oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
+  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+  );
+  return True;
+
+def fbAccessViolationIsAllocatedPointer(
+  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+):
+  if not oVirtualAllocation.bAllocated:
+    return False;
+  # Memory is allocated in this area, but apparantly not accessible in the way the code tried to.
+  if oCdbWrapper.bGenerateReportHTML:
+    oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
+    oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
+  sMemoryProtectionsDescription = {
+    0x01: "allocated but inaccessible", 0x02: "read-only",            0x04: "read- and writable",  0x08: "read- and writable",
+    0x10: "executable",                 0x20: "read- and executable",
+  }[oVirtualAllocation.uProtection];
+  oBugReport.sBugTypeId = "AV%s@Arbitrary" % sViolationTypeId;
+  oBugReport.sBugDescription = "Access violation while %s %s memory at 0x%X." % \
+      (sViolationTypeDescription, sMemoryProtectionsDescription, uAccessViolationAddress);
+  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or accessible memory be allocated the the address.";
+  # Add a memory dump
+  if oCdbWrapper.bGenerateReportHTML:
+    # Clamp size, potentially update start if size needs to shrink but end is not changed.
+    uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+      uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uStartAddress, oVirtualAllocation.uSize
+    );
+    oBugReport.fAddMemoryDump(
+      uMemoryDumpStartAddress,
+      uMemoryDumpStartAddress + uMemoryDumpSize,
+      "Memory near access violation at 0x%X" % uAccessViolationAddress,
+    );
+  # You normally cannot modify the access rights of memory, so it is impossible for an exploit to avoid this exception.
+  # Therefore there is no collateral bug handling. Note that if you can control the address you may be able to point
+  # it somewhere that is accessible, e.g. this was some data that got interpreted as a pointer that happened to point
+  # to memory that was not accessible, but the data is under attackers control. However, I have decide to assume the
+  # exception cannot be avoided.
+  return True;
+
+duSize_by_sRegisterName = {
+  "rax": 64,  "eax": 32,   "ax": 16, "ah": 8,  "al": 8,
+  "rbx": 64,  "ebx": 32,   "bx": 16, "bh": 8,  "bl": 8,
+  "rcx": 64,  "ecx": 32,   "cx": 16, "ch": 8,  "cl": 8,
+  "rdx": 64,  "edx": 32,   "dx": 16, "dh": 8,  "dl": 8,
+  "rsi": 64,  "esi": 32,   "si": 16,          "sil": 8,
+  "rdi": 64,  "edi": 32,   "di": 16,          "dil": 8,
+  "rbp": 64,  "ebp": 32,   "bp": 16,          "bpl": 8,
+  "rsp": 64,  "esp": 32,   "sp": 16,          "spl": 8,
+   "r8": 64,  "r8d": 32,  "r8w": 16,          "r8b": 8,
+   "r9": 64,  "r9d": 32,  "r9w": 16,          "r9b": 8,
+  "r10": 64, "r10d": 32, "r10w": 16,         "r10b": 8,
+  "r11": 64, "r11d": 32, "r11w": 16,         "r11b": 8,
+  "r12": 64, "r12d": 32, "r12w": 16,         "r12b": 8,
+  "r13": 64, "r13d": 32, "r13w": 16,         "r13b": 8,
+  "r14": 64, "r14d": 32, "r14w": 16,         "r14b": 8,
+  "r15": 64, "r15d": 32, "r15w": 16,         "r15b": 8,
+};
+
+def fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, uProcessId, sViolationTypeId, uPointerSizedValue = None):
+  # I could just pass the oProcess, as there is no code execution between when the exception handler was set and called,
+  # but if that changes in the future, this.
+  oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+  # See if we can fake execution of the current instruction, so we can continue the application as if it had been
+  # executed without actually executing it.
+  asUnassembleOutput = oProcess.fasExecuteCdbCommand(
+    sCommand = "u @$ip L2", 
+    sComment = "Get information about the instruction that caused the AV",
+  );
+  oCurrentInstructionMatch = len(asUnassembleOutput) == 3 and \
+      re.match(r"^[0-9`a-f]+\s+[0-9`a-f]+\s+(\w+)(?:\s+(.*))?$", asUnassembleOutput[1], re.I);
+  oNextInstructionMatch = len(asUnassembleOutput) == 3 and \
+      re.match(r"^([0-9`a-f]+)\s+[0-9`a-f]+\s+\w+(?:\s+.*)?$", asUnassembleOutput[2], re.I);
+  assert oCurrentInstructionMatch, \
+      "Unrecognised unassemble output second line:\r\n%s" % "\r\n".join(asUnassembleOutput);
+  assert oNextInstructionMatch, \
+      "Unrecognised unassemble output third line:\r\n%s" % "\r\n".join(asUnassembleOutput);
+  (sCurrentInstructionName, sCurrentInstructionArguments) = oCurrentInstructionMatch.groups();
+  (sNextInstructionAddress,) = oNextInstructionMatch.groups();
+  uNextInstructionAddress = long(sNextInstructionAddress.replace("`", ""), 16);
+  if sCurrentInstructionName in ["mov", "movzx", "movsd"]:
+    asCurrentInstructionArguments = sCurrentInstructionArguments.split(",");
+    assert len(asCurrentInstructionArguments) == 2, \
+        "Instruction on line 2 appears to have %d arguments instead of 2:\r\n%s" % \
+        (len(asCurrentInstructionArguments), "\r\n".join(asUnassembleOutput));
+    sInstructionPointerRegister = {"x86": "eip", "x64": "rip"}[oProcess.sISA];
+    if sViolationTypeId == "R":
+      # We fake read AVs that read memory into a register by setting that register to a poisoned value and advancing
+      # the instruction pointer to the next instruction.
+      sDestinationRegister = asCurrentInstructionArguments[0];
+      uDestinationSize = duSize_by_sRegisterName[sDestinationRegister];
+      assert uDestinationSize is not None, \
+          "Unrecognised `mov` instruction first/destination argument (expected register, got %s):\r\n%s" % \
+          (sDestinationRegister, "\r\n".join(asUnassembleOutput));
+      oSourceArgumentMatch = re.match("^(byte|word|dword|qword) ptr \[.*\]$", asCurrentInstructionArguments[1]);
+      assert oSourceArgumentMatch, \
+          "Unrecognized `mov` instruction second/source argument (expected `... ptr [...]`, got %s):\r\n%s" % \
+          (asCurrentInstructionArguments[1], "\r\n".join(asUnassembleOutput));
+      uSourceSize = {"byte": 8, "word": 16, "dword": 32, "qword": 64}[oSourceArgumentMatch.group(1)];
+      uPoisonValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, uSourceSize, uPointerSizedValue);
+#      print "Faked read %d bits (0x%X) into %d bits %s" % (uSourceSize, uPoisonValue, uDestinationSize, sDestinationRegister);
+      asSpoofInstructionOutput = oProcess.fasExecuteCdbCommand(
+        sCommand = "r @%s=0x%X; r @%s=0x%X;" % \
+            (sDestinationRegister, uPoisonValue, sInstructionPointerRegister, uNextInstructionAddress),
+        sComment = "Fake and skip instruction that caused the read AV",
       );
     else:
-      oVirtualAllocation = cVirtualAllocation.foGetForProcessIdAndAddress(oProcess.uId, uAccessViolationAddress);
-      # See if the address is valid:
-      if not oVirtualAllocation:
-        oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;
-        oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
-        oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
-      else:
-        # See if the address is near the stack for the current thread:
-        oThreadEnvironmentBlock = cThreadEnvironmentBlock.foCreateForCurrentThread(oProcess);
-        uOffsetFromTopOfStack = uAccessViolationAddress - oThreadEnvironmentBlock.uStackTopAddress;
-        uOffsetFromBottomOfStack = oThreadEnvironmentBlock.uStackBottomAddress - uAccessViolationAddress;
-        if uOffsetFromTopOfStack >= 0 and uOffsetFromTopOfStack <= oProcess.uPageSize:
-          oBugReport.sBugTypeId = "AV%s[Stack]+%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromTopOfStack));
-          oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes passed the top of the stack at 0x%X." % \
-              (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromTopOfStack, uOffsetFromTopOfStack, oThreadEnvironmentBlock.uStackTopAddress);
-          oBugReport.sSecurityImpact = "Potentially exploitable security issue.";
-        elif uOffsetFromBottomOfStack >= 0 and uOffsetFromBottomOfStack <= oProcess.uPageSize:
-          oBugReport.sBugTypeId = "AV%s[Stack]-%s" % (sViolationTypeId, fsGetNumberDescription(uOffsetFromBottomOfStack));
-          oBugReport.sBugDescription = "Access violation while %s memory at 0x%X; %d/0x%X bytes before the bottom of the stack at 0x%X." % \
-              (sViolationTypeDescription, uAccessViolationAddress, uOffsetFromBottomOfStack, uOffsetFromBottomOfStack, oThreadEnvironmentBlock.uStackTopAddress);
-          oBugReport.sSecurityImpact = "Potentially exploitable security issue.";
-        elif oVirtualAllocation.bReserved:
-          # No memory is allocated in this area, but is is reserved
-          oBugReport.sBugTypeId = "AV%s@Reserved" % sViolationTypeId;
-          oBugReport.sBugDescription = "Access violation at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
-              (uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation.uStartAddress, \
-              oVirtualAllocation.uStartAddress + oVirtualAllocation.uSize);
-          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
-              "memory be allocated at the address rather than reserved.";
-        elif oVirtualAllocation.bFree:
-          # No memory is allocated in this area
-          oBugReport.sBugTypeId = "AV%s@Unallocated" % sViolationTypeId;
-          oBugReport.sBugDescription = "Access violation while %s unallocated memory at 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
-          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
-        else:
-          # Memory is allocated in this area, but apparantly not accessible in the way the code tried to.
-          if oProcess.oCdbWrapper.bGenerateReportHTML:
-            oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
-            oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
-          sMemoryProtectionsDescription = {
-            0x01: "allocated but inaccessible", 0x02: "read-only",            0x04: "read- and writable",  0x08: "read- and writable",
-            0x10: "executable",                 0x20: "read- and executable",
-          }[oVirtualAllocation.uProtection];
-          oBugReport.sBugTypeId = "AV%s@Arbitrary" % sViolationTypeId;
-          oBugReport.sBugDescription = "Access violation while %s %s memory at 0x%X." % \
-              (sViolationTypeDescription, sMemoryProtectionsDescription, uAccessViolationAddress);
-          oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or accessible memory be allocated the the address.";
-          # Add a memory dump
-          if oProcess.oCdbWrapper.bGenerateReportHTML:
-            # Clamp size, potentially update start if size needs to shrink but end is not changed.
-            uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-              uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uStartAddress, oVirtualAllocation.uSize
-            );
-            oBugReport.fAddMemoryDump(
-              uMemoryDumpStartAddress,
-              uMemoryDumpStartAddress + uMemoryDumpSize,
-              "Memory near access violation at 0x%X" % uAccessViolationAddress,
-            );
-  
-  oBugReport.sBugDescription += sViolationTypeNotes;
-  return oBugReport;
+      # We fake write AVs that write a register to memory by advancing the instruction pointer to the next
+      # instruction.
+      asSpoofInstructionOutput = oProcess.fasExecuteCdbCommand(
+        sCommand = "r @%s=0x%X;" % (sInstructionPointerRegister, uNextInstructionAddress),
+        sComment = "Skip instruction that caused the write AV",
+      );
+    return True;
+  else:
+    return False;

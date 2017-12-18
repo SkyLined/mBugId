@@ -1,3 +1,44 @@
+2017-12-18
+==========
+New or changed features
+-----------------------
++ Callback functions are no longer provided as arguments to the constructor,
+  but can be registered by calling the `fAddEventCallback` of a `cBugId`
+  instance. This means you can add more than one function for a specific event.
+  A list of possible events you can add callbacks for can be found in 
+  `cCdbWrapper.py`, specifically `cCdbWrapper.dafEventCallbacks_by_sEventName`
+  is a dict that is used to map event names to a list of event callback
+  functions.
++ New processes are started using Windows API calls directly, rather than by
+  using cdb commands. This allows cBugId to distinguish between cdb and
+  application stdout/sterr output reliably. It reduces the chances of
+  misinterpreting cdb output.
++ cBugId constructor has a new argument `uMaximumNumberOfBugs`. Providing a
+  value larger than 1 turns on "collateral" bug handling: certain access
+  violation bugs are reported, but rather than terminating the application,
+  cBugId will attempt to "fake" that the instruction that caused this exception
+  succeeded, providing a tainted value as the read result if applicable. This
+  may be useful in proving that a particular vulnerability is theoretically
+  exploitable or not, as the effect of control over the data that would have
+  been read or written becomes more clear.
++ Access violation handling has been completely overhauled to make it more
+  structured and allow "collateral" bug handling.
++ `uMaxMemoryDumpSize` was increased from 0x400 to 0x1000
+
+BugId changes
+-------------
++ Improved bug translations for various things.
+
+Internal changes
+----------------
++ Internal objects are hidden in cBugReport instances.
++ Updates of mWindowsAPI let to some changes in the code.
++ Use of events has cleaned up the code used to make the callbacks everywhere.
++ Cleanup code was improved.
++ List module cdb output processing was improved.
++ Tests have been improved.
++ Tests results are no longer stored in github.
+
 2017-11-29
 ==========
 BugId changes

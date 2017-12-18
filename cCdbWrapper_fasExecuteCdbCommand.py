@@ -60,8 +60,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
   while uTries:
-    if oCdbWrapper.fStdInInputCallback:
-      oCdbWrapper.fStdInInputCallback(sCommand);
+    oCdbWrapper.fbFireEvent("Cdb stdin input", sCommand);
     try:
       oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
     except Exception, oException:

@@ -16,14 +16,7 @@ aoBugTranslations = [
     asOriginalTopStackFrameSymbols = [
       "*!wil::details::ReportFailure",
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!wil::details::ReportFailure_Win32",
-      ], [
-        "*!wil::details::in1diag3::_FailFast_Win32",
-      ],
-    ],
-    sTranslatedBugTypeId = "Assert:Breakpoint",
+    sTranslatedBugTypeId = "Assert",
     sTranslatedBugDescription = "The application triggered a debugger breakpoint to indicate an assertion failed.",
     sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
   ),
@@ -33,40 +26,34 @@ aoBugTranslations = [
     asOriginalTopStackFrameSymbols = [
       "*!wil::details::ReportFailure",
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
+    sTranslatedBugTypeId = "Assert",
+    sTranslatedBugDescription = "The application triggered a fail fast application exit to indicate an assertion failed.",
+    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this fail fast application exit.",
+  ),
+  # Assert -> Assert:Win32
+  cBugTranslation(
+    sOriginalBugTypeId = "Assert",
+    aasOriginalTopStackFrameSymbols = [
       [
         "*!wil::details::ReportFailure_Win32",
+      ], [
+        "*!wil::details::in1diag3::FailFast_Win32",
       ], [
         "*!wil::details::in1diag3::_FailFast_Win32",
       ],
     ],
-    sTranslatedBugTypeId = "Assert:AppExit",
-    sTranslatedBugDescription = "The application triggered a fail fast application exit to indicate an assertion failed.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this fail fast application exit.",
-  ),
-  # Assert:Breakpoint -> OOM
-  cBugTranslation(
-    sOriginalBugTypeId = "Assert:Breakpoint",
-    asOriginalTopStackFrameSymbols = [
-      "*!wil::details::in1diag3::_FailFast_NullAlloc",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!wil::details::in1diag3::FailFast_Win32",
+      ], [
+        "*!wil::details::in1diag3::_FailFast_Win32",
+      ],
     ],
-    sTranslatedBugTypeId = "OOM",
-    sTranslatedBugDescription = "The application triggered a debugger breakpoint to indicate it was unable to allocate enough memory.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint.",
+    sTranslatedBugTypeId = "Assert:Win32",
   ),
-  # Assert:AppExit -> OOM
+  # Assert -> Assert:HRESULT
   cBugTranslation(
-    sOriginalBugTypeId = "Assert:AppExit",
-    asOriginalTopStackFrameSymbols = [
-      "*!wil::details::in1diag3::_FailFast_NullAlloc",
-    ],
-    sTranslatedBugTypeId = "OOM",
-    sTranslatedBugDescription = "The application triggered a fail fast application exit to indicate it was unable to allocate enough memory.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this fail fast application exit.",
-  ),
-  # Assert:AppExit -> Assert:HRESULT
-  cBugTranslation(
-    sOriginalBugTypeId = "Assert:AppExit",
+    sOriginalBugTypeId = "Assert",
     aasOriginalTopStackFrameSymbols = [
       [
         "*!wil::details::ReportFailure_Hr",
@@ -76,44 +63,62 @@ aoBugTranslations = [
         "*!wil::details::in1diag3::_FailFast_Hr",
       ],
     ],
-    sTranslatedBugTypeId = "Assert:HRESULT",
-    sTranslatedBugDescription = "The application triggered a fail fast application exit to indicate an assertion failed.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this fail fast application exit.",
-  ),
-  # Assert:Breakpoint -> Assert:HRESULT
-  cBugTranslation(
-    sOriginalBugTypeId = "Assert:Breakpoint",
-    aasOriginalTopStackFrameSymbols = [
+    aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*!wil::details::ReportFailure_Hr",
-      ], [
         "*!wil::details::in1diag3::FailFast_Hr",
       ], [
         "*!wil::details::in1diag3::_FailFast_Hr",
       ],
     ],
     sTranslatedBugTypeId = "Assert:HRESULT",
-    sTranslatedBugDescription = "The application triggered a breakpoint exception to indicate an assertion failed.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint exception.",
   ),
-  # Assert:AppExit -> Assert:Unexpected
+  # Assert -> Assert:Unexpected
   cBugTranslation(
-    sOriginalBugTypeId = "Assert:AppExit",
-    asOriginalTopStackFrameSymbols = [
-      "*!wil::details::in1diag3::FailFast_Unexpected",
+    sOriginalBugTypeId = "Assert",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "*!wil::details::ReportFailure_Unexpected",
+      ], [
+        "*!wil::details::in1diag3::FailFast_Unexpected",
+      ], [
+        "*!wil::details::in1diag3::_FailFast_Unexpected",
+      ],
+    ],
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!wil::details::in1diag3::FailFast_Unexpected",
+      ], [
+        "*!wil::details::in1diag3::_FailFast_Unexpected",
+      ],
     ],
     sTranslatedBugTypeId = "Assert:Unexpected",
-    sTranslatedBugDescription = "The application triggered a fail fast application exit to indicate an assertion failed.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this fail fast application exit.",
   ),
-  # Assert:Breakpoint -> Assert:Unexpected
+  # Assert -> OOM
   cBugTranslation(
-    sOriginalBugTypeId = "Assert:Breakpoint",
+    sOriginalBugTypeId = "Assert",
     asOriginalTopStackFrameSymbols = [
-      "*!wil::details::in1diag3::FailFast_Unexpected",
+      "*!wil::details::in1diag3::_FailFast_NullAlloc",
     ],
-    sTranslatedBugTypeId = "Assert:Unexpected",
-    sTranslatedBugDescription = "The application triggered a breakpoint exception to indicate an assertion failed.",
-    sTranslatedSecurityImpact = "Unlikely to be exploitable, unless you can find a way to avoid this breakpoint exception.",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!wil::details::in1diag3::FailFast_IfNullAlloc",
+      ],
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application was unable to allocate enough memory.",
+  ),
+  # Assert:HRESULT -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "Assert:HRESULT",
+    asOriginalTopStackFrameSymbols = [
+      "*!wil::details::in1diag3::_FailFast_NullAlloc",
+    ],
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!wil::details::in1diag3::FailFast_IfNullAlloc",
+      ],
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application was unable to allocate enough memory.",
   ),
 ];

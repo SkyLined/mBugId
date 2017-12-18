@@ -1,4 +1,5 @@
 import itertools, json, os, re, subprocess, sys, thread, threading, time;
+from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
@@ -12,10 +13,11 @@ from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
+from cCollateralBugHandler import cCollateralBugHandler;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
-from mWindowsAPI import fbTerminateProcessForId, fsGetOSISA;
+from mWindowsAPI import fbTerminateProcessForId, oSystemInfo;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -58,35 +60,10 @@ class cCdbWrapper(object):
     bGenerateReportHTML,        
     uProcessMaxMemoryUse,
     uTotalMaxMemoryUse,
-    fFailedToDebugApplicationCallback,        # called when the application cannot be started by the debugger, or the
-                                              # debugger cannot attach to the given process ids. Arguments:
-                                              # (oBugId, sErrorMessage).
-    fFailedToApplyMemoryLimitsCallback,       # called when a processes cannot be added to the job object that is used
-                                              # to limit the application's memory usage. Debugging can continue, but
-                                              # memory limits will not be enforced.
-    fApplicationRunningCallback,              # called when the application is started in the debugger, or the
-                                              # processes the debugger attached to have been resumed.
-    fApplicationSuspendedCallback,            # called when the application is suspended to handle an exception,
-                                              # timeout or breakpoint.
-    fApplicationResumedCallback,              # called after the application was suspended, right before the
-                                              # application is resumed again.
-    fMainProcessTerminatedCallback,           # called when (any of) the application's "main" processes terminate.
-                                              # When BugId starts an application, the first process created is the main
-                                              # process. When BugId to attaches to one or more processes, these are the
-                                              # main processes. This callback is not called when any child processes
-                                              # spawned by these main processes terminate.
-    fInternalExceptionCallback,               # called when there is a bug in BugId itself.
-    fFinishedCallback,                        # called when BugId is finished.
-    fPageHeapNotEnabledCallback,              # called when page heap is not enabled for a particular binary.
-    fStdInInputCallback,                      # called whenever a line of input is sent to stdin
-    fStdOutOutputCallback,                    # called whenever a line of output is read from stdout
-    fStdErrOutputCallback,                    # called whenever a line of output is read from stderr
-    fNewProcessCallback,                      # called whenever there is a new process.
-    fLogMessageCallback,                      # called whenever there a log message is generated
-    fApplicationStdOutOrErrOutputCallback,    # called whenever the target application outputs to stdout or stderr.
+    uMaximumNumberOfBugs,
   ):
     oCdbWrapper.aoInternalExceptions = [];
-    oCdbWrapper.sCdbISA = sCdbISA or fsGetOSISA();
+    oCdbWrapper.sCdbISA = sCdbISA or oSystemInfo.sOSISA;
     assert sApplicationBinaryPath or auApplicationProcessIds or sUWPApplicationPackageName, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
@@ -106,28 +83,39 @@ class cCdbWrapper(object):
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
     oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
-    oCdbWrapper.fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
-    oCdbWrapper.fFailedToApplyMemoryLimitsCallback = fFailedToApplyMemoryLimitsCallback;
-    oCdbWrapper.fApplicationRunningCallback = fApplicationRunningCallback;
-    oCdbWrapper.fApplicationSuspendedCallback = fApplicationSuspendedCallback;
-    oCdbWrapper.fApplicationResumedCallback = fApplicationResumedCallback;
-    oCdbWrapper.fMainProcessTerminatedCallback = fMainProcessTerminatedCallback;
-    oCdbWrapper.fInternalExceptionCallback = fInternalExceptionCallback;
-    oCdbWrapper.fFinishedCallback = fFinishedCallback;
-    oCdbWrapper.fPageHeapNotEnabledCallback = fPageHeapNotEnabledCallback;
-    oCdbWrapper.fStdInInputCallback = fStdInInputCallback;
-    oCdbWrapper.fStdOutOutputCallback = fStdOutOutputCallback;
-    oCdbWrapper.fStdErrOutputCallback = fStdErrOutputCallback;
-    oCdbWrapper.fNewProcessCallback = fNewProcessCallback;
-    oCdbWrapper.fLogMessageCallback = fLogMessageCallback;
-    oCdbWrapper.fApplicationStdOutOrErrOutputCallback = fApplicationStdOutOrErrOutputCallback;
-    
+    oCdbWrapper.oEventCallbacksLock = threading.Lock();
+    oCdbWrapper.dafEventCallbacks_by_sEventName = {
+      # These are the names of all the events that cCdbWrapper can throw. If it's not in the list, you cannot use it in
+      # `fAddEventCallback`, `fRemoveEventCallback`, or `fbFireEvent`.
+      "Application resumed": [],
+      "Application running": [],
+      "Application stderr output": [],
+      "Application stdout output": [],
+      "Application suspended": [],
+      "Attached to process": [],
+      "Bug report": [],
+      "Cdb stderr output": [],
+      "Cdb stdin input": [],
+      "Cdb stdout output": [],
+      "Failed to apply application memory limits": [],
+      "Failed to apply process memory limits": [],
+      "Failed to debug application": [],
+      "Finished": [],
+      "Internal exception": [],
+      "Log message": [],
+      "Page heap not enabled": [],
+      "Process terminated": [],
+      "Started process": [],
+    };
+
+  
     # This is where we keep track of the threads that are executing (for debug purposes):
     oCdbWrapper.adxThreads = [];
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
     oCdbWrapper.doProcess_by_uId = {};
+    oCdbWrapper.doConsoleProcess_by_uId = {};
     oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
     # Keep track of what the applications "main" processes are.
     oCdbWrapper.aoMainProcesses = [];
@@ -138,7 +126,6 @@ class cCdbWrapper(object):
       oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.
       if dxConfig["bLogInReport"]:
         oCdbWrapper.sLogHTML = ""; # Logs various events that may be relevant
-    oCdbWrapper.oBugReport = None; # Set to a bug report if a bug was detected in the application
     oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
     # cdb variables are in short supply, so a mechanism must be used to allocate and release them.
@@ -162,7 +149,6 @@ class cCdbWrapper(object):
                                                   # interrupt the application.
     # Lock for the above four timeout and interrupt variables
     oCdbWrapper.oTimeoutAndInterruptLock = threading.RLock();
-    oCdbWrapper.bCdbStdInOutThreadRunning = True; # Will be set to false if the thread terminates for any reason.
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
     # and resume the application as well as what time it thinks it was when an exception happened. The difference is
@@ -180,6 +166,9 @@ class cCdbWrapper(object):
     # ASan is done outputting everthing it knows and causes an exception to terminate the application, we can analyze
     # its output and use it to create a bug id & report.
     oCdbWrapper.asStdErrOutput = [];
+    
+    oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
+    oCdbWrapper.bFatalBugDetected = False;
   
   def fAttachToProcessById(oCdbWrapper, uProcessId):
     if oCdbWrapper.oCdbProcess is None:
@@ -280,12 +269,15 @@ class cCdbWrapper(object):
     try:
       try:
         fActivity(*axActivityArguments);
+      except cCdbStoppedException as oCdbStoppedException:
+        # There is only one type of exception that is expected which is raised in the cdb stdin/out thread when cdb has
+        # terminated. This exception is only used to terminate that thread and should be caught and handled here, to
+        # prevent it from being reported as an (unexpected) internal exception.
+        pass;
       except Exception, oException:
         oCdbWrapper.aoInternalExceptions.append(oException);
         cException, oException, oTraceBack = sys.exc_info();
-        if oCdbWrapper.fInternalExceptionCallback:
-          oCdbWrapper.fInternalExceptionCallback(oException, oTraceBack);
-        else:
+        if not oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
           raise;
     finally:
       try:
@@ -304,7 +296,19 @@ class cCdbWrapper(object):
       finally:
         oCdbWrapper.adxThreads.remove(dxThread);
   
+  def fTerminate(oCdbWrapper):
+    # Call `fTerminate` when you need to stop cBugId asap, e.g. when an internal error is detected. This function does
+    # not wait for it to stop.
+    oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
+    oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
+    if oCdbProcess:
+      try:
+        oCdbProcess.terminate();
+      except:
+        pass;
+  
   def fStop(oCdbWrapper):
+    # Call `fStop` to cleanly terminate cdb, and therefore cBugId, and wait for it to finish.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
     oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
     if oCdbProcess:
@@ -434,7 +438,7 @@ class cCdbWrapper(object):
     cCdbWrapper_fInterruptApplication(oCdbWrapper);
   
   def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
-    oCdbWrapper.fLogMessageCallback(sMessageClass, sMessage);
+    oCdbWrapper.fbFireEvent("Log message", sMessageClass, sMessage);
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
       oCdbWrapper.sLogHTML += "<span class=\"%s\">%s</span><br/>" % \
           (oCdbWrapper.fsHTMLEncode(sMessageClass), oCdbWrapper.fsHTMLEncode(sMessage));
@@ -453,3 +457,33 @@ class cCdbWrapper(object):
   
   def fApplicationStdOutOrErrThread(oCdbWraper, uProcessId, sBinaryName, sCommandLine, oStdOutOrErrPipe, sStdOutOrErr):
     return cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWraper, uProcessId, sBinaryName, sCommandLine, oStdOutOrErrPipe, sStdOutOrErr);
+  
+  def fAddEventCallback(oCdbWrapper, sEventName, fCallback):
+    assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
+        "Unknown event name %s" % repr(sEventName);
+    oCdbWrapper.oEventCallbacksLock.acquire();
+    try:
+      oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].append(fCallback);
+    finally:
+      oCdbWrapper.oEventCallbacksLock.release();
+  
+  def fRemoveEventCallback(oCdbWrapper, sEventName, fCallback):
+    assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
+        "Unknown event name %s" % repr(sEventName);
+    oCdbWrapper.oEventCallbacksLock.acquire();
+    try:
+      oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].remove(fCallback);
+    finally:
+      oCdbWrapper.oEventCallbacksLock.release();
+  
+  def fbFireEvent(oCdbWrapper, sEventName, *axCallbackArguments):
+    assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
+        "Unknown event name %s" % repr(sEventName);
+    oCdbWrapper.oEventCallbacksLock.acquire();
+    try:
+      afCallbacks = oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName][:];
+    finally:
+      oCdbWrapper.oEventCallbacksLock.release();
+    for fCallback in afCallbacks:
+      fCallback(*axCallbackArguments);
+    return len(afCallbacks) != 0;

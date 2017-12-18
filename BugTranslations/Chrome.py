@@ -30,16 +30,17 @@ aoBugTranslations = [
       ], [
         "*!base::`anonymous namespace'::OnNoMemory",
       ], [
-        "*!logging::LogMessage::~LogMessage",
-        "*!base::`anonymous namespace'::OnNoMemory",
+        "*!base::debug::CollectGDIUsageAndDie",
+        "*!skia::CreateHBitmap",
       ], [
-        "*!logging::LogMessage::~LogMessage",
-        "*!base::`anonymous namespace'::OnNoMemory",
+        "*!base::PartitionRecommitSystemPages",
+      ], [
+        "*!blink::MemoryRegion::Commit",
       ], [
         "*!content::`anonymous namespace'::CrashOnMapFailure",
       ], [
-        "*!base::debug::CollectGDIUsageAndDie",
-        "*!skia::CreateHBitmap",
+        "*!logging::LogMessage::~LogMessage",
+        "*!base::`anonymous namespace'::OnNoMemory",
       ],
     ],
     aasAdditionalIrrelevantStackFrameSymbols = [
@@ -125,21 +126,7 @@ aoBugTranslations = [
     sOriginalBugTypeId = "AVW@NULL",
     aasOriginalTopStackFrameSymbols = [
       [
-        "*!WTF::partitionOutOfMemory",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsingLessThan16M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing16M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing32M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing64M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing128M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing256M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing512M",
+        re.compile("^.+!(base|WTF)::[Pp]artitions?OutOfMemory(Using\w+)?$"),
       ], [
         "*!WTF::partitionExcessiveAllocationSize",
       ],
@@ -155,21 +142,11 @@ aoBugTranslations = [
       [
         "*!base::`anonymous namespace'::OnNoMemory",
       ], [
-        "*!WTF::partitionOutOfMemory",
+        re.compile("^.+!(base|WTF)::[Pp]artitions?OutOfMemory(Using\w+)?$"),
       ], [
-        "*!WTF::partitionsOutOfMemoryUsingLessThan16M",
+        "*!blink::BlinkGCOutOfMemory",
       ], [
-        "*!WTF::partitionsOutOfMemoryUsing16M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing32M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing64M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing128M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing256M",
-      ], [
-        "*!WTF::partitionsOutOfMemoryUsing512M",
+        "*!blink::ReportOOMErrorInMainThread",
       ], [
         "*!WTF::partitionExcessiveAllocationSize",
       ],
@@ -183,53 +160,20 @@ aoBugTranslations = [
     sOriginalBugTypeId = "OOM",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        re.compile("^.+!.+::CallNewHandler$"),
-      ], [
-        "*!_aligned_malloc",
-      ], [
-        "*!_aligned_offset_malloc_base",
-      ], [
-        "*!`anonymous namespace'::DefaultWinHeapMallocImpl",
-      ], [
-        "*!`anonymous namespace'::DefaultWinHeapReallocImpl",
-      ], [
-        "*!base::AlignedMalloc",
-      ], [
-        "*!base::allocator::WinCallNewHandler",
-      ], [
-        "*!base::allocator::WinHeapMalloc",
-      ], [
-        "*!base::PartitionAllocGenericFlags",
-      ], [
-        "*!base::UncheckedCalloc",
-      ], [
-        "*!base::UncheckedMalloc",
-      ], [
-        "*!blink::`anonymous namespace'::ArrayBufferAllocator::Allocate",
-      ], [
-        "*!ShimMalloc",
-      ], [
-        "*!ShimRealloc",
-      ], [
-        "*!sk_malloc_flags",
-      ], [
-        "*!sk_malloc_nothrow",
-      ], [
-        "*!SkBitmap::allocPixels",
-      ], [
-        "*!SkBitmap::allocN32Pixels",
-      ], [
-        "*!SkBitmap::HeapAllocator::allocPixelRef",
-      ], [
-        "*!SkBitmap::tryAllocPixels",
-      ], [
-        "*!SkMallocPixelRef::MakeAllocate",
+        re.compile("^.+!(.+::)?(%s)$" % "|".join([
+          "(Win)?CallNewHandler",
+          "\w+_malloc(_\w+)?",
+          "operator new",
+          "\w*(Alloc|Calloc|Malloc|Realloc|OutOfMemory)\w*(<\.\.\.>)?",
+        ])),
       ], [
         "*!SkMallocPixelRef::MakeUsing",
       ], [
-        "*!WTF::ArrayBufferContents::AllocateMemoryOrNull",
+        "*!WTF::Deque<blink...>::ExpandCapacity",
       ], [
-        "*!WTF::ArrayBufferContents::AllocateMemoryWithFlags",
+        "*!WTF::Deque<blink...>::ExpandCapacityIfNeeded",
+      ], [
+        "*!WTF::Deque<blink...>::push_back",
       ],
     ],
   ),

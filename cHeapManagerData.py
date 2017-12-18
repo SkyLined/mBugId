@@ -23,6 +23,11 @@ class cHeapManagerData(object):
     oSelf.uMemoryDumpEndAddress = oSelf.uAllocationEndPaddingSize and oSelf.uAllocationEndPaddingEndAddress or oSelf.uHeapBlockEndAddress;
     oSelf.uMemoryDumpSize = oSelf.uMemoryDumpEndAddress - oSelf.uMemoryDumpStartAddress;
   
+  def ftsGetIdAndDescription(oSelf):
+    sId = "[%s]" % fsGetNumberDescription(oSelf.uHeapBlockSize);
+    sDescription = "a %s heap block at 0x%X" % (fsNumberOfBytes(oSelf.uHeapBlockSize), oSelf.uHeapBlockStartAddress);
+    return (sId, sDescription);
+  
   def ftsGetIdAndDescriptionForAddress(oSelf, uAddress):
     sId = "[%s]" % fsGetNumberDescription(oSelf.uHeapBlockSize);
     iOffsetFromStartOfHeapBlock = uAddress - oSelf.uHeapBlockStartAddress;

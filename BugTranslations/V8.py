@@ -53,4 +53,14 @@ aoBugTranslations = [
     sTranslatedBugDescription = "The application caused a fatal exception to indicate it was unable to allocate enough memory.",
     sTranslatedSecurityImpact = None,
   ),
+  # Assert -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "Assert",
+    asOriginalTopStackFrameSymbols = [
+      "*!v8::Utils::ReportOOMFailure",
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application caused a fatal exception to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
+  ),
 ];

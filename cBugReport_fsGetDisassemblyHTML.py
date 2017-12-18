@@ -14,9 +14,7 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
     ]);
   return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
   
-def cBugReport_fsGetDisassemblyHTML(oBugReport, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
-  oProcess = oBugReport.oProcess;
-  oCdbWrapper = oProcess.oCdbWrapper;
+def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
   # See dxConfig.py for a description of these "magic" values.
   uDisassemblyBytesBefore = \
       dxConfig["uDisassemblyInstructionsBefore"] \

@@ -34,7 +34,7 @@ dfoAnalyzeException_by_uExceptionCode = {
 };
 class cBugReport(object):
   def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
-    oBugReport.oProcess = oProcess;
+    oBugReport.__oProcess = oProcess;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
@@ -55,7 +55,7 @@ class cBugReport(object):
   @property
   def oStack(oBugReport):
     if oBugReport.__oStack is None:
-      oBugReport.__oStack = cStack.foCreate(oBugReport.oProcess, oBugReport.uStackFramesCount);
+      oBugReport.__oStack = cStack.foCreate(oBugReport.__oProcess, oBugReport.uStackFramesCount);
     return oBugReport.__oStack;
   
   def fAddMemoryDump(oBugReport, uStartAddress, uEndAddress, sDescription):
@@ -108,11 +108,15 @@ class cBugReport(object):
     fApplyBugTranslationsToBugReport(oBugReport);
     return oBugReport;
   
-  def fPostProcess(oBugReport):
-    oProcess = oBugReport.oProcess;
-    oCdbWrapper = oProcess.oCdbWrapper;
+  def fReport(oBugReport, oCdbWrapper):
+    # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
+    # outside.
+    oProcess = oBugReport.__oProcess;
+    del oBugReport.__oProcess;
+    oStack = oBugReport.__oStack;
+    del oBugReport.__oStack;
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
-    aoStackFramesPartOfId, sStackHTML = oBugReport.fxProcessStack();
+    aoStackFramesPartOfId, sStackHTML = oBugReport.fxProcessStack(oCdbWrapper, oProcess, oStack);
     oBugReport.sId = "%s %s" % (oBugReport.sBugTypeId, oBugReport.sStackId);
     if oBugReport.sSecurityImpact is None:
       oBugReport.sSecurityImpact = "Denial of Service";
@@ -178,7 +182,7 @@ class cBugReport(object):
       # Add relevant memory blocks in order if needed
       for uStartAddress in sorted(oBugReport.__dtxMemoryDumps.keys()):
         (uEndAddress, sDescription) = oBugReport.__dtxMemoryDumps[uStartAddress];
-        sMemoryDumpHTML = oBugReport.fsMemoryDumpHTML(sDescription, uStartAddress, uEndAddress);
+        sMemoryDumpHTML = oBugReport.fsMemoryDumpHTML(oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress);
         if sMemoryDumpHTML:
           asBlocksHTML.append(sBlockHTMLTemplate % {
             "sName": sDescription,
@@ -190,11 +194,15 @@ class cBugReport(object):
       for oFrame in aoStackFramesPartOfId:
         if oFrame.uIndex == 0:
           sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+            oCdbWrapper,
+            oProcess,
             uAddress = oFrame.uInstructionPointer,
             sDescriptionOfInstructionAtAddress = "current instruction"
           );
         else:
           sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+            oCdbWrapper, 
+            oProcess,
             uAddress = oFrame.uInstructionPointer,
             sDescriptionOfInstructionBeforeAddress = "call",
             sDescriptionOfInstructionAtAddress = "return address"
@@ -276,9 +284,6 @@ class cBugReport(object):
         # This is highly unlikely, but let's try to handle every eventuality.
         oBugReport.sReportHTML = "The report was <b>NOT</b> created because there was not enough memory available to add any information.";
     oBugReport.sProcessBinaryName = oProcess.sBinaryName;
-    # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
-    # outside.
-    del oBugReport.oProcess;
     
     # See if a dump should be saved
     if dxConfig["bSaveDump"]:
@@ -296,10 +301,12 @@ class cBugReport(object):
         sCommand = ".dump %s /%s \"%s\";" % (sOverwriteFlag, dxConfig["bFullDump"] and "f" or "ma", sDumpFilePath),
         sComment = "Save dump to file",
       );
+    assert oCdbWrapper.fbFireEvent("Bug report", oBugReport), \
+        "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";
   
-  def fxProcessStack(oBugReport):
-    return cBugReport_fxProcessStack(oBugReport);
-  def fsMemoryDumpHTML(oBugReport, sDescription, uStartAddress, uEndAddress):
-    return cBugReport_fsMemoryDumpHTML(oBugReport, sDescription, uStartAddress, uEndAddress);
-  def fsGetDisassemblyHTML(oBugReport, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
-    return cBugReport_fsGetDisassemblyHTML(oBugReport, uAddress, sDescriptionOfInstructionBeforeAddress, sDescriptionOfInstructionAtAddress);
+  def fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
+    return cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack);
+  def fsMemoryDumpHTML(oBugReport, oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress):
+    return cBugReport_fsMemoryDumpHTML(oBugReport, oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress);
+  def fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
+    return cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress, sDescriptionOfInstructionAtAddress);

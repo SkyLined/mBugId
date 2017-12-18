@@ -23,7 +23,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
             bImportant and "LogImportantStdErrOutput" or "LogStdErrOutput",
             sLine
           );
-        oCdbWrapper.fStdErrOutputCallback and oCdbWrapper.fStdErrOutputCallback(sLine);
+        oCdbWrapper.fbFireEvent("Cdb stderr output", sLine);
       if sChar == "":
         if gbDebugIO: print "\r<stderr:EOF<";
         break;

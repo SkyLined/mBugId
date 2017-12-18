@@ -75,31 +75,13 @@ class cBugId(object):
     bGenerateReportHTML = False,
     uProcessMaxMemoryUse = None,
     uTotalMaxMemoryUse = None,
-    fFailedToDebugApplicationCallback = None,
-    fFailedToApplyMemoryLimitsCallback = None,
-    fApplicationRunningCallback = None,
-    fApplicationSuspendedCallback = None,
-    fApplicationResumedCallback = None,
-    fMainProcessTerminatedCallback = None,
-    fInternalExceptionCallback = None,
-    fFinishedCallback = None,
-    fPageHeapNotEnabledCallback = None,
-    fStdInInputCallback = None,
-    fStdOutOutputCallback = None,
-    fStdErrOutputCallback = None,
-    fNewProcessCallback = None,
-    fLogMessageCallback = None,
-    fApplicationStdOutOrErrOutputCallback = None,
+    uMaximumNumberOfBugs = 1,
   ):
-    oBugId.__fFailedToDebugApplicationCallback = fFailedToDebugApplicationCallback;
-    oBugId.__fFinishedCallback = fFinishedCallback;
-    
     oBugId.__oFinishedEvent = threading.Event();
     oBugId.__bStarted = False;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
     # attempting to read the report.
-    # oBugId.oBugReport = None;
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
@@ -117,38 +99,10 @@ class cBugId(object):
       bGenerateReportHTML = bGenerateReportHTML,
       uProcessMaxMemoryUse = uProcessMaxMemoryUse,
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
-      # All callbacks are wrapped to insert this cBugId instance as the first argument.
-      fFailedToDebugApplicationCallback = oBugId.__fFailedToDebugApplicationHandler,
-      fFailedToApplyMemoryLimitsCallback = lambda oProcess: fFailedToApplyMemoryLimitsCallback and \
-          fFailedToApplyMemoryLimitsCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
-      fApplicationRunningCallback = lambda: fApplicationRunningCallback and \
-          fApplicationRunningCallback(oBugId),
-      fApplicationSuspendedCallback = lambda sReason: fApplicationSuspendedCallback and \
-          fApplicationSuspendedCallback(oBugId, sReason),
-      fApplicationResumedCallback = lambda: fApplicationResumedCallback and \
-          fApplicationResumedCallback(oBugId),
-      fMainProcessTerminatedCallback = lambda oProcess: fMainProcessTerminatedCallback and \
-          fMainProcessTerminatedCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
-      fInternalExceptionCallback = lambda oException, oTraceBack: fInternalExceptionCallback and \
-          fInternalExceptionCallback(oBugId, oException, oTraceBack),
-      fFinishedCallback = oBugId.__fFinishedHandler,
-      fPageHeapNotEnabledCallback = lambda oProcess, bPreventable: fPageHeapNotEnabledCallback and \
-          fPageHeapNotEnabledCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine, bPreventable),
-      fStdInInputCallback = lambda sInput: fStdInInputCallback and \
-          fStdInInputCallback(oBugId, sInput),
-      fStdOutOutputCallback = lambda sOutput: fStdOutOutputCallback and \
-          fStdOutOutputCallback(oBugId, sOutput),
-      fStdErrOutputCallback = lambda sOutput: fStdErrOutputCallback and 
-          fStdErrOutputCallback(oBugId, sOutput),
-      fNewProcessCallback = lambda oProcess: fNewProcessCallback and \
-          fNewProcessCallback(oBugId, oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine),
-      fLogMessageCallback = lambda sMessageClass, sMessage: fLogMessageCallback and \
-          fLogMessageCallback(oBugId, sMessageClass, sMessage),
-      fApplicationStdOutOrErrOutputCallback = lambda uProcessId, sBinaryName, sCommandLine, sStdOutOrErr, sMessage: \
-          fApplicationStdOutOrErrOutputCallback and \
-          fApplicationStdOutOrErrOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sStdOutOrErr, sMessage),
+      uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
-  
+    oBugId.__oCdbWrapper.fAddEventCallback("Finished", lambda: oBugId.__oFinishedEvent.set());
+    
   @property
   def aoInternalExceptions(oBugId):
     return oBugId.__oCdbWrapper.aoInternalExceptions[:];
@@ -196,15 +150,31 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
     return oBugId.__oFinishedEvent.isSet();
   
-  def __fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
-    oBugId.oBugReport = None;
-    # This error must be handled, or an assertion is thrown
-    assert oBugId.__fFailedToDebugApplicationCallback, sErrorMessage;
-    oBugId.__fFailedToDebugApplicationCallback(oBugId, sErrorMessage);
+  def fAddEventCallback(oBugId, sEventName, fCallback):
+    # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
+    # not want to expose interal objects.
+    if sEventName in [
+      "Attached to process",
+      "Failed to apply application memory limits",
+      "Failed to apply process memory limits",
+      "Page heap not enabled",
+      "Process terminated",
+      "Started process",
+    ]:
+      # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
+      # do not want to expose. We'll take the most useful information about the process and pass that as arguments
+      # to the callback instead.
+      fOriginalCallback = fCallback;
+      fCallback = lambda oBugId, oProcess, *axArguments: fOriginalCallback(
+        oBugId, 
+        oProcess.uId,
+        oProcess.sBinaryName,
+        oProcess.sCommandLine,
+        oProcess in oBugId.__oCdbWrapper.aoMainProcesses, # bIsMainProcess
+        *axArguments
+      );
+    return oBugId.__oCdbWrapper.fAddEventCallback(
+      sEventName,
+      lambda *axArguments: fCallback(oBugId, *axArguments),
+    );
   
-  def __fFinishedHandler(oBugId, oBugReport):
-    # Save bug report, if any.
-    oBugId.oBugReport = oBugReport;
-    oBugId.__oFinishedEvent.set();
-    if oBugId.__fFinishedCallback:
-      oBugId.__fFinishedCallback(oBugId, oBugReport);

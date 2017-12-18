@@ -390,8 +390,10 @@ class cExcessiveCPUUsageDetector(object):
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
           (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckInterval"]);
       sSecurityImpact = None;
-      oCdbWrapper.oBugReport = cBugReport.foCreate(oWormProcess, sBugTypeId, sBugDescription, sSecurityImpact);
-      oCdbWrapper.oBugReport.bRegistersRelevant = False;
+      oBugReport = cBugReport.foCreate(oWormProcess, sBugTypeId, sBugDescription, sSecurityImpact);
+      oBugReport.bRegistersRelevant = False;
+      oBugReport.fReport(oCdbWrapper);
+      oCdbWrapper.bFatalBugDetected = True;
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
   

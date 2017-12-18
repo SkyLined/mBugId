@@ -65,7 +65,7 @@ dxConfig = {
                                         # at all when part of the memory it attempts to disassemble is not readable.
   ### HTML Report Memory dump settings
   "uStackDumpSizeInPointers": 0x100,    # How many pointer sized values should a stack dump contain?
-  "uMaxMemoryDumpSize": 0x400,          # How many bytes should a memory dump contain at most? This value should be set
+  "uMaxMemoryDumpSize": 0x1000,         # How many bytes should a memory dump contain at most? This value should be set
                                         # so the dump includes as much relevant information as possible, but not so
                                         # large that it causes a "Range error" in cdb. e.g. attempting to dump 0x6034C
                                         # pointers will fail. I've set a reasonable default, feel free to experiment.
@@ -159,12 +159,10 @@ dxConfig = {
   ### UWP applications
   "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
   ### cdb limits
-  "uMaxMemoryDumpSize": 0x4000,         # Do not ask cdb to dump more than this many bytes (cdb will report a
-                                        # `^ Range error in ' db /cXX 0xXXXX l<too big>` if you try to dump too many
-                                        # bytes).
   "uReservedMemory": 10 * uMegaByte,    # Reserve some memory for analysis of crashes. This memory is freed before
                                         # analysis of an exception starts and reallocated if the exception was not
                                         # found to be a bug. If the memory limits applied to the application and/or
                                         # its processes do not prevent a system-wide low-memory situation, this may
                                         # allow BugId to continue operating as expected.
+  "auColleteralPoisonValues": [],             # Values to be used in fake "read" operations for colleteral bug reports.
 };
