@@ -17,10 +17,13 @@ New or changed features
   value larger than 1 turns on "collateral" bug handling: certain access
   violation bugs are reported, but rather than terminating the application,
   cBugId will attempt to "fake" that the instruction that caused this exception
-  succeeded, providing a tainted value as the read result if applicable. This
-  may be useful in proving that a particular vulnerability is theoretically
-  exploitable or not, as the effect of control over the data that would have
-  been read or written becomes more clear.
+  succeeded, providing a tainted value (0x41414141...) as the read result if
+  applicable. This may be useful in proving that a particular vulnerability is
+  theoretically exploitable or not, as the effect of control over the data that
+  would have been read or written becomes more clear.
+  To implement this feature in 32-bit processes, a memory region is reserved in
+  every such process at 0x41410000-0x41420000, to prevent the tainted value
+  from pointing to valid memory.
 + Access violation handling has been completely overhauled to make it more
   structured and allow "collateral" bug handling.
 + `uMaxMemoryDumpSize` was increased from 0x400 to 0x1000
