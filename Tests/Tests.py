@@ -226,7 +226,7 @@ def fTest(
     if gbTestFailed:
       return;
     if sExpectedFailedToDebugApplicationErrorMessage:
-      fOutput("+ %s" % sTestDescription);
+      pass;
     elif len(aoBugReports) != len(asExpectedBugIdAndLocations):
       gbTestFailed = True;
       if not gbDebugIO: 
@@ -276,8 +276,6 @@ def fTest(
             fOutput("  Bug #%d:      %s @ %s" % (uCounter, oBugReport.sId, oBugReport.sBugLocation));
             fOutput("               %s" % (oBugReport.sBugDescription));
           break;
-    else:
-      fOutput("+ %s" % sTestDescription);
     if gbGenerateReportHTML:
       for oBugReport in aoBugReports:
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
