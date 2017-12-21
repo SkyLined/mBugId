@@ -171,29 +171,34 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
   
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   
-  # Try various ways of handling this AV:
-  for fbAccessViolationHandled in [
-    fbAccessViolationIsNULLPointer,
-    fbAccessViolationIsCollateralPoisonPointer,
-    fbAccessViolationIsHeapManagerPointer,
-    fbAccessViolationIsStackPointer,
-    fbAccessViolationIsSpecialPointer,
-    fbAccessViolationIsAllocatedPointer,
-    fbAccessViolationIsReservedPointer,
-    fbAccessViolationIsFreePointer,
-    fbAccessViolationIsInvalidPointer,
-  ]:
-    if fbAccessViolationHandled(
-      oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
-    ):
-      # Once it's handled, stop trying other handlers
-      break;
+  # Try handling this as a NULL pointer, which is special cased because we do not always report these.
+  if fbAccessViolationIsNULLPointer(
+    oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  ):
+    if dxConfig["bIgnoreFirstChanceNULLPointerAccessViolations"] and not oException.bApplicationCannotHandleException:
+      # This is a first chance exception; let the application handle it first.
+      return None;
   else:
-    # Unable to handle (should not be possible!)
-    raise AssertionError("Could not handle AV%s@0x%08X" % (sViolationTypeId, uAccessViolationAddress));
-  
+    # Try various ways of handling this AV:
+    for fbAccessViolationHandled in [
+      fbAccessViolationIsCollateralPoisonPointer,
+      fbAccessViolationIsHeapManagerPointer,
+      fbAccessViolationIsStackPointer,
+      fbAccessViolationIsSpecialPointer,
+      fbAccessViolationIsAllocatedPointer,
+      fbAccessViolationIsReservedPointer,
+      fbAccessViolationIsFreePointer,
+      fbAccessViolationIsInvalidPointer,
+    ]:
+      if fbAccessViolationHandled(
+        oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+      ):
+        # Once it's handled, stop trying other handlers
+        break;
+    else:
+      # Unable to handle (should not be possible!)
+      raise AssertionError("Could not handle AV%s@0x%08X" % (sViolationTypeId, uAccessViolationAddress));
   oBugReport.sBugDescription += sViolationTypeNotes;
-  
   return oBugReport;
 
 def fbAccessViolationIsNULLPointer(

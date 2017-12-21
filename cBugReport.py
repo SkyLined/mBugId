@@ -90,8 +90,9 @@ class cBugReport(object):
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
       oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oException);
-      # Apply another round of translations
-      fApplyBugTranslationsToBugReport(oBugReport);
+      if oBugReport:
+        # Apply another round of translations
+        fApplyBugTranslationsToBugReport(oBugReport);
     return oBugReport;
   
   @classmethod

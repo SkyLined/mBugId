@@ -133,6 +133,7 @@ dxConfig = {
                                         # not detecting unhandled WinRT exceptions. These will cause the application to
                                         # terminate if this setting is enabled, so you may want to look out for and
                                         # investigate unexpected application termination.
+  "bIgnoreFirstChanceNULLPointerAccessViolations": False,
   ### HTML Report debug output settings
   "bLogInReport": False,                # Log relevant events in the HTML report
   "bShowAllCdbCommandsInReport": False, # Set to True to see all commands that are executed in cdb by BugId. Set to
