@@ -1,3 +1,15 @@
+2017-12-21
+==========
+New features
+------------
++ `bIgnoreFirstChanceNULLPointerAccessViolations` in `dxConfig.py` allows you
+  to tell cBugId to ignore all first-chance NULL pointer access violations.
+  This is useful when you are debugging an application that triggers NULL
+  pointers on purpose, and handles them correctly, but does not have debug
+  symbols. Lack of debug symbols prevents you from creating a bug translation
+  to ignore these exceptions, but this setting can allow you to do so without
+  also ignoring unhandled NULL pointers.
+
 2017-12-18
 ==========
 New or changed features
