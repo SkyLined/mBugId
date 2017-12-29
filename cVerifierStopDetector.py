@@ -13,7 +13,7 @@ class cVerifierStopDetector(object):
     oSelf.oCdbWrapper = oCdbWrapper;
     oCdbWrapper.fAddEventCallback("Application debug output", oSelf.__fCheckDebugOutputForVerifierStopMessage);
 
-  def __fCheckDebugOutputForVerifierStopMessage(oSelf, asDebugOutput):
+  def __fCheckDebugOutputForVerifierStopMessage(oSelf, oProcess, asDebugOutput):
     # Detect VERIFIER STOP messages, create a cBugReport and report them before stopping cdb.
     if len(asDebugOutput) == 0:
       return;
@@ -23,7 +23,9 @@ class cVerifierStopDetector(object):
     sErrorNumber, sProcessId, sMessage = oVerifierStopHeaderMatch.groups();
     uErrorNumber = long(sErrorNumber, 16);
     uProcessId = long(sProcessId, 16);
-    oSelf.oCdbWrapper.fSelectProcess(uProcessId);
+    if oProcess.uId != uProcessId:
+      # I do not expect this to happen, but it does not hurt to make sure we are operating on the right process.
+      oSelf.oCdbWrapper.fSelectProcess(uProcessId);
 
     uVerifierStopHeapBlockAddress = None;
     uVerifierStopHeapBlockSize = None;

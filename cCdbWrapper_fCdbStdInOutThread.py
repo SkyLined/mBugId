@@ -79,8 +79,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     or len(oCdbWrapper.auProcessIdsPendingAttach) > 0 
     # ... or there is at least one process running for the application ...
     or len([oProcess for oProcess in oCdbWrapper.doProcess_by_uId.values() if not oProcess.bTerminated]) >= 1
-  ) and (
-    not oCdbWrapper.bStopping
   ):
     if oCdbWrapper.uUtilityProcessId is not None:
       oCdbWrapper.fRunTimeoutCallbacks();
@@ -146,7 +144,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       finally:
         oCdbWrapper.oApplicationTimeLock.release();
       ### Resume application #########################################################################################
-      asUnprocessedCdbOutput = oCdbWrapper.fasExecuteCdbCommand(
+      if oCdbWrapper.bStopping: break; # Unless we have been requested to stop.
+      asOutputWhileRunningApplication = oCdbWrapper.fasExecuteCdbCommand(
         sCommand = "g%s;" % (bHideLastExceptionFromApplication and "h" or "n"),
         sComment = "Running application",
         bOutputIsInformative = True,
@@ -230,8 +229,22 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sBreakpointId,
     ) = oEventMatch.groups();
     if not sProcessIdHex:
-      # The last event was an application debugger output event; copy the output.
-      oCdbWrapper.fbFireEvent("Application debug output", asUnprocessedCdbOutput);
+      # The last event was an application debugger output event.
+      # Unfortunately, cdb outputs text whenever an ignored first chance exception happens and I cannot find out how to
+      # silence it. So, we'll have to remove these from the output, which is sub-optimal, but should work well enough
+      # for now. Also, page heap outputs stuff that we don't care about as well, which we hide here.
+      uProcessId = oCdbWrapper.fuGetValueForRegister("$tpid", "Get current process id");
+      oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+      asDebugOutput = [
+        sLine for sLine in asOutputWhileRunningApplication
+        if not re.match("^(%s)$" % "|".join([
+          r"\(\w+\.\w+\): Unknown exception \- code \w{8} \(first chance\)",
+          r"Page heap: pid 0x\w+: page heap enabled with flags 0x\w+\.",
+        ]), sLine)
+      ];
+      if asDebugOutput:
+        # It could be that the output was from page heap, in which case no event is fired.
+        oCdbWrapper.fbFireEvent("Application debug output", oCdbWrapper.oCurrentProcess, asDebugOutput);
       continue;
     uProcessId = long(sProcessIdHex, 16);
     uThreadId = long(sThreadIdHex, 16);
@@ -290,30 +303,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     if oReservedMemoryVirtualAllocation:
       oReservedMemoryVirtualAllocation.fFree();
       oReservedMemoryVirtualAllocation = None;
-# I believe this is no longer needed.
-#    ### See if it was a debugger break-in for a new process that failed to load properly #############################
-#    if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
-#      # This exception does not always get reported for the new process; see if there are any processes known to cdb
-#      # that we do not yet know about:
-#      asListProcesses = oCdbWrapper.fasExecuteCdbCommand(
-#        sCommand = "|;",
-#        sComment = "List processes being debugged",
-#        bRetryOnTruncatedOutput = True,
-#      );
-#      auNewProcessIds = [];
-#      for sListProcess in asListProcesses:
-#        oProcessIdMatch = re.match("[#\.\s]+\d+\s+id:\s+([0-9a-f]+)\s+.*", sListProcess, re.I);
-#        assert oProcessIdMatch, \
-#            "Unrecognized process list output: %s\r\n%s" % (repr(sListProcess), "\r\n".join(asListProcesses));
-#        uPotentiallNewProcessId = long(oProcessIdMatch.group(1), 16);
-#        if uPotentiallNewProcessId not in oCdbWrapper.doProcess_by_uId:
-#          auNewProcessIds.append(uPotentiallNewProcessId);
-#      #  We're expecting there to be at most 1:
-#      assert len(auNewProcessIds) < 2, \
-#          "Found %d new processes: %s" % (len(auNewProcessIds), ", ".join([str(u) for u in auNewProcessIds]));
-#      if len(auNewProcessIds) == 1:
-#        # This process is new, handle it.
-#        uProcessId = auNewProcessIds[0];
     # Make sure cdb switches to the right ISA for the current process.
     if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCdbISA:
       oCdbWrapper.fasExecuteCdbCommand(

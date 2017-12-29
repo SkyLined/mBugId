@@ -33,7 +33,7 @@ def fCleanup(oCdbWrapper):
       if oThread != oCurrentThread:
         oThread.join();
 
-def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
+def cCdbWrapper_fCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
   oCdbWrapper.oCdbStdInOutThread.join();
   # wait for stderr thread to terminate.

@@ -11,7 +11,6 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
       if gbDebugIO: print "\r<stderr:EOF<";
       break;
     if gbDebugIO: print "\r<stderr<%s" % sLine;
-    oCdbWrapper.asStdErrOutput.append(sLine);
     if oCdbWrapper.bGenerateReportHTML:
       sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
       oCdbWrapper.sCdbIOHTML += sLineHTML;

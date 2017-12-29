@@ -135,18 +135,25 @@ def fTest(
     sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
     if gbDebugIO: fOutput("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
-  def fApplicationDebugOutputCallback(oBugId, asOutput):
+  def fApplicationDebugOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, asOutput):
+    bFirstLine = True;
     for sOutput in asOutput:
-      if gbDebugIO: fOutput("debug>%s" % sOutput);
-      asLog.append("debug>%s" % sOutput);
-  def fApplicationStdOutOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+      if gbDebugIO: fOutput("process %d/0x%X (%s): %s>%s" % \
+          (uProcessId, uProcessId, sBinaryName, bFirstLine and "debug" or "     ", sOutput));
+      asLog.append("%s>%s" % (bFirstLine and "debug" or "     ", sOutput));
+      bFirstLine = False;
+  def fApplicationStdOutOutputCallback(oBugId, oConsoleProcess, sOutput):
     # This is always a main process
-    if gbDebugIO: fOutput("process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-    asLog.append("Main process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-  def fApplicationStdErrOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+    if gbDebugIO: fOutput("process %d/0x%X (%s): stdout> %s" % \
+        (oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.oInformation.sBinaryName, sOutput));
+    asLog.append("Main process %d/0x%X (%s): stdout> %s" % \
+        (oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.oInformation.sBinaryName, sOutput));
+  def fApplicationStdErrOutputCallback(oBugId, oConsoleProcess, sOutput):
     # This is always a main process
-    if gbDebugIO: fOutput("process %d/0x%X (%s): stderr> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-    asLog.append("Main process %d/0x%X (%s): stderr> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
+    if gbDebugIO: fOutput("process %d/0x%X (%s): stderr> %s" % \
+        (oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.oInformation.sBinaryName, sOutput));
+    asLog.append("Main process %d/0x%X (%s): stderr> %s" % \
+        (oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.oInformation.sBinaryName, sOutput));
   def fApplicationResumedCallback(oBugId):
     asLog.append("Application resumed");
   def fApplicationRunningCallback(oBugId):

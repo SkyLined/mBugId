@@ -20,9 +20,7 @@ def cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWrapper, oConsoleProcess, oStd
           (oStdOutOrErrPipe.sDescription, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
     oCdbWrapper.fbFireEvent(
       sEventName,
-      oConsoleProcess.uId,
-      oConsoleProcess.oInformation.sBinaryName,
-      oConsoleProcess.oInformation.sCommandLine,
+      oConsoleProcess,
       sLine
     );
   if gbDebugIO: print "\r<app:%d/0x%X:%s:EOF" % (oConsoleProcess.uId, oConsoleProcess.uId, oStdOutOrErrPipe.sDescription);

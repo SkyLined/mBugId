@@ -7,7 +7,6 @@ from cProcess_foGetHeapManagerDataForAddress import cProcess_foGetHeapManagerDat
 from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
 from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from cProcess_fuGetValue import cProcess_fuGetValue;
-from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
 from mWindowsAPI import *;
 
 class cProcess(object):
@@ -155,7 +154,8 @@ class cProcess(object):
   def fuGetValue(oProcess, sValue, sComment):
     return cProcess_fuGetValue(oProcess, sValue, sComment);
   def fuGetValueForRegister(oProcess, sRegister, sComment):
-    return cProcess_fuGetValueForRegister(oProcess, sRegister, sComment);
+    oProcess.fSelectInCdb();
+    return oProcess.oCdbWrapper.fuGetValueForRegister(sRegister, sComment);
   def fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment):
     return cProcess_fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment);
   def fsGetSymbolForAddress(oProcess, sAddress, sComment):

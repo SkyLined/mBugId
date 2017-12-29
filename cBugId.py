@@ -147,6 +147,7 @@ class cBugId(object):
     # not want to expose interal objects.
     if sEventName in [
       "Attached to process",
+      "Application debug output",
       "Failed to apply application memory limits",
       "Failed to apply process memory limits",
       "Page heap not enabled",

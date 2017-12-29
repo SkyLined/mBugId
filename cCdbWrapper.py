@@ -1,19 +1,19 @@
 import itertools, json, os, re, subprocess, sys, thread, threading, time;
 from cCdbStoppedException import cCdbStoppedException;
-from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
-from cCdbWrapper_fInterruptApplicationExecution import cCdbWrapper_fInterruptApplicationExecution;
-from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fApplicationStdOutOrErrThread import cCdbWrapper_fApplicationStdOutOrErrThread;
+from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
+from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
 from cCdbWrapper_fAttachToProcessForId import cCdbWrapper_fAttachToProcessForId;
-from cCdbWrapper_foStartApplicationProcess import cCdbWrapper_foStartApplicationProcess;
-from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
+from cCdbWrapper_fCleanupThread import cCdbWrapper_fCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
+from cCdbWrapper_fHandleApplicationProcessTermination import cCdbWrapper_fHandleApplicationProcessTermination;
 from cCdbWrapper_fHandleNewApplicationProcess import cCdbWrapper_fHandleNewApplicationProcess;
 from cCdbWrapper_fHandleNewUtilityProcess import cCdbWrapper_fHandleNewUtilityProcess;
-from cCdbWrapper_fHandleApplicationProcessTermination import cCdbWrapper_fHandleApplicationProcessTermination;
+from cCdbWrapper_fInterruptApplicationExecution import cCdbWrapper_fInterruptApplicationExecution;
+from cCdbWrapper_foStartApplicationProcess import cCdbWrapper_foStartApplicationProcess;
 from cCdbWrapper_fRemoveBreakpoint import cCdbWrapper_fRemoveBreakpoint;
 from cCdbWrapper_fRunTimeoutCallbacks import cCdbWrapper_fRunTimeoutCallbacks;
 from cCdbWrapper_fSelectProcessAndThread import cCdbWrapper_fSelectProcessAndThread;
@@ -23,6 +23,7 @@ from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointForAddress;
 from cCdbWrapper_fuAddBreakpointForSymbol import cCdbWrapper_fuAddBreakpointForSymbol;
+from cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
 from cCollateralBugHandler import cCollateralBugHandler;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
@@ -102,9 +103,9 @@ class cCdbWrapper(object):
       # any
       "Application resumed": [], # ()
       "Application running": [], # ()
-      "Application debug output": [], # (str[] asOutput)
-      "Application stderr output": [], # (str sOutput)
-      "Application stdout output": [], # (str sOutput)
+      "Application debug output": [], # (mWindowsAPI.cProcess oProcess, str[] asOutput)
+      "Application stderr output": [], # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
+      "Application stdout output": [], # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
       "Application suspended": [], # (str sReason)
       "Attached to process": [], # (mWindowsAPI.cProcess oProcess)
       "Bug report": [], # (cBugReport oBugReport)
@@ -170,10 +171,6 @@ class cCdbWrapper(object):
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
     oCdbWrapper.oCdbConsoleProcess = None;
-    # We track stderr output, as it may contain information output by AddressSanitizer when it detects an issue. Once
-    # ASan is done outputting everthing it knows and causes an exception to terminate the application, we can analyze
-    # its output and use it to create a bug id & report.
-    oCdbWrapper.asStdErrOutput = [];
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     
@@ -191,49 +188,6 @@ class cCdbWrapper(object):
   def bUsingSymbolServers(oCdbWrapper):
     return len(oCdbWrapper.asSymbolServerURLs) > 0;
   
-  def foHelperThread(oCdbWrapper, fActivity, *axActivityArguments, **dxFlags):
-    for sFlag in dxFlags:
-      assert sFlag in ["bVital"], \
-          "Unknown flag %s" % sFlag;
-    bVital = dxFlags.get("bVital", False);
-    def fThreadWrapper():
-      dxThread = {"fActivity": fActivity, "oThread": threading.currentThread(), "axActivityArguments": axActivityArguments}; 
-      oCdbWrapper.adxThreads.append(dxThread);
-      try:
-        try:
-          fActivity(*axActivityArguments);
-        except cCdbStoppedException as oCdbStoppedException:
-          # There is only one type of exception that is expected which is raised in the cdb stdin/out thread when cdb has
-          # terminated. This exception is only used to terminate that thread and should be caught and handled here, to
-          # prevent it from being reported as an (unexpected) internal exception.
-          pass;
-        except Exception, oException:
-          cException, oException, oTraceBack = sys.exc_info();
-          if not oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
-            oCdbWrapper.fTerminate();
-            raise;
-      finally:
-        try:
-          if bVital and oCdbWrapper.bCdbRunning:
-            if oCdbWrapper.oCdbConsoleProcess and oCdbWrapper.oCdbConsoleProcess.bIsRunning:
-              # A vital thread terminated and cdb is still running: terminate cdb
-              oCdbWrapper.oCdbConsoleProcess.fbTerminate()
-              assert not oCdbWrapper.oCdbConsoleProcess.bIsRunning, \
-                  "Could not terminate cdb";
-            oCdbWrapper.bCdbRunning = False;
-        finally:
-          oCdbWrapper.adxThreads.remove(dxThread);
-    try:
-      return threading.Thread(target = fThreadWrapper);
-    except thread.error as oException:
-      # We cannot create another thread. The most obvious reason for this error is that there are too many threads
-      # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
-      # running threads, so we might detect any threads that should have terminated but haven't.
-      print "Threads:";
-      for dxThread in oCdbWrapper.adxThreads:
-        print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
-      raise;
-  
   def fStart(oCdbWrapper):
     global guSymbolOptions;
     # Create a thread that interacts with the debugger to debug the application
@@ -241,7 +195,7 @@ class cCdbWrapper(object):
     # Create a thread that reads stderr output and shows it in the console
     oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdErrThread, bVital = True);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbCleanupThread, bVital = True);
+    oCdbWrapper.oCleanupThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCleanupThread, bVital = True);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application.
     oCdbWrapper.uUtilityProcessId = None;
@@ -281,7 +235,7 @@ class cCdbWrapper(object):
     );
     oCdbWrapper.oCdbStdInOutThread.start();
     oCdbWrapper.oCdbStdErrThread.start();
-    oCdbWrapper.oCdbCleanupThread.start();
+    oCdbWrapper.oCleanupThread.start();
     # If we need to start a binary for this application, do so:
     if oCdbWrapper.sApplicationBinaryPath:
       oMainConsoleProcess = oCdbWrapper.foStartApplicationProcess(
@@ -325,6 +279,50 @@ class cCdbWrapper(object):
     else:
       assert not oCdbConsoleProcess or not oCdbConsoleProcess.bRunning, \
           "cCdbWrapper is being destroyed while cdb.exe is still running.";
+  
+  # Create helper thread
+  def foHelperThread(oCdbWrapper, fActivity, *axActivityArguments, **dxFlags):
+    for sFlag in dxFlags:
+      assert sFlag in ["bVital"], \
+          "Unknown flag %s" % sFlag;
+    bVital = dxFlags.get("bVital", False);
+    def fThreadWrapper():
+      dxThread = {"fActivity": fActivity, "oThread": threading.currentThread(), "axActivityArguments": axActivityArguments}; 
+      oCdbWrapper.adxThreads.append(dxThread);
+      try:
+        try:
+          fActivity(*axActivityArguments);
+        except cCdbStoppedException as oCdbStoppedException:
+          # There is only one type of exception that is expected which is raised in the cdb stdin/out thread when cdb has
+          # terminated. This exception is only used to terminate that thread and should be caught and handled here, to
+          # prevent it from being reported as an (unexpected) internal exception.
+          pass;
+        except Exception, oException:
+          cException, oException, oTraceBack = sys.exc_info();
+          if not oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
+            oCdbWrapper.fTerminate();
+            raise;
+      finally:
+        try:
+          if bVital and oCdbWrapper.bCdbRunning:
+            if oCdbWrapper.oCdbConsoleProcess and oCdbWrapper.oCdbConsoleProcess.bIsRunning:
+              # A vital thread terminated and cdb is still running: terminate cdb
+              oCdbWrapper.oCdbConsoleProcess.fbTerminate()
+              assert not oCdbWrapper.oCdbConsoleProcess.bIsRunning, \
+                  "Could not terminate cdb";
+            oCdbWrapper.bCdbRunning = False;
+        finally:
+          oCdbWrapper.adxThreads.remove(dxThread);
+    try:
+      return threading.Thread(target = fThreadWrapper);
+    except thread.error as oException:
+      # We cannot create another thread. The most obvious reason for this error is that there are too many threads
+      # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
+      # running threads, so we might detect any threads that should have terminated but haven't.
+      print "Threads:";
+      for dxThread in oCdbWrapper.adxThreads:
+        print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
+      raise;
   
   # Select process/thread
   def fSelectProcess(oCdbWrapper, uProcessId):
@@ -388,8 +386,8 @@ class cCdbWrapper(object):
     return cCdbWrapper_fCdbStdInOutThread(oCdbWrapper);
   def fCdbStdErrThread(oCdbWrapper):
     return cCdbWrapper_fCdbStdErrThread(oCdbWrapper);
-  def fCdbCleanupThread(oCdbWrapper):
-    return cCdbWrapper_fCdbCleanupThread(oCdbWrapper);
+  def fCleanupThread(oCdbWrapper):
+    return cCdbWrapper_fCleanupThread(oCdbWrapper);
   def fApplicationStdOutOrErrThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe):
     return cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe);
   
@@ -402,7 +400,6 @@ class cCdbWrapper(object):
       oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].append(fCallback);
     finally:
       oCdbWrapper.oEventCallbacksLock.release();
-  
   def fRemoveEventCallback(oCdbWrapper, sEventName, fCallback):
     assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
         "Unknown event name %s" % repr(sEventName);
@@ -411,7 +408,6 @@ class cCdbWrapper(object):
       oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].remove(fCallback);
     finally:
       oCdbWrapper.oEventCallbacksLock.release();
-  
   def fbFireEvent(oCdbWrapper, sEventName, *axCallbackArguments):
     assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
         "Unknown event name %s" % repr(sEventName);
@@ -422,7 +418,7 @@ class cCdbWrapper(object):
       oCdbWrapper.oEventCallbacksLock.release();
     for fCallback in afCallbacks:
       fCallback(*axCallbackArguments);
-    return len(afCallbacks) != 0;
+    return len(afCallbacks) > 0;
   
   # Start/attach to processes
   def foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
@@ -444,4 +440,6 @@ class cCdbWrapper(object):
     return cCdbWrapper_fHandleNewUtilityProcess(oCdbWrapper, uProcessId);
   def fHandleApplicationProcessTermination(oCdbWrapper, uProcessId):
     return cCdbWrapper_fHandleApplicationProcessTermination(oCdbWrapper, uProcessId);
-    
+  
+  def fuGetValueForRegister(oCdbWrapper, sRegister, sComment):
+    return cCdbWrapper_fuGetValueForRegister(oCdbWrapper, sRegister, sComment);
