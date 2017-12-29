@@ -27,7 +27,7 @@ aoBugTranslations = [
   ),
   # AVR@Reserved -> AVR@CFG
   cBugTranslation(
-    sOriginalBugTypeId = "AVR@Reserved",
+    sOriginalBugTypeId = re.compile(r"^AVR@(Reserved|Invalid)$"),
     aasOriginalTopStackFrameSymbols = [
       [
         "ntdll.dll!LdrpDispatchUserCallTarget",
@@ -41,6 +41,19 @@ aoBugTranslations = [
     sTranslatedBugDescription = "The process attempted to call a function using an invalid function pointer, " \
         "which caused an acces violation exception in Control Flow Guard. This is often caused by a NULL pointer.",
     sTranslatedSecurityImpact = "Unlikely to be an exploitable security issue, unless you can control the invalid function pointer",
+  ),
+  # CFG -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = "CFG",
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "ntdll.dll!LdrpHandleInvalidUserCallTarget",
+      ], [
+        "ntdll.dll!RtlFailFast2",
+      ], [
+        "ntdll.dll!RtlpHandleInvalidUserCallTarget",
+      ],
+    ],
   ),
   # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW -> hide irrelevant frames
   cBugTranslation(
