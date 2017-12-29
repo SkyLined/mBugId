@@ -88,4 +88,14 @@ aoBugTranslations = [
       ],
     ],
   ),
+  # Debug output errors -> hide irrelevant frames
+  cBugTranslation(
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "ntdll.dll!DbgPrintEx",
+      ], [
+        "ntdll.dll!vDbgPrintExWithPrefixInternal",
+      ],
+    ],
+  ),
 ];

@@ -6,10 +6,9 @@ def cCdbWrapper_fHandleApplicationProcessTermination(oCdbWrapper, uProcessId):
   # terminated:
   oProcess.bTerminated = True;
   oCdbWrapper.fbFireEvent("Process terminated", oProcess);
-  bIsMainProcess = oProcess in oCdbWrapper.aoMainProcesses;
   oCdbWrapper.fbFireEvent("Log message", "Terminated application process", {
     "Process id": uProcessId,
-    "Is main process": bIsMainProcess and "yes" or "no",
+    "Is main process": (oProcess.uId in oCdbWrapper.auMainProcessIds) and "yes" or "no",
   });
   # If we have console stdin/stdout/stderr pipes, close them:
   oConsoleProcess = oCdbWrapper.doConsoleProcess_by_uId.get(uProcessId);

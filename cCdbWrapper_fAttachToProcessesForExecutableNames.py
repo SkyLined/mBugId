@@ -7,5 +7,5 @@ def cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asExecutableN
     # If it is running one of the executables, check if it is being debugged:
     if sExecutableName.lower() in asExecutableNamesLowered:
       # If it is not yet being debugged, queue it for attaching:
-      if uProcessId not in oCdbWrapper.doProcess_by_uId and uProcessId not in oCdbWrapper.auProcessIdsPendingAttach:
-        oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
+      if uProcessId not in oCdbWrapper.doProcess_by_uId:
+        oCdbWrapper.fAttachToProcessForId(uProcessId);

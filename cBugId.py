@@ -151,7 +151,6 @@ class cBugId(object):
       "Failed to apply process memory limits",
       "Page heap not enabled",
       "Process terminated",
-      "Started process",
     ]:
       # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
       # do not want to expose. We'll take the most useful information about the process and pass that as arguments
@@ -162,7 +161,7 @@ class cBugId(object):
         oProcess.uId,
         oProcess.sBinaryName,
         oProcess.sCommandLine,
-        oProcess in oBugId.__oCdbWrapper.aoMainProcesses, # bIsMainProcess
+        oProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
         *axArguments
       );
     return oBugId.__oCdbWrapper.fAddEventCallback(

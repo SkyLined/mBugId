@@ -42,4 +42,6 @@ def cCdbWrapper_fCdbCleanupThread(oCdbWrapper):
     # Cleanup is done in a try: ... finally: to make sure we fire the Finished event, or you could be waiting forever.
     fCleanup(oCdbWrapper);
   finally:
+    oCdbWrapper.fbFireEvent("Log message", "Finished");
     oCdbWrapper.fbFireEvent("Finished");
+    

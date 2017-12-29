@@ -23,7 +23,7 @@ def fsExceptionHandlingCdbCommands():
       STATUS_STACK_BUFFER_OVERRUN,
       STATUS_STACK_OVERFLOW,
       STATUS_WX86_BREAKPOINT,
-      STATUS_WAKE_SYSTEM_DEBUGGER,
+      "out",
     ],
     "sxd": [ # break on second chance exceptions
       STATUS_INTEGER_DIVIDE_BY_ZERO,
@@ -40,6 +40,7 @@ def fsExceptionHandlingCdbCommands():
       "ibp",  # initial breakpoint
       "ld",   # Load module
       "ud",   # Unload module
+      STATUS_WAKE_SYSTEM_DEBUGGER,
     ],
   };
 

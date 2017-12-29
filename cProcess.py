@@ -138,8 +138,8 @@ class cProcess(object):
   def fasGetStack(oProcess, sCdbCommand):
     return cProcess_fasGetStack(oProcess, sCdbCommand);
   
-  def fuAddBreakpoint(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
-    return oProcess.oCdbWrapper.fuAddBreakpoint(
+  def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
+    return oProcess.oCdbWrapper.fuAddBreakpointForAddress(
       uAddress = uAddress,
       fCallback = fCallback,
       uProcessId = oProcess.uId,

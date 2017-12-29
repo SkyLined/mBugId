@@ -99,7 +99,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
               sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
             assert oCdbWrapper.fbFireEvent("Failed to debug application", sErrorMessage), \
                 sErrorMessage;
-            oCdbWrapper.fTerminate();
+            oCdbWrapper.fStop();
           bConcatinateReturnedLineToNext = False;
           if re.match(r"^\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)\s*$", sLine):
             # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
@@ -117,11 +117,12 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 bStartOfCommandOutput = sStartOfCommandOutputMarker and sIgnoredLine.endswith(sStartOfCommandOutputMarker);
                 if bStartOfCommandOutput:
                   sIgnoredLine = sIgnoredLine[:-len(sStartOfCommandOutputMarker)]; # Remove the marker from the line;
-              if sIgnoredLine and bAddOutputToHTMLReport:
-                sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBStdOut";
-                sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
-                # Add the line to the current block of I/O
-                oCdbWrapper.sCdbIOHTML += sLineHTML;
+              if sIgnoredLine:
+                if bAddOutputToHTMLReport:
+                  sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBStdOut";
+                  sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
+                  # Add the line to the current block of I/O
+                  oCdbWrapper.sCdbIOHTML += sLineHTML;
                 if bApplicationWillBeRun:
                   oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
                     "Line": sIgnoredLine,
@@ -153,10 +154,10 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                     sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
                     # Add the line to the current block of I/O
                     oCdbWrapper.sCdbIOHTML += sLineHTML;
-                    if bApplicationWillBeRun:
-                      oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
-                        "Line": sReturnedLine,
-                      });
+                  if bApplicationWillBeRun:
+                    oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
+                      "Line": sReturnedLine,
+                    });
                   asReturnedLines.append(sReturnedLine);
               if bEndOfCommandOutput:
                 sEndOfCommandOutputMarker = None; # Stop looking for the marker.

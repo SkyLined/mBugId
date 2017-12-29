@@ -85,6 +85,7 @@ def fTest(
   bRunInShell = False,
   sApplicationBinaryPath = None,
   uMaximumNumberOfBugs = 2,
+  bExcessiveCPUUsageChecks = False,
 ):
   global gbTestFailed;
   if gbTestFailed:
@@ -121,28 +122,51 @@ def fTest(
     fOutput("* %s" % sTestDescription, bCRLF = False);
   
   asLog = [];
-  def fStdInInputHandler(oBugId, sInput):
+  def fCdbStdInInputCallback(oBugId, sInput):
     if gbDebugIO: fOutput("stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
-  def fStdOutOutputHandler(oBugId, sOutput):
+  def fCdbStdOutOutputCallback(oBugId, sOutput):
     if gbDebugIO: fOutput("stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
-  def fStdErrOutputHandler(oBugId, sOutput):
+  def fCdbStdErrOutputCallback(oBugId, sOutput):
     if gbDebugIO: fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
-  def fLogMessageHandler(oBugId, sMessage, dsData = None):
+  def fLogMessageCallback(oBugId, sMessage, dsData = None):
     sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
-    if gbDebugIO: fOutput("log>%s%s" % (sMessage, sData and " (%s)" % sData));
-    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData));
-  def fApplicationStdOutOutputHandler(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+    if gbDebugIO: fOutput("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
+#    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
+  def fApplicationDebugOutputCallback(oBugId, asOutput):
+    for sOutput in asOutput:
+      if gbDebugIO: fOutput("debug>%s" % sOutput);
+      asLog.append("debug>%s" % sOutput);
+  def fApplicationStdOutOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+    # This is always a main process
     if gbDebugIO: fOutput("process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-    asLog.append("process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-  def fApplicationStdErrOutputHandler(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+    asLog.append("Main process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
+  def fApplicationStdErrOutputCallback(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
+    # This is always a main process
     if gbDebugIO: fOutput("process %d/0x%X (%s): stderr> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
-    asLog.append("process %d/0x%X (%s): stderr> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
+    asLog.append("Main process %d/0x%X (%s): stderr> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
+  def fApplicationResumedCallback(oBugId):
+    asLog.append("Application resumed");
+  def fApplicationRunningCallback(oBugId):
+    asLog.append("Application running");
+  def fAttachedToProcessCallback(oBugId, uProcessId, sBinaryName, sCommandLine, bIsMainProcess):
+    asLog.append("%s process %d/0x%X (%s): attached." % \
+        (bIsMainProcess and "Main" or "Sub", uProcessId, uProcessId, sBinaryName));
+  def fApplicationSuspendedCallback(oBugId, sReason):
+    asLog.append("Application suspended (%s)" % sReason);
+  def fProcessTerminatedCallback(oBugId, uProcessId, sBinaryName, sCommandLine, bIsMainProcess):
+    asLog.append("%s process %d/0x%X (%s): terminated." % \
+        (bIsMainProcess and "Main" or "Sub", uProcessId, uProcessId, sBinaryName));
+  def fFinishedCallback(oBugId):
+    asLog.append("Finished");
+  def fProcessStartedCallback(oBugId, oConsoleProcess):
+    # This is always a main process
+    asLog.append("Main process %d/0x%X (%s): started." % \
+        (oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.oInformation.sBinaryName));
   
-  
-  def fFailedToDebugApplicationHandler(oBugId, sErrorMessage):
+  def fFailedToDebugApplicationCallback(oBugId, sErrorMessage):
     global gbTestFailed;
     if sExpectedFailedToDebugApplicationErrorMessage == sErrorMessage:
       return;
@@ -158,7 +182,7 @@ def fTest(
     fOutput("  Error:       %s" % repr(sErrorMessage));
     oBugId.fStop();
   
-  def fInternalExceptionHandler(oBugId, oException, oTraceBack):
+  def fInternalExceptionCallback(oBugId, oException, oTraceBack):
     global gbTestFailed;
     gbTestFailed = True;
     if not gbDebugIO: 
@@ -181,11 +205,11 @@ def fTest(
     fOutput("@" * 80);
     oBugId.fStop();
   
-  def fPageHeapNotEnabledHandler(oBugId, uProcessId, sBinaryName, sCommandLine, bIsMainProcess, bPreventable):
+  def fPageHeapNotEnabledCallback(oBugId, uProcessId, sBinaryName, sCommandLine, bIsMainProcess, bPreventable):
     assert sBinaryName == "cmd.exe", \
         "It appears you have not enabled page heap for %s, which is required to run tests." % sBinaryName;
   
-  def fFailedToApplyMemoryLimitsHandler(oBugId, uProcessId, sBinaryName, sCommandLine):
+  def fFailedToApplyMemoryLimitsCallback(oBugId, uProcessId, sBinaryName, sCommandLine):
     global gbTestFailed;
     gbTestFailed = True;
     if not gbDebugIO: 
@@ -196,7 +220,7 @@ def fTest(
     oBugId.fStop();
   
   aoBugReports = [];
-  def fBugReportHandler(oBugId, oBugReport):
+  def fBugReportCallback(oBugId, oBugReport):
     aoBugReports.append(oBugReport);
   
   if gbDebugIO:
@@ -216,20 +240,29 @@ def fTest(
       uTotalMaxMemoryUse = guTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
-    oBugId.fAddEventCallback("Internal exception", fInternalExceptionHandler);
-    oBugId.fAddEventCallback("Failed to debug application", fFailedToDebugApplicationHandler);
-    oBugId.fAddEventCallback("Failed to apply application memory limits", fFailedToApplyMemoryLimitsHandler); 
-    oBugId.fAddEventCallback("Failed to apply process memory limits", fFailedToApplyMemoryLimitsHandler); 
-    oBugId.fAddEventCallback("Page heap not enabled", fPageHeapNotEnabledHandler);
-    oBugId.fAddEventCallback("Cdb stdin input", fStdInInputHandler);
-    oBugId.fAddEventCallback("Cdb stdout output", fStdOutOutputHandler);
-    oBugId.fAddEventCallback("Cdb stderr output", fStdErrOutputHandler);
-    oBugId.fAddEventCallback("Bug report", fBugReportHandler);
-    oBugId.fAddEventCallback("Log message", fLogMessageHandler);
-    oBugId.fAddEventCallback("Application stdout output", fApplicationStdOutOutputHandler);
-    oBugId.fAddEventCallback("Application stderr output", fApplicationStdErrOutputHandler);
+    oBugId.fAddEventCallback("Application resumed", fApplicationResumedCallback);
+    oBugId.fAddEventCallback("Application running", fApplicationRunningCallback);
+    oBugId.fAddEventCallback("Application debug output", fApplicationDebugOutputCallback);
+    oBugId.fAddEventCallback("Application stderr output", fApplicationStdErrOutputCallback);
+    oBugId.fAddEventCallback("Application stdout output", fApplicationStdOutOutputCallback);
+    oBugId.fAddEventCallback("Application suspended", fApplicationSuspendedCallback);
+    oBugId.fAddEventCallback("Attached to process", fAttachedToProcessCallback);
+    oBugId.fAddEventCallback("Bug report", fBugReportCallback);
+    oBugId.fAddEventCallback("Cdb stderr output", fCdbStdErrOutputCallback);
+    oBugId.fAddEventCallback("Cdb stdin input", fCdbStdInInputCallback);
+    oBugId.fAddEventCallback("Cdb stdout output", fCdbStdOutOutputCallback);
+    oBugId.fAddEventCallback("Failed to apply application memory limits", fFailedToApplyMemoryLimitsCallback); 
+    oBugId.fAddEventCallback("Failed to apply process memory limits", fFailedToApplyMemoryLimitsCallback); 
+    oBugId.fAddEventCallback("Failed to debug application", fFailedToDebugApplicationCallback);
+    oBugId.fAddEventCallback("Finished", fFinishedCallback);
+    oBugId.fAddEventCallback("Internal exception", fInternalExceptionCallback);
+    oBugId.fAddEventCallback("Log message", fLogMessageCallback);
+    oBugId.fAddEventCallback("Page heap not enabled", fPageHeapNotEnabledCallback);
+    oBugId.fAddEventCallback("Process terminated", fProcessTerminatedCallback);
+    oBugId.fAddEventCallback("Process started", fProcessStartedCallback);
     oBugId.fStart();
-    oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
+    if bExcessiveCPUUsageChecks:
+      oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
     oBugId.fWait();
     if gbTestFailed:
       return;
@@ -348,11 +381,12 @@ if __name__ == "__main__":
         continue; # Just do a test without a crash and breakpoint.
       # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
       fTest(sISA,    ["Breakpoint"],                                            ["Breakpoint ed2.531 @ <test-binary>!wmain"],
-            bRunInShell = True);
-      fTest(sISA,    ["CPUUsage"],                                              ["CPUUsage ed2.531 @ <test-binary>!wmain"]);
+          bRunInShell = True);
+      fTest(sISA,    ["CPUUsage"],                                              ["CPUUsage ed2.531 @ <test-binary>!wmain"],
+          bExcessiveCPUUsageChecks = True);
       fTest(sISA,    ["C++"],                                                   ["C++:cException ed2.531 @ <test-binary>!wmain"]);
       fTest(sISA,    ["IntegerDivideByZero"],                                   ["IntegerDivideByZero ed2.531 @ <test-binary>!wmain"]);
-# This test will throw a first chance integer overflow, but Visual Studio added an exception handler that then triggers
+# This test will throw a first chance integer overflow, but Visual Studio added an exception Callback that then triggers
 # another exception, so the report is incorrect.
 #      fTest(sISA,    ["IntegerOverflow"],                                      "IntegerOverflow xxx.ed2");
       fTest(sISA,    ["Numbered", 0x41414141, 0x42424242],                      ["0x41414141 ed2.531 @ <test-binary>!wmain"]);
