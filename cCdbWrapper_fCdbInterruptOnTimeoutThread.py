@@ -19,7 +19,10 @@ def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
       # Otherwise, check if any timeout should be fired:
       for oTimeout in oCdbWrapper.aoTimeouts[:]:
         if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
-          oCdbWrapper.fInterruptApplication();
+          oCdbWrapper.fbFireEvent("Log message", "Interrupting application to fire timeout", {
+            "Timeout": oTimeout.sDescription
+          });
+          oCdbWrapper.fInterruptApplicationExecution();
           return;
     finally:
       oCdbWrapper.oTimeoutAndInterruptLock.release();

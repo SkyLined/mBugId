@@ -307,8 +307,11 @@ def fbAccessViolationIsInvalidPointer(
   oBugReport.sBugTypeId = "AV%s@Invalid" % sViolationTypeId;
   oBugReport.sBugDescription = "Access violation while %s memory at invalid address 0x%X." % (sViolationTypeDescription, uAccessViolationAddress);
   oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled.";
-  # You normally cannot allocate memory at an invalid address, so it is impossible for an exploit to avoid this
-  # exception. Therefore there is no collateral bug handling.
+  # You normally cannot allocate memory at an invalid address, but the address may be based on controlled data, so we'll
+  # try to continue running after this exception just in case.
+  oCdbWrapper.oCollateralBugHandler.fSetExceptionHandler(lambda oCollateralBugHandler:
+    fbAccessViolationExceptionHandler(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+  );
   return True;
 
 def fbAccessViolationIsStackPointer(

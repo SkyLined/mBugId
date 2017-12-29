@@ -24,16 +24,6 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oPro
         (hResult, json.dumps(sMessage));
     oBugReport.sSecurityImpact = "The security impact of this type of vulnerability is unknown";
   else:
-    # This is not a bug, but we may want to show the message:
+    # This is not a bug:
     oBugReport.sBugTypeId = None;
-    if oProcess.oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
-      sMessage = oProcess.fsGetUnicodeString(
-        uAddress = uMessageAddress,
-        sComment = "Get WRT Originate Error message",
-      );
-      oProcess.oCdbWrapper.fLogMessageInReport(
-        "LogException", 
-        "The application threw a Windows Run-Time Originate Error with HRESULT 0x%08X:<br/>Message: %s</span>" % \
-            (hResult, sMessage is None and "(no message)" or repr(sMessage))
-      );
   return oBugReport;

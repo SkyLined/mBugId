@@ -1,7 +1,7 @@
 import itertools, json, os, re, subprocess, sys, thread, threading, time;
 from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
-from cCdbWrapper_fInterruptApplication import cCdbWrapper_fInterruptApplication;
+from cCdbWrapper_fInterruptApplicationExecution import cCdbWrapper_fInterruptApplicationExecution;
 from cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from cCdbWrapper_fApplicationStdOutOrErrThread import cCdbWrapper_fApplicationStdOutOrErrThread;
 from cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
@@ -11,13 +11,16 @@ from cCdbWrapper_fCdbCleanupThread import cCdbWrapper_fCdbCleanupThread;
 from cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
 from cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
 from cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
+from cCdbWrapper_fHandleNewApplicationProcess import cCdbWrapper_fHandleNewApplicationProcess;
+from cCdbWrapper_fHandleNewUtilityProcess import cCdbWrapper_fHandleNewUtilityProcess;
+from cCdbWrapper_fHandleApplicationProcessTermination import cCdbWrapper_fHandleApplicationProcessTermination;
 from cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from cCollateralBugHandler import cCollateralBugHandler;
 from cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from cUWPApplication import cUWPApplication;
 from dxConfig import dxConfig;
-from mWindowsAPI import fbTerminateProcessForId, oSystemInfo;
+from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, oSystemInfo;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -55,14 +58,11 @@ class cCdbWrapper(object):
     asSymbolCachePaths, 
     asSymbolServerURLs,
     dsURLTemplate_by_srSourceFilePath,
-    rImportantStdOutLines,
-    rImportantStdErrLines,
     bGenerateReportHTML,        
     uProcessMaxMemoryUse,
     uTotalMaxMemoryUse,
     uMaximumNumberOfBugs,
   ):
-    oCdbWrapper.aoInternalExceptions = [];
     oCdbWrapper.sCdbISA = sCdbISA or oSystemInfo.sOSISA;
     assert sApplicationBinaryPath or auApplicationProcessIds or sUWPApplicationPackageName, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
@@ -78,8 +78,6 @@ class cCdbWrapper(object):
     if asSymbolServerURLs is None:
       oCdbWrapper.asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"];
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
-    oCdbWrapper.rImportantStdOutLines = rImportantStdOutLines;
-    oCdbWrapper.rImportantStdErrLines = rImportantStdErrLines;
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
     oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
@@ -161,7 +159,7 @@ class cCdbWrapper(object):
     oCdbWrapper.nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
-    oCdbWrapper.oCdbProcess = None;
+    oCdbWrapper.oCdbConsoleProcess = None;
     # We track stderr output, as it may contain information output by AddressSanitizer when it detects an issue. Once
     # ASan is done outputting everthing it knows and causes an exception to terminate the application, we can analyze
     # its output and use it to create a bug id & report.
@@ -169,49 +167,40 @@ class cCdbWrapper(object):
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     oCdbWrapper.bFatalBugDetected = False;
+    
+    if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
+      def fWriteLogMessageToReport(sMessage, dsData = None):
+        sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
+        oCdbWrapper.sLogHTML += "<span class=\"%s\">%s%s</span><br/>" % \
+            (oCdbWrapper.fsHTMLEncode(sMessage), sData and " (%s)" % oCdbWrapper.fsHTMLEncode(sData) or "");
+      oCdbWrapper.fAddEventCallback("Log message", fWriteLogMessageToReport);
   
   def fAttachToProcessById(oCdbWrapper, uProcessId):
-    if oCdbWrapper.oCdbProcess is None:
+    if oCdbWrapper.oCdbConsoleProcess is None:
       # This is the first process: start the debugger and attach to it.
       assert len(oCdbWrapper.auProcessIdsPendingAttach) == 0, \
           "This functions is not expected to get called when processes are pending attach.";
       oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
       oCdbWrapper.__fStartDebugger();
     else:
+      # The debugger is up and running; interrupt the application to attach to the new process
+      def fAttachToProcessHelper():
+        assert cCdbWrapper.fbAttachToProcessForId(uProcessId), \
+            "Unable to attach to process %d/0x%X" % (uProcessId, uProcessId);
       oCdbWrapper.fInterrupt(
         "Attaching to process",
-        oCdbWrapper.__fActuallyAttachToProcessById,
-        uProcessId
+        fAttachToProcessHelper,
       );
-  
-  def __fActuallyAttachToProcessById(oCdbWrapper, uProcessId):
-    asAttachToProcess = oCdbWrapper.fasExecuteCdbCommand( \
-      sCommand = ".attach 0x%X;" % uProcessId,
-      sComment = "Attach to process %d" % uProcessId
-    );
-    assert asAttachToProcess == ["Attach will occur on next execution"], \
-        "Unexpected .attach output: %s" % repr(asAttachToProcess);
   
   def fStart(oCdbWrapper):
     global guSymbolOptions;
     oCdbWrapper.bDebuggerStarted = True;
-    # Get the command line (without starting/attaching to a process)
-    fQuote = lambda sArgument: '"%s"' % sArgument.replace('"', '\\"');
-    asCommandLine = [
-      fQuote(os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe")),
-      "-o", # Debug any child processes spawned by the main processes as well.
-      "-sflags", "0x%08X" % guSymbolOptions # Set symbol loading options (See above for details)
-    ];
-    if dxConfig["bEnableSourceCodeSupport"]:
-      asCommandLine += ["-lines"];
     # Construct the cdb symbol path if one is needed and add it as an argument.
     sSymbolsPath = ";".join(
       oCdbWrapper.asLocalSymbolPaths +
       ["cache*%s" % x for x in oCdbWrapper.asSymbolCachePaths] +
       ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
     );
-    if sSymbolsPath:
-      asCommandLine += ["-y", fQuote(sSymbolsPath)];
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdInOutThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
@@ -220,9 +209,6 @@ class cCdbWrapper(object):
     oCdbWrapper.oCdbCleanupThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbCleanupThread, bVital = True);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application.
-    asCommandLine += [
-      fQuote(os.getenv("ComSpec")), "/K", fQuote("ECHO OFF"), 
-    ];
     oCdbWrapper.uUtilityProcessId = None;
     if oCdbWrapper.sApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
@@ -234,14 +220,23 @@ class cCdbWrapper(object):
     else:
       assert oCdbWrapper.auProcessIdsPendingAttach, \
           "Must start a process or attach to one";
-    # Show the command line if requested.
-    oCdbWrapper.sCdbCommandLine = " ".join(asCommandLine);
-    oCdbWrapper.oCdbProcess = subprocess.Popen(
-      args = oCdbWrapper.sCdbCommandLine,
-      stdin = subprocess.PIPE,
-      stdout = subprocess.PIPE,
-      stderr = subprocess.PIPE,
-      creationflags = subprocess.CREATE_NEW_PROCESS_GROUP,
+    # Get the command line arguments for cdbe.exe
+    asArguments = [
+      # Debug any child processes spawned by the main processes as well.
+      "-o", 
+      # Set symbol loading options (See above for details)
+      "-sflags", "0x%08X" % guSymbolOptions, 
+#      "-sxe", "ld:verifier", # Breakpoint when verifier is loaded, so we can set a breakpoint on VERIFIER STOPs.
+    ] + (dxConfig["bEnableSourceCodeSupport"] and [
+      "-lines",
+    ] or []) + (sSymbolsPath and [
+      "-y", sSymbolsPath,
+    ] or []) + [
+      os.getenv("ComSpec"), "/K", "ECHO OFF", 
+    ];
+    oCdbWrapper.oCdbConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
+      sBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe"),
+      asArguments = asArguments,
     );
     oCdbWrapper.oCdbStdInOutThread.start();
     oCdbWrapper.oCdbStdErrThread.start();
@@ -275,23 +270,17 @@ class cCdbWrapper(object):
         # prevent it from being reported as an (unexpected) internal exception.
         pass;
       except Exception, oException:
-        oCdbWrapper.aoInternalExceptions.append(oException);
         cException, oException, oTraceBack = sys.exc_info();
         if not oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
           raise;
     finally:
       try:
         if bVital and oCdbWrapper.bCdbRunning:
-          oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-          if not oCdbProcess:
-            oCdbWrapper.bCdbRunning = False;
-            return;
-          if oCdbProcess.poll() is not None:
-            oCdbWrapper.bCdbRunning = False;
-            return;
-          # A vital thread terminated and cdb is still running: terminate cdb
-          assert fbTerminateProcessForId(oCdbProcess.pid), \
-              "Could not terminate cdb";
+          if oCdbWrapper.oCdbConsoleProcess and oCdbWrapper.oCdbConsoleProcess.bIsRunning:
+            # A vital thread terminated and cdb is still running: terminate cdb
+            oCdbWrapper.oCdbConsoleProcess.fbTerminate()
+            assert not oCdbWrapper.oCdbConsoleProcess.bIsRunning, \
+                "Could not terminate cdb";
           oCdbWrapper.bCdbRunning = False;
       finally:
         oCdbWrapper.adxThreads.remove(dxThread);
@@ -300,41 +289,28 @@ class cCdbWrapper(object):
     # Call `fTerminate` when you need to stop cBugId asap, e.g. when an internal error is detected. This function does
     # not wait for it to stop.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-    oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-    if oCdbProcess:
-      try:
-        oCdbProcess.terminate();
-      except:
-        pass;
+    if oCdbWrapper.oCdbConsoleProcess:
+      assert oCdbWrapper.oCdbConsoleProcess.fbTerminate(5), \
+          "Failed to terminate cdb.exe process within 5 seconds";
   
   def fStop(oCdbWrapper):
     # Call `fStop` to cleanly terminate cdb, and therefore cBugId, and wait for it to finish.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
-    oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-    if oCdbProcess:
-      try:
-        oCdbProcess.terminate();
-      except:
-        pass;
-    # The below three threads may have called an event callback, which issued this fStop call. Therefore, we cannot
-    # wait for them to terminate, as this could mean "waiting until we stop waiting", which takes forever. Since Python
-    # won't allow you to wait for yourself, this could thow a RuntimeError exception: "cannot join current thread".
-    # oCdbWrapper.oCdbStdInOutThread.join();
-    # oCdbWrapper.oCdbStdErrThread.join();
-    # oCdbWrapper.oCdbCleanupThread.join();
-    # However, this should not be a problem. The first two thread stop running as soon as they notice cdb has
-    # terminated. This functions waits for that as well, so the threads should stop at the same time or soon after this
-    # function returns. This is assuming they have not called a callback that does not return: that is a bug, but not
-    # in BugIg, but in that callback function. The third thread waits for the first two, does some cleanup and then
-    # stops running as well. In other words, termination is guaranteed assuming any active callbacks do not block.
-      oCdbProcess.wait();
+    if oCdbWrapper.oCdbConsoleProcess:
+      assert oCdbWrapper.oCdbConsoleProcess.fbTerminate(5), \
+          "Failed to terminate cdb.exe process within 5 seconds";
     oCdbWrapper.bCdbRunning = False;
   
   def __del__(oCdbWrapper):
     # Check to make sure the debugger process is not running
-    oCdbProcess = getattr(oCdbWrapper, "oCdbProcess", None);
-    assert not oCdbProcess or oCdbProcess.poll() is not None, \
-        "cCdbWrapper is being destroyed while cdb is still running.";
+    try:
+      oCdbConsoleProcess = oCdbWrapper.oCdbConsoleProcess;
+    except:
+      # The object may already have been deleted.
+      pass;
+    else:
+      assert not oCdbConsoleProcess or not oCdbConsoleProcess.bRunning, \
+          "cCdbWrapper is being destroyed while cdb.exe is still running.";
   
   @property
   def bUsingSymbolServers(oCdbWrapper):
@@ -434,14 +410,8 @@ class cCdbWrapper(object):
   def fbAttachToProcessForId(oCdbWrapper, uProcessId):
     return cCdbWrapper_fbAttachToProcessForId(oCdbWrapper, uProcessId);
   
-  def fInterruptApplication(oCdbWrapper):
-    cCdbWrapper_fInterruptApplication(oCdbWrapper);
-  
-  def fLogMessageInReport(oCdbWrapper, sMessageClass, sMessage):
-    oCdbWrapper.fbFireEvent("Log message", sMessageClass, sMessage);
-    if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
-      oCdbWrapper.sLogHTML += "<span class=\"%s\">%s</span><br/>" % \
-          (oCdbWrapper.fsHTMLEncode(sMessageClass), oCdbWrapper.fsHTMLEncode(sMessage));
+  def fInterruptApplicationExecution(oCdbWrapper):
+    cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper);
   
   def fCdbStdInOutThread(oCdbWrapper):
     return cCdbWrapper_fCdbStdInOutThread(oCdbWrapper);
@@ -487,3 +457,10 @@ class cCdbWrapper(object):
     for fCallback in afCallbacks:
       fCallback(*axCallbackArguments);
     return len(afCallbacks) != 0;
+  
+  def fHandleNewApplicationProcess(oCdbWrapper, uProcessId, bIsMainProcess):
+    return cCdbWrapper_fHandleNewApplicationProcess(oCdbWrapper, uProcessId, bIsMainProcess);
+  def fHandleNewUtilityProcess(oCdbWrapper, uProcessId):
+    return cCdbWrapper_fHandleNewUtilityProcess(oCdbWrapper, uProcessId);
+  def fHandleApplicationProcessTermination(oCdbWrapper, uProcessId):
+    return cCdbWrapper_fHandleApplicationProcessTermination(oCdbWrapper, uProcessId);

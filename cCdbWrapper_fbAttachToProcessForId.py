@@ -1,6 +1,6 @@
 def cCdbWrapper_fbAttachToProcessForId(oCdbWrapper, uProcessId):
   asAttachToProcessOutput = oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = ".attach -b 0x%X;" % uProcessId,
+    sCommand = ".attach 0x%X;" % uProcessId,
     sComment = "Attach to process %d" % uProcessId,
   );
   if asAttachToProcessOutput == [

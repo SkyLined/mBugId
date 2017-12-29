@@ -70,8 +70,6 @@ class cBugId(object):
     asSymbolCachePaths = None, 
     asSymbolServerURLs = None,
     dsURLTemplate_by_srSourceFilePath = None,
-    rImportantStdOutLines = None,
-    rImportantStdErrLines = None,
     bGenerateReportHTML = False,
     uProcessMaxMemoryUse = None,
     uTotalMaxMemoryUse = None,
@@ -94,8 +92,6 @@ class cBugId(object):
       asSymbolCachePaths = asSymbolCachePaths,
       asSymbolServerURLs = asSymbolServerURLs,
       dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath,
-      rImportantStdOutLines = rImportantStdOutLines,
-      rImportantStdErrLines = rImportantStdErrLines,
       bGenerateReportHTML = bGenerateReportHTML,
       uProcessMaxMemoryUse = uProcessMaxMemoryUse,
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
@@ -103,10 +99,6 @@ class cBugId(object):
     );
     oBugId.__oCdbWrapper.fAddEventCallback("Finished", lambda: oBugId.__oFinishedEvent.set());
     
-  @property
-  def aoInternalExceptions(oBugId):
-    return oBugId.__oCdbWrapper.aoInternalExceptions[:];
-  
   def fStart(oBugId):
     oBugId.__bStarted = True;
     oBugId.__oCdbWrapper.fStart();

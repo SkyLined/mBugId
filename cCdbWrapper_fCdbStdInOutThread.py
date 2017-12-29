@@ -5,9 +5,9 @@ from cProcess import cProcess;
 from dxConfig import dxConfig;
 from foDetectAndCreateBugReportForVERIFIER_STOP import foDetectAndCreateBugReportForVERIFIER_STOP;
 from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan;
-from fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
-from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, \
-    cConsoleProcess, fsGetProcessISAForId, fbTerminateProcessForId;
+from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, cConsoleProcess, fResumeProcessForId, \
+    fsGetProcessISAForId, fbTerminateProcessForId, fStopDebuggingProcessForId;
+
 from mWindowsAPI.mDefines import *;
 
 def fnGetDebuggerTime(sDebuggerTime):
@@ -37,27 +37,21 @@ def fnGetDebuggerTime(sDebuggerTime):
 def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
   # Create a job object to limit memory use if requested:
   if oCdbWrapper.uProcessMaxMemoryUse is not None or oCdbWrapper.uTotalMaxMemoryUse is not None:
-    oJobObject = cJobObject();
+    oCdbWrapper.oJobObject = cJobObject();
     if oCdbWrapper.uProcessMaxMemoryUse is not None:
-      oJobObject.fSetMaxProcessMemoryUse(oCdbWrapper.uProcessMaxMemoryUse);
+      oCdbWrapper.oJobObject.fSetMaxProcessMemoryUse(oCdbWrapper.uProcessMaxMemoryUse);
     if oCdbWrapper.uTotalMaxMemoryUse is not None:
-      oJobObject.fSetMaxTotalMemoryUse(oCdbWrapper.uTotalMaxMemoryUse);
+      oCdbWrapper.oJobObject.fSetMaxTotalMemoryUse(oCdbWrapper.uTotalMaxMemoryUse);
   else:
-    oJobObject = None;
+    oCdbWrapper.oJobObject = None;
   # If we cannot apply memory limits, we'll fire an event. This should be done only once.
-  bFailedToApplyApplicationMemoryLimitsEventFired = True;
+  oCdbWrapper.bFailedToApplyApplicationMemoryLimitsEventFired = True;
   # We may want to reserve some memory, which we'll track using this variable
   oReservedMemoryVirtualAllocation = None;
   # There are situations where an exception should be handled by the debugger and not by the application, this
   # boolean is set to True to indicate this and is used to execute either "gh" or "gn" in cdb.
   bHideLastExceptionFromApplication = False;
-  # Sometime an event can trigger multiple exceptions but only the first one contains new information. For instance
-  # when a new process is created, up to three exceptions can happen that are related this this event. In such cases
-  # BugId may need to ignore all but the first such exception. to be able to ignore exceptions, a dict contains the
-  # exception code of the exception to ignore for each process.
-  dauIgnoreNextExceptionCodes_by_uProcessId = {};
   # Create a list of commands to set up event handling.
-  sExceptionHandlingCommands = fsExceptionHandlingCdbCommands();
   
   # Read the initial cdb output related to starting/attaching to the first process.
   asIntialCdbOutput = oCdbWrapper.fasReadOutput();
@@ -140,6 +134,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           return;
       elif bApplicationNeedsToBeStarted:
         if oCdbWrapper.oUWPApplication:
+          oCdbWrapper.fbFireEvent("Log message", "Terminating UWP application", {
+            "Application Id": oCdbWrapper.oUWPApplication.sApplicationId, 
+            "Package name": oCdbWrapper.oUWPApplication.sPackageName, 
+            "Package full name": oCdbWrapper.oUWPApplication.sPackageFullName, 
+          });
           # Kill it so we are sure to run a fresh copy.
           asTerminateUWPApplicationOutput = oCdbWrapper.fasExecuteCdbCommand(
             sCommand = ".terminatepackageapp %s;" % oCdbWrapper.oUWPApplication.sPackageFullName,
@@ -153,6 +152,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             # make sure the semi-colon is not interpreted as part of the application id!
             sStartUWPApplicationCommand = ".createpackageapp %s %s ;" % \
                 (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId);
+            oCdbWrapper.fbFireEvent("Log message", "Starting UWP application", {
+              "Application Id": oCdbWrapper.oUWPApplication.sApplicationId, 
+              "Package name": oCdbWrapper.oUWPApplication.sPackageName, 
+              "Package full name": oCdbWrapper.oUWPApplication.sPackageFullName, 
+            });
           else:
             # This check should be superfluous, but it doesn't hurt to make sure.
             assert len(oCdbWrapper.asApplicationArguments) == 1, \
@@ -161,6 +165,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
             # sure the semi-colon is not passed to the UWP app as part of the argument!
             sStartUWPApplicationCommand = ".createpackageapp %s %s %s ;" % \
                 (oCdbWrapper.oUWPApplication.sPackageFullName, oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.asApplicationArguments[0]);
+            oCdbWrapper.fbFireEvent("Log message", "Starting UWP application", {
+              "Application Id": oCdbWrapper.oUWPApplication.sApplicationId, 
+              "Package name": oCdbWrapper.oUWPApplication.sPackageName, 
+              "Package full name": oCdbWrapper.oUWPApplication.sPackageFullName, 
+              "Argument": oCdbWrapper.asApplicationArguments[0],
+            });
           asStartUWPApplicationOutput = oCdbWrapper.fasExecuteCdbCommand(
             sCommand = sStartUWPApplicationCommand,
             sComment = "Start UWP application %s" % oCdbWrapper.oUWPApplication.sPackageName,
@@ -168,35 +178,42 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           assert asStartUWPApplicationOutput == ["Attach will occur on next execution"], \
               "Unexpected .createpackageapp output: %s" % repr(asStartUWPApplicationOutput);
         else:
+          oCdbWrapper.fbFireEvent("Log message", "Starting application", {
+            "Binary path": oCdbWrapper.sApplicationBinaryPath, 
+            "Arguments": " ".join([
+              " " in sArgument and '"%s"' % sArgument.replace('"', r'\"') or sArgument
+              for sArgument in oCdbWrapper.asApplicationArguments
+            ]),
+          });
           oConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
             sBinaryPath = oCdbWrapper.sApplicationBinaryPath,
             asArguments = oCdbWrapper.asApplicationArguments,
             bRedirectStdIn = False,
             bSuspended = True,
+            bDebug = True,
           );
           if oConsoleProcess is None:
             sMessage = "Unable to start a new process for binary \"%s\"." % oCdbWrapper.sApplicationBinaryPath;
             assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
                 sMessage;
-            oCdbWrapper.fTerminate();
-            return;
+            break;
+          # Start and stop debugging it; but if we do not, VERIFIER STOPs will throw a debugger breakpoint by creating a new
+          # thread and calling ntdll!DebugBreak in it. In that situation, we cannot get the stack of the call that caused the
+          # VERIFIER STOP, as we do not know in which thread it was. However, by calling these two functions below, we can get
+          # VERIFIER STOPs to throw a debugger breakpoint immediately, so we can get a stack. At least, that is the theory...
+          fStopDebuggingProcessForId(oConsoleProcess.uId);
           oCdbWrapper.doConsoleProcess_by_uId[oConsoleProcess.uId] = oConsoleProcess;
           # a 32-bit debugger cannot debug 64-bit processes. Report this.
           if oCdbWrapper.sCdbISA == "x86":
             if fsGetProcessISAForId(oConsoleProcess.uId) == "x64":
-              assert fbTerminateProcessForId(oConsoleProcess.uId), \
-                  "failed to terminate recently started process %d/0x%X" % \
+              assert oConsoleProcess.fbTerminate(5), \
+                  "Failed to terminate process %d/0x%X within 5 seconds" % \
                   (oConsoleProcess.uId, oConsoleProcess.uId);
               sMessage = "Unable to debug a 64-bit process using 32-bit cdb.";
               assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
                   sMessage;
               oCdbWrapper.fTerminate();
               return;
-          oCdbWrapper.fLogMessageInReport(
-            "LogProcess",
-            "Process %d was started using binary %s and arguments %s." % \
-                (oConsoleProcess.uId, repr(oCdbWrapper.sApplicationBinaryPath), repr(oCdbWrapper.asApplicationArguments)),
-          );
           # Create helper threads that read the application's output to stdout and stderr. No references to these
           # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
           # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
@@ -212,6 +229,14 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
               oConsoleProcess.uId, sBinaryName, sCommandLine, oConsoleProcess.oStdErrPipe, "StdErr",
           ).start();
           # Tell cdb to attach to the process.
+          oCdbWrapper.fbFireEvent("Log message", "Attaching to application", {
+            "Process": "%d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId),
+            "Binary path": oCdbWrapper.sApplicationBinaryPath, 
+            "Arguments": " ".join([
+              " " in sArgument and '"%s"' % sArgument.replace('"', r'\"') or sArgument
+              for sArgument in oCdbWrapper.asApplicationArguments
+            ]),
+          });
           if not oCdbWrapper.fbAttachToProcessForId(oConsoleProcess.uId):
             sMessage = "Unable to attach to new process %d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId);
             assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
@@ -229,22 +254,22 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # if threads in any process need to be resumed, do so:
         while auProcessIdsThatNeedToBeResumed:
           uProcessId = auProcessIdsThatNeedToBeResumed.pop();
-          oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
-          oProcess.fasExecuteCdbCommand(
-            sCommand = "~*m;",
-            sComment = "Resume all threads",
-          );
-          oCdbWrapper.fLogMessageInReport(
-            "LogProcess",
-            "All threads in process %d have been resumed." % uProcessId,
+          oCdbWrapper.fbFireEvent("Log message", "Resuming all threads in process", {
+            "Process id": "%d/0x%X" % (uProcessId, uProcessId), 
+          });
+# This does not appear to work :(
+#          fResumeProcessForId(uProcessId);
+# But this does:
+          oCdbWrapper.fSelectProcess(uProcessId);
+          oCdbWrapper.fasExecuteCdbCommand(
+            sCommand = "~*m",
+            sComment = "Resume threads for process %d/0x%X" % (uProcessId, uProcessId),
           );
       ### Check if page heap is enabled in all processes and discard cached info #####################################
-      for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
-        if not oProcess.bTerminated:
-          if dxConfig["bEnsurePageHeap"]:
+      if dxConfig["bEnsurePageHeap"]:
+        for uProcessId, oProcess in oCdbWrapper.doProcess_by_uId.items():
+          if not oProcess.bTerminated:
             oProcess.fEnsurePageHeapIsEnabled();
-        elif uProcessId in dauIgnoreNextExceptionCodes_by_uProcessId:
-          del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
       ### Call application resumed callback before throwing away cached information ##################################
       oCdbWrapper.fbFireEvent("Application resumed");
       ### Discard cached information about processes #################################################################
@@ -266,7 +291,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         if oReservedMemoryVirtualAllocation is None:
           try:
             oReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateInProcessForId(
-              uProcessId = oCdbWrapper.oCdbProcess.pid,
+              uProcessId = oCdbWrapper.oCdbConsoleProcess.uId,
               uSize = dxConfig["uReservedMemory"],
             );
           except MemoryError:
@@ -333,10 +358,8 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     # - or -
     # |Last event: c74.10e8: Exit process 4:c74, code 0          
     # |  debugger time: Tue Aug 25 00:06:07.311 2015 (UTC + 2:00)
-    if (len(asLastEventOutput) > 0 and asLastEventOutput[0] == ""):
-      # Sometimes, for unknown reasons, output can start with a blank line: remove it.
-      asLastEventOutput.pop(0);
-    assert len(asLastEventOutput) == 2, "Invalid .lastevent output:\r\n%s" % "\r\n".join(asLastEventOutput);
+    asCleanedLastEventOutput = [s for s in asLastEventOutput if s]; # Remove empty lines
+    assert len(asCleanedLastEventOutput) == 2, "Invalid .lastevent output:\r\n%s" % "\r\n".join(asLastEventOutput);
     oEventMatch = re.match(
       "^%s\s*$" % "".join([
         r"Last event: ([0-9a-f]+)\.([0-9a-f]+): ",
@@ -351,11 +374,11 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
           r"Hit breakpoint (\d+)",
         r")",
       ]),
-      asLastEventOutput[0],
+      asCleanedLastEventOutput[0],
       re.I
     );
     assert oEventMatch, "Invalid .lastevent output on line #1:\r\n%s" % "\r\n".join(asLastEventOutput);
-    oEventTimeMatch = re.match(r"^\s*debugger time: (.*?)\s*$", asLastEventOutput[1]);
+    oEventTimeMatch = re.match(r"^\s*debugger time: (.*?)\s*$", asCleanedLastEventOutput[1]);
     assert oEventTimeMatch, "Invalid .lastevent output on line #2:\r\n%s" % "\r\n".join(asLastEventOutput);
     oCdbWrapper.oApplicationTimeLock.acquire();
     try:
@@ -375,41 +398,28 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sExceptionDescription, sExceptionCode, sChance,
       sBreakpointId,
     ) = oEventMatch.groups();
-    if sIgnoredUnloadModule:
-      # This exception makes no sense; ignore it.
-      bLastExceptionWasIgnored = True;
-      continue;
     uProcessId = long(sProcessIdHex, 16);
     uThreadId = long(sThreadIdHex, 16);
-    assert not sCreateExitProcessIdHex or sProcessIdHex == sCreateExitProcessIdHex, \
-        "This is highly unexpected";
     uExceptionCode = sExceptionCode and long(sExceptionCode, 16);
     bApplicationCannotHandleException = sChance == "second";
     uBreakpointId = sBreakpointId and long(sBreakpointId);
-    ### Handle exceptions in the utility process #####################################################################
+    assert not sCreateExitProcessIdHex or sProcessIdHex == sCreateExitProcessIdHex, \
+        "This is highly unexpected";
+    # Handle new processes being started
     if oCdbWrapper.uUtilityProcessId is None:
       assert uExceptionCode == STATUS_BREAKPOINT, \
-          "An unexpected exception 0x%08X happened in process %d/0x%X, thread %d/0x%X before the debugger has attached to the utility process!" % \
-          (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId);
-      # The first exception is the breakpoint triggered after creating the processes.
-      # Set up exception handling and record the utility process' id.
-      oCdbWrapper.uUtilityProcessId = uProcessId;
-      oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = sExceptionHandlingCommands,
-        sComment = "Setup exception handling",
-      );
-      oCdbWrapper.fLogMessageInReport(
-        "LogProcess",
-        "Started utility process %d/0x%X." % (uProcessId, uProcessId),
-      );
+          "An unexpected event happened before cdb.exe reported that the utility process was loaded: %s" % \
+          repr(asLastEventOutput);
+      oCdbWrapper.fHandleNewUtilityProcess(uProcessId);
       continue;
-    elif oCdbWrapper.uUtilityProcessId == uProcessId:
+    # Handle exceptions in the utility process
+    if uProcessId == oCdbWrapper.uUtilityProcessId:
       # TODO: no exceptions other than the AVs caused deliberately by us are expected. I would like to have an assert
       # here, but I found that this happened frequently enough to want to find out what is going on. So, I am letting
       # other exceptions fall through here so that they get reported as bugs in the application instead.
-      if oCdbWrapper.uUtilityInterruptThreadId is not None \
-        and uThreadId == oCdbWrapper.uUtilityInterruptThreadId \
-        and uExceptionCode == STATUS_ACCESS_VIOLATION:
+      if oCdbWrapper.uUtilityInterruptThreadId is not None:
+        if uThreadId == oCdbWrapper.uUtilityInterruptThreadId \
+          and uExceptionCode == STATUS_ACCESS_VIOLATION:
 #          assert oCdbWrapper.uUtilityInterruptThreadId is not None, \
 #              "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
 #              "no exception was expected!" % \
@@ -419,176 +429,76 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
 #              "0x%08X was expected in thread %d/0x%X!" % \
 #              (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId, \
 #              STATUS_ACCESS_VIOLATION, oCdbWrapper.uUtilityInterruptThreadId, oCdbWrapper.uUtilityInterruptThreadId);
-        # Terminate the thread in which we triggered an AV, so the utility process can continue running.
-        assert fbTerminateThreadForId(oCdbWrapper.uUtilityInterruptThreadId), \
-            "Cannot terminate utility thread in utility process";
-        # Mark the interrupt as handled.
-        oCdbWrapper.uUtilityInterruptThreadId = None;
-        # Make sure all threads in all process of the application are resumed, as they were suspended by the
-        # cCdbWrapper.fInterruptApplication call.
-        auProcessIdsThatNeedToBeResumed.extend(oCdbWrapper.doProcess_by_uId.keys());
+          # Terminate the thread in which we triggered an AV, so the utility process can continue running.
+          assert fbTerminateThreadForId(oCdbWrapper.uUtilityInterruptThreadId), \
+              "Cannot terminate utility thread in utility process";
+          # Mark the interrupt as handled.
+          oCdbWrapper.uUtilityInterruptThreadId = None;
+        oCdbWrapper.fbFireEvent("Log message", "Application interrupted");
         continue;
-    # If the application was not suspended on purpose to attach to another process, report it:
-    if bCdbHasAttachedToApplication:
-      if uBreakpointId is not None:
-        sReason = "breakpoint hit";
-      elif uExceptionCode is not None:
-        sReason = "%s chance exception 0x%08X" % (sChance, uExceptionCode);
-      elif sCreateExitProcess == "Create":
-        sReason = "new process";
-      else:
-        sReason = "process terminated";
-      oCdbWrapper.fbFireEvent("Application suspended", sReason);
-    ### See if it was a debugger break-in for a new process that failed to load properly #############################
-    if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
-      # This exception does not always get reported for the new process; see if there are any processes known to cdb
-      # that we do not yet know about:
-      asListProcesses = oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = "|;",
-        sComment = "List processes being debugged",
-        bRetryOnTruncatedOutput = True,
-      );
-      auNewProcessIds = [];
-      for sListProcess in asListProcesses:
-        oProcessIdMatch = re.match("[#\.\s]+\d+\s+id:\s+([0-9a-f]+)\s+.*", sListProcess, re.I);
-        assert oProcessIdMatch, \
-            "Unrecognized process list output: %s\r\n%s" % (repr(sListProcess), "\r\n".join(asListProcesses));
-        uPotentiallNewProcessId = long(oProcessIdMatch.group(1), 16);
-        if uPotentiallNewProcessId not in oCdbWrapper.doProcess_by_uId:
-          auNewProcessIds.append(uPotentiallNewProcessId);
-      #  We're expecting there to be at most 1:
-      assert len(auNewProcessIds) < 2, \
-          "Found %d new processes: %s" % (len(auNewProcessIds), ", ".join([str(u) for u in auNewProcessIds]));
-      if len(auNewProcessIds) == 1:
-        # This process is new, handle it.
-        uProcessId = auNewProcessIds[0];
-    ### Determine the current process ################################################################################
-    if uProcessId not in oCdbWrapper.doProcess_by_uId:
-      # Create a new process object and make it the current process.
-      oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId] = cProcess(oCdbWrapper, uProcessId);
-      assert oCdbWrapper.oCurrentProcess.uId == uProcessId, \
-          "Expected the current process to be %d/0x%X but got %d/0x%X" % \
-          (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.uId, oCdbWrapper.oCurrentProcess.uId);
-      # Make it a main process too if we're still attaching to or starting the application
-      if oCdbWrapper.auProcessIdsPendingAttach:
-        uPendingAttachProcessId = oCdbWrapper.auProcessIdsPendingAttach.pop(0);
-        assert uPendingAttachProcessId == uProcessId, \
-            "Expected to attach to process %d, got %d" % (uPendingAttachProcessId, uProcessId);
-      if not bCdbHasAttachedToApplication:
-        oCdbWrapper.aoMainProcesses.append(oCdbWrapper.oCurrentProcess);
-        # If we are attaching to processes, the current process should be the last one we tried to attach to:
-        if oCdbWrapper.auProcessIdsPendingAttach:
-          oCdbWrapper.fLogMessageInReport(
-            "LogProcess",
-            "Attached to process %d/0x%X (%s)." % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-          );
-        else:
-          oCdbWrapper.fLogMessageInReport(
-            "LogProcess",
-            "Started process %d/0x%X (%s)." % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-          );
-        oCdbWrapper.fbFireEvent("Attached to process", oCdbWrapper.oCurrentProcess);
-      else:
-        oCdbWrapper.fLogMessageInReport(
-          "LogProcess",
-          "New process %d/0x%X (%s)." % (uProcessId, uProcessId, oCdbWrapper.oCurrentProcess.sBinaryName),
-        );
-        oCdbWrapper.fbFireEvent("Started process", oCdbWrapper.oCurrentProcess);
-      # If we have a JobObject, add this process to it.
-      if oJobObject and not oJobObject.fbAddProcessForId(uProcessId):
-        if not bFailedToApplyApplicationMemoryLimitsEventFired:
-          # The limits no longer affect the application after the first time this happens, so it is only reported once.
-          bFailedToApplyApplicationMemoryLimitsEventFired = True;
-          oCdbWrapper.fbFireEvent("Failed to apply application memory limits", oCdbWrapper.oCurrentProcess);
-        oCdbWrapper.fbFireEvent("Failed to apply process memory limits", oCdbWrapper.oCurrentProcess);
-      # Make sure child processes of the new process are debugged as well.
-      oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = ".childdbg 1;",
-        sComment = "Debug child processes",
-        bRetryOnTruncatedOutput = True
-      );
-      if sCreateExitProcess == "Create":
-        # If the application creates a new process, a STATUS_BREAKPOINT exception may follow that signals the
-        # same event; this exception should be ignored as we have already handled the new process.
-        # This is potentially unreliable: if this exception is not thrown, but the process does trigger a
-        # breakpoint for some other reason, it will be ignored. However, I have never seen that happen.
-        dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId] = [STATUS_BREAKPOINT];
-      else:
-        assert uExceptionCode == STATUS_BREAKPOINT, \
-            "Expected this to be a debug breakpoint because the debugger attached to a new process";
-      # And a STATUS_BREAKPOINT triggered to report a new process in turn can be followed by a STATUS_WX86_BREAKPOINT
-      # on x64 systems running a x86 process.
-      if oCdbWrapper.sCdbISA == "x64" and oCdbWrapper.oCurrentProcess.sISA == "x86":
-        dauIgnoreNextExceptionCodes_by_uProcessId.setdefault(uProcessId, []).append(STATUS_WX86_BREAKPOINT);
-      continue;
-    else:
-      oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
-    if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCdbISA:
-      oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA],
-        sComment = "Switch to recent event ISA",
-        bRetryOnTruncatedOutput = True
-      );
-      
-    ### See if this was an ignored exception #########################################################################
-    if uExceptionCode is not None:
-      auIgnoreNextExceptionCodes = dauIgnoreNextExceptionCodes_by_uProcessId.get(uProcessId);
-      if auIgnoreNextExceptionCodes:
-        if uExceptionCode == auIgnoreNextExceptionCodes[0]:
-# I used to treat failing ^^^^^^ this test as an error, but now I let the code continue as the exceptions I saw
-# indicated that they may truely be bugs in the application. Letting the code continue gets me a bug report to check.
-#            assert uExceptionCode == auIgnoreNextExceptionCodes[0], \
-#                "Expected to see exception 0x%X in %s process %d/0x%X, but got 0x%X!?" % \
-#                (auIgnoreNextExceptionCodes[0], oCdbWrapper.oCurrentProcess.sBinaryName, 
-#                oCdbWrapper.oCurrentProcess.uId, oCdbWrapper.oCurrentProcess.uId, uExceptionCode);        
-          auIgnoreNextExceptionCodes.pop(0);
-          # If there are no more exceptions to be ignored for this process, stop ignoring exceptions.
-          if len(auIgnoreNextExceptionCodes) == 0:
-            del dauIgnoreNextExceptionCodes_by_uProcessId[uProcessId];
-          bLastExceptionWasIgnored = True;
-          continue;
-    ### Handle process termination ###################################################################################
-    if sCreateExitProcess == "Exit":
-      assert bCdbHasAttachedToApplication, \
-          "No processes are expected to terminated before cdb has fully attached to the application!";
-      # A process was terminated. This may be the first time we hear of the process, i.e. the code above may have only
-      # just added the process. I do not know why cdb did not throw an event when it was created: maybe it terminated
-      # while being created due to some error? Anyway, having added the process in the above code, we'll now mark it as
-      # terminated:
-      oCdbWrapper.oCurrentProcess.bTerminated = True;
-      oCdbWrapper.fbFireEvent("Process terminated", oCdbWrapper.oCurrentProcess);
-      bIsMainProcess = oCdbWrapper.oCurrentProcess in oCdbWrapper.aoMainProcesses;
-      oCdbWrapper.fLogMessageInReport(
-        "LogProcess",
-        "Terminated %sprocess %d/0x%X." % (bIsMainProcess and "main " or "", uProcessId, uProcessId),
-      );
-      # If we have console stdin/stdout/stderr pipes, close them:
-      oConsoleProcess = oCdbWrapper.doConsoleProcess_by_uId.get(uProcessId);
-      if oConsoleProcess:
-        del oCdbWrapper.doConsoleProcess_by_uId[uProcessId];
-        # Unfortunately, the console process still exists, but it is suspended. For unknown reasons, attempting to
-        # close the handles now will hang until the process is resumed. Since this will not happen unless we continue
-        # and let cdb resume, this causes a deadlock. To avoid this we will start another thread that will close the
-        # handles. It will hang until we've resumed cdb (or terminated, whatever comes first).
-        oCdbWrapper.foHelperThread(oConsoleProcess.fClose).start();
-      # This event was explicitly to notify us of the terminated process; no more processing is needed.
+    if sCreateExitProcess == "Create":
+      bIsMainProcess = not bCdbHasAttachedToApplication;
+      if not bIsMainProcess:
+        oCdbWrapper.fbFireEvent("Application suspended", "Attached to process");
+      oCdbWrapper.fHandleNewApplicationProcess(uProcessId, bIsMainProcess);
       continue;
     assert bCdbHasAttachedToApplication, \
-        "No exceptions are expected before cdb has fully attached to the application!";
-    ### Handle hit breakpoint ########################################################################################
-    if uBreakpointId is not None:
-      # A breakpoint was hit; fire the callback
-      oCdbWrapper.fLogMessageInReport(
-        "LogBreakpoint",
-        "The application hit breakpoint #%d." % uBreakpointId,
-      );
-      fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
-      fBreakpointCallback(uBreakpointId);
+        "Unexpected exception before cdb has fully attached to the application:\r\n%s" % "\r\n".join(asLastEventOutput);
+    if sIgnoredUnloadModule:
+      # This exception makes no sense; we never requested it and do not care about it: ignore it.
+      bLastExceptionWasIgnored = True;
       continue;
+    if sCreateExitProcess == "Exit":
+      oCdbWrapper.fbFireEvent("Application suspended", "Process terminated");
+      oCdbWrapper.fHandleApplicationProcessTermination(uProcessId);
+      continue;
+    oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
     ### Free reserve memory for exception analysis ###################################################################
     if oReservedMemoryVirtualAllocation:
       oReservedMemoryVirtualAllocation.fFree();
       oReservedMemoryVirtualAllocation = None;
+# I believe this is no longer needed.
+#    ### See if it was a debugger break-in for a new process that failed to load properly #############################
+#    if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:
+#      # This exception does not always get reported for the new process; see if there are any processes known to cdb
+#      # that we do not yet know about:
+#      asListProcesses = oCdbWrapper.fasExecuteCdbCommand(
+#        sCommand = "|;",
+#        sComment = "List processes being debugged",
+#        bRetryOnTruncatedOutput = True,
+#      );
+#      auNewProcessIds = [];
+#      for sListProcess in asListProcesses:
+#        oProcessIdMatch = re.match("[#\.\s]+\d+\s+id:\s+([0-9a-f]+)\s+.*", sListProcess, re.I);
+#        assert oProcessIdMatch, \
+#            "Unrecognized process list output: %s\r\n%s" % (repr(sListProcess), "\r\n".join(asListProcesses));
+#        uPotentiallNewProcessId = long(oProcessIdMatch.group(1), 16);
+#        if uPotentiallNewProcessId not in oCdbWrapper.doProcess_by_uId:
+#          auNewProcessIds.append(uPotentiallNewProcessId);
+#      #  We're expecting there to be at most 1:
+#      assert len(auNewProcessIds) < 2, \
+#          "Found %d new processes: %s" % (len(auNewProcessIds), ", ".join([str(u) for u in auNewProcessIds]));
+#      if len(auNewProcessIds) == 1:
+#        # This process is new, handle it.
+#        uProcessId = auNewProcessIds[0];
+    # Make sure cdb switches to the right ISA for the current process.
+    if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCdbISA:
+      oCdbWrapper.fasExecuteCdbCommand(
+        sCommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA],
+        sComment = "Switch to current process ISA",
+        bRetryOnTruncatedOutput = True,
+      );
+    ### Handle hit breakpoint ########################################################################################
+    if uBreakpointId is not None:
+      oCdbWrapper.fbFireEvent("Application suspended", "Breakpoint hit");
+      # A breakpoint was hit; fire the callback
+      oCdbWrapper.fbFireEvent("Log message", "Breakpoint hit", {
+        "Breakpoint id": "%d" % uBreakpointId,
+      });
+      fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
+      fBreakpointCallback(uBreakpointId);
+      continue;
+    oCdbWrapper.fbFireEvent("Application suspended", "%s chance exception 0x%08X" % (sChance.capitalize(), uExceptionCode));
     ### Analyze potential bugs #######################################################################################
     ### Triggering a breakpoint may indicate a third-party component reported a bug in stdout/stderr; look for that.
     oBugReport = None;
@@ -613,6 +523,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # This exception is not a bug, do not hide it from the application.
       bHideLastExceptionFromApplication = False;
   # Terminate cdb.
+  oCdbWrapper.fbFireEvent("Log message", "Terminating cdb.exe");
   oCdbWrapper.bCdbWasTerminatedOnPurpose = True;
   oCdbWrapper.fasExecuteCdbCommand(
     sCommand = "q",
@@ -620,5 +531,5 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     bIgnoreOutput = True,
     bUseMarkers = False
   );
-  # Wait for cdb to truely terminate
-  oCdbWrapper.oCdbProcess.wait();
+  # The above should raise a cCdbTerminedException, so the below should not be reached.
+  raise AssertionError("Cdb failed to terminate after sending 'q' command");

@@ -62,11 +62,12 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
   while uTries:
     oCdbWrapper.fbFireEvent("Cdb stdin input", sCommand);
     try:
-      oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
-    except Exception, oException:
+      oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes("%s\r\n" % sCommand);
+    except IOError:
       oCdbWrapper.bCdbRunning = False;
       if gbDebugIO: print "\r>stdin:EOF>";
-      oCdbWrapper.oCdbProcess.wait(); # This should not take long!
+      assert oCdbWrapper.oCdbConsoleProcess.fbWait(), \
+          "Could not wait for cdb.exe to terminate";
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;

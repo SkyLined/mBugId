@@ -7,7 +7,8 @@ def fsExceptionHandlingCdbCommands():
       # To be able to track which processes are running at any given time while the application being debugged, cpr and
       # epr must be enabled. Additionally, if epr is disabled the debugger will silently exit when the application
       # terminates. To distinguish this from other unexpected terminations of the debugger, epr must also be enabled.
-      "cpr", "ibp", "epr",
+      "cpr", # create process
+      "epr", # end process
       "aph", # Application has stopped responding
       STATUS_ACCESS_VIOLATION,
       STATUS_ASSERTION_FAILURE,
@@ -36,7 +37,9 @@ def fsExceptionHandlingCdbCommands():
       STATUS_WX86_SINGLE_STEP,
     ],
     "sxi": [ # ignored
-      "ld", "ud", # Load/unload module
+      "ibp",  # initial breakpoint
+      "ld",   # Load module
+      "ud",   # Unload module
     ],
   };
 

@@ -28,17 +28,21 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     and asBreakpointResult[3] == 'to track module load/unload state you must use BU.'
     and re.match(r'^bp%d at .* failed$' % uBreakpointId, asBreakpointResult[4])
   ):
-    oCdbWrapper.fLogMessageInReport(
-      "LogBreakpoint",
-      "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
-    );
+    oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+      "Breakpoint id": "%d" % uBreakpointId,
+      "Address": "0x%X" % uAddress,
+      "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+      "Error": "Invalid access to memory location.",
+    });
     return None;
   elif len(asBreakpointResult) == 1:
     if asBreakpointResult[0] == "Invalid address":
-      oCdbWrapper.fLogMessageInReport(
-        "LogBreakpoint",
-        "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
-      );
+      oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+        "Breakpoint id": "%d" % uBreakpointId,
+        "Address": "0x%X" % uAddress,
+        "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+        "Error": "Invalid address.",
+      });
       return None;
     oActualBreakpointIdMatch = re.match(r"^breakpoint (\d+) (?:exists, redefining|redefined)$", asBreakpointResult[0]);
     assert oActualBreakpointIdMatch, \
@@ -51,6 +55,11 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);
+  oCdbWrapper.fbFireEvent("Log message", "Added breakpoint", {
+    "Breakpoint id": "%d" % uBreakpointId,
+    "Address": "0x%X" % uAddress,
+    "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+  });
   oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId] = uAddress;
   oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId] = uProcessId;
   oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId] = fCallback;
@@ -68,4 +77,11 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
     sCommand = 'bp%d "gh";' % uBreakpointId,
     sComment = 'Remove breakpoint',
   );
+  oCdbWrapper.fbFireEvent("Log message", "Removed breakpoint", {
+    "Breakpoint id": "%d" % uBreakpointId,
+    "Address": "0x%X" % oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId],
+    "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+  });
+  del oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId];
+  del oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId];
   del oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];

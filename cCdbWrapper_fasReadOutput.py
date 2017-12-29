@@ -52,7 +52,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
 ):
   if bIgnoreOutput:
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and dxConfig["bShowAllCdbCommandsInReport"];
-    bAddImportantLinesToHTMLReport = False;
     sIgnoredLine = "";
   else:
     asReturnedLines = [];
@@ -69,10 +68,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"])
       or bApplicationWillBeRun
     );
-    bAddImportantLinesToHTMLReport = oCdbWrapper.bGenerateReportHTML and (
-      bApplicationWillBeRun
-      and oCdbWrapper.rImportantStdOutLines
-    );
   sLine = "";
   asLines = [];
   if bApplicationWillBeRun:
@@ -86,7 +81,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       oCdbWrapper.oTimeoutAndInterruptLock.release();
   try: # "try:" because the oInterruptOnTimeoutThread thread needs to be stopped in a "finally:" if there is an exception.
     while 1:
-      sChar = oCdbWrapper.oCdbProcess.stdout.read(1);
+      sChar = oCdbWrapper.oCdbConsoleProcess.oStdOutPipe.fsReadBytes(1); # return "" if pipe is closed.
       if sChar == "\r":
         pass; # ignored.
       elif sChar in ("\n", ""):
@@ -128,12 +123,9 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 # Add the line to the current block of I/O
                 oCdbWrapper.sCdbIOHTML += sLineHTML;
                 if bApplicationWillBeRun:
-                  # Add the line to the log
-                  bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sIgnoredLine);
-                  oCdbWrapper.fLogMessageInReport(
-                    bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput", 
-                    sIgnoredLine,
-                  );
+                  oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
+                    "Line": sIgnoredLine,
+                  });
               if bStartOfCommandOutput:
                 sReturnedLine = ""; # Start collecting lines to return to the caller.
                 sIgnoredLine = None; # Stop ignoring lines
@@ -147,12 +139,6 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                   sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
-                  # Optionally add the line to the important output
-                  bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sCruft);
-                  oCdbWrapper.fLogMessageInReport(
-                    bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput",
-                    sCruft,
-                  );
                 # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
                 # this line and the next line:
                 bConcatinateReturnedLineToNext = True;
@@ -168,12 +154,9 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                     # Add the line to the current block of I/O
                     oCdbWrapper.sCdbIOHTML += sLineHTML;
                     if bApplicationWillBeRun:
-                      # Add the line to the log
-                      bIsImportantOutput = bAddImportantLinesToHTMLReport and oCdbWrapper.rImportantStdOutLines.match(sReturnedLine);
-                      oCdbWrapper.fLogMessageInReport(
-                        bIsImportantOutput and "LogImportantStdOutOutput" or "LogStdOutOutput", 
-                        sReturnedLine,
-                      );
+                      oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
+                        "Line": sReturnedLine,
+                      });
                   asReturnedLines.append(sReturnedLine);
               if bEndOfCommandOutput:
                 sEndOfCommandOutputMarker = None; # Stop looking for the marker.
@@ -182,7 +165,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "":
           oCdbWrapper.bCdbRunning = False;
           if gbDebugIO: print "<stdout:EOF<";
-          oCdbWrapper.oCdbProcess.wait(); # This should not take long!
+          oCdbWrapper.oCdbConsoleProcess.fbWait(5), \
+              "Could not wait for cdb.exe to die within 5 seconds!";
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:

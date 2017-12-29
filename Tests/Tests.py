@@ -28,7 +28,7 @@ if oSystemInfo.sOSISA == "x64":
   dsComSpec_by_sISA["x86"] = os.path.join(os.environ.get("WinDir"), "SysWOW64", "cmd.exe");
 
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
-cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 2; # The test application is simple: CPU usage should be apparent after a few seconds.
+cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 1; # The test application is simple: CPU usage should be apparent after a few seconds.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
 sPythonISA = {
@@ -130,9 +130,10 @@ def fTest(
   def fStdErrOutputHandler(oBugId, sOutput):
     if gbDebugIO: fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
-  def fLogMessageHandler(oBugId, sMessageClass, sMessage):
-    if gbDebugIO: fOutput("log>%s: %s" % (sMessageClass, sMessage));
-    asLog.append("log>%s: %s" % (sMessageClass, sMessage));
+  def fLogMessageHandler(oBugId, sMessage, dsData = None):
+    sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
+    if gbDebugIO: fOutput("log>%s%s" % (sMessage, sData and " (%s)" % sData));
+    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData));
   def fApplicationStdOutOutputHandler(oBugId, uProcessId, sBinaryName, sCommandLine, sMessage):
     if gbDebugIO: fOutput("process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
     asLog.append("process %d/0x%X (%s): stdout> %s" % (uProcessId, uProcessId, sBinaryName, sMessage));
@@ -198,6 +199,13 @@ def fTest(
   def fBugReportHandler(oBugId, oBugReport):
     aoBugReports.append(oBugReport);
   
+  if gbDebugIO:
+    fOutput();
+    fOutput("=" * 80);
+    print "%s %s" % (sApplicationBinaryPath, " ".join(asApplicationArguments));
+    for sExpectedBugIdAndLocation in asExpectedBugIdAndLocations:
+      fOutput("=> %s" % sExpectedBugIdAndLocation);
+    fOutput("=" * 80);
   try:
     oBugId = cBugId(
       sCdbISA = sISA,
@@ -289,10 +297,6 @@ def fTest(
           fbRetryOnFailure = lambda: False,
         );
         fOutput("  Wrote report: %s" % sDesiredReportFileName);
-    if gbDebugIO:
-      fOutput();
-      fOutput("=" * 80);
-      fOutput();
   except Exception, oException:
     fOutput("- Failed test: %s" % sTestDescription);
     fOutput("  Exception:   %s" % repr(oException));
@@ -323,7 +327,7 @@ if __name__ == "__main__":
   nStartTime = time.clock();
   if asArgs:
     fOutput("* Starting test...");
-    fTest(asArgs[0], asArgs[1:], None); # Expect no exceptions.
+    fTest(asArgs[0], asArgs[1:], []); # Expect no exceptions.
   else:
     fOutput("* Starting tests...");
     if not bFullTestSuite:
