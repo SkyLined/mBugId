@@ -15,7 +15,7 @@ class cCollateralBugHandler(object):
     oSelf.__uBugCount = 0;
     oSelf.__fbExceptionHandler = None;
     oSelf.uValueIndex = 0;
-    oCdbWrapper.fAddEventCallback("Attached to process", oSelf.fHandleNewProcess);
+    oCdbWrapper.fAddEventCallback("Process attached", oSelf.fHandleNewProcess);
     oCdbWrapper.fAddEventCallback("Process terminated", oSelf.fHandleProcessTerminated);
   
   def fHandleNewProcess(oSelf, oProcess):

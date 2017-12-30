@@ -49,7 +49,7 @@ for (sModuleName, sURL) in {
 
 from cCdbWrapper import cCdbWrapper;
 from oVersionInformation import oVersionInformation;
-from mWindowsAPI import oSystemInfo;
+from mWindowsAPI import oSystemInfo, cProcessInformation;
 from dxConfig import dxConfig;
 
 class cBugId(object):
@@ -146,23 +146,37 @@ class cBugId(object):
     # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
     # not want to expose interal objects.
     if sEventName in [
-      "Attached to process",
-      "Application debug output",
-      "Failed to apply application memory limits",
-      "Failed to apply process memory limits",
-      "Page heap not enabled",
-      "Process terminated",
+      "Application debug output", # (cProcess oProcess, str[] asOutput)
+      "Failed to apply application memory limits", # (cProcess oProcess)
+      "Failed to apply process memory limits", # (cProcess oProcess)
+      "Page heap not enabled", # (cProcess oProcess, bool bPreventable)
+      "Process attached", # (cProcess oProcess)
+      "Process terminated", #(cProcess oProcess)
     ]:
       # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
-      # do not want to expose. We'll take the most useful information about the process and pass that as arguments
-      # to the callback instead.
+      # do not want to expose. We'll create a mWindowsAPI.cProcessInformation object for the process and pass that as
+      # the first argument to the callback instead. We'll also insert a boolean that indicates if the process is a
+      # main process.
       fOriginalCallback = fCallback;
       fCallback = lambda oBugId, oProcess, *axArguments: fOriginalCallback(
         oBugId, 
-        oProcess.uId,
-        oProcess.sBinaryName,
-        oProcess.sCommandLine,
+        cProcessInformation.foGetForId(oProcess.uId),
         oProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
+        *axArguments
+      );
+    if sEventName in [
+      "Application stderr output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
+      "Application stdout output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
+      "Process started", # (mWindowsAPI.cConsoleProcess oConsoleProcess)
+    ]:
+      # These get a cConsoleProcess instance as their second argument from cCdbWrapper, which we'll use to find out
+      # if the process is a main process and insert that as a boolean as the second argument:
+      # to the callback instead.
+      fOriginalCallback = fCallback;
+      fCallback = lambda oBugId, oConsoleProcess, *axArguments: fOriginalCallback(
+        oBugId, 
+        oConsoleProcess,
+        oConsoleProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
         *axArguments
       );
     return oBugId.__oCdbWrapper.fAddEventCallback(

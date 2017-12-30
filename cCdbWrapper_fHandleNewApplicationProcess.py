@@ -26,13 +26,13 @@ def cCdbWrapper_fHandleNewApplicationProcess(oCdbWrapper, uProcessId):
     oCdbWrapper.fbFireEvent("Failed to apply process memory limits", oProcess);
   
   # Fire events
-  oCdbWrapper.fbFireEvent("Log message", "Attached to process", {
+  oCdbWrapper.fbFireEvent("Log message", "Process attached", {
     "Is main process": bIsMainProcess and "yes" or "no",
     "Process id": "%d/0x%X" % (uProcessId, uProcessId),
     "Binary name": oProcess.sBinaryName,
     "Command line": oProcess.sCommandLine,
   });
-  oCdbWrapper.fbFireEvent("Attached to process", oProcess);
+  oCdbWrapper.fbFireEvent("Process attached", oProcess);
   
   # Make sure child processes of the new process are debugged as well.
   oCdbWrapper.fasExecuteCdbCommand(
