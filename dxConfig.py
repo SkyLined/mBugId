@@ -123,6 +123,13 @@ dxConfig = {
                                         # the timeouts to fire closer to the intended time, but slows down debugging.
                                         # Making the value larger can cause timeouts to fire a lot later than requested.
   ### Exception handling
+  "bReportBugsForOOMExceptions": True,  # Report a bug the moment an exception is thrown that indicates the application
+                                        # was not able to allocate memory. Enabling this allows you to detect OOM
+                                        # crashes when the application handles this exception itself (and most likely
+                                        # terminates itself in response), but it may result in false positives if the
+                                        # application would have handled the OOM exception and continue to function
+                                        # normally. The best setting therefore depends on how the application handles
+                                        # OOM exceptions, so you may have to experiment with this.
   "bIgnoreCPPExceptions": False,        # Can be used to ignore C++ exceptions completely in applications that use them
                                         # a lot. This can speed up debugging quite a bit, but you risk not detecting
                                         # unhandled C++ exceptions. These will cause the application to terminate if

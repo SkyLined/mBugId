@@ -53,6 +53,14 @@ def fsExceptionHandlingCdbCommands():
     WRT_ORIGINATE_ERROR_EXCEPTION,
     WRT_TRANSFORM_ERROR_EXCEPTION,
   ]);
+  daxExceptionHandling[dxConfig["bReportBugsForOOMExceptions"] and "sxe" or "sxd"].extend([
+    ERROR_NOT_ENOUGH_MEMORY,
+    ERROR_OUTOFMEMORY,
+    ERROR_NOT_ENOUGH_SERVER_MEMORY,
+    ERROR_IPSEC_IKE_OUT_OF_MEMORY,
+    STATUS_NO_MEMORY,
+    0xE0000008, # Chrome specific - not sure yet how to add application specific exceptions in a more elegant way.
+  ]);
   asExceptionHandlingCommands = ["sxd *;"];
   # request second chance debugger break for certain exceptions that indicate the application has a bug.
   for sCommand, axExceptions in daxExceptionHandling.items():
