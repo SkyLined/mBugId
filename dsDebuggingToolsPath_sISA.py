@@ -20,6 +20,7 @@ sProgramFilesPath_x64 = os.getenv("ProgramW6432");
 dasPotentialDebuggingToolsPaths_sISA["x86"].extend([
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "10", "Debuggers", "x86"),
   os.path.join(sProgramFilesPath_x86, "Windows Kits", "8.1", "Debuggers", "x86"),
+  os.path.join(sProgramFilesPath_x86, "Debugging Tools for Windows (x86)"),
 ]);
 if oSystemInfo.sOSISA == "x64":
   dasPotentialDebuggingToolsPaths_sISA["x64"].extend([
@@ -27,6 +28,7 @@ if oSystemInfo.sOSISA == "x64":
     os.path.join(sProgramFilesPath_x64, "Windows Kits", "8.1", "Debuggers", "x64"),
     os.path.join(sProgramFilesPath_x86, "Windows Kits", "10", "Debuggers", "x64"),
     os.path.join(sProgramFilesPath_x86, "Windows Kits", "8.1", "Debuggers", "x64"),
+    os.path.join(sProgramFilesPath_x64, "Debugging Tools for Windows (x64)"),    
   ]);
 
 dsDebuggingToolsPath_sISA = {};
