@@ -1,26 +1,45 @@
 import os, platform, re, sys, threading, time, traceback;
 
-# Augment the search path: look in main folder, parent folder or "modules" child folder, in that order.
+# Augment the search path to make cBugId a package and have access to its modules folder.
 sTestsFolderPath = os.path.dirname(os.path.abspath(__file__));
 sMainFolderPath = os.path.dirname(sTestsFolderPath);
-sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
-sModuleFolderPath = os.path.join(sMainFolderPath, "modules");
-asAbsoluteLoweredSysPaths = [os.path.abspath(sPath).lower() for sPath in sys.path];
-sys.path += [sPath for sPath in [
-  sMainFolderPath,
-  sParentFolderPath,
-  sModuleFolderPath,
-] if sPath.lower() not in asAbsoluteLoweredSysPaths];
-
-bDebugStartFinish = False;  # Show some output when a test starts and finishes.
-gbDebugIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
+sParentFolderPath = os.path.dirname(sMainFolderPath);
+sModulesFolderPath = os.path.join(sMainFolderPath, "modules");
+asOriginalSysPath = sys.path[:];
+sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
+# Save the list of names of loaded modules:
+asOriginalModuleNames = sys.modules.keys();
 
 from cBugId import cBugId;
-from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import ddtsDetails_uSpecialAddress_sISA;
+
+# Sub-packages should load all modules relative, or they will end up in the global namespace, which means they may get
+# loaded by the script importing it if it tries to load a differnt module with the same name. Obviously, that script
+# will probably not function when the wrong module is loaded, so we need to check that we did this correctly.
+for sModuleName in sys.modules.keys():
+  assert (
+    sModuleName in asOriginalModuleNames # This was loaded before cBugId was loaded
+    or sModuleName.lstrip("_").split(".", 1)[0] in [
+      "cBugId", # This was loaded as part of the cBugId package
+      # These packages are loaded by cBugId:
+      "mWindowsAPI", "mFileSystem", 
+      # These built-in modules are loaded by cBugId:
+      "base64", "binascii", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc", "hashlib",
+      "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess", "textwrap", "urllib",
+      "urlparse", "winreg",
+    ]
+  ), \
+      "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
+
+from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
 from mWindowsAPI import oSystemInfo, KERNEL32;
 from mWindowsAPI.mFunctions import *;
 from mWindowsAPI.mDefines import *;
+# Restore the search path
+sys.path = asOriginalSysPath;
+
+bDebugStartFinish = False;  # Show some output when a test starts and finishes.
+gbDebugIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
 
 dsComSpec_by_sISA = {};
 dsComSpec_by_sISA[oSystemInfo.sOSISA] = os.path.join(os.environ.get("WinDir"), "System32", "cmd.exe");
@@ -206,9 +225,6 @@ def fTest(
       uFrameIndex -= 1;
     fOutput("@" * 80);
     oBugId.fStop();
-  def fLogMessageCallback(oBugId, sMessage, dsData = None):
-    sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
-    if gbDebugIO: fOutput("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
   def fPageHeapNotEnabledCallback(oBugId, oProcessInformation, bIsMainProcess, bPreventable):
     assert oProcessInformation.sBinaryName == "cmd.exe", \
         "It appears you have not enabled page heap for %s, which is required to run tests." % sBinaryName;
@@ -222,7 +238,38 @@ def fTest(
   def fProcessTerminatedCallback(oBugId, oProcessInformation, bIsMainProcess):
     asLog.append("%s process %d/0x%X (%s): terminated." % (bIsMainProcess and "Main" or "Sub", \
         oProcessInformation.uId, oProcessInformation.uId, oProcessInformation.sBinaryName));
-  
+  def fLogMessageCallback(oBugId, sMessage, dsData = None):
+    sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
+    sLogLine = "log>%s%s" % (sMessage, sData and " (%s)" % sData or "");
+    if gbDebugIO: fOutput(sLogLine);
+    asLog.append(sLogLine);
+  def fEventCallback(oBugId, sEventName, *axData):
+    if sEventName in [
+      "Application resumed",
+      "Application running",
+      "Application debug output",
+      "Application stderr output",
+      "Application stdout output",
+      "Application suspended",
+      "Bug report",
+      "Cdb stderr output",
+      "Cdb stdin input",
+      "Cdb stdout output",
+      "Failed to apply application memory limits",
+      "Failed to apply process memory limits",
+      "Failed to debug application",
+      "Finished",
+      "Internal exception",
+      "Page heap not enabled",
+      "Process attached",
+      "Process terminated",
+      "Process started",
+      "Log message",
+    ]:
+      return; # Already handled above
+    sLogLine = "event>%s: %s" % (sEventName, repr(axData));
+    if gbDebugIO: fOutput(sLogLine);
+    asLog.append(sLogLine);
   
   aoBugReports = [];
   def fBugReportCallback(oBugId, oBugReport):
@@ -260,14 +307,14 @@ def fTest(
     oBugId.fAddEventCallback("Failed to debug application", fFailedToDebugApplicationCallback);
     oBugId.fAddEventCallback("Finished", fFinishedCallback);
     oBugId.fAddEventCallback("Internal exception", fInternalExceptionCallback);
-    oBugId.fAddEventCallback("Log message", fLogMessageCallback);
     oBugId.fAddEventCallback("Page heap not enabled", fPageHeapNotEnabledCallback);
     oBugId.fAddEventCallback("Process attached", fProcessAttachedCallback);
     oBugId.fAddEventCallback("Process terminated", fProcessTerminatedCallback);
     oBugId.fAddEventCallback("Process started", fProcessStartedCallback);
+    oBugId.fAddEventCallback("Log message", fLogMessageCallback);
+    oBugId.fAddEventCallback("Event", fEventCallback);
+    oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
     oBugId.fStart();
-    if bExcessiveCPUUsageChecks:
-      oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
     oBugId.fWait();
     if gbTestFailed:
       return;
@@ -411,7 +458,7 @@ if __name__ == "__main__":
       fTest(sISA,    ["OOM", "C++", guTotalMaxMemoryUse],                       ["OOM ed2.531 @ <test-binary>!wmain"]);
       # WRT
       fTest(sISA,    ["WRTOriginate", 0x87654321, "message"],                   ["Stowed[0x87654321] ed2.531 @ <test-binary>!wmain"]);
-      fTest(sISA,    ["WRTLanguage",  0x87654321, "message"],                   ["Stowed[0x87654321@cIUnknown] ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["WRTLanguage",  0x87654321, "message"],                   ["Stowed[0x87654321:WRTLanguage@cIUnknown] ed2.531 @ <test-binary>!wmain"]);
       # Double free
       fTest(sISA,    ["DoubleFree",                1],                          ["DoubleFree[1] ed2.531 @ <test-binary>!wmain"]);
       if bFullTestSuite:
@@ -476,8 +523,8 @@ if __name__ == "__main__":
         fTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["UAFW[4n]@3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Read",    5,  4],                        ["UAFR[4n+1]@4n ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Write",   6,  5],                        ["UAFW[4n+2]@4n+1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["UAFE[4n]@0 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["UAFE[4n]@0 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["UAFE[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["UAFE[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
       fTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBUAFR[1]+0 ed2.531 @ <test-binary>!wmain"]);
       if bFullTestSuite:
         fTest(sISA,  ["UseAfterFree", "Write",   2,  3],                        ["OOBUAFW[2]+1 ed2.531 @ <test-binary>!wmain"]);
@@ -490,8 +537,8 @@ if __name__ == "__main__":
         fTest(sISA,  ["UseAfterFree", "Read",    1, -3],                        ["OOBUAFR[1]-3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Write",   1, -4],                        ["OOBUAFW[1]-4n ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Read",    1, -5],                        ["OOBUAFR[1]-4n-1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["OOBUAFE[4n]@4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBUAFE[4n]@4n ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["OOBUAFE[4n]+0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBUAFE[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
       fTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],             ["OOBR[4n]+4n ed2.531 @ <test-binary>!wmain"]);
       if bFullTestSuite:
@@ -515,7 +562,8 @@ if __name__ == "__main__":
       # The OS does not allocate a guard page at the top of the stack. Subsequently, there may be a writable allocation
       # there, and a large enough stack overflow will write way past the end of the stack before causing an AV. This
       # causes a different BugId, so this test is not reliable at the moment.
-      # TODO: Reimplement BugId and add feature that adds guard pages to all virtual allocations.
+      # TODO: Reimplement pagehap and add feature that adds guard pages to all virtual allocations, so stacks buffer
+      # overflows are detected as soon as they read/write past the end of the stack.
       # fTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, 0x100000],     "AVW[Stack]+0 ed2.531 @ <test-binary>!wmain");
       
       if bFullTestSuite:
@@ -543,7 +591,7 @@ if __name__ == "__main__":
             fTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ["AVE@%s f47.ed2 @ <test-binary>!fCall" % sDescription]);
       
       if bFullTestSuite:
-        for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in ddtsDetails_uSpecialAddress_sISA[sISA].items():
+        for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             fTest(sISA,    ["AccessViolation", "Read", uBaseAddress],           ["AVR@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
             if bFullTestSuite:

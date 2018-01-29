@@ -22,6 +22,8 @@ aoBugTranslations = [
     aasOriginalTopStackFrameSymbols = [
       [
         "edgehtml.dll!Abandonment::OutOfMemory",
+      ], [
+        "edgehtml.dll!Abandonment::CheckAllocation",
       ],
     ],
     sTranslatedBugTypeId = "OOM",
@@ -110,8 +112,12 @@ aoBugTranslations = [
   # FailFast -> OOM
   cBugTranslation(
     sOriginalBugTypeId = "FailFast",
-    asOriginalTopStackFrameSymbols = [
-      "edgehtml.dll!Abandonment::OutOfMemory",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "edgehtml.dll!Abandonment::OutOfMemory",
+      ], [
+        "edgehtml.dll!Abandonment::CheckAllocation",
+      ],
     ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application triggered a Fail Fast exception to indicate it was unable to allocate enough memory.",
@@ -123,6 +129,8 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "edgehtml.dll!Abandonment::CheckAllocationT<...>",
+      ], [
+        "edgehtml.dll!Streams::Chunk<...>::InternalAlloc",
       ],
     ],
   ),

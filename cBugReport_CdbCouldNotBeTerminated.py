@@ -44,6 +44,7 @@ class cBugReport_CdbCouldNotBeTerminated(object):
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
         "sOptionalIntegrityLevel": "",
+        "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
         "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": "\r\n".join(asBlocksHTML),

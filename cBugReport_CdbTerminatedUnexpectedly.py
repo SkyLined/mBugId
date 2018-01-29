@@ -9,7 +9,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       uExitCode += 1 << 32;
     oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
     oBugReport.sBugDescription = "Cdb terminated unexpectedly";
-    oBugReport.sBugLocation = None;
+    oBugReport.sBugLocation = "cdb.exe!(unknown)";
     oBugReport.sSecurityImpact = None;
     oBugReport.oException = None;
     oBugReport.oStack = None;
@@ -39,13 +39,14 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sOptionalUniqueStackId": "",
-        "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
+        "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
         "sOptionalSource": "",
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
         "sBinaryVersion": "Not available",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
         "sOptionalIntegrityLevel": "",
+        "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
         "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": "\r\n".join(asBlocksHTML),

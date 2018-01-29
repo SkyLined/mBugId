@@ -7,6 +7,12 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "ntdll.dll!DbgBreakPoint",
+      ], [
+        "ntdll.dll!KiUserExceptionDispatch",
+      ], [
+        "ntdll.dll!RtlDispatchException",
+      ], [
+        "ntdll.dll!RtlpExecuteHandlerForException",
       ],
     ],
   ),

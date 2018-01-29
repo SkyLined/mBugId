@@ -156,14 +156,6 @@ uUninitializedHeapBlockFillByte = 0xC0;
 uFreedHeapBlockFillByte = 0xF0;
 uHeapBlockEndPaddingFillByte = 0xD0;
 
-def foReadStructureFromVirtualAllocationAndAddress(cStructure, oVirtualAllocation, uAddress):
-  return cStructure.foFromString(
-    oVirtualAllocation.fsReadDataForOffsetAndSize(
-      uAddress - oVirtualAllocation.uStartAddress,
-      SIZEOF(cStructure),
-    )
-  );
-
 def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformationStartAddress):
   # DPH_HEAP_BLOCK structures are stored sequentially in a virtual allocation.
   oAllocationInformationVirtualAllocation = cVirtualAllocation(oProcess.uId, uAllocationInformationStartAddress);
@@ -174,9 +166,9 @@ def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformat
     return None;
   # Read the page heap allocation information
   DPH_HEAP_BLOCK = {4: DPH_HEAP_BLOCK_32, 8: DPH_HEAP_BLOCK_64}[oProcess.uPointerSize]; 
-  oAllocationInformation = oAllocationInformationVirtualAllocation.foReadStructure(
-    DPH_HEAP_BLOCK,
-    uAllocationInformationStartAddress - oAllocationInformationVirtualAllocation.uStartAddress,
+  oAllocationInformation = oAllocationInformationVirtualAllocation.foReadStructureForOffset(
+    cStructure = DPH_HEAP_BLOCK,
+    uOffset = uAllocationInformationStartAddress - oAllocationInformationVirtualAllocation.uStartAddress,
   );
   if gbDebugOutput: oAllocationInformation.fDump("oAllocationInformation");
   return oAllocationInformation;
@@ -193,9 +185,9 @@ def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, 
       return None;
     # A page heap allocation for a heap block starts with a DPH_ALLOCATION_HEADER structure:
     DPH_ALLOCATION_HEADER = {4: DPH_ALLOCATION_HEADER_32, 8: DPH_ALLOCATION_HEADER_64}[uPointerSize];
-    oAllocationHeader = oVirtualAllocation.foReadStructure(
-      DPH_ALLOCATION_HEADER,
-      0,
+    oAllocationHeader = oVirtualAllocation.foReadStructureForOffset(
+      cStructure = DPH_ALLOCATION_HEADER,
+      uOffset = 0,
     );
     assert oAllocationHeader.uMarker in auValidPageHeapAllocationHeaderMarkers, \
         "Page heap allocation header marker has unhandled value 0x%X (expected %s)" % \
@@ -216,9 +208,9 @@ def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddr
   uHeapBlockEndPaddingSize = oVirtualAllocation.uEndAddress - uHeapBlockEndAddress;
   if oVirtualAllocation.bAllocated:
     # A DPH_BLOCK_INFORMATION structure is stored immediately before the heap block in the same allocation.
-    oHeapBlockHeader = oVirtualAllocation.foReadStructure(
-      DPH_BLOCK_INFORMATION,
-      uHeapBlockHeaderStartAddress - oVirtualAllocation.uStartAddress,
+    oHeapBlockHeader = oVirtualAllocation.foReadStructureForOffset(
+      cStructure = DPH_BLOCK_INFORMATION,
+      uOffset = uHeapBlockHeaderStartAddress - oVirtualAllocation.uStartAddress,
     );
   else:
     oHeapBlockHeader = None;
@@ -496,7 +488,7 @@ class cPageHeapManagerData(cHeapManagerData):
     uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset = oSelf.uAllocationHeaderEndAddress - oSelf.oVirtualAllocation.uStartAddress;
     uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize = oSelf.uHeapBlockHeaderStartAddress - oSelf.uAllocationHeaderEndAddress;
     sExpectedBytes = "\0" * uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize;
-    sActualBytes = oSelf.oVirtualAllocation.fsReadDataForOffsetAndSize(
+    sActualBytes = oSelf.oVirtualAllocation.fsReadBytesForOffsetAndSize(
       uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset,
       uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize,
     );
@@ -515,13 +507,13 @@ class cPageHeapManagerData(cHeapManagerData):
       hasattr(oSelf.oHeapBlockHeader, "PaddingEnd") and ("PaddingEnd", 0),
       ("EndStamp", oSelf.bAllocated and uAllocatedEndStamp or uFreedEndStamp),
     ] if tx]));
-    sExpectedBytes = oExpectedHeapBlockHeader.fsToString();
-    sActualBytes = oSelf.oHeapBlockHeader.fsToString();
+    sExpectedBytes = oExpectedHeapBlockHeader.fsToBytesString();
+    sActualBytes = oSelf.oHeapBlockHeader.fsToBytesString();
     oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sExpectedBytes, sActualBytes);
     # Check the heap block if it is freed
     if oSelf.bFreed:
       sExpectedBytes = chr(uFreedHeapBlockFillByte) * oSelf.uHeapBlockSize;
-      sActualBytes = oSelf.oVirtualAllocation.fsReadDataForOffsetAndSize(
+      sActualBytes = oSelf.oVirtualAllocation.fsReadBytesForOffsetAndSize(
         oSelf.uHeapBlockStartAddress - oSelf.oVirtualAllocation.uStartAddress,
         oSelf.uHeapBlockSize,
       );
@@ -529,7 +521,7 @@ class cPageHeapManagerData(cHeapManagerData):
     # Check the allocation end padding
     if oSelf.uHeapBlockEndPaddingSize:
       sExpectedBytes = chr(uHeapBlockEndPaddingFillByte) * oSelf.uHeapBlockEndPaddingSize;
-      sActualBytes = oSelf.oVirtualAllocation.fsReadDataForOffsetAndSize(
+      sActualBytes = oSelf.oVirtualAllocation.fsReadBytesForOffsetAndSize(
         oSelf.uHeapBlockEndPaddingStartAddress - oSelf.oVirtualAllocation.uStartAddress,
         oSelf.uHeapBlockEndPaddingSize,
       );

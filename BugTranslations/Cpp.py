@@ -66,42 +66,26 @@ aoBugTranslations = [
   ),
   # Heap related issues -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
+    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*|AV[RW]@\w+)$"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*!malloc",
+        re.compile(r".*!(m|re)alloc"),
       ], [
-        "*!realloc",
+        re.compile(r".*!mem(chr|cmp|cpy|move|set)"),
       ], [
-        "*!operator delete",
+        re.compile(r".*!operator (delete|new(\[\])?)"),
       ], [
-        "*!operator new",
-      ], [
-        "*!operator new[]",
+        re.compile(r".*!str(n?cat|r?chr|n?cmp|n?cpy|len|str)"),
       ], [
         "*!std::_Allocate",
       ], [
         "*!std::allocator<...>::allocate",
       ], [
-        "*!std::basic_string<...>::_Copy",
+        re.compile(r".*!std::basic_string<...>::(_Copy|_Grow|assign|basic_string<...>)"),
       ], [
-        "*!std::basic_string<...>::_Grow",
+        re.compile(r".*!std::_Tree_comp_alloc<...>::(_Buyheadnode|_Construct|\{ctor\})"),
       ], [
-        "*!std::basic_string<...>::assign",
-      ], [
-        "*!std::basic_string<...>::basic_string<...>",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Buyheadnode",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Construct",
-      ], [
-        "*!std::_Tree_comp_alloc<..>::{ctor}",
-      ], [
-        "*!std::vector<...>::_Reallocate",
-      ], [
-        "*!std::vector<...>::_Reserve",
-      ], [
-        "*!std::vector<...>::resize",
+        re.compile(r".*!std::vector<...>::(_Reallocate|_Reserve|resize)"),
       ], [
         "*!std::_Wrap_alloc<...>::allocate",
       ],

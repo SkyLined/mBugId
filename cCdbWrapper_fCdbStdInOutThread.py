@@ -3,7 +3,6 @@ from cBugReport import cBugReport;
 from cCdbStoppedException import cCdbStoppedException;
 from cProcess import cProcess;
 from dxConfig import dxConfig;
-#from foDetectAndCreateBugReportForASan import foDetectAndCreateBugReportForASan; # TODO reimplement: see cVerifierStopDetector
 from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, fResumeProcessForId, \
     fStopDebuggingProcessForId;
 
@@ -62,7 +61,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
   );
   # Make sure the cdb prompt is on a new line after the application has been run:
   oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = '.pcmd -s ".echo;";',
+    sCommand = '.pcmd -s ".printf \\"\\\\r\\\\n\\";";',
     sComment = "Output a CRLF after running the application",
   );
   auProcessIdsThatNeedToBeResumed = [];
@@ -262,28 +261,46 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       continue;
     # Handle exceptions in the utility process
     if uProcessId == oCdbWrapper.uUtilityProcessId:
-      # TODO: no exceptions other than the AVs caused deliberately by us are expected. I would like to have an assert
-      # here, but I found that this happened frequently enough to want to find out what is going on. So, I am letting
-      # other exceptions fall through here so that they get reported as bugs in the application instead.
-      if oCdbWrapper.uUtilityInterruptThreadId is not None:
-        if uThreadId == oCdbWrapper.uUtilityInterruptThreadId \
-          and uExceptionCode == STATUS_ACCESS_VIOLATION:
-#          assert oCdbWrapper.uUtilityInterruptThreadId is not None, \
-#              "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
-#              "no exception was expected!" % \
-#              (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId);
-#          assert uThreadId == oCdbWrapper.uUtilityInterruptThreadId and uExceptionCode == STATUS_ACCESS_VIOLATION, \
-#              "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
-#              "0x%08X was expected in thread %d/0x%X!" % \
-#              (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId, \
-#              STATUS_ACCESS_VIOLATION, oCdbWrapper.uUtilityInterruptThreadId, oCdbWrapper.uUtilityInterruptThreadId);
-          # Terminate the thread in which we triggered an AV, so the utility process can continue running.
-          assert fbTerminateThreadForId(oCdbWrapper.uUtilityInterruptThreadId), \
-              "Cannot terminate utility thread in utility process";
-          # Mark the interrupt as handled.
-          oCdbWrapper.uUtilityInterruptThreadId = None;
+      # TODO: no exceptions other than the AVs caused deliberately by us are expected. In newer versions of Windows,
+      # Control Flow Guard will detect an attempt to call a function at an invalid address and report a
+      # STATUS_STACK_BUFFER_OVERRUN instead of triggering an AV.
+      # I would like to have an assert here to make sure the exception is either of these, but I found that I do not
+      # have enough information to report in the assert to determine the root cause of such unexpected exceptions. So,
+      # I am letting other exceptions fall through here so that they get reported as if they were bugs in the
+      # application instead... this is not ideal, but should help resolve these issues faster.
+#      assert oCdbWrapper.uUtilityInterruptThreadId is not None, \
+#          "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
+#          "no exception was expected!" % \
+#          (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId);
+#      assert uExceptionCode in [STATUS_ACCESS_VIOLATION, STATUS_STACK_BUFFER_OVERRUN], \
+#          "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
+#          "exception 0x%08X or 0x%08X was expected in thread %d/0x%X!" % \
+#          (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId, \
+#          STATUS_ACCESS_VIOLATION, STATUS_STACK_BUFFER_OVERRUN, \
+#          oCdbWrapper.uUtilityInterruptThreadId, oCdbWrapper.uUtilityInterruptThreadId);
+#      assert uThreadId == oCdbWrapper.uUtilityInterruptThreadId, \
+#          "An exception 0x%08X happened unexpectedly in the utility process %d/0x%X, thread %d/0x%X: " \
+#          "this exception was expected in thread %d/0x%X!" % \
+#          (uExceptionCode, uProcessId, uProcessId, uThreadId, uThreadId, \
+#          oCdbWrapper.uUtilityInterruptThreadId, oCdbWrapper.uUtilityInterruptThreadId);
+      if (
+        uThreadId == oCdbWrapper.uUtilityInterruptThreadId
+        and uExceptionCode in [STATUS_ACCESS_VIOLATION, STATUS_STACK_BUFFER_OVERRUN]
+      ):
+        # Terminate the thread in which we triggered an AV, so the utility process can continue running.
+        assert fbTerminateThreadForId(uThreadId), \
+            "Cannot terminate utility thread in utility process";
+        # Mark the interrupt as handled.
+        oCdbWrapper.uUtilityInterruptThreadId = None;
         oCdbWrapper.fbFireEvent("Log message", "Application interrupted");
+        assert bHideLastExceptionFromApplication, \
+            "Just making sure we are in a sane state";
         continue;
+      # This is not an expected exception: report it as a bug.
+      # We will need to "fake" that the utility process is part of the application, as code expectes to be able to
+      # refer to it from doProcess_by_uId:
+      oCdbWrapper.doProcess_by_uId[uProcessId] = cProcess(oCdbWrapper, uProcessId);
+      oCdbWrapper.fSelectProcess(uProcessId);
     if sCreateExitProcess == "Create":
       if oCdbWrapper.bApplicationStarted:
         oCdbWrapper.fbFireEvent("Application suspended", "Attached to process");
@@ -291,12 +308,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       continue;
     assert oCdbWrapper.bApplicationStarted, \
         "Unexpected exception before cdb has started the application:\r\n%s" % "\r\n".join(asLastEventOutput);
-    if sIgnoredUnloadModule:
-      # This exception makes no sense; we never requested it and do not care about it: ignore it.
-      continue;
     if sCreateExitProcess == "Exit":
       oCdbWrapper.fbFireEvent("Application suspended", "Process terminated");
       oCdbWrapper.fHandleApplicationProcessTermination(uProcessId);
+      continue;
+    if sIgnoredUnloadModule:
+      # This exception makes no sense; we never requested it and do not care about it: ignore it.
       continue;
     oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
     ### Free reserve memory for exception analysis ###################################################################
@@ -331,9 +348,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # ...if it is, report it:
       oBugReport.fReport(oCdbWrapper);
       # If we cannot "handle" this bug, this is fatal:
-      if not oCdbWrapper.oCollateralBugHandler.fbHandleException():
+      if not oCdbWrapper.oCollateralBugHandler.fbTryToIgnoreException():
         break;
     else:
+      # This may have been considered a bug long enough to set an exception handler. This exception handler must be
+      # removed, as it would otherwise lead to an internal exception when the code tries to set another exception
+      # handler when it comes acrosss another exception that it consideres a bug.
+      oCdbWrapper.oCollateralBugHandler.fDiscardIgnoreExceptionFunction();
       # This exception is not a bug, do not hide it from the application.
       bHideLastExceptionFromApplication = False;
   

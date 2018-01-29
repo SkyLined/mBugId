@@ -31,8 +31,8 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
       return None;
   oCdbWrapper.fbFireEvent("Log message", "Started process", {
     "Process id": "%d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId),
-    "Binary name": oConsoleProcess.oInformation.sBinaryName,
-    "Command line": oConsoleProcess.oInformation.sCommandLine,
+    "Binary name": oConsoleProcess.sBinaryName,
+    "Command line": oConsoleProcess.sCommandLine,
   });
   oCdbWrapper.fbFireEvent("Process started", oConsoleProcess);
 

@@ -2,8 +2,7 @@ import re;
 from cModule import cModule;
 from cStackFrame import cStackFrame;
 from dxConfig import dxConfig;
-from fsCleanCdbSymbolWithOffset import fsCleanCdbSymbolWithOffset;
-from fxCallModuleAndFunctionFromCallInstructionForReturnAddress import fxCallModuleAndFunctionFromCallInstructionForReturnAddress;
+from ftoCallModuleAndFunctionFromCallInstructionForReturnAddress import ftoCallModuleAndFunctionFromCallInstructionForReturnAddress;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
   # These warnings and errors are ignored:
@@ -184,7 +183,7 @@ class cStack(object):
           if uReturnAddress in dCache_toCallModuleAndFunction_by_uReturnAddress:
             toCallModuleAndFunction = dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress];
           else:
-            toCallModuleAndFunction = fxCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress);
+            toCallModuleAndFunction = ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress);
             # Cache this info.
             dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = toCallModuleAndFunction;
           if toCallModuleAndFunction and (oModule, oFunction) != toCallModuleAndFunction:
@@ -203,10 +202,7 @@ class cStack(object):
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uFunctionAddress = oProcess.fuGetValue(
-                fsCleanCdbSymbolWithOffset(oFunction.sName),
-                "Get address of symbol"
-              );
+              uFunctionAddress = oProcess.fuGetAddressForSymbol(oFunction.sName);
               uModuleOffset = uFunctionAddress + iOffsetFromStartOfFunction - oModule.uStartAddress;
             oFunction = None;
             iOffsetFromStartOfFunction = None;

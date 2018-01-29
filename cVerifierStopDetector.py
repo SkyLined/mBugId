@@ -259,15 +259,15 @@ class cVerifierStopDetector(object):
         sBugTypeId += oPageHeapManagerData.sCorruptionId;
     
     oBugReport = cBugReport.foCreate(oProcess, sBugTypeId, sBugDescription, sSecurityImpact);
-    if oSelf.oCdbWrapper.bGenerateReportHTML and uMemoryDumpStartAddress:
-      oBugReport.fAddMemoryDump(
-        uMemoryDumpStartAddress,
-        uMemoryDumpStartAddress + uMemoryDumpSize,
-        "Memory at 0x%X" % uMemoryDumpStartAddress,
-      );
-      oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
-    # Output the VERIFIER STOP message for reference
     if oSelf.oCdbWrapper.bGenerateReportHTML:
+      if uMemoryDumpStartAddress:
+        oBugReport.fAddMemoryDump(
+          uMemoryDumpStartAddress,
+          uMemoryDumpStartAddress + uMemoryDumpSize,
+          "Memory at 0x%X" % uMemoryDumpStartAddress,
+        );
+        oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
+      # Output the VERIFIER STOP message for reference
       sVerifierStopMessageHTML = sBlockHTMLTemplate % {
         "sName": "VERIFIER STOP message",
         "sCollapsed": "Collapsed",

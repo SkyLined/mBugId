@@ -1,6 +1,6 @@
-from dxConfig import dxConfig;
-from fsGetNumberDescription import fsGetNumberDescription;
-from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from ..dxConfig import dxConfig;
+from ..fsGetNumberDescription import fsGetNumberDescription;
+from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fSetBugReportPropertiesForAccessViolationUsingHeapManagerData(
   oBugReport,

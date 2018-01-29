@@ -82,7 +82,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
   oBugReport.sStackId = ".".join(asStackIds);
   # Get the bug location.
-  oBugReport.sBugLocation = "(unknown)";
+  oBugReport.sBugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
     oBugReport.sBugLocation = oTopIdStackFrame.sSimplifiedAddress;

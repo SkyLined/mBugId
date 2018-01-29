@@ -14,9 +14,9 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oPro
   uMessageAddress = oException.auParameters[2];
   # The message is '\0' terminated, so no need to use uMessageLength. We could assert if it's incorrect, but I don't see much use in that.
   if oException.bApplicationCannotHandleException:
-    sMessage = oProcess.fsGetUnicodeString(
+    sMessage = oProcess.fsReadNullTerminatedStringForAddress(
       uAddress = uMessageAddress,
-      sComment = "Get WRT Originate Error message",
+      bUnicode = True,
     );
     # Get the stowed exceptions and replace information in the bug report:
     oBugReport.sBugTypeId = "WRTOriginate[0x%X]" % hResult;

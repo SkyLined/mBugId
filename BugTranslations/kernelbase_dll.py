@@ -1,3 +1,4 @@
+import re;
 from cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
@@ -19,6 +20,15 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "kernelbase.dll!TerminateProcessOnMemoryExhaustion",
+      ],
+    ],
+  ),
+  # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW -> hide irrelevant frames
+  cBugTranslation(
+    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "kernelbase.dll!LocalFree",
       ],
     ],
   ),

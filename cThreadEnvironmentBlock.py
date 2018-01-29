@@ -79,13 +79,10 @@ class cThreadEnvironmentBlock(object):
       #   void *ArbitraryUserPointer;                 // size = pointer
       #   struct _NT_TIB *Self;                       // size = pointer
       # };                                            // total size =  7 * pointer
-      uStackTopAddress = oProcess.fuGetValue(
-        "poi(0x%X)" % (uTEBAddress + 1 * uTEBPointerSize),
-        "Get stack top address from TEB"
-      );
-      uStackBottomAddress = oProcess.fuGetValue(
-        "poi(0x%X)" % (uTEBAddress + 2 * uTEBPointerSize),
-        "Get stack bottom address from TEB"
+      (uStackTopAddress, uStackBottomAddress) = oProcess.fauReadValuesForAddressSizeAndCount(
+        uAddress = uTEBAddress + 1 * uTEBPointerSize,
+        uSize = uTEBPointerSize,
+        uCount = 2,
       );
 
     return cThreadEnvironmentBlock(

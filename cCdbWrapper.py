@@ -1,4 +1,5 @@
 import itertools, json, os, re, subprocess, sys, thread, threading, time;
+from cASanErrorDetector import cASanErrorDetector;
 from cCdbStoppedException import cCdbStoppedException;
 from cCdbWrapper_fApplicationStdOutOrErrThread import cCdbWrapper_fApplicationStdOutOrErrThread;
 from cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
@@ -174,8 +175,11 @@ class cCdbWrapper(object):
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     
-    # Create a verifier stop detector
+    # Create VERIFIER STOP and Asan ERROR detectors. The later also needs to be called when a Breakpoint exception
+    # happens in order to report it (the former reports the error as soon as it is detected in applicationm debug
+    # output).
     cVerifierStopDetector(oCdbWrapper);
+    oCdbWrapper.oASanErrorDetector = cASanErrorDetector(oCdbWrapper);
     
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
       def fWriteLogMessageToReport(sMessage, dsData = None):
@@ -379,7 +383,7 @@ class cCdbWrapper(object):
     return cCdbWrapper_fsHTMLEncode(oCdbWrapper, *axArguments, **dxArguments);
   
   def fInterruptApplicationExecution(oCdbWrapper):
-    cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper);
+    return cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper);
   
   # stdin/out/err handling threads
   def fCdbStdInOutThread(oCdbWrapper):

@@ -59,6 +59,6 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
     uSize = dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize;
     if uSize > dxConfig["uMaxMemoryDumpSize"]:
       uSize = dxConfig["uMaxMemoryDumpSize"];
-    oBugReport.fAddMemoryDump( uStackPointer, uStackPointer + uSize, "Stack");
+    oBugReport.fAddMemoryDump(uStackPointer, uStackPointer + uSize, "Stack");
     oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oProcess.uPointerSize));
   return oBugReport;

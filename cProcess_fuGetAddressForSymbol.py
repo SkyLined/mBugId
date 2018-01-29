@@ -1,13 +1,10 @@
 import re;
 
-def cProcess_fuGetValue(oProcess, sValue, sComment):
-  if re.match(r"^@[\w\$].+$", sValue):
-    # @reg or @$pseudo_reg
-    return oProcess.fuGetValueForRegister(sValue, sComment);
-  
+def cProcess_fuGetAddressForSymbol(oProcess, sSymbol):
+  # Get the address of the symbol without the offset:
   asCommandOutput = oProcess.fasExecuteCdbCommand(
-    sCommand = '.printf "%%p\\n", %s;' % sValue,
-    sComment = sComment,
+    sCommand = '.printf "%%p\\n", @!"%s";' % sSymbol,
+    sComment = "Get address for symbol",
     srIgnoreErrors = r"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$",
   );
   if asCommandOutput is None:
@@ -25,5 +22,5 @@ def cProcess_fuGetValue(oProcess, sValue, sComment):
     return long(asCommandOutput[uValueAtIndex], 16);
   except:
     raise AssertionError("Cannot parse value %s for %s on line %s: %s\r\n%s" % \
-        (repr(asCommandOutput[uValueAtIndex]), repr(sValue), uValueAtIndex + 1, asCommandOutput[uValueAtIndex], \
+        (repr(asCommandOutput[uValueAtIndex]), repr(sSymbol), uValueAtIndex + 1, asCommandOutput[uValueAtIndex], \
         "\r\n".join(asCommandOutput)));

@@ -40,9 +40,13 @@ aoBugTranslations = [
       [
         re.compile("^.*!__asan_report_(load|store)\d+$"),
       ], [
+        "*!__asan_unhandled_exception_filter",
+      ], [
         "*!__asan::AsanCheckFailed",
       ], [
         "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
+      ], [
+        "*!__asan::ReportDeadlySignal",
       ], [
         "*!__asan::ReportGenericError",
       ], [
@@ -98,49 +102,27 @@ aoBugTranslations = [
       ], [
         "*!__sanitizer::InternalAlloc",
       ], [
-        "*!__sanitizer::LargeMmapAllocator<...>::Allocate",
-      ], [
-        "*!__sanitizer::LargeMmapAllocator<...>::ReturnNullOrDieOnOOM",
+        re.compile(".*!__sanitizer::LargeMmapAllocator<...>::(Allocate|ReturnNullOrDieOnOOM)"),
       ], [
         "*!__sanitizer::ListOfModules::init",
       ], [
         "*!__sanitizer::LoadedModule::set",
       ], [
-        "*!__sanitizer::MmapAlignedOrDie",
-      ], [
-        "*!__sanitizer::MmapOrDie",
-      ], [
-        "*!__sanitizer::MmapOrDieOnFatalError",
+        re.compile(".*!__sanitizer::Mmap(Aligned)?OrDie(OnFatalError)?"),
       ], [
         "*!__sanitizer::RawInternalAlloc",
       ], [
         "*!__sanitizer::ReportMmapFailureAndDie",
       ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::AllocateBatch",
+        re.compile(".*!__sanitizer::SizeClassAllocator32(LocalCache)?<...>::(Allocate(Batch|Region)?|PopulateFreeList|Refill)"),
       ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::AllocateRegion",
+        re.compile(".*!agent::asan::heap_managers::BlockHeapManager::(Allocate|Free)"),
       ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::PopulateFreeList",
+        re.compile(".*!agent::asan::StackCaptureCache::(GetStackCapture|SaveStackTrace)"),
       ], [
-        "*!__sanitizer::SizeClassAllocator32LocalCache<...>::Allocate",
+        re.compile(".*!agent::asan::WindowsHeapAdapter::Heap(Re)?Alloc"),
       ], [
-        "*!__sanitizer::SizeClassAllocator32LocalCache<...>::Refill",
-      ], [
-        "*!agent::asan::heap_managers::BlockHeapManager::Allocate",
-      ], [
-        "*!agent::asan::heap_managers::BlockHeapManager::Free",
-      ], [
-        "*!agent::asan::StackCaptureCache::GetStackCapture",
-      ], [
-        "*!agent::asan::StackCaptureCache::SaveStackTrace",
-      ], [
-        "*!agent::asan::WindowsHeapAdapter::HeapAlloc",
-      ], [
-        "*!agent::asan::WindowsHeapAdapter::HeapReAlloc",
-      ], [
-        "*!asan_HeapAlloc",
-      ], [
-        "*!asan_HeapReAlloc",
+        re.compile(".*!asan_Heap(Re)?Alloc"),
       ],
     ],
   ),

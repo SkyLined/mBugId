@@ -2,9 +2,9 @@ import re;
 from BugTranslations import fApplyBugTranslationsToBugReport;
 from cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
+from cBugReport_foAnalyzeException_STATUS_BREAKPOINT import cBugReport_foAnalyzeException_STATUS_BREAKPOINT;
 from cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION;
 from cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION;
-from cBugReport_foAnalyzeException_STATUS_NO_MEMORY import cBugReport_foAnalyzeException_STATUS_NO_MEMORY;
 from cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN;
 from cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
 from cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
@@ -24,9 +24,9 @@ from mWindowsAPI.mDefines import *;
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
   STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
+  STATUS_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_BREAKPOINT,
   STATUS_FAIL_FAST_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION,
   STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
-  STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
   STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
   STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
@@ -86,13 +86,19 @@ class cBugReport(object):
       uStackFramesCount = uStackFramesCount,
     );
     # Apply the first round of translations
+    sOriginal = oBugReport.sBugTypeId;
     fApplyBugTranslationsToBugReport(oBugReport);
+    if oBugReport.sBugTypeId is None:
+      return None;
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
       oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oException);
-      if oBugReport:
-        # Apply another round of translations
-        fApplyBugTranslationsToBugReport(oBugReport);
+      if oBugReport is None:
+        return None;
+      # Apply another round of translations
+      fApplyBugTranslationsToBugReport(oBugReport);
+      if oBugReport.sBugTypeId is None:
+        return None;
     return oBugReport;
   
   @classmethod
@@ -107,6 +113,8 @@ class cBugReport(object):
       uStackFramesCount = uStackFramesCount,
     );
     fApplyBugTranslationsToBugReport(oBugReport);
+    if oBugReport.sBugTypeId is None:
+      return None;
     return oBugReport;
   
   def fReport(oBugReport, oCdbWrapper):
@@ -241,6 +249,13 @@ class cBugReport(object):
           sIntegrityLevel += "; this process appears to be sandboxed.";
         sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
             (oProcess.uIntegrityLevel, sIntegrityLevel);
+      if oCdbWrapper.oJobObject is None or oBugReport.sBugTypeId != "OOM":
+        sOptionalMemoryUsageHTML = None;
+      else:
+        sOptionalMemoryUsageHTML = "<tr><td>Memory usage: </td><td>%6.1fMb (process)/ %6.1fMb (application)</td></tr>" % (
+          oCdbWrapper.oJobObject.fuGetMaxProcessMemoryUse() / 1000000,
+          oCdbWrapper.oJobObject.fuGetMaxTotalMemoryUse() / 1000000,
+        );
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
@@ -264,6 +279,7 @@ class cBugReport(object):
             "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
                 "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
             "sOptionalIntegrityLevel": sOptionalIntegrityLevelHTML,
+            "sOptionalMemoryUsage": sOptionalMemoryUsageHTML or "",
             "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
             "sBlocks": "\r\n".join(asBlocksHTML) + 

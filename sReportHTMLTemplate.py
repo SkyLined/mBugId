@@ -284,6 +284,7 @@ sReportHTMLTemplate = ("""
           <tr><td>Version:         </td><td>%(sBinaryVersion)s</td></tr>
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
 %(sOptionalIntegrityLevel)s
+%(sOptionalMemoryUsage)s
 %(sOptionalApplicationArguments)s
         </table>
         <br/>

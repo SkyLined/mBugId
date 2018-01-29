@@ -1,6 +1,5 @@
 import re;
 import cModule;
-from fsCleanCdbSymbolWithOffset import fsCleanCdbSymbolWithOffset;
 
 def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
   oMatch = re.match(r"^\s*%s\s*$" % (
@@ -25,7 +24,7 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
       sUnloadedModuleOffset,
     sModuleCdbId,
       sModuleOffset,
-      sSymbol, sSymbolOffset
+      sFunctionName, sOffsetInFunction
   ) = oMatch.groups();
   uAddress = None;
   oModule = None;
@@ -40,16 +39,14 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
   elif sModuleCdbId == "SharedUserData":
     # "ShareUserData" is a symbol outside of any module that gets used as a module name in cdb.
     # Any value referencing it will be converted to an address:
-    sAddress = "SharedUserData";
-    if sSymbol: sAddress += "!%s" % sSymbol;
-    uAddress = oProcess.fuGetValue(fsCleanCdbSymbolWithOffset(sAddress));
+    uAddress = oProcess.fuGetAddressForSymbol("%s!%s" % (sModuleCdbId, sFunctionName));
     if uModuleOffset: uAddress += uModuleOffset;
     if uSymbolOffset: uAddress += uSymbolOffset;
   else:
     oModule = oProcess.foGetOrCreateModuleForCdbId(sModuleCdbId);
-    if sSymbol:
-      oFunction = oModule.foGetOrCreateFunctionForSymbol(sSymbol);
-      iFunctionOffset = sSymbolOffset and long(sSymbolOffset.replace("`", ""), 16) or 0;
+    if sFunctionName:
+      oFunction = oModule.foGetOrCreateFunctionForName(sFunctionName);
+      iFunctionOffset = sOffsetInFunction and long(sOffsetInFunction.replace("`", ""), 16) or 0;
     elif sModuleOffset:
       uModuleOffset = long(sModuleOffset.replace("`", ""), 16);
     else:
