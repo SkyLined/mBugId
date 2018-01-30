@@ -14,6 +14,7 @@ class cStackFrame(object):
       oModule, uModuleOffset, 
       oFunction, iFunctionOffset,
       sSourceFilePath, uSourceFileLineNumber,
+      sIsHiddenBecause,
   ):
     oStackFrame.oStack = oStack;
     oStackFrame.uIndex = uIndex;
@@ -32,7 +33,7 @@ class cStackFrame(object):
     oStackFrame.bIsInline = uReturnAddress is None;
     # Stack frames at the top may not be relevant to the crash (eg. ntdll.dll!RaiseException). These can be hidden
     # by giving a reason for doing so.
-    oStackFrame.sIsHiddenBecause = None;
+    oStackFrame.sIsHiddenBecause = sIsHiddenBecause;
     # Stack frames that are part of the BugId will be marked as such:
     oStackFrame.bIsPartOfId = False;
     if oFunction:
