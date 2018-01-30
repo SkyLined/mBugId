@@ -32,7 +32,8 @@ for sModuleName in sys.modules.keys():
 
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
-from mWindowsAPI import oSystemInfo, KERNEL32;
+from mWindowsAPI import oSystemInfo;
+from mWindowsAPI.mDLLs import KERNEL32;
 from mWindowsAPI.mFunctions import *;
 from mWindowsAPI.mDefines import *;
 # Restore the search path
