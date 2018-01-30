@@ -1,6 +1,12 @@
 import re;
 
 def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
+  # Find out if there is executable memory at the address requested, to determine if setting a breakpoint
+  # there makes sense.
+  oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAddress);
+  if not oVirtualAllocation.bExecutable:
+    return None; # The memory at the given address is not allocated and/or executable.
   # Select the right process.
   oCdbWrapper.fSelectProcess(uProcessId);
   # Put breakpoint only on relevant thread if provided.
