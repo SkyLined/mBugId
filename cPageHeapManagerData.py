@@ -2,66 +2,80 @@ import hashlib, re;
 from cHeapManagerData import cHeapManagerData;
 from dxConfig import dxConfig;
 from fsGetNumberDescription import fsGetNumberDescription;
-from mWindowsAPI import *;
+from mWindowsAPI import cVirtualAllocation;
+from mWindowsAPI.mTypes import *;
+from mWindowsAPI.mDefines import *;
 
 gbDebugOutput = False;
 
 # SINGLE_LIST_ENTRY
-SINGLE_LIST_ENTRY_32 = fcStructure_32("SINGLE_LIST_ENTRY",
+SINGLE_LIST_ENTRY_32 = fcStructure("SINGLE_LIST_ENTRY",
   (PVOID_32,        "Next"),                          # PSINGLE_LIST_ENTRY
+  uAlignmentBytes = 4,
 );
-SINGLE_LIST_ENTRY_64 = fcStructure_64("SINGLE_LIST_ENTRY",
+SINGLE_LIST_ENTRY_64 = fcStructure("SINGLE_LIST_ENTRY",
   (PVOID_64,        "Next"),                          # PSINGLE_LIST_ENTRY
+  uAlignmentBytes = 8,
 );
 # LIST_ENTRY
-LIST_ENTRY_32 = fcStructure_32("LIST_ENTRY",
+LIST_ENTRY_32 = fcStructure("LIST_ENTRY",
   (PVOID_32,        "pBLink"),                        # PLIST_ENTRY_32
   (PVOID_32,        "pFLink"),                        # PLIST_ENTRY_32
+  uAlignmentBytes = 4,
 );
-LIST_ENTRY_64 = fcStructure_64("LIST_ENTRY",
+LIST_ENTRY_64 = fcStructure("LIST_ENTRY",
   (PVOID_64,        "pBLink"),                        # PLIST_ENTRY_64
   (PVOID_64,        "pFLink"),                        # PLIST_ENTRY_64
+  uAlignmentBytes = 8,
 );
 # RTL_BALANCED_LINKS
-RTL_BALANCED_LINKS_32 = fcStructure_32("RTL_BALANCED_LINKS",
+RTL_BALANCED_LINKS_32 = fcStructure("RTL_BALANCED_LINKS",
   (PVOID_32,        "Parent"),                        # PRTL_BALANCED_LINKS
   (PVOID_32,        "LeftChild"),                     # PRTL_BALANCED_LINKS
   (PVOID_32,        "RightChild"),                    # PRTL_BALANCED_LINKS
   (CHAR,            "Balance"),
   (UCHAR * 3,       "Reserved"),
+  uAlignmentBytes = 4,
 );
-RTL_BALANCED_LINKS_64 = fcStructure_64("RTL_BALANCED_LINKS",
+RTL_BALANCED_LINKS_64 = fcStructure("RTL_BALANCED_LINKS",
   (PVOID_64,        "Parent"),                        # PRTL_BALANCED_LINKS
   (PVOID_64,        "LeftChild"),                     # PRTL_BALANCED_LINKS
   (PVOID_64,        "RightChild"),                    # PRTL_BALANCED_LINKS
   (CHAR,            "Balance"),
   (UCHAR * 3,       "Reserved"),
+  uAlignmentBytes = 8,
 );
 # DPH_DELAY_FREE_FLAGS
-DPH_DELAY_FREE_FLAGS_32 = fcStructure_32("DPH_DELAY_FREE_FLAGS",
+DPH_DELAY_FREE_FLAGS_32 = fcStructure("DPH_DELAY_FREE_FLAGS",
   (UINT32,          "All"),
+  uAlignmentBytes = 4,
 );
-DPH_DELAY_FREE_FLAGS_64 = fcStructure_64("DPH_DELAY_FREE_FLAGS",
+DPH_DELAY_FREE_FLAGS_64 = fcStructure("DPH_DELAY_FREE_FLAGS",
   (UINT32,          "All"),
+  uAlignmentBytes = 8,
 );
 DPH_DELAY_FREE_FLAGS_PageHeapBlock    = 1 << 0;
 DPH_DELAY_FREE_FLAGS_NormalHeapBlock  = 1 << 1;
 DPH_DELAY_FREE_FLAGS_Lookaside        = 1 << 2;
 # DPH_DELAY_FREE_QUEUE_ENTRY
-DPH_DELAY_FREE_QUEUE_ENTRY_32 = fcStructure_32("DPH_DELAY_FREE_QUEUE_ENTRY",
+DPH_DELAY_FREE_QUEUE_ENTRY_32 = fcStructure("DPH_DELAY_FREE_QUEUE_ENTRY",
   (DPH_DELAY_FREE_FLAGS_32, "Flags"),
   (PVOID_32,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
+  uAlignmentBytes = 4,
 );
-DPH_DELAY_FREE_QUEUE_ENTRY_64 = fcStructure_64("DPH_DELAY_FREE_QUEUE_ENTRY",
+DPH_DELAY_FREE_QUEUE_ENTRY_64 = fcStructure("DPH_DELAY_FREE_QUEUE_ENTRY",
   (DPH_DELAY_FREE_FLAGS_64, "Flags"),
   (PVOID_64,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
+  uAlignmentBytes = 8,
 );
 # DPH_HEAP_BLOCK_FLAGS
-DPH_HEAP_BLOCK_FLAGS_32 = fcStructure_32("DPH_HEAP_BLOCK_FLAGS",
+DPH_HEAP_BLOCK_FLAGS_32 = fcStructure("DPH_HEAP_BLOCK_FLAGS",
   (UINT32,          "All"),
+  uAlignmentBytes = 4,
 );
-DPH_HEAP_BLOCK_FLAGS_64 = fcStructure_64("DPH_HEAP_BLOCK_FLAGS",
+DPH_HEAP_BLOCK_FLAGS_64 = fcStructure("DPH_HEAP_BLOCK_FLAGS",
   (UINT32,          "All"),
+  uAlignmentBytes = 8,
 );
 DPH_HEAP_BLOCK_FLAGS_UnusedNode       = 1 << 1;
 DPH_HEAP_BLOCK_FLAGS_Delay            = 1 << 2;
@@ -69,7 +83,7 @@ DPH_HEAP_BLOCK_FLAGS_Lookaside        = 1 << 3;
 DPH_HEAP_BLOCK_FLAGS_Free             = 1 << 4;
 DPH_HEAP_BLOCK_FLAGS_Busy             = 1 << 5;
 # DPH_HEAP_BLOCK
-DPH_HEAP_BLOCK_32 = fcStructure_32("DPH_HEAP_BLOCK",
+DPH_HEAP_BLOCK_32 = fcStructure("DPH_HEAP_BLOCK",
   UNION (
     (PVOID_32,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
     (LIST_ENTRY_32, "AvailableEntry"),
@@ -83,8 +97,9 @@ DPH_HEAP_BLOCK_32 = fcStructure_32("DPH_HEAP_BLOCK",
   (LIST_ENTRY_32,   "AdjacencyEntry"),
   (UINT32,          "uUnknown1"),                     # 
   (PVOID_32,        "StackTrace"),                    # PRTL_TRACE_BLOCK
+  uAlignmentBytes = 4,
 );
-DPH_HEAP_BLOCK_64 = fcStructure_64("DPH_HEAP_BLOCK",
+DPH_HEAP_BLOCK_64 = fcStructure("DPH_HEAP_BLOCK",
   UNION (
     (PVOID_64,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
     (LIST_ENTRY_64, "AvailableEntry"),
@@ -98,21 +113,24 @@ DPH_HEAP_BLOCK_64 = fcStructure_64("DPH_HEAP_BLOCK",
   (LIST_ENTRY_64,   "AdjacencyEntry"),
   (UINT64,          "uUnknown1"),                     # 
   (PVOID_64,        "StackTrace"),                    # PRTL_TRACE_BLOCK
+  uAlignmentBytes = 8,
 );
 DPH_STATE_ALLOCATED = 0x20;
 DPH_STATE_FREED = 0x4;
 
 # Page heap stores a DPH_ALLOCATION_HEADER structure at the start of the virtual allocation for a heap block.
-DPH_ALLOCATION_HEADER_32 = fcStructure_32("DPH_ALLOCATION_HEADER",
+DPH_ALLOCATION_HEADER_32 = fcStructure("DPH_ALLOCATION_HEADER",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
   (PVOID_32,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
+  uAlignmentBytes = 4,
 );
 auValidPageHeapAllocationHeaderMarkers = [0xEEEEEEED, 0xEEEEEEEE];
 
-DPH_ALLOCATION_HEADER_64 = fcStructure_64("DPH_ALLOCATION_HEADER",
+DPH_ALLOCATION_HEADER_64 = fcStructure("DPH_ALLOCATION_HEADER",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
   (ULONG,           "uPadding"),                      # 0xEEEEEEEE
   (PVOID_64,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
+  uAlignmentBytes = 8,
 );
 auValidPageHeapAllocationHeaderPaddings = [0xEEEEEEEE];
 
@@ -120,7 +138,7 @@ auValidPageHeapAllocationHeaderPaddings = [0xEEEEEEEE];
 # Some information on DPH_BLOCK_INFORMATION can be found here:
 # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
 # http://www.nirsoft.net/kernel_struct/vista/DPH_BLOCK_INFORMATION.html
-DPH_BLOCK_INFORMATION_32 = fcStructure_32("DPH_BLOCK_INFORMATION",
+DPH_BLOCK_INFORMATION_32 = fcStructure("DPH_BLOCK_INFORMATION",
   (ULONG,           "StartStamp"),
   (PVOID_32,        "Heap"),
   (SIZE_T_32,       "RequestedSize"),
@@ -132,8 +150,9 @@ DPH_BLOCK_INFORMATION_32 = fcStructure_32("DPH_BLOCK_INFORMATION",
   ),
   (PVOID_32,        "StackTrace"),
   (ULONG,           "EndStamp"),
+  uAlignmentBytes = 4,
 );
-DPH_BLOCK_INFORMATION_64 = fcStructure_64("DPH_BLOCK_INFORMATION",
+DPH_BLOCK_INFORMATION_64 = fcStructure("DPH_BLOCK_INFORMATION",
   (ULONG,           "StartStamp"),
   (ULONG,           "PaddingStart"),
   (PVOID_64,        "Heap"),
@@ -147,6 +166,7 @@ DPH_BLOCK_INFORMATION_64 = fcStructure_64("DPH_BLOCK_INFORMATION",
   (PVOID_64,        "StackTrace"),
   (ULONG,           "PaddingEnd"),
   (ULONG,           "EndStamp"),
+  uAlignmentBytes = 8,
 );
 uPaddingStartAllocated = 0xABCDBBBB;
 uPaddingStartFreed = 0xABCDBBBA;
@@ -161,7 +181,11 @@ def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformat
   oAllocationInformationVirtualAllocation = cVirtualAllocation(oProcess.uId, uAllocationInformationStartAddress);
   assert oAllocationInformationVirtualAllocation, \
       "Cannot find virtual allocation for page heap allocation information at 0x%X" % uAllocationInformationStartAddress;
-  if gbDebugOutput: oAllocationInformationVirtualAllocation.fDump("oAllocationInformationVirtualAllocation");
+  if gbDebugOutput:
+    print (",- oAllocationInformationVirtualAllocation ").ljust(80, "-");
+    for sLine in oAllocationInformationVirtualAllocation.fasDump():
+      print "| %s" % sLine;
+    print "`".ljust(80, "-");
   if not oAllocationInformationVirtualAllocation.bAllocated:
     return None;
   # Read the page heap allocation information
@@ -170,14 +194,22 @@ def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformat
     cStructure = DPH_HEAP_BLOCK,
     uOffset = uAllocationInformationStartAddress - oAllocationInformationVirtualAllocation.uStartAddress,
   );
-  if gbDebugOutput: oAllocationInformation.fDump("oAllocationInformation");
+  if gbDebugOutput:
+    print (",- oAllocationInformation ").ljust(80, "-");
+    for sLine in oAllocationInformation.fasDump():
+      print "| %s" % sLine;
+    print "`".ljust(80, "-");
   return oAllocationInformation;
 
 def foGetVirtualAllocationForProcessAndAddress(oProcess, uAddressInVirtualAllocation):
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInVirtualAllocation);
   assert oVirtualAllocation, \
       "Cannot find virtual allocation for page heap block allocation at 0x%X" % uAddressInVirtualAllocation;
-  if gbDebugOutput: oVirtualAllocation.fDump("oVirtualAllocation");
+  if gbDebugOutput:
+    print (",- oVirtualAllocation ").ljust(80, "-");
+    for sLine in oVirtualAllocation.fasDump():
+      print "| %s" % sLine;
+    print "`".ljust(80, "-");
   return oVirtualAllocation;
 
 def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, uPointerSize):
@@ -190,13 +222,19 @@ def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, 
       uOffset = 0,
     );
     assert oAllocationHeader.uMarker in auValidPageHeapAllocationHeaderMarkers, \
-        "Page heap allocation header marker has unhandled value 0x%X (expected %s)" % \
-        (oAllocationHeader.uMarker, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderMarkers]));
+        "Page heap allocation header marker has unhandled value 0x%X (expected %s):\r\n%s" % \
+        (oAllocationHeader.uMarker, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderMarkers]),
+        "\r\n".join(oAllocationHeader.fasDump()));
     if hasattr(oAllocationHeader, "uPadding"):
       assert oAllocationHeader.uPadding in auValidPageHeapAllocationHeaderPaddings, \
-          "Page heap allocation header padding has unhandled value 0x%X (expected %s)" % \
-          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]));
-    if gbDebugOutput: oAllocationHeader.fDump("oAllocationHeader");
+          "Page heap allocation header padding has unhandled value 0x%X (expected %s):\r\n%s" % \
+          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]),
+          "\r\n".join(oAllocationHeader.fasDump()));
+    if gbDebugOutput:
+      print (",- oAllocationHeader ").ljust(80, "-");
+      for sLine in oAllocationHeader.fasDump():
+        print "| %s" % sLine;
+      print "`".ljust(80, "-");
     return oAllocationHeader;
 
 def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddress, oAllocationInformation, oVirtualAllocation, oAllocationHeader):
