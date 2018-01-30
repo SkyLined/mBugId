@@ -3,45 +3,39 @@ from cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminate
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 from mWindowsAPI import *;
 
-def fCleanup(oCdbWrapper):
-  # Make sure the cdb.exe process is terminated:
-  oCdbConsoleProcess = oCdbWrapper.oCdbConsoleProcess;
-  if oCdbConsoleProcess:
-    try:
-      oCdbConsoleProcess.fbTerminate(5);
-    except:
+
+def cCdbWrapper_fCleanupThread(oCdbWrapper):
+  # wait for debugger thread to terminate.
+  oCdbWrapper.oCdbStdInOutThread.join();
+  oCdbWrapper.fbFireEvent("Log message", "cdb stdin/out closed");
+  if not oCdbWrapper.bCdbWasTerminatedOnPurpose:
+    if not oCdbWrapper.oCdbConsoleProcess.bIsRunning:
+      oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, oCdbConsoleProcess.uExitCode);
+      oBugReport.fReport(oCdbWrapper);
+    elif not oCdbWrapper.oCdbConsoleProcess.fbTerminate(5):
       oBugReport = cBugReport_CdbCouldNotBeTerminated(oCdbWrapper);
       oBugReport.fReport(oCdbWrapper);
     else:
-      if not oCdbWrapper.bCdbWasTerminatedOnPurpose:
-        oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, oCdbConsoleProcess.uExitCode);
-        oBugReport.fReport(oCdbWrapper);
-  
-  # Make sure all processes for the application are terminated:
-  auProcessIds = oCdbWrapper.doConsoleProcess_by_uId.keys() + oCdbWrapper.doProcess_by_uId.keys();
-  for uProcessId in auProcessIds:
-    fbTerminateProcessForId(uProcessId);
-  # Wait for all other threads to terminate.
-  # When a thread is started, information about it is added to a list. When the thread terminates, it's information is
-  # removed from the list. This function runs in a separate thread as well. While there is more than one itme in the
-  # list, we wait for the termination of each _other_ thread who's information is in the list. Once there is only one
-  # thread left (the thread running this function), we are sure that BugId has come to a full stop.
+      oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
+  # wait for stderr thread to terminate.
+  oCdbWrapper.oCdbStdErrThread.join();
+  oCdbWrapper.fbFireEvent("Log message", "cdb stderr closed");
+  if oCdbWrapper.bCdbWasTerminatedOnPurpose:
+    # Wait for cdb.exe to terminate
+    oCdbWrapper.oCdbConsoleProcess.fbWait();
+    oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
+  # Wait for all other threads to terminate
   oCurrentThread = threading.currentThread();
   while len(oCdbWrapper.adxThreads) > 1:
     for dxThread in oCdbWrapper.adxThreads:
       oThread = dxThread["oThread"];
       if oThread != oCurrentThread:
+        # There is no timeout on this join, so we may hang forever. To be able to analyze such a bug, we will log the
+        # details of the thread we are waiting on here:
+        oCdbWrapper.fbFireEvent("Log message", "Waiting for thread %d %s(%s)" % \
+            (oThread.ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]])));
         oThread.join();
-
-def cCdbWrapper_fCleanupThread(oCdbWrapper):
-  # wait for debugger thread to terminate.
-  oCdbWrapper.oCdbStdInOutThread.join();
-  # wait for stderr thread to terminate.
-  oCdbWrapper.oCdbStdErrThread.join();
-  try:
-    # Cleanup is done in a try: ... finally: to make sure we fire the Finished event, or you could be waiting forever.
-    fCleanup(oCdbWrapper);
-  finally:
-    oCdbWrapper.fbFireEvent("Log message", "Finished");
-    oCdbWrapper.fbFireEvent("Finished");
+  # Report that we're finished.
+  oCdbWrapper.fbFireEvent("Log message", "Finished");
+  oCdbWrapper.fbFireEvent("Finished");
     
