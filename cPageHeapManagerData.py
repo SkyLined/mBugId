@@ -381,8 +381,11 @@ class cPageHeapManagerData(cHeapManagerData):
       oSelf.__fDetectCorruption();
     assert oSelf.bCorruptionDetected, \
         "Cannot get a corruption id if no corruption was detected!";
+    sCorruptionOffsetId, sCorruptionOffsetDescription = \
+        oSelf.ftsGetOffsetIdAndDescriptionForAddress(oSelf.__uCorruptionStartAddress);
+    # ^^^ sCorruptionOffsetDescription is not used.
     uCorruptionLength = oSelf.__uCorruptionEndAddress - oSelf.__uCorruptionStartAddress;
-    sId = "~%s" % fsGetNumberDescription(uCorruptionLength);
+    sId = "%s~%s" % (sCorruptionOffsetId, fsGetNumberDescription(uCorruptionLength));
     # Only hash the chars when the bugid is not architecture independent, as different architectures may result in
     # different sixed corruptions, which we can compensate for in the length, but not in the hash.
     if dxConfig["uArchitectureIndependentBugIdBits"] == 0 and dxConfig["uHeapCorruptedBytesHashChars"]:
