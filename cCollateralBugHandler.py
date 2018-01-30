@@ -61,6 +61,11 @@ class cCollateralBugHandler(object):
     del oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
   
   def fiGetOffsetForPoisonedAddress(oSelf, oProcess, uAddress):
+    if oProcess.uId not in oSelf.__duPoisonedAddress_by_uProcessId:
+      # This is a special case: apparently his bug is in the utility process, which is not in our list.
+      # This is highly unexpected, but we need to handle it in order to generate a useful bug report to find out
+      # the root cause of this.
+      return None;
     uPoisonedAddress = oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
     iOffset = uAddress - uPoisonedAddress;
     # Let's allow a full page of offset on either side.
