@@ -1,6 +1,7 @@
 from fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from fSetBugReportPropertiesForAccessViolationUsingHeapManagerData import fSetBugReportPropertiesForAccessViolationUsingHeapManagerData;
+from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(
   oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
@@ -76,26 +77,36 @@ def fbUpdateReportForHeapManagerPointer(
           oHeapManagerData.ftsGetIdAndDescriptionForAddress(oHeapManagerData.uCorruptionStartAddress);
       # sHeapBlockAndOffsetDescription ^^^ is discarded because it repeats the heap block size, which is already mentioned
       # in oBugReport.sBugDescription
-      if oHeapManagerData.uCorruptionStartAddress <= oHeapManagerData.uHeapBlockStartAddress:
+      if oHeapManagerData.uHeapBlockStartAddress >= oHeapManagerData.uCorruptionStartAddress:
+        # Corruption before the heap block
         uOffsetBeforeStartOfBlock = oHeapManagerData.uHeapBlockStartAddress - oHeapManagerData.uCorruptionStartAddress;
         oBugReport.sBugDescription += (
           " An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
           "before that block because it modified the page heap prefix pattern."
         ) % (oHeapManagerData.uCorruptionStartAddress, uOffsetBeforeStartOfBlock, uOffsetBeforeStartOfBlock);
-      elif oHeapManagerData.uCorruptionStartAddress >= oHeapManagerData.uHeapBlockEndAddress:
+        if oHeapManagerData.uHeapBlockStartAddress == oHeapManagerData.uCorruptionEndAddress:
+          # The corruption goes right up to the heap block, so take this into account for the BugId.
+          oBugReport.sBugTypeId = "OOBW%s%s" % (sHeapBlockAndOffsetId, oHeapManagerData.sCorruptionId);
+      elif oHeapManagerData.uHeapBlockEndAddress <= oHeapManagerData.uCorruptionStartAddress:
+        # Corruption after the heap block
         uOffsetBeyondEndOfBlock = oHeapManagerData.uCorruptionStartAddress - oHeapManagerData.uHeapBlockEndAddress;
         oBugReport.sBugDescription += (
           " An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
           "beyond that block because it modified the page heap suffix pattern."
         ) % (oHeapManagerData.uCorruptionStartAddress, uOffsetBeyondEndOfBlock, uOffsetBeyondEndOfBlock);
-      if oHeapManagerData.uCorruptionStartAddress == oHeapManagerData.uHeapBlockEndAddress:
-        if sViolationTypeId == "R":
-          oBugReport.sBugDescription += " This appears to be a classic linear read beyond the end of a buffer.";
-          sSecurityImpact = "Potentially highly exploitable security issue that might allow information disclosure.";
-        else:
-          oBugReport.sBugDescription += " This appears to be a classic linear buffer-overrun vulnerability.";
-          sSecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
-      oBugReport.sBugTypeId = "OOBW%s%s" % (sHeapBlockAndOffsetId, oHeapManagerData.sCorruptionId);
+        # If the corruption end where the access violation happened, this is probably a linear overflow.
+        if oHeapManagerData.uCorruptionEndAddress == uAccessViolationAddress:
+          # Take this into account for the BugId.
+          oBugReport.sBugTypeId = "OOBW%s%s" % (sHeapBlockAndOffsetId, oHeapManagerData.sCorruptionId);
+          # If the corruption starts immediately after the block, this is probably a classic linear buffer overflow.
+          if oHeapManagerData.uHeapBlockEndAddress == oHeapManagerData.uCorruptionStartAddress:
+            if sViolationTypeId == "R":
+              oBugReport.sBugDescription += " This appears to be a classic linear read beyond the end of a buffer.";
+              sSecurityImpact = "Potentially highly exploitable security issue that might allow information disclosure.";
+            else:
+              oBugReport.sBugDescription += " This appears to be a classic linear buffer-overrun vulnerability.";
+              sSecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
+      
     else:
       # --- OOB ---------------------------------------------------------------------
       # An out-of-bounds read on a heap block that is allocated and has padding that happens in or immedaitely after this 
