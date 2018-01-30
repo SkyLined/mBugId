@@ -314,7 +314,8 @@ def fTest(
     oBugId.fAddEventCallback("Process started", fProcessStartedCallback);
     oBugId.fAddEventCallback("Log message", fLogMessageCallback);
     oBugId.fAddEventCallback("Event", fEventCallback);
-    oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
+    if bExcessiveCPUUsageChecks:
+      oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
     oBugId.fStart();
     oBugId.fWait();
     if gbDebugIO: fOutput("= Finished ".ljust(80, "="));
@@ -447,6 +448,7 @@ if __name__ == "__main__":
       # "binary!_purecall" function can be found on the stack to destinguish these specific cases. Wether this works
       # depends on the build of the application and whether symbols are being used.
       fTest(sISA,    ["PureCall"],                                              ["PureCall 12d.838 @ <test-binary>!fCallVirtual"]);
+      fTest(sISA,    ["WrongHeapHandle", 0x20],                                 ["WrongHeap[4n] ed2.531 @ <test-binary>!wmain"]);
       fTest(sISA,    ["OOM", "HeapAlloc", guTotalMaxMemoryUse],                 ["OOM ed2.531 @ <test-binary>!wmain"]);
       fTest(sISA,    ["OOM", "C++", guTotalMaxMemoryUse],                       ["OOM ed2.531 @ <test-binary>!wmain"]);
       # WRT
@@ -499,39 +501,39 @@ if __name__ == "__main__":
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF9],    ["AVR@NULL-4n-3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF8],    ["AVR@NULL-4n ed2.531 @ <test-binary>!wmain"]);
       # These are detected by Page Heap / Application Verifier
-      fTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],                ["OOBW[1]-1~1 ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],                ["OOBW[1]{-1~1} ed2.531 @ <test-binary>!wmain"]);
       if bExtendedTestSuite:
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],                ["OOBW[2]-2~2 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],                ["OOBW[3]-3~3 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],                ["OOBW[4n]-4n~4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],                ["OOBW[4n+1]-4n-1~4n+1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],                ["OOBW[1]-4n~4n ed2.531 @ <test-binary>!wmain"]); # Last byte written is within bounds!
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],                ["OOBW[2]{-2~2} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],                ["OOBW[3]{-3~3} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],                ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 5, -5, 5],                ["OOBW[4n+1]{-4n-1~4n+1} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", 1, -4, 5],                ["OOBW[1]{-4n~4n} ed2.531 @ <test-binary>!wmain"]); # Last byte written is within bounds!
         # Make sure very large allocations do not cause issues in cBugId
-        fTest(sISA,  ["OutOfBounds", "Heap", "Write", guLargeHeapBlockSize, -4, 4], ["OOBW[4n]-4n~4n ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["OutOfBounds", "Heap", "Write", guLargeHeapBlockSize, -4, 4], ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
       # Page heap does not appear to work for x86 tests on x64 platform.
-      fTest(sISA,    ["UseAfterFree", "Read",    1,  0],                        ["UAFR[1]@0 ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["UseAfterFree", "Read",    1,  0],                        ["RAF[1]@0 ed2.531 @ <test-binary>!wmain"]);
       if bExtendedTestSuite:
-        fTest(sISA,  ["UseAfterFree", "Write",   2,  1],                        ["UAFW[2]@1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    3,  2],                        ["UAFR[3]@2 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["UAFW[4n]@3 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    5,  4],                        ["UAFR[4n+1]@4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   6,  5],                        ["UAFW[4n+2]@4n+1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["UAFE[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
-        fTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["UAFE[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
-      fTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBUAFR[1]+0 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   2,  1],                        ["WAF[2]@1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    3,  2],                        ["RAF[3]@2 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["WAF[4n]@3 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    5,  4],                        ["RAF[4n+1]@4n ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   6,  5],                        ["WAF[4n+2]@4n+1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["EAF[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["EAF[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
+      fTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBRAF[1]+0 ed2.531 @ <test-binary>!wmain"]);
       if bExtendedTestSuite:
-        fTest(sISA,  ["UseAfterFree", "Write",   2,  3],                        ["OOBUAFW[2]+1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    3,  5],                        ["OOBUAFR[3]+2 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   4,  7],                        ["OOBUAFW[4n]+3 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    5,  9],                        ["OOBUAFR[4n+1]+4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   6, 11],                        ["OOBUAFW[4n+2]+4n+1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    1, -1],                        ["OOBUAFR[1]-1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   1, -2],                        ["OOBUAFW[1]-2 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    1, -3],                        ["OOBUAFR[1]-3 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Write",   1, -4],                        ["OOBUAFW[1]-4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Read",    1, -5],                        ["OOBUAFR[1]-4n-1 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["OOBUAFE[4n]+0 f47.ed2 @ <test-binary>!fCall"]);
-        fTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBUAFE[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   2,  3],                        ["OOBWAF[2]+1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    3,  5],                        ["OOBRAF[3]+2 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   4,  7],                        ["OOBWAF[4n]+3 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    5,  9],                        ["OOBRAF[4n+1]+4n ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   6, 11],                        ["OOBWAF[4n+2]+4n+1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    1, -1],                        ["OOBRAF[1]-1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   1, -2],                        ["OOBWAF[1]-2 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    1, -3],                        ["OOBRAF[1]-3 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Write",   1, -4],                        ["OOBWAF[1]-4n ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Read",    1, -5],                        ["OOBRAF[1]-4n-1 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["OOBEAF[4n]+0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBEAF[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
       fTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],             ["OOBR[4n]+4n ed2.531 @ <test-binary>!wmain"]);
       if bExtendedTestSuite:
@@ -539,12 +541,19 @@ if __name__ == "__main__":
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xE, 5],             ["OOBR[4n+2]+2 ed2.531 @ <test-binary>!wmain", "OOBR[4n+2]+3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],             ["OOBR[4n+3]+1 ed2.531 @ <test-binary>!wmain", "OOBR[4n+3]+2 ed2.531 @ <test-binary>!wmain"]);
       # These issues are detected when they cause an access violation, but earlier OOBWs took place that did not cause AVs.
-      # This is detected and reported by application verifier because the page heap suffix was modified.
-      fTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],             ["OOBW[4n]+0~4n ed2.531 @ <test-binary>!wmain", "OOBW[4n]+0~4n ed2.531 @ <test-binary>!wmain"]);
+      # This causes memory corruption, which is detected and reportd in the bug id between curly braces.
+      # This next test causes one AV, which is reported first. Then when collateral continues and the application
+      # frees the memory, verifier.dll notices the corruption and reports it as well...
+      fTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],             ["BOF[4n]+4n{+0~4n} ed2.531 @ <test-binary>!wmain", "BOF[4n]{+0~4n} ed2.531 @ <test-binary>!wmain"]);
       if bExtendedTestSuite:
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],             ["OOBW[4n+1]+0~3 ed2.531 @ <test-binary>!wmain", "OOBW[4n+1]+4n ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],             ["OOBW[4n+2]+0~2 ed2.531 @ <test-binary>!wmain", "OOBW[4n+2]+3 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],             ["OOBW[4n+3]+0~1 ed2.531 @ <test-binary>!wmain", "OOBW[4n+3]+2 ed2.531 @ <test-binary>!wmain"]);
+        # These tests cause multiple AVs as the buffer overflow continues to write beyond the end of the buffer.
+        # The first one is detect as a BOF, as the AV is sequential to the heap corruption in the heap block suffix.
+        # The second AV is sequential to the first, but no longer to the heap corruption, so it is not detected as a BOF
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xD, 5],             ["BOF[4n+1]+3{+0~3} ed2.531 @ <test-binary>!wmain", "OOBW[4n+1]+4n{+0~3} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xE, 5],             ["BOF[4n+2]+2{+0~2} ed2.531 @ <test-binary>!wmain", "OOBW[4n+2]+3{+0~2} ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["BufferOverrun",   "Heap", "Write",  0xF, 5],             ["BOF[4n+3]+1{+0~1} ed2.531 @ <test-binary>!wmain", "OOBW[4n+3]+2{+0~1} ed2.531 @ <test-binary>!wmain"]);
+        # For this buffer overflow, there is no heap block suffix in which to detect corruption, so it cannot be
+        # detected as a BOF.
         fTest(sISA,  ["BufferOverrun",   "Heap", "Write", 0x10, 5],             ["OOBW[4n]+0 ed2.531 @ <test-binary>!wmain", "OOBW[4n]+1 ed2.531 @ <test-binary>!wmain"]); # First byte writen causes AV; no data hash
       # Stack based heap overflows can cause an access violation if the run off the end of the stack, or a debugbreak
       # when they overwrite the stack cookie and the function returns. Finding out how much to write to overwrite the
