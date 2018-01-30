@@ -243,15 +243,16 @@ def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddr
   DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION_32, 8: DPH_BLOCK_INFORMATION_64}[uPointerSize];
   uHeapBlockHeaderStartAddress = oAllocationInformation.pUserAllocation - SIZEOF(DPH_BLOCK_INFORMATION);
   uHeapBlockEndAddress = oAllocationInformation.pUserAllocation + oAllocationInformation.nUserRequestedSize;
-  uHeapBlockEndPaddingSize = oVirtualAllocation.uEndAddress - uHeapBlockEndAddress;
   if oVirtualAllocation.bAllocated:
     # A DPH_BLOCK_INFORMATION structure is stored immediately before the heap block in the same allocation.
     oHeapBlockHeader = oVirtualAllocation.foReadStructureForOffset(
       cStructure = DPH_BLOCK_INFORMATION,
       uOffset = uHeapBlockHeaderStartAddress - oVirtualAllocation.uStartAddress,
     );
+    uHeapBlockEndPaddingSize = oVirtualAllocation.uEndAddress - uHeapBlockEndAddress;
   else:
     oHeapBlockHeader = None;
+    uHeapBlockEndPaddingSize = None;
   return cPageHeapManagerData(
     uPointerSize,
     uAllocationInformationStartAddress,
