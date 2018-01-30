@@ -68,7 +68,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oE
         # All frames in the loop are part of the hash if they have an id:
         # This includes inline frames because they may not get inlined in a different build but the BugId should be
         # the same for both builds.
-        oFrame.bIsPartOfId = oFrame.sId;
+        oFrame.bIsPartOfId = oFrame.sId is not None;
       else:
         # All frames after the loop are not part of the hash.
         oFrame.bIsPartOfId = False;
