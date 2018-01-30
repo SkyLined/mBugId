@@ -571,6 +571,22 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     if (gbFreeHeap) {
       HeapFree(hHeap, 0, pMemory);
     };
+  } else if (_tcsicmp(asArguments[1], _T("WrongHeapHandle")) == 0) {
+    //--------------------------------------------------------------------------
+    // Allocate memory on the heap, then create a second heap and use it to try
+    // to free the memory.
+    if (uArgumentsCount < 3) {
+      _ftprintf(stderr, _T("Please provide a UINT memory block size.\r\n"));
+      return 1;
+    };
+    ISAUINT uMemoryBlockSize = fuParseNumber(asArguments[2]);
+    BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uMemoryBlockSize);
+    HANDLE hSecondHeap = HeapCreate(
+      0, // DWORD  flOptions
+      0, // SIZE_T dwInitialSize,
+      0 // SIZE_T dwMaximumSize
+    );
+    HeapFree(hSecondHeap, 0, pMemory);
   } else {
     _ftprintf(stderr, _T("Invalid test type %s\r\n"), asArguments[1]);
     return 1;
