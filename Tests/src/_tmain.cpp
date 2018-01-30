@@ -423,7 +423,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
           iOffset, iOffset, uSize, uSize, pMemory);
       fJump(pMemory + iOffset);
     } else {
-      _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[2]);
+      _ftprintf(stderr, _T("Please use Read, Write, Call or Jump, not %s\r\n"), asArguments[2]);
       return 1;
     }
   } else if (_tcsicmp(asArguments[1], _T("DoubleFree")) == 0) {
