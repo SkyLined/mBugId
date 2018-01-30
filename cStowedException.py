@@ -1,8 +1,6 @@
 import re;
 #from cException import cException; # moved to end of file to prevent circular reference
-from fduStructureData import fduStructureData;
 from fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
-from fuStructureSize import fuStructureSize;
 from cWindowsStatusOrError import cWindowsStatusOrError;
 from mWindowsAPI.mDefines import *;
 from mWindowsAPI.mTypes import *;
