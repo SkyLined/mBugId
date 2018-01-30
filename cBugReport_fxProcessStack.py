@@ -8,20 +8,18 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     asHTML = [];
     asNotesHTML = [];
   aoStackFramesPartOfId = [];
-  # If no frames have been marked as part of the id, mark as many as the default settings request:
-  bCanBeHidden = True;
-  bIdFramesMarked = False;
+  # For recursive function loops, the frames in the loop have already been marked as part of the id, and we need to
+  # check that none of them are hidden, as that makes no sense. For other exceptions, we still need to mark a few as
+  # part of the id, so will need to find out which it is:
+  bIdFramesHaveAlreadyBeenMarked = False;
   for oStackFrame in oStack.aoFrames:
     if oStackFrame.sIsHiddenBecause is not None:
-      assert bCanBeHidden, \
-        "Cannot have a hidden frame after a non-hidden frame";
       assert not oStackFrame.bIsPartOfId, \
-        "Cannot have a hidden frame that is part of the id";
-    else:
-      bCanBeHidden = False;
-    if oStackFrame.bIsPartOfId:
-      bIdFramesMarked = True;
-  if not bIdFramesMarked:
+          "Cannot have a hidden frame that is part of the id";
+    bIdFramesHaveAlreadyBeenMarked |= oStackFrame.bIsPartOfId;
+  # If id frames have not been marked, mark as many as the default settings request. Take into account that hidden
+  # frames should not be part of the id.
+  if not bIdFramesHaveAlreadyBeenMarked:
     # Mark up to `uStackHashFramesCount` frames as part of the id
     uFramesToBeMarkedCount = dxConfig["uStackHashFramesCount"];
     for oStackFrame in oStack.aoFrames:
