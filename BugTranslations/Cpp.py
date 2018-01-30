@@ -1,5 +1,6 @@
-from cBugTranslation import cBugTranslation;
 import re;
+from cBugTranslation import cBugTranslation;
+from rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # C++ -> hide irrelevant frames
@@ -64,9 +65,9 @@ aoBugTranslations = [
       "*!__chkstk",
     ],
   ),
-  # Heap related issues -> hide irrelevant frames
+  # Heap related issues -> hide irrelevant heap management frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*|AV[RW]@\w+)$"),
+    sOriginalBugTypeId = rHeapRelatedBugIds,
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         re.compile(r".*!(m|re)alloc"),

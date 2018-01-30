@@ -1,5 +1,6 @@
 import re;
 from cBugTranslation import cBugTranslation;
+from rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # These frames are never relevant
@@ -61,9 +62,9 @@ aoBugTranslations = [
       ],
     ],
   ),
-  # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW -> hide irrelevant frames
+  # Heap related issues -> hide irrelevant heap management frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
+    sOriginalBugTypeId = rHeapRelatedBugIds,
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "ntdll.dll!DbgUiRemoteBreakin",
