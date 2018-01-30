@@ -1,12 +1,47 @@
-2018-01-29
+2018-01-30
 ==========
 There have been many major changes, and even more smaller ones. For brevity,
 I'll only list those that are most likely to impact you.
 
-BugId changes
--------------
-+ Improved bug translations may result in different (but more accurate) bug ids
+Changes that affect bug ids
+---------------------------
+* Use-After-Free bugs are now reported as `[RWE]AF` instead of `UAF[RWE]`.
+* `IncorrectHeap` bugs are now reported as `WrongHeap`.
+* Heap corruption that has been detect by checking page heap structures is now
+  reported at the end of the bug id between curly brackets. If this heap
+  corruption covers was reported with a VERIFIER STOP, this information covers
+  the start offset, so the start offset is not added to the bug id after the
+  heap block size as it would normally be. For instance, a one byte write at an
+  address two bytes past the end of a three byte buffer would be reported as
+  `OOBW[3]{+2~1}`, and a one byte write at an address two bytes before the
+  start of a three byte buffer would be reported as `OOBW[3]{-2~1}`.
+* Linear sequential buffer overflows in buffers that are not size-aligned and
+  thus overwrite the page heap block suffix are now detected as such when they
+  trigger a VERIFIER STOP or cause an AV. These are reported with bug ids that
+  start with `BOF` instead of `OOBW`. For instance, a one byte write past a
+  two bytes buffer would be reported as `BOF[2]{+0~1}`. For larger buffers and
+  overflows that cause an AV, rather than only page heap suffix corruption, the
+  bug ids will include the offset where the AV happened. For instance, writing
+  18 bytes into an 13 byte buffer would be reported as `BOF[13]+3{0~3}`:
+  The buffer overflow was detected at offset `+3` past the end of the buffer,
+  and had already corrupted `3` bytes starting at offset `0` from the end of
+  the buffer at that point. With collateral enabled, the next bug reported will
+  be `OOBW[13]+4{0~3}`, as the suffix corruption is still detected, but the AV
+  no longer happens at the address immediately after this corruption, so this
+  is not detected as a linear buffer overflow.
+* Bug ids for nearly linear overflows where some bytes are skipped could have
+  been incorrectly assumed to be normal linear overflows which would have
+  resulted in slightly incorrect BugIds. e.g. if the application overwrites 3
+  bytes past the end of a buffer without writing beyond the end of the page
+  heap page, then skip one byte and writes at offset 4 from the end to cause an
+  access violation, the bug id reported would have been `[size]0~3` instead of
+  `[size]+4`. While the former is not technically incorrect, for the new
+  collateral feature it makes more sense to report the corruption related to
+  the access violation, so subsequent collateral bugs have different bug ids
+* Improved bug translations may result in different (but more accurate) bug ids
   for various bugs.
+* A workaround for a cdb stack unwinding bug should provide a better stack and
+  subsequent better stack hashes.
 
 Changes to bug reporting
 ------------------------
@@ -65,12 +100,18 @@ Changes to events
 
 Bug fixes
 ---------
+* Python `threading.Event.wait` is not reliable, which could cause a call to
+  `cBugId.fWait` to hang after BugId is finished. I am now using
+  `threading.Lock` objects which appears to not have this issue.
 * Module importing has been improved to prevent leaking internal modules to the
   global namespace.
 * Bug translations to `None` will now correctly prevent reporting of a bug.
 * More cdb installation paths were added.
 * `oVersionInformation` now handles failed connections.
 * A few (full) tests were fixed as they had incorrect bug ids.
+* Source file information without line number information is now handled
+  correctly.
+* Breakpoints can only be set in allocated, executable memory.
 
 Code cleanup
 ------------
@@ -110,8 +151,10 @@ Code cleanup
 Changes to tests
 ----------------
 * Logging for tests has been expanded.
-* Excessive CPU usage checks are disabled for most checks, as they are
-not expected to happen in them.
+* Excessive CPU usage checks are disabled for all checks that are not expected
+  to trigger them, which speeds up testing a little.
+* A test for `WrongHeap` bug ids has been created and added to the tests.
+* Test binaries have been rebuild.
 
 2017-12-21
 ==========
