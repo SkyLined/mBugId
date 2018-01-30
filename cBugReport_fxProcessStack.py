@@ -88,7 +88,10 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       # Exception did not happen in the process' binary: add process' binary name to the location:
       oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
     if oTopIdStackFrame.sSourceFilePath:
-      oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
+      if oTopIdStackFrame.uSourceFileLineNumber:
+        oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
+      else:
+        oBugReport.sBugSourceLocation = oTopIdStackFrame.sSourceFilePath;
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
