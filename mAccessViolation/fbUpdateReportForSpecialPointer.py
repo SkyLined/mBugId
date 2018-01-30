@@ -1,5 +1,6 @@
 from fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
+from ..dxConfig import dxConfig;
 
 gddtsDetails_uSpecialAddress_sISA = {
   # There are a number of values that are very close to eachother, and because an offset is likely to be added when
