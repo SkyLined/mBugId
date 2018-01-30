@@ -76,7 +76,12 @@ class cBugId(object):
     uTotalMaxMemoryUse = None,
     uMaximumNumberOfBugs = 1,
   ):
-    oBugId.__oFinishedEvent = threading.Event();
+    # I was using an event to implement `fWait`, but I found that under unknown conditions, `Event.wait` may not
+    # return if the event is set... in this situation BugId will be done, but the caller of `fWait` will never know.
+    # So, I've replaced this code with a `Lock` to see if that resolves the issue.
+    # oBugId.__oFinishedEvent = threading.Event();
+    oBugId.__oFinishedLock = threading.Lock();
+    oBugId.__oFinishedLock.acquire();
     oBugId.__bStarted = False;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
@@ -98,7 +103,10 @@ class cBugId(object):
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
-    oBugId.__oCdbWrapper.fAddEventCallback("Finished", lambda: oBugId.__oFinishedEvent.set());
+    def fSetFinishedEvent():
+      # oBugId.__oFinishedEvent.set();
+      oBugId.__oFinishedLock.release();
+    oBugId.__oCdbWrapper.fAddEventCallback("Finished", fSetFinishedEvent);
     
   def fStart(oBugId):
     oBugId.__bStarted = True;
@@ -112,12 +120,11 @@ class cBugId(object):
   def fWait(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fWait()";
-    while 1:
-      try:
-        oBugId.__oFinishedEvent.wait();
-      except KeyboardInterrupt:
-        continue;
-      break;
+    # oBugId.__oFinishedEvent.wait();
+    assert oBugId.__oFinishedLock, \
+        "You cannot call fWait twice";
+    oBugId.__oFinishedLock.acquire();
+    oBugId.__oFinishedLock = None; # Make sure no further fWait calls can be made.
   
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
