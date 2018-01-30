@@ -201,27 +201,28 @@ class cBugReport(object):
       
       # Create and add disassembly blocks if needed:
       for oFrame in aoStackFramesPartOfId:
-        if oFrame.uIndex == 0:
-          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
-            oCdbWrapper,
-            oProcess,
-            uAddress = oFrame.uInstructionPointer,
-            sDescriptionOfInstructionAtAddress = "current instruction"
-          );
-        else:
-          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
-            oCdbWrapper, 
-            oProcess,
-            uAddress = oFrame.uInstructionPointer,
-            sDescriptionOfInstructionBeforeAddress = "call",
-            sDescriptionOfInstructionAtAddress = "return address"
-          );
-        if sFrameDisassemblyHTML:
-          asBlocksHTML.append(sBlockHTMLTemplate % {
-            "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
-            "sCollapsed": "Collapsed",
-            "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
-          });
+        if oFrame.uInstructionPointer is not None:
+          if oFrame.uIndex == 0:
+            sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+              oCdbWrapper,
+              oProcess,
+              uAddress = oFrame.uInstructionPointer,
+              sDescriptionOfInstructionAtAddress = "current instruction"
+            );
+          else:
+            sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+              oCdbWrapper, 
+              oProcess,
+              uAddress = oFrame.uInstructionPointer,
+              sDescriptionOfInstructionBeforeAddress = "call",
+              sDescriptionOfInstructionAtAddress = "return address"
+            );
+          if sFrameDisassemblyHTML:
+            asBlocksHTML.append(sBlockHTMLTemplate % {
+              "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
+              "sCollapsed": "Collapsed",
+              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
+            });
       
       # Add relevant binaries information to cBugReport and HTML report.
       sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
