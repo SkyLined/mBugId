@@ -6,6 +6,8 @@
 #include <Winstring.h>
 #include <exception>
 #include <new>
+#include <safeint.h>
+#include <limits.h>
 
 #define BYTE_TO_WRITE 0x41
 
@@ -162,6 +164,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("Usage:\r\n"));
     _tprintf(_T("  %s exception [arguments]\r\n"), asArguments[0]);
     _tprintf(_T("Exceptions and arguments:\r\n"));
+                 ////////////////////////////////////////////////////////////////////////////////
     _tprintf(_T("  Breakpoint\r\n"));
     _tprintf(_T("  CPUUsage\r\n"));
     _tprintf(_T("  IntegerDivideByZero\r\n"));
@@ -169,23 +172,35 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("  IllegalInstruction\r\n"));
     _tprintf(_T("  PrivilegedInstruction\r\n"));
     _tprintf(_T("  PureCall\r\n"));
-    _tprintf(_T("  StackExhaustion\r\n"));
-    _tprintf(_T("  RecursiveCall\r\n"));
+    _tprintf(_T("  StackExhaustion SIZE\r\n"));
+    _tprintf(_T("    e.g. StackExhaustion 0x000F0000\r\n"));
+    _tprintf(_T("         (repeatedly attempt to allocate 0xF0000 bytes of stack memory until a\r\n"));
+    _tprintf(_T("         stack exhaustion exception crashes the application).\r\n"));
+    _tprintf(_T("  RecursiveCall NUMBER_OF_FUNCTIONS_IN_LOOP\r\n"));
+    _tprintf(_T("    e.g. RecursiveCall 5\r\n"));
+    _tprintf(_T("         (Recursively call two different functions, where one is called once\r\n"));
+    _tprintf(_T("         every five calls and the other four times, creating a loop of five\r\n"));
+    _tprintf(_T("         calls total.)\r\n"));
     _tprintf(_T("  C++\r\n"));
-    _tprintf(_T("  WRTOriginate HRESULT MESSAGE\r\n"));
-    _tprintf(_T("    e.g. WRTOriginate 0x87654321 \"Windows Run-Time Originate error message\"\r\n"));
-/* can get this to work
     _tprintf(_T("  WRTLanguage HRESULT MESSAGE\r\n"));
-    _tprintf(_T("    e.g. WRTLanguage 0x87654321 \"Windows Run-Time Originate Language error message\"\r\n"));
-*/
-    _tprintf(_T("  OOM [HeapAlloc|C++] SIZE\r\n"));
-    _tprintf(_T("    e.g. OOM HeapAlloc 0xC0000000\r\n"));
+    _tprintf(_T("    e.g. WRTLanguage 0x87654321 \"Windows Run-Time Originate Language error\"\r\n"));
+    _tprintf(_T("  WRTOriginate HRESULT MESSAGE\r\n"));
+    _tprintf(_T("    e.g. WRTOriginate 0x87654321 \"Windows Run-Time Originate error\"\r\n"));
+    _tprintf(_T("  OOM [HeapAlloc|C++|Stack] SIZE\r\n"));
+    _tprintf(_T("    e.g. OOM HeapAlloc 0x000F0000\r\n"));
+    _tprintf(_T("         (repeatedly attempt to allocate 0xF0000 bytes of memory until an\r\n"));
+    _tprintf(_T("         out-of-memory exception crashes the application)\r\n"));
+    _tprintf(_T("    -or- OOM Stack 0x000F0000\r\n"));
+    _tprintf(_T("         (repeatedly use HeapAlloc to allocate 0xF0000 bytes of memory until\r\n"));
+    _tprintf(_T("          all available memory is consumed, then repeatedly attempt to allocate\r\n"));
+    _tprintf(_T("          0xF0000 bytes of stack memory until a stack exhaustion exception\r\n"));
+    _tprintf(_T("          crashes the application).\r\n"));
     _tprintf(_T("  Numbered NUMBER FLAGS\r\n"));
     _tprintf(_T("    e.g. Numbered 0x41414141 0x42424242\r\n"));
     _tprintf(_T("  AccessViolation [Call|Jmp|Read|Write] ADDRESS\r\n"));
     _tprintf(_T("    e.g. AccessViolation Call 0xDEADBEEF\r\n"));
     _tprintf(_T("         (attempt to execute code at address 0xDEADBEEF using a CALL instruction)\r\n"));
-    _tprintf(_T("  UseAfterFree [Read|Write] SIZE OFFSET\r\n"));
+    _tprintf(_T("  UseAfterFree [Call|Jmp|Read|Write] SIZE OFFSET\r\n"));
     _tprintf(_T("    e.g. UseAfterFree Read 0x20 4\r\n"));
     _tprintf(_T("         (free a 0x20 byte heap buffer and read from offset 4 of the free memory)\r\n"));
     _tprintf(_T("  DoubleFree SIZE\r\n"));
@@ -209,6 +224,10 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("         (read 4 bytes before the start of a 0x20 byte heap buffer)\r\n"));
     _tprintf(_T("    -or- BufferUnderrun Stack Write 0x30 1\r\n"));
     _tprintf(_T("         (read 1 byte before the start of a 0x30 byte stack buffer)\r\n"));
+    _tprintf(_T("  WrongHeapHandle SIZE\r\n"));
+    _tprintf(_T("    e.g. WrongHeapHandle 0x20\r\n"));
+    _tprintf(_T("         (allocate 0x20 bytes on one heap, then attempt to free it on another)\r\n"));
+    _tprintf(_T("  SafeInt ...\r\n"));
   } else if (_tcsicmp(asArguments[1], _T("Nop")) == 0) {
     /*                                                                        */
     _ftprintf(stderr, _T("Exiting cleanly...\r\n"));
@@ -247,9 +266,9 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide a UINT memory block size to allocate for each stack chunk.\r\n"));
       return 1;
     };
-    ISAUINT uChunkSize = fuParseNumber(asArguments[2]);
-    _ftprintf(stderr, _T("Repeatedly allocating %Id/0x%IX bytes of stack memory...\r\n"), uChunkSize, uChunkSize);
-    while (1) alloca(uChunkSize);
+    ISAUINT uBlockSize = fuParseNumber(asArguments[2]);
+    _ftprintf(stderr, _T("Repeatedly allocating %Id/0x%IX bytes of stack memory...\r\n"), uBlockSize, uBlockSize);
+    while (1) alloca(uBlockSize);
   } else if (_tcsicmp(asArguments[1], _T("RecursiveCall")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 3) {
@@ -257,7 +276,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       return 1;
     };
     ISAUINT uFunctionsInLoop = fuParseNumber(asArguments[2]);
-    _ftprintf(stderr, _T("Calling %d functions recursively...\r\n"), uFunctionsInLoop);
+    _ftprintf(stderr, _T("Calling %Id functions recursively...\r\n"), uFunctionsInLoop);
     fStackRecursion(uFunctionsInLoop);
   } else if (_tcsicmp(asArguments[1], _T("C++")) == 0) {
     /*                                                                        */
@@ -290,10 +309,10 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     };
     hResult = (HRESULT)fuParseNumber(asArguments[2]);
     if (SUCCEEDED(hResult)) {
-      _ftprintf(stderr, _T("HRESULT %08X is a success code.\r\n"), hResult);
+      _ftprintf(stderr, _T("HRESULT %lX is a success code.\r\n"), hResult);
       return 1;
     };
-    _ftprintf(stderr, _T("Creating Originate Error(%08X, %s)...\r\n"), hResult, asArguments[3]);
+    _ftprintf(stderr, _T("Creating Originate Error(%lX, %s)...\r\n"), hResult, asArguments[3]);
     if (!RoOriginateError(hResult, hString)) {
       _ftprintf(stderr, _T("RoOriginateError call failed.\r\n"));
       return 1;
@@ -324,11 +343,11 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     };
     hResult = (HRESULT)fuParseNumber(asArguments[2]);
     if (SUCCEEDED(hResult)) {
-      _ftprintf(stderr, _T("HRESULT %08X is a success code.\r\n"), hResult);
+      _ftprintf(stderr, _T("HRESULT %lX is a success code.\r\n"), hResult);
       return 1;
     };
     IUnknown* pIUnknown = (IUnknown*)new cIUnknown();
-    _ftprintf(stderr, _T("Creating Originate Language Error(%08X, %s, %p)...\r\n"), hResult, asArguments[3], pIUnknown);
+    _ftprintf(stderr, _T("Creating Originate Language Error(%lX, %s, %p)...\r\n"), hResult, asArguments[3], pIUnknown);
     if (!RoOriginateLanguageException(hResult, hString, pIUnknown)) {
       _ftprintf(stderr, _T("RoOriginateLanguageException call failed.\r\n"));
       return 1;
@@ -346,21 +365,31 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide a way of allocating memory (HeapAlloc or C++) and a UINT memory block size to allocate for each heap block.\r\n"));
       return 1;
     };
-    BOOL bHeapAlloc = FALSE;
+    BOOL bHeapAlloc = FALSE, bCPP = FALSE, bStack = FALSE;
     if (_tcsicmp(asArguments[2], _T("HeapAlloc")) == 0) {
       bHeapAlloc = TRUE;
-    } else if (_tcsicmp(asArguments[2], _T("C++")) != 0) {
-      _ftprintf(stderr, _T("Please use HeapAlloc or C++, not %s\r\n"), asArguments[2]);
+    } else if (_tcsicmp(asArguments[2], _T("C++")) == 0) {
+      bCPP = TRUE;
+    } else if (_tcsicmp(asArguments[2], _T("Stack")) == 0) {
+      bStack = TRUE;
+    } else {
+      _ftprintf(stderr, _T("Please use HeapAlloc, C++ or Stack, not %s\r\n"), asArguments[2]);
       return 1;
     };
     ISAUINT uBlockSize = fuParseNumber(asArguments[3]);
+    _ftprintf(stderr, _T("Repeatedly allocating %Id/0x%IX bytes of heap memory using %s...\r\n"), uBlockSize, uBlockSize, \
+        bHeapAlloc ? _T("HeapAlloc") : bCPP ? _T("new BYTE[]") : _T("HeapAlloc to cause low memory"));
     while (1) {
       if (bHeapAlloc) {
-        _ftprintf(stderr, _T("Allocating %Id/0x%IX bytes of heap memory using HeapAlloc...\r\n"), uBlockSize, uBlockSize);
         BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
-      } else {
-        _ftprintf(stderr, _T("Allocating %Id/0x%IX bytes of heap memory using new BYTE[]...\r\n"), uBlockSize, uBlockSize);
+      } else if (bCPP) {
         BYTE* pMemory = new BYTE[uBlockSize];
+      } else {
+        BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, 0, uBlockSize);
+        if (pMemory == NULL) {
+          _ftprintf(stderr, _T("Repeatedly allocating %Id/0x%IX bytes of stack memory...\r\n"), uBlockSize, uBlockSize);
+          while (1) alloca(uBlockSize);
+        };
       };
     };
   } else if (_tcsicmp(asArguments[1], _T("Numbered")) == 0) {
@@ -393,28 +422,20 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Writing to address 0x%p...\r\n"), pAddress);
       *(BYTE*)pAddress = BYTE_TO_WRITE;
     } else {
-      _ftprintf(stderr, _T("Please use Call, Jmp, Read or Write, not %s\r\n"), asArguments[2]);
+      _ftprintf(stderr, _T("Please use Call, Jmp, Read, or Write, not %s\r\n"), asArguments[2]);
       return 1;
     };
   } else if (_tcsicmp(asArguments[1], _T("UseAfterFree")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 5) {
-      _ftprintf(stderr, _T("Please provide a type of access (read, write), a UINT memory block size and an INT offset at which to access it.\r\n"));
+      _ftprintf(stderr, _T("Please provide a type of access (call, jmp, read, write), a UINT memory block size and an INT offset at which to access it.\r\n"));
       return 1;
     };
     ISAUINT uSize = fuParseNumber(asArguments[3]);
     ISAINT iOffset = fiParseNumber(asArguments[4]);
     BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uSize);
     HeapFree(hHeap, 0, pMemory);
-    if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
-      _ftprintf(stderr, _T("Reading at offset %Id/0x%IX from a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
-          iOffset, iOffset, uSize, uSize, pMemory);
-      BYTE x = *(pMemory + iOffset);
-    } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
-      _ftprintf(stderr, _T("Writing at offset %Id/0x%IX to a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
-          iOffset, iOffset, uSize, uSize, pMemory);
-      *(pMemory + iOffset) = BYTE_TO_WRITE;
-    } else if (_tcsicmp(asArguments[2], _T("Call")) == 0) {
+    if (_tcsicmp(asArguments[2], _T("Call")) == 0) {
       _ftprintf(stderr, _T("Calling offset %Id/0x%IX in a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
       fCall(pMemory + iOffset);
@@ -422,8 +443,16 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Jumping to offset %Id/0x%IX in a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
       fJump(pMemory + iOffset);
+    } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
+      _ftprintf(stderr, _T("Reading at offset %Id/0x%IX from a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
+          iOffset, iOffset, uSize, uSize, pMemory);
+      BYTE x = *(pMemory + iOffset);
+    } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
+      _ftprintf(stderr, _T("Writing at offset %Id/0x%IX to a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
+          iOffset, iOffset, uSize, uSize, pMemory);
+      *(pMemory + iOffset) = BYTE_TO_WRITE;
     } else {
-      _ftprintf(stderr, _T("Please use Read, Write, Call or Jump, not %s\r\n"), asArguments[2]);
+      _ftprintf(stderr, _T("Please use Call, Jmp, Read, or Write, not %s\r\n"), asArguments[2]);
       return 1;
     }
   } else if (_tcsicmp(asArguments[1], _T("DoubleFree")) == 0) {
@@ -587,9 +616,207 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       0 // SIZE_T dwMaximumSize
     );
     HeapFree(hSecondHeap, 0, pMemory);
+  } else if (_tcsicmp(asArguments[1], _T("SafeInt")) == 0) {
+    //--------------------------------------------------------------------------
+    if (uArgumentsCount < 5) {
+      _ftprintf(stderr, _T("Please provide an invalid integer operation to perform (++, --, *, truncate, signedness), a type (signed, unsigned) and bit size (8, 16, 32, or 64).\r\n"));
+      return 1;
+    };
+    BOOL bIncrease = _tcsicmp(asArguments[2], _T("++")) == 0;
+    BOOL bDecrease = !bIncrease && _tcsicmp(asArguments[2], _T("--")) == 0;
+    BOOL bMultiply = !bIncrease && !bDecrease && _tcsicmp(asArguments[2], _T("*")) == 0;
+    BOOL bTruncate = !bIncrease && !bDecrease && !bMultiply && _tcsicmp(asArguments[2], _T("truncate")) == 0;
+    BOOL bSignedness = !bIncrease && !bDecrease && !bMultiply && !bTruncate;
+    if (bSignedness && !_tcsicmp(asArguments[2], _T("signedness")) == 0) {
+      _ftprintf(stderr, _T("Please provide an invalid integer operation to perform (++, --, truncate, signedness), not %s.\r\n"), asArguments[1]);
+      return 1;
+    };
+    BOOL bSigned = _tcsicmp(asArguments[3], _T("signed")) == 0;
+    if (!bSigned && !_tcsicmp(asArguments[3], _T("unsigned")) == 0) {
+      _ftprintf(stderr, _T("Please provide a signedness type (signed, unsigned), not %s.\r\n"), asArguments[3]);
+      return 1;
+    };
+    ISAUINT uValueBitSize = fuParseNumber(asArguments[4]);
+    switch (uValueBitSize) {
+      case 8: {
+        if (bIncrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed char> uValue = SCHAR_MAX;
+            uValue++;
+          } else {
+            msl::utilities::SafeInt<unsigned char> uValue = UCHAR_MAX;
+            uValue++;
+          };
+        } else if (bDecrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed char> uValue = SCHAR_MIN;
+            uValue--;
+          } else {
+            msl::utilities::SafeInt<unsigned char> uValue = 0;
+            uValue--;
+          };
+        } else if (bMultiply) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed char> uValue = SCHAR_MIN;
+            uValue *= 2;
+          } else {
+            msl::utilities::SafeInt<unsigned char> uValue = UCHAR_MAX;
+            uValue *= 2;
+          };
+        } else if (bTruncate) {
+          // don't care about signedness;
+          msl::utilities::SafeInt<unsigned char> uValue = 0;
+          unsigned short uLargerValue = USHRT_MAX;
+          uValue = uLargerValue;
+        } else if (bSignedness) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed char> uValue = 0;
+            unsigned char uLargerValue = UCHAR_MAX;
+            uValue = uLargerValue;
+          } else {
+            msl::utilities::SafeInt<unsigned char> uValue = 0;
+            signed char uSmallerValue = SCHAR_MIN;
+            uValue = uSmallerValue;
+          };
+        };
+        break;
+      };
+      case 16: {
+        if (bIncrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed short> uValue = SHRT_MAX;
+            uValue++;
+          } else {
+            msl::utilities::SafeInt<unsigned short> uValue = USHRT_MAX;
+            uValue++;
+          };
+        } else if (bDecrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed short> uValue = SHRT_MIN;
+            uValue--;
+          } else {
+            msl::utilities::SafeInt<unsigned short> uValue = 0;
+            uValue--;
+          };
+        } else if (bMultiply) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed short> uValue = SHRT_MIN;
+            uValue *= 2;
+          } else {
+            msl::utilities::SafeInt<unsigned short> uValue = USHRT_MAX;
+            uValue *= 2;
+          };
+        } else if (bTruncate) {
+          // don't care about signedness;
+          msl::utilities::SafeInt<unsigned short> uValue = 0;
+          unsigned int uLargerValue = UINT_MAX;
+          uValue = uLargerValue;
+        } else if (bSignedness) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed short> uValue = 0;
+            unsigned short uLargerValue = USHRT_MAX;
+            uValue = uLargerValue;
+          } else {
+            msl::utilities::SafeInt<unsigned short> uValue = 0;
+            signed short uSmallerValue = SHRT_MIN;
+            uValue = uSmallerValue;
+          };
+        };
+        break;
+      };
+      case 32: {
+        if (bIncrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed int> uValue = INT_MAX;
+            uValue++;
+          } else {
+            msl::utilities::SafeInt<unsigned int> uValue = UINT_MAX;
+            uValue++;
+          };
+        } else if (bDecrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed int> uValue = INT_MIN;
+            uValue--;
+          } else {
+            msl::utilities::SafeInt<unsigned int> uValue = 0;
+            uValue--;
+          };
+        } else if (bMultiply) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed int> uValue = INT_MIN;
+            uValue *= 2;
+          } else {
+            msl::utilities::SafeInt<unsigned int> uValue = UINT_MAX;
+            uValue *= 2;
+          };
+        } else if (bTruncate) {
+          // don't care about signedness;
+          msl::utilities::SafeInt<unsigned int> uValue = 0;
+          unsigned __int64 uLargerValue = _UI64_MAX;
+          uValue = uLargerValue;
+        } else if (bSignedness) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed int> uValue = 0;
+            unsigned int uLargerValue = UINT_MAX;
+            uValue = uLargerValue;
+          } else {
+            msl::utilities::SafeInt<unsigned int> uValue = 0;
+            signed int uSmallerValue = INT_MIN;
+            uValue = uSmallerValue;
+          };
+        };
+        break;
+      };
+      case 64: {
+        if (bIncrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed __int64> uValue = _I64_MAX;
+            uValue++;
+          } else {
+            msl::utilities::SafeInt<unsigned __int64> uValue = _UI64_MAX;
+            uValue++;
+          };
+        } else if (bDecrease) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed __int64> uValue = _I64_MIN;
+            uValue--;
+          } else {
+            msl::utilities::SafeInt<unsigned __int64> uValue = 0;
+            uValue--;
+          };
+        } else if (bMultiply) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed __int64> uValue = _I64_MIN;
+            uValue *= 2;
+          } else {
+            msl::utilities::SafeInt<unsigned __int64> uValue = _UI64_MAX;
+            uValue *= 2;
+          };
+        } else if (bTruncate) {
+          _ftprintf(stderr, _T("Sorry, but we cannot truncate a value into a 64-bit type.\r\n"));
+          return 1;
+        } else if (bSignedness) {
+          if (bSigned) {
+            msl::utilities::SafeInt<signed __int64> uValue = 0;
+            unsigned __int64 uLargerValue = _UI64_MAX;
+            uValue = uLargerValue;
+          } else {
+            msl::utilities::SafeInt<unsigned __int64> uValue = 0;
+            signed __int64 uSmallerValue = _I64_MIN;
+            uValue = uSmallerValue;
+          };
+        };
+        break;
+      };
+      default: {
+        _ftprintf(stderr, _T("Please provide a bit size (8, 16, 32, or 64), not %s.\r\n"), asArguments[4]);
+        return 1;
+        break;
+      };
+    };
   } else {
     _ftprintf(stderr, _T("Invalid test type %s\r\n"), asArguments[1]);
     return 1;
-  }
+  };
   return 0;
 }

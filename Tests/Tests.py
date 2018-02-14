@@ -21,11 +21,11 @@ for sModuleName in sys.modules.keys():
     or sModuleName.lstrip("_").split(".", 1)[0] in [
       "cBugId", # This was loaded as part of the cBugId package
       # These packages are loaded by cBugId:
-      "mWindowsAPI", "mFileSystem", 
-      # These built-in modules are loaded by cBugId:
+      "mWindowsAPI", "mFileSystem", "mProductVersionAndLicense",
+      # These built-in modules are loaded by these packages:
       "base64", "binascii", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc", "hashlib",
-      "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess", "textwrap", "urllib",
-      "urlparse", "winreg",
+      "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess", "textwrap",
+      "urllib", "urlparse", "winreg",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
@@ -33,14 +33,16 @@ for sModuleName in sys.modules.keys():
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
 from mWindowsAPI import oSystemInfo;
+from mWindowsAPI.mDefines import *;
 from mWindowsAPI.mDLLs import KERNEL32;
 from mWindowsAPI.mFunctions import *;
-from mWindowsAPI.mDefines import *;
 # Restore the search path
 sys.path = asOriginalSysPath;
 
-bDebugStartFinish = False;  # Show some output when a test starts and finishes.
-gbDebugIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
+gbDebugStartFinish = False;  # Show some output when a test starts and finishes.
+gbShowCdbIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
+gbShowApplicationIO = False;
+gbLicenseWarningsShown = False;
 
 dsComSpec_by_sISA = {};
 dsComSpec_by_sISA[oSystemInfo.sOSISA] = os.path.join(os.environ.get("WinDir"), "System32", "cmd.exe");
@@ -70,9 +72,12 @@ dsBinaries_by_sISA = {
 bFailed = False;
 gbGenerateReportHTML = False;
 oOutputLock = threading.Lock();
-guTotalMaxMemoryUse =  0x01234567; # Should be large enough to allow the application to allocate some memory, but small
-                                   # enough to detect excessive memory allocations before all memory on the system is
-                                   # used.
+guTotalMaxMemoryUse =  0x01234567; # The test application memory use limit: it should be large enough to allow the test
+                                   # to function, but small enough to detect excessive memory use before the entire
+                                   # system runs low on memory.
+guOOMAllocationBlockSize = 0x1234; # The out-of-memory test allocations size. it should be large enough to cause OOM
+                                   # reasonably fast, but small enough so a not to hit the guTotalMaxMemoryUse
+                                   # immediately, as this would not represent a normal OOM scenario.
 guLargeHeapBlockSize = 0x00800000; # Should be large to detect potential issues when handling large allocations, but
                                    # not so large as to cause the application to allocate more memory than it is allowed
                                    # through the guTotalMaxMemoryUse variable.
@@ -127,7 +132,7 @@ def fTest(
       sISA,
       " ".join(asApplicationArguments), \
       bRunInShell and " (in child process)" or "",
-      " => ".join(asExpectedBugIdAndLocations) or "no bugs");
+      asExpectedBugIdAndLocations and " => ".join(asExpectedBugIdAndLocations) or "no bugs");
   
   sTestBinaryName = os.path.basename(sApplicationBinaryPath).lower();
   
@@ -136,20 +141,20 @@ def fTest(
     sApplicationBinaryPath = dsComSpec_by_sISA[sISA];
   
   fSetTitle(sTestDescription);
-  if bDebugStartFinish:
+  if gbDebugStartFinish:
     fOutput("* Started %s" % sTestDescription);
   else:
     fOutput("* %s" % sTestDescription, bCRLF = False);
   
   asLog = [];
   def fCdbStdInInputCallback(oBugId, sInput):
-    if gbDebugIO: fOutput("stdin<%s" % sInput);
+    if gbShowCdbIO: fOutput("stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
   def fCdbStdOutOutputCallback(oBugId, sOutput):
-    if gbDebugIO: fOutput("stdout>%s" % sOutput);
+    if gbShowCdbIO: fOutput("stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
   def fCdbStdErrOutputCallback(oBugId, sOutput):
-    if gbDebugIO: fOutput("stderr>%s" % sOutput);
+    if gbShowCdbIO: fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
   def fApplicationDebugOutputCallback(oBugId, oProcessInformation, bIsMainProcess, asOutput):
@@ -157,20 +162,20 @@ def fTest(
     for sOutput in asOutput:
       sLogLine = "%s process %d/0x%X (%s): %s>%s" % (bIsMainProcess and "Main" or "Sub", oProcessInformation.uId, \
           oProcessInformation.uId, oProcessInformation.sBinaryName, bFirstLine and "debug" or "     ", sOutput);
-      if gbDebugIO: fOutput(sLogLine);
+      if gbShowApplicationIO: fOutput(sLogLine);
       asLog.append(sLogLine);
       bFirstLine = False;
   def fApplicationStdErrOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
     # This is always a main process
     sLogLine = "%s process %d/0x%X (%s): stderr> %s" % (bIsMainProcess and "Main" or "Sub", oConsoleProcess.uId, \
         oConsoleProcess.uId, oConsoleProcess.sBinaryName, sOutput);
-    if gbDebugIO: fOutput(sLogLine);
+    if gbShowApplicationIO: fOutput(sLogLine);
     asLog.append(sLogLine);
   def fApplicationStdOutOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
     # This is always a main process
     sLogLine = "%s process %d/0x%X (%s): stdout> %s" % (bIsMainProcess and "Main" or "Sub", oConsoleProcess.uId, \
         oConsoleProcess.uId, oConsoleProcess.sBinaryName, sOutput)
-    if gbDebugIO: fOutput(sLogLine);
+    if gbShowApplicationIO: fOutput(sLogLine);
     asLog.append(sLogLine);
   def fApplicationSuspendedCallback(oBugId, sReason):
     asLog.append("Application suspended (%s)" % sReason);
@@ -183,7 +188,7 @@ def fTest(
     if sExpectedFailedToDebugApplicationErrorMessage == sErrorMessage:
       return;
     gbTestFailed = True;
-    if not gbDebugIO: 
+    if not gbShowCdbIO: 
       for sLine in asLog:
         fOutput(sLine);
     fOutput("- Failed test: %s" % sTestDescription);
@@ -196,19 +201,34 @@ def fTest(
   def fFailedToApplyMemoryLimitsCallback(oBugId, oProcessInformation):
     global gbTestFailed;
     gbTestFailed = True;
-    if not gbDebugIO: 
+    if not gbShowCdbIO: 
       for sLine in asLog:
         fOutput(sLine);
     fOutput("- Failed to apply memory limits to process %d/0x%X (%s: %s) for test: %s" % (oProcessInformation.uId, \
         oProcessInformation.uId, oProcessInformation.sBinaryName, oProcessInformation.sCommandLine, sTestDescription));
     oBugId.fStop();
   def fFinishedCallback(oBugId):
-    if gbDebugIO: fOutput("Finished");
+    if gbShowCdbIO: fOutput("Finished");
     asLog.append("Finished");
+  def fLicenseWarningsCallback(oBugId, asLicenseWarnings):
+    global gbLicenseWarningsShown;
+    if not gbLicenseWarningsShown:
+      fOutput("@" * 80);
+      for sLicenseWarning in asLicenseWarnings:
+        fOutput("@ %s" % sLicenseWarning);
+      fOutput("@" * 80);
+      gbLicenseWarningsShown = True;
+  def fLicenseErrorsCallback(oBugId, asLicenseErrors):
+    fOutput("@" * 80);
+    for sLicenseError in asLicenseErrors:
+      fOutput("@ %s" % sLicenseError);
+    fOutput("@" * 80);
+    os._exit(1);
+  
   def fInternalExceptionCallback(oBugId, oException, oTraceBack):
     global gbTestFailed;
     gbTestFailed = True;
-    if not gbDebugIO: 
+    if not gbShowCdbIO: 
       for sLine in asLog:
         fOutput(sLine);
     fOutput("@" * 80);
@@ -243,47 +263,22 @@ def fTest(
   def fLogMessageCallback(oBugId, sMessage, dsData = None):
     sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
     sLogLine = "log>%s%s" % (sMessage, sData and " (%s)" % sData or "");
-    if gbDebugIO: fOutput(sLogLine);
-    asLog.append(sLogLine);
-  def fEventCallback(oBugId, sEventName, *axData):
-    if sEventName in [
-      "Application resumed",
-      "Application running",
-      "Application debug output",
-      "Application stderr output",
-      "Application stdout output",
-      "Application suspended",
-      "Bug report",
-      "Cdb stderr output",
-      "Cdb stdin input",
-      "Cdb stdout output",
-      "Failed to apply application memory limits",
-      "Failed to apply process memory limits",
-      "Failed to debug application",
-      "Finished",
-      "Internal exception",
-      "Page heap not enabled",
-      "Process attached",
-      "Process terminated",
-      "Process started",
-      "Log message",
-    ]:
-      return; # Already handled above
-    sLogLine = "event>%s: %s" % (sEventName, repr(axData));
-    if gbDebugIO: fOutput(sLogLine);
+    if gbShowCdbIO: fOutput(sLogLine);
     asLog.append(sLogLine);
   
   aoBugReports = [];
   def fBugReportCallback(oBugId, oBugReport):
     aoBugReports.append(oBugReport);
   
-  if gbDebugIO:
+  if gbShowCdbIO:
     fOutput();
     fOutput("=" * 80);
     fOutput("%s %s" % (sApplicationBinaryPath, " ".join(asApplicationArguments)));
-    for sExpectedBugIdAndLocation in asExpectedBugIdAndLocations:
-      fOutput("  => %s" % sExpectedBugIdAndLocation);
+    if asExpectedBugIdAndLocations:
+      for sExpectedBugIdAndLocation in asExpectedBugIdAndLocations:
+        fOutput("  => %s" % sExpectedBugIdAndLocation);
     fOutput("-" * 80);
+  bBugIdStarted = False;
   try:
     oBugId = cBugId(
       sCdbISA = sISA,
@@ -309,17 +304,19 @@ def fTest(
     oBugId.fAddEventCallback("Failed to debug application", fFailedToDebugApplicationCallback);
     oBugId.fAddEventCallback("Finished", fFinishedCallback);
     oBugId.fAddEventCallback("Internal exception", fInternalExceptionCallback);
+    oBugId.fAddEventCallback("License warnings", fLicenseWarningsCallback);
+    oBugId.fAddEventCallback("License errors", fLicenseErrorsCallback);
     oBugId.fAddEventCallback("Page heap not enabled", fPageHeapNotEnabledCallback);
     oBugId.fAddEventCallback("Process attached", fProcessAttachedCallback);
     oBugId.fAddEventCallback("Process terminated", fProcessTerminatedCallback);
     oBugId.fAddEventCallback("Process started", fProcessStartedCallback);
     oBugId.fAddEventCallback("Log message", fLogMessageCallback);
-    oBugId.fAddEventCallback("Event", fEventCallback);
     if bExcessiveCPUUsageChecks:
       oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
+    bBugIdStarted = True;
     oBugId.fStart();
     oBugId.fWait();
-    if gbDebugIO: fOutput("= Finished ".ljust(80, "="));
+    if gbShowCdbIO: fOutput("= Finished ".ljust(80, "="));
     if gbTestFailed:
       return;
     def fDumpExpectedAndReported():
@@ -334,36 +331,44 @@ def fTest(
         fOutput("  Reported   : %s" % (oBugReport and "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation)));
     if sExpectedFailedToDebugApplicationErrorMessage:
       pass;
-    elif len(aoBugReports) != len(asExpectedBugIdAndLocations):
-      gbTestFailed = True;
-      if not gbDebugIO: 
-        for sLine in asLog:
-          fOutput(sLine);
-      fOutput("- Failed test: %s" % sTestDescription);
-      fOutput("  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(asExpectedBugIdAndLocations)));
-      fDumpExpectedAndReported();
-    elif asExpectedBugIdAndLocations:
+    elif asExpectedBugIdAndLocations is None:
       uCounter = 0;
       for oBugReport in aoBugReports:
-        sExpectedBugIdAndLocation = asExpectedBugIdAndLocations[uCounter];
         uCounter += 1;
         sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
-        if sExpectedBugIdAndLocation[0] == "*": # string contains a regular expression
-          # Remove "*" and insert (escaped) test binary name in location
-          sExpectedBugIdAndLocation = "^(%s)$" % sExpectedBugIdAndLocation[1:].replace("<test-binary>", re.escape(sTestBinaryName));
-          bSuccess = re.match(sExpectedBugIdAndLocation, sBugIdAndLocation);
-        else:
-          sExpectedBugIdAndLocation = sExpectedBugIdAndLocation.replace("<test-binary>", sTestBinaryName);
-          bSuccess = sBugIdAndLocation == sExpectedBugIdAndLocation;
-        if not bSuccess:
-          gbTestFailed = True;
-          if not gbDebugIO: 
-            for sLine in asLog:
-              fOutput(sLine);
-          fOutput("- Failed test: %s" % sTestDescription);
-          fOutput("  Test bug #%d does not match %s." % (uCounter, sExpectedBugIdAndLocation));
-          fDumpExpectedAndReported()
-          break;
+        fOutput("* Test result for: %s" % sTestDescription);
+        fOutput("  Test bug #%d: %s." % (uCounter, sBugIdAndLocation));
+    elif asExpectedBugIdAndLocations:
+      if len(aoBugReports) != len(asExpectedBugIdAndLocations):
+        gbTestFailed = True;
+        if not gbShowCdbIO: 
+          for sLine in asLog:
+            fOutput(sLine);
+        fOutput("- Failed test: %s" % sTestDescription);
+        fOutput("  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(asExpectedBugIdAndLocations)));
+        fDumpExpectedAndReported();
+      else:
+        uCounter = 0;
+        for oBugReport in aoBugReports:
+          sExpectedBugIdAndLocation = asExpectedBugIdAndLocations[uCounter];
+          uCounter += 1;
+          sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
+          if sExpectedBugIdAndLocation[0] == "*": # string contains a regular expression
+            # Remove "*" and insert (escaped) test binary name in location
+            sExpectedBugIdAndLocation = "^(%s)$" % sExpectedBugIdAndLocation[1:].replace("<test-binary>", re.escape(sTestBinaryName));
+            bSuccess = re.match(sExpectedBugIdAndLocation, sBugIdAndLocation);
+          else:
+            sExpectedBugIdAndLocation = sExpectedBugIdAndLocation.replace("<test-binary>", sTestBinaryName);
+            bSuccess = sBugIdAndLocation == sExpectedBugIdAndLocation;
+          if not bSuccess:
+            gbTestFailed = True;
+            if not gbShowCdbIO: 
+              for sLine in asLog:
+                fOutput(sLine);
+            fOutput("- Failed test: %s" % sTestDescription);
+            fOutput("  Test bug #%d does not match %s." % (uCounter, sExpectedBugIdAndLocation));
+            fDumpExpectedAndReported()
+            break;
     if gbGenerateReportHTML:
       for oBugReport in aoBugReports:
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
@@ -378,11 +383,14 @@ def fTest(
         );
         fOutput("  Wrote report: %s" % sReportsFilePath);
   except Exception, oException:
+    if bBugIdStarted:
+      oBugId.fStop();
+      oBugId.fWait();
     fOutput("- Failed test: %s" % sTestDescription);
     fOutput("  Exception:   %s" % repr(oException));
     raise;
   finally:
-    if bDebugStartFinish:
+    if gbDebugStartFinish:
       fOutput("* Finished %s" % sTestDescription);
 
 if __name__ == "__main__":
@@ -397,17 +405,15 @@ if __name__ == "__main__":
     elif asArgs[0] == "--quick": 
       bQuickTestSuite = True;
     elif asArgs[0] == "--debug": 
-      gbDebugIO = True;
+      gbShowCdbIO = True;
     else:
       break;
     asArgs.pop(0);
-  if asArgs:
-    gbDebugIO = True; # Single test: output stdio
-    gbGenerateReportHTML = True;
   nStartTime = time.clock();
   if asArgs:
+    gbShowApplicationIO = True;
     fOutput("* Starting test...");
-    fTest(asArgs[0], asArgs[1:], []); # Expect no exceptions.
+    fTest(asArgs[0], asArgs[1:], None); # Expect no exceptions.
   else:
     fOutput("* Starting tests...");
     if not bExtendedTestSuite:
@@ -450,8 +456,9 @@ if __name__ == "__main__":
       # depends on the build of the application and whether symbols are being used.
       fTest(sISA,    ["PureCall"],                                              ["PureCall 12d.838 @ <test-binary>!fCallVirtual"]);
       fTest(sISA,    ["WrongHeapHandle", 0x20],                                 ["WrongHeap[4n] ed2.531 @ <test-binary>!wmain"]);
-      fTest(sISA,    ["OOM", "HeapAlloc", guTotalMaxMemoryUse],                 ["OOM ed2.531 @ <test-binary>!wmain"]);
-      fTest(sISA,    ["OOM", "C++", guTotalMaxMemoryUse],                       ["OOM ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["OOM", "HeapAlloc", guOOMAllocationBlockSize],            ["OOM ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["OOM", "C++", guOOMAllocationBlockSize],                  ["OOM ed2.531 @ <test-binary>!wmain"]);
+      fTest(sISA,    ["OOM", "Stack", guOOMAllocationBlockSize],                ["OOM ed2.531 @ <test-binary>!wmain"]);
       # WRT
       fTest(sISA,    ["WRTOriginate", 0x87654321, "message"],                   ["Stowed[0x87654321] ed2.531 @ <test-binary>!wmain"]);
       fTest(sISA,    ["WRTLanguage",  0x87654321, "message"],                   ["Stowed[0x87654321:WRTLanguage@cIUnknown] ed2.531 @ <test-binary>!wmain"]);
@@ -572,7 +579,7 @@ if __name__ == "__main__":
       if bExtendedTestSuite:
         for (uBaseAddress, sDescription) in [
           # 0123456789ABCDEF
-                 (0x44444444, "Unallocated"), # Not sure if this is guaranteed, but in my experience it's reliable.
+                 (0x44444444, "Unallocated"), # This is not guaranteed, but in my experience it's reliable.
              (0x7ffffffdffff, "Unallocated"), # Highly unlikely to be allocated as it is at the very top of allocatable mem.
              (0x7ffffffe0000, "Reserved"),
              (0x7ffffffeffff, "Reserved"),
@@ -592,8 +599,7 @@ if __name__ == "__main__":
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AVW@%s ed2.531 @ <test-binary>!wmain" % sDescription]);
               fTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ["AVE@%s 46f.ed2 @ <test-binary>!fJump" % sDescription]);
             fTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ["AVE@%s f47.ed2 @ <test-binary>!fCall" % sDescription]);
-      
-      if bExtendedTestSuite:
+        
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             fTest(sISA,    ["AccessViolation", "Read", uBaseAddress],           ["AVR@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
@@ -607,6 +613,25 @@ if __name__ == "__main__":
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AV?@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Call", uBaseAddress],           ["AVE@%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ["AVE@%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
+      # SafeInt tests
+      if not bExtendedTestSuite:
+        fTest(sISA,    ["SafeInt", "++", "signed", 64],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,    ["SafeInt", "--", "unsigned", 32],                       ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,    ["SafeInt", "*",  "signed", 16],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,    ["SafeInt", "truncate",  "signed", 8],                   ["IntegerTruncation ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,    ["SafeInt", "signedness",  "signed", 16],                ["IntegerTruncation ed2.531 @ <test-binary>!wmain"]);
+      else:
+        for (sOperation, sTypeId) in {
+          "++": "IntegerOverflow",
+          "--": "IntegerOverflow",
+          "*": "IntegerOverflow",
+          "truncate": "IntegerTruncation",
+          "signedness": "IntegerTruncation",
+        }.items():
+          for sSignedness in ["signed", "unsigned"]:
+            for uBits in [8, 16, 32, 64]:
+              if uBits != 64 and sOperation != "truncate":
+                fTest(sISA,    ["SafeInt", sOperation, sSignedness, uBits],     ["%s ed2.531 @ <test-binary>!wmain" % sTypeId]);
   nTestTime = time.clock() - nStartTime;
   if gbTestFailed:
     fOutput("- Testing failed after %3.3f seconds" % nTestTime);
