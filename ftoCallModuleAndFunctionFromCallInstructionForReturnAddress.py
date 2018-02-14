@@ -51,11 +51,11 @@ def ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uRetur
   #   >ntdll!DbgBreakPoint (77ec1250)
   assert len(asSymbolOutput) == 1, \
       "Unexpected get symbol output:\r\n%s" % "\r\n".join(asSymbolOutput);
-  if re.match(r"^[0-9A-F`]+\s*$", asSymbolOutput[0]):
+  if re.match(r"^[0-9`a-f]+\s*$", asSymbolOutput[0], re.I):
     return None; # There is no symbol for the call target address.
   oSymbolOutput = re.match(r"^%s\s*$" % "".join([
     r"([^!]+)!",          # module
-    r"([^\+]+)",          # function symbol name
+    r"(.+?)",             # function symbol name
     r"(\+0x\w+)? ",       # offset (optional)
     r"\([0-9`a-f]+\)",    # address
   ]), asSymbolOutput[0], re.I);
