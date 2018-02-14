@@ -1,11 +1,24 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
+from .cThreadEnvironmentBlock import cThreadEnvironmentBlock;
+from mWindowsAPI.mDefines import STATUS_STACK_OVERFLOW;
+from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oException):
   oStack = oBugReport.oStack;
+  # Check if this stack exhaustion happened because it ran out of free memory to to commit more stack space by
+  # attempting to allocate some memory in the process.
+  try:
+    oTestVirtualAllocation = cVirtualAllocation.foCreateInProcessForId(oProcess.uId, oSystemInfo.uPageSize);
+  except MemoryError:
+    oBugReport.sBugTypeId = "OOM";
+    oBugReport.sBugDescription = "The process was unable to allocate addition stack memory.";
+    oBugReport.sSecurityImpact = None;
+    return oBugReport;
+  
   # Stack exhaustion can be caused by recursive function calls, where one or more functions repeatedly call themselves
   # Figure out if this is the case and fide all frames at the top of the stack until the "first" frame in the loop.
   oBugReport.sBugTypeId = "StackExhaustion";
-  oBugReport.sBugDescription = "The process exhausted available stack memory";
+  oBugReport.sBugDescription = "The process exhausted available stack memory.";
   oBugReport.sSecurityImpact = None;
   uRecursionStartIndex = None;
   uRecursionLoopSize = None;
