@@ -3,7 +3,6 @@ from cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminate
 from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 from mWindowsAPI import *;
 
-
 def cCdbWrapper_fCleanupThread(oCdbWrapper):
   # wait for debugger thread to terminate.
   oCdbWrapper.oCdbStdInOutThread.join();
