@@ -13,6 +13,7 @@ from kernelbase_dll import aoBugTranslations as aoBugTranslations_kernelbase_dll
 from mshtml_dll import aoBugTranslations as aoBugTranslations_mshtml_dll;
 from ntdll_dll import aoBugTranslations as aoBugTranslations_ntdll_dll;
 from RTC import aoBugTranslations as aoBugTranslations_RTC;
+from SafeInt import aoBugTranslations as aoBugTranslations_SafeInt;
 from SlashGS import aoBugTranslations as aoBugTranslations_SlashGS;
 from V8 import aoBugTranslations as aoBugTranslations_V8;
 from verifier_dll import aoBugTranslations as aoBugTranslations_verifier_dll;
@@ -35,6 +36,7 @@ for aoBugTranslations_X in [
   aoBugTranslations_mshtml_dll,
   aoBugTranslations_ntdll_dll,
   aoBugTranslations_RTC,
+  aoBugTranslations_SafeInt,
   aoBugTranslations_SlashGS,
   aoBugTranslations_V8,
   aoBugTranslations_verifier_dll,
