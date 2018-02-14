@@ -1,4 +1,5 @@
 import re;
+from mWindowsAPI import cVirtualAllocation;
 
 class cThreadEnvironmentBlock(object):
   @staticmethod
@@ -36,8 +37,8 @@ class cThreadEnvironmentBlock(object):
     # |error InitTypeRead( TEB32 )...
     # It can show up at any location in the output.
     uTEBAddress = None;
-    uStackTopAddress = None;
-    uStackBottomAddress = None;
+    uStackAllocationStartAddress = None;
+    uStackAllocationEndAddress = None;
     for sLine in asCdbThreadOutput:
       if sLine == "error InitTypeRead( TEB )...":
         continue; # Ignore this error;
@@ -56,10 +57,10 @@ class cThreadEnvironmentBlock(object):
             "Unexpected TEB info line:%s\r\n%s" % (sLine, "\r\n".join(asCdbThreadOutput));
         sName, sValue = oLineMatch.groups();
         if sName == "StackBase":
-          uStackTopAddress = long(sValue, 16);
+          uStackAllocationEndAddress = long(sValue, 16);
         elif sName == "StackLimit":
-          uStackBottomAddress = long(sValue, 16);
-    if uStackTopAddress is None:
+          uStackAllocationStartAddress = long(sValue, 16);
+    if uStackAllocationStartAddress is None:
       # No additional information was provided, we'll have to grab it from the TEB outselves.
       # The TEB has a pointer to the stack top and bottom:
       # http://undocumented.ntinternals.net/index.html?page=UserMode%2FUndocumented%20Functions%2FNT%20Objects%2FThread%2FTEB.html
@@ -79,19 +80,30 @@ class cThreadEnvironmentBlock(object):
       #   void *ArbitraryUserPointer;                 // size = pointer
       #   struct _NT_TIB *Self;                       // size = pointer
       # };                                            // total size =  7 * pointer
-      (uStackTopAddress, uStackBottomAddress) = oProcess.fauReadValuesForAddressSizeAndCount(
+      (uStackAllocationStartAddress, uStackAllocationEndAddress) = oProcess.fauReadValuesForAddressSizeAndCount(
         uAddress = uTEBAddress + 1 * uTEBPointerSize,
         uSize = uTEBPointerSize,
         uCount = 2,
       );
 
     return cThreadEnvironmentBlock(
+      oProcess = oProcess,
       uAddress = uTEBAddress,
-      uStackTopAddress = uStackTopAddress,
-      uStackBottomAddress = uStackBottomAddress,
+      uStackAllocationStartAddress = uStackAllocationStartAddress,
+      uStackAllocationEndAddress = uStackAllocationEndAddress,
     );
   
-  def __init__(oThreadEnvironmentBlock, uAddress, uStackTopAddress, uStackBottomAddress):
-    oThreadEnvironmentBlock.uAddress = uAddress;
-    oThreadEnvironmentBlock.uStackTopAddress = uStackTopAddress;
-    oThreadEnvironmentBlock.uStackBottomAddress = uStackBottomAddress;
+  def __init__(oSelf, oProcess, uAddress, uStackAllocationStartAddress, uStackAllocationEndAddress):
+    oSelf.oProcess = oProcess;
+    oSelf.uAddress = uAddress;
+    oSelf.uStackAllocationStartAddress = uStackAllocationStartAddress;
+    oSelf.uStackAllocationEndAddress = uStackAllocationEndAddress;
+    oSelf.__oStackVirtualAllocation = None;
+  
+  @property
+  def oStackVirtualAllocation(oSelf):
+    if oSelf.__oStackVirtualAllocation is None:
+      oSelf.__oStackVirtualAllocation = cVirtualAllocation(oSelf.oProcess.uId,  oSelf.uStackAllocationStartAddress);
+    return oSelf.__oStackVirtualAllocation;
+    
+  
