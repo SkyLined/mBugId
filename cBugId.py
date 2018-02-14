@@ -152,38 +152,6 @@ class cBugId(object):
     return oBugId.__oFinishedEvent.isSet();
   
   def fAddEventCallback(oBugId, sEventName, fCallback):
-    if sEventName == "Event":
-      # Register an event callback for every possible event, but don't pass the normal arguments to the callback:
-      # insert the name of the event between the cBugId instance and event specific arguments:
-      def fAddEventEventCallbackHelper(sEventName, fCallback):
-        oBugId.fAddEventCallback(
-          sEventName,
-          lambda oBugId, *axArguments: fCallback(oBugId, sEventName, *axArguments),
-        );
-      for sEventName in [
-        "Application resumed", # ()
-        "Application running", # ()
-        "Application debug output", # (cProcess oProcess, str[] asOutput)
-        "Application stderr output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
-        "Application stdout output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
-        "Application suspended", # (str sReason)
-        "Bug report", # (cBugReport oBugReport)
-        "Cdb stderr output", # (str sOutput)
-        "Cdb stdin input", # (str sInput)
-        "Cdb stdout output", # (str sOutput)
-        "Failed to apply application memory limits", # (cProcess oProcess)
-        "Failed to apply process memory limits", # (cProcess oProcess)
-        "Failed to debug application", # (str sReason)
-        "Finished", # ()
-        "Internal exception", # (Exception oException, traceback oTraceBack)
-        "Log message", # (str sDescription, dict dxData)
-        "Page heap not enabled", # (cProcess oProcess, bool bPreventable)
-        "Process attached", # (cProcess oProcess)
-        "Process started", # (mWindowsAPI.cConsoleProcess oConsoleProcess)
-        "Process terminated", #(cProcess oProcess)
-      ]:
-        fAddEventEventCallbackHelper(sEventName, fCallback);
-      return;
     # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
     # not want to expose interal objects.
     if sEventName in [
