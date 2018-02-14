@@ -1,9 +1,17 @@
 import re;
 #from cException import cException; # moved to end of file to prevent circular reference
-from fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
-from cWindowsStatusOrError import cWindowsStatusOrError;
-from mWindowsAPI.mDefines import *;
-from mWindowsAPI.mTypes import *;
+from .fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
+from .cWindowsStatusOrError import cWindowsStatusOrError;
+from mWindowsAPI.mDefines import \
+    STOWED_EXCEPTION_INFORMATION_V1_SIGNATURE, STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE, \
+    STOWED_EXCEPTION_NESTED_TYPE_NONE, STOWED_EXCEPTION_NESTED_TYPE_WIN32, STOWED_EXCEPTION_NESTED_TYPE_STOWED, \
+    STOWED_EXCEPTION_NESTED_TYPE_CLR, STOWED_EXCEPTION_NESTED_TYPE_LEO, STOWED_EXCEPTION_NESTED_TYPE_LMAX;
+from mWindowsAPI.mTypes import \
+    STOWED_EXCEPTION_INFORMATION_HEADER, \
+    STOWED_EXCEPTION_INFORMATION_V1_32, STOWED_EXCEPTION_INFORMATION_V1_64, \
+    STOWED_EXCEPTION_INFORMATION_V2_32, STOWED_EXCEPTION_INFORMATION_V2_64;
+from mWindowsAPI.mFunctions import SIZEOF;
+from mWindowsAPI import cVirtualAllocation;
 
 def fsSignature(uSignature):
   return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in xrange(3,-1,-1)]);
@@ -132,8 +140,18 @@ class cStowedException(object):
           oProcess = oProcess,
           uCPPObjectAddress = oStowedExceptionInformation.NestedException,
         );
+#      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LMAX:
       else:
-        sNestedExceptionTypeId = "Type=0x%08X" % oStowedExceptionInformation.NestedExceptionType;
+        uDataAddress = oStowedExceptionInformation.NestedException;
+        oDataVirtualAllocation = cVirtualAllocation(oProcess.uId, uDataAddress);
+        uDataOffset = uDataAddress - oDataVirtualAllocation.uStartAddress;
+        uDataSize = min(0x80, oDataVirtualAllocation.uSize - uDataOffset);
+        sData = ",".join([
+          "%02X" % uByte
+          for uByte in oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize)
+        ]);
+        sNestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
+            (oStowedExceptionInformation.NestedExceptionType, uDataAddress, sData);
     # Handle the two different forms:
     if uExceptionForm == 1:
       oStowedException = cStowedException(
