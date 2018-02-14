@@ -128,8 +128,8 @@ class cVerifierStopDetector(object):
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
       # can special case it.
       sBugTypeId = "MisalignedFree%s%s" % (sHeapBlockId, sOffsetId);
-      sBugDescription = "The application attempted to free memory using a pointer that was %s." % \
-          (sOffsetDescription + sHeapBlockDescription);
+      sBugDescription = "The application attempted to free memory using a pointer that was %s %s." % \
+          (sOffsetDescription, sHeapBlockDescription);
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     elif sMessage == "block already freed":
       # |VERIFIER STOP 00000007: pid 0x1358: block already freed
@@ -214,8 +214,8 @@ class cVerifierStopDetector(object):
       # the heap block header was corrupted. HOWEVER IT INCORRECTLY REPORTS THAT THE START STAMP WAS CORRUPTED. So, only
       # if we cannot detect any corruption ourselves will we use the information we got from the VERIFIER STOP message.
       if not oPageHeapManagerData.bCorruptionDetected:
-        sBugDescription = "Heap corruption reported but not detected %s." % \
-          (sOffsetDescription + sHeapBlockDescription);
+        sBugDescription = "Heap corruption reported but not detected %s %s." % \
+          (sOffsetDescription, sHeapBlockDescription);
         sSecurityImpact = "Unknown - Application Verifier reported this but it could not be confirmed.";
         sCorruptionId = "{?}";
       else:
@@ -225,8 +225,8 @@ class cVerifierStopDetector(object):
         (sOffsetId, sOffsetDescription) = \
             oPageHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(oPageHeapManagerData.uCorruptionStartAddress); 
         sOffsetId = ""; # sCorruptionId will have the same info, this would be superfluous.
-        sBugDescription = "Heap corruption detected at 0x%X; %s." % \
-            (oPageHeapManagerData.uCorruptionStartAddress, sOffsetDescription + sHeapBlockDescription);
+        sBugDescription = "Heap corruption detected at 0x%X; %s %s." % \
+            (oPageHeapManagerData.uCorruptionStartAddress, sOffsetDescription, sHeapBlockDescription);
         if oPageHeapManagerData.uCorruptionStartAddress == oPageHeapManagerData.uHeapBlockEndAddress:
           sBugAccessTypeId = "BOF";
           sBugDescription += " This appears to be a classic buffer-overrun vulnerability.";
