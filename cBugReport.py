@@ -17,9 +17,9 @@ from cStack import cStack;
 from dxConfig import dxConfig;
 from mFileSystem import mFileSystem;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from oVersionInformation import oVersionInformation;
 from sReportHTMLTemplate import sReportHTMLTemplate;
 from mWindowsAPI.mDefines import *;
+from oProductDetails import oProductDetails;
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
@@ -285,7 +285,7 @@ class cBugReport(object):
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
             "sBlocks": "\r\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
-            "sBugIdVersion": oVersionInformation.sCurrentVersion,
+            "sBugIdVersion": oProductDetails.oProductVersion,
           };
         except MemoryError:
           # We cannot add everything, so let's remove a block of information to free up some memory and reduce the size
