@@ -153,7 +153,8 @@ class cBugId(object):
   
   def fAddEventCallback(oBugId, sEventName, fCallback):
     # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
-    # not want to expose interal objects.
+    # not want to expose interal objects. A lot of this should actually be done in the relevant `fbFireEvent` calls, 
+    # but this was not possible before.
     if sEventName in [
       "Application debug output", # (cProcess oProcess, str[] asOutput)
       "Failed to apply application memory limits", # (cProcess oProcess)
@@ -163,13 +164,12 @@ class cBugId(object):
       "Process terminated", #(cProcess oProcess)
     ]:
       # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
-      # do not want to expose. We'll create a mWindowsAPI.cProcess object for the process and pass that as
-      # the first argument to the callback instead. We'll also insert a boolean that indicates if the process is a
-      # main process.
+      # do not want to expose. We'll retreive the associated mWindowsAPI.cProcess object and pass that as the second
+      # argument to the callback instead. We'll also insert a boolean that indicates if the process is a main process.
       fOriginalCallback = fCallback;
       fCallback = lambda oBugId, oProcess, *axArguments: fOriginalCallback(
         oBugId, 
-        cWindowsAPIProcess(oProcess.uId),
+        oProcess.oWindowsAPIProcess,
         oProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
         *axArguments
       );
@@ -179,7 +179,7 @@ class cBugId(object):
       "Process started", # (mWindowsAPI.cConsoleProcess oConsoleProcess)
     ]:
       # These get a cConsoleProcess instance as their second argument from cCdbWrapper, which we'll use to find out
-      # if the process is a main process and insert that as a boolean as the second argument:
+      # if the process is a main process and insert that as a boolean as the third argument:
       # to the callback instead.
       fOriginalCallback = fCallback;
       fCallback = lambda oBugId, oConsoleProcess, *axArguments: fOriginalCallback(
