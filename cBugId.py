@@ -30,6 +30,7 @@ sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
 for (sModuleName, sURL) in {
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
   "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
+  "mProductVersionAndLicense": "https://github.com/SkyLined/mProductVersionAndLicense/",
 }.items():
   try:
     __import__(sModuleName, globals(), locals(), [], -1);
@@ -48,15 +49,14 @@ for (sModuleName, sURL) in {
 
 # Restore the search path
 sys.path = asOriginalSysPath;
+
+from .cCdbWrapper import cCdbWrapper;
+from .dxConfig import dxConfig;
 from mWindowsAPI import oSystemInfo, cProcess as cWindowsAPIProcess;
-from cCdbWrapper import cCdbWrapper;
-from oVersionInformation import oVersionInformation;
-from dxConfig import dxConfig;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
   # functions and only exposes those things that should be exposed:
-  oVersionInformation = oVersionInformation;
   sOSISA = oSystemInfo.sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
   
@@ -103,6 +103,7 @@ class cBugId(object):
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
+    
     def fSetFinishedEvent():
       # oBugId.__oFinishedEvent.set();
       oBugId.__oFinishedLock.release();
