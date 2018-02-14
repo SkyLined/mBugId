@@ -31,6 +31,7 @@ from cUWPApplication import cUWPApplication;
 from cVerifierStopDetector import cVerifierStopDetector;
 from dxConfig import dxConfig;
 from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, oSystemInfo;
+from oProductDetails import oProductDetails;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -193,6 +194,9 @@ class cCdbWrapper(object):
     return len(oCdbWrapper.asSymbolServerURLs) > 0;
   
   def fStart(oCdbWrapper):
+    asLicenseErrors = oProductDetails.fasGetLicenseErrors();
+    assert not asLicenseErrors, \
+        "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
     global guSymbolOptions;
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdInOutThread, bVital = True);
