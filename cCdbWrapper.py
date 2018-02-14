@@ -119,6 +119,8 @@ class cCdbWrapper(object):
       "Finished": [], # ()
       "Internal exception": [], # (Exception oException, traceback oTraceBack)
       "Log message": [], # (str sDescription, dict dxData)
+      "License errors": [], # (str[] asErrors)
+      "License warnings": [], # (str[] asWarnings)
       "Page heap not enabled": [], # (cProcess oProcess, bool bPreventable)
       "Process attached": [], # (cProcess oProcess)
       "Process started": [], # (mWindowsAPI.cConsoleProcess oConsoleProcess)
@@ -194,10 +196,16 @@ class cCdbWrapper(object):
     return len(oCdbWrapper.asSymbolServerURLs) > 0;
   
   def fStart(oCdbWrapper):
-    asLicenseErrors = oProductDetails.fasGetLicenseErrors();
-    assert not asLicenseErrors, \
-        "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
     global guSymbolOptions;
+    asLicenseErrors = oProductDetails.fasGetLicenseErrors();
+    if asLicenseErrors:
+      if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
+        print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
+        os._exit(1);
+      return;
+    asLicenseWarnings = oProductDetails.fasGetLicenseWarnings();
+    if asLicenseWarnings:
+      oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdInOutThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
