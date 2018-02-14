@@ -1,7 +1,7 @@
 from dxConfig import dxConfig;
+from oProductDetails import oProductDetails;
 from sBlockHTMLTemplate import sBlockHTMLTemplate;
 from sReportHTMLTemplate import sReportHTMLTemplate;
-from oVersionInformation import oVersionInformation;
 
 class cBugReport_CdbCouldNotBeTerminated(object):
   def __init__(oBugReport, oCdbWrapper):
@@ -25,7 +25,7 @@ class cBugReport_CdbCouldNotBeTerminated(object):
     oBugReport.sId = oBugReport.sBugTypeId;
     oBugReport.sStackId = None;
     oBugReport.sBugSourceLocation = None;
-    oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
+    oBugReport.asVersionInformation = ["cBugId: %s" % oProductDetails.oProductVersion];
     if oCdbWrapper.bGenerateReportHTML:
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
@@ -46,7 +46,7 @@ class cBugReport_CdbCouldNotBeTerminated(object):
         "sOptionalIntegrityLevel": "",
         "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
-        "sBugIdVersion": oVersionInformation.sCurrentVersion,
+        "sBugIdVersion": oProductDetails.oProductVersion,
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
       };
