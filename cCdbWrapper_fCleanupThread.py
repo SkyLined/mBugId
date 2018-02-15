@@ -9,7 +9,7 @@ def cCdbWrapper_fCleanupThread(oCdbWrapper):
   oCdbWrapper.fbFireEvent("Log message", "cdb stdin/out closed");
   if not oCdbWrapper.bCdbWasTerminatedOnPurpose:
     if not oCdbWrapper.oCdbConsoleProcess.bIsRunning:
-      oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, oCdbConsoleProcess.uExitCode);
+      oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, oCdbWrapper.oCdbConsoleProcess.uExitCode);
       oBugReport.fReport(oCdbWrapper);
     elif not oCdbWrapper.oCdbConsoleProcess.fbTerminate(5):
       oBugReport = cBugReport_CdbCouldNotBeTerminated(oCdbWrapper);
