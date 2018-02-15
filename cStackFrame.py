@@ -1,5 +1,5 @@
 import hashlib, math, re;
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 cRegExp = type(re.compile("a"));
 

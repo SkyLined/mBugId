@@ -1,6 +1,6 @@
 import re, struct;
+from .mAccessViolation import fUpdateReportForTypeIdAndAddress as fUpdateAccessViolationReportForTypeIdAndAddress;
 from mWindowsAPI import cVirtualAllocation;
-import mAccessViolation;
 
 def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oException):
   oCdbWrapper = oProcess.oCdbWrapper;
@@ -110,7 +110,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAccessViolationAddress:
       oBugReport.oStack.aoFrames[0].sIsHiddenBecause = "called address";
   
-  mAccessViolation.fUpdateReportForTypeIdAndAddress(
+  fUpdateAccessViolationReportForTypeIdAndAddress(
       oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress);
 
   if sViolationTypeId == "?":

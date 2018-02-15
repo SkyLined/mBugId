@@ -1,5 +1,4 @@
 import re;
-
 from mWindowsAPI.mRegistry import cRegistryHiveKey;
 
 # Cache which binaries have page heap enabled/disabled. this assumes that the user does not modify the page heap

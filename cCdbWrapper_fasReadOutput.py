@@ -1,7 +1,8 @@
 import re;
-from cCdbStoppedException import cCdbStoppedException;
-from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
-from dxConfig import dxConfig;
+from .cCdbStoppedException import cCdbStoppedException;
+from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
+from .dxConfig import dxConfig;
+
 from mFileSystem import mFileSystem;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues

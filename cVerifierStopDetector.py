@@ -1,10 +1,10 @@
 import re;
-from cBugReport import cBugReport;
-from cPageHeapManagerData import cPageHeapManagerData;
-from dxConfig import dxConfig;
-from fsGetNumberDescription import fsGetNumberDescription;
-from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .cBugReport import cBugReport;
+from .cPageHeapManagerData import cPageHeapManagerData;
+from .dxConfig import dxConfig;
+from .fsGetNumberDescription import fsGetNumberDescription;
+from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from mWindowsAPI import *;
 
 class cVerifierStopDetector(object):

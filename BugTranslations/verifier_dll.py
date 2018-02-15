@@ -1,5 +1,5 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
   # All these are never relevant to the bug

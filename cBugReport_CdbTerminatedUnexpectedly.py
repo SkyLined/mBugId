@@ -1,7 +1,7 @@
-from dxConfig import dxConfig;
-from oProductDetails import oProductDetails;
-from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from sReportHTMLTemplate import sReportHTMLTemplate;
+from .dxConfig import dxConfig;
+from .oProductDetails import oProductDetails;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .sReportHTMLTemplate import sReportHTMLTemplate;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):

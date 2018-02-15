@@ -1,5 +1,4 @@
 import re;
-import cModule;
 
 def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
   oMatch = re.match(r"^\s*%s\s*$" % (

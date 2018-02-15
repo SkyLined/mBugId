@@ -1,6 +1,6 @@
 import time, threading;
-from cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminated;
-from cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
+from .cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminated;
+from .cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 from mWindowsAPI import *;
 
 def cCdbWrapper_fCleanupThread(oCdbWrapper):

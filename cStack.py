@@ -1,8 +1,8 @@
 import re;
-from cModule import cModule;
-from cStackFrame import cStackFrame;
-from dxConfig import dxConfig;
-from ftoCallModuleAndFunctionFromCallInstructionForReturnAddress import ftoCallModuleAndFunctionFromCallInstructionForReturnAddress;
+from .cModule import cModule;
+from .cStackFrame import cStackFrame;
+from .dxConfig import dxConfig;
+from .ftoCallModuleAndFunctionFromCallInstructionForReturnAddress import ftoCallModuleAndFunctionFromCallInstructionForReturnAddress;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
   # These warnings and errors are ignored:

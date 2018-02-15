@@ -1,7 +1,7 @@
 import hashlib, re;
-from cHeapManagerData import cHeapManagerData;
-from dxConfig import dxConfig;
-from fsGetNumberDescription import fsGetNumberDescription;
+from .cHeapManagerData import cHeapManagerData;
+from .dxConfig import dxConfig;
+from .fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import cVirtualAllocation;
 from mWindowsAPI.mTypes import *;
 from mWindowsAPI.mDefines import *;

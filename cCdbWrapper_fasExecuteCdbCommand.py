@@ -1,7 +1,7 @@
 import re, threading, time;
-from cCdbStoppedException import cCdbStoppedException;
-from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
-from dxConfig import dxConfig;
+from .cCdbStoppedException import cCdbStoppedException;
+from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
+from .dxConfig import dxConfig;
 
 gbLogCommandExecutionTime = False;
 gbDebugIO = False; # Used for debugging cdb I/O issues

@@ -1,5 +1,5 @@
 import os, re;
-from cFunction import cFunction;
+from .cFunction import cFunction;
 
 class cModule(object):
   def __init__(oModule, oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):

@@ -1,1 +1,1 @@
-from fsGetSourceCodeLinkURLForPath import fsGetSourceCodeLinkURLForPath;
+from .fsGetSourceCodeLinkURLForPath import fsGetSourceCodeLinkURLForPath;

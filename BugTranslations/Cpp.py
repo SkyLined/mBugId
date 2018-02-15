@@ -1,6 +1,6 @@
 import re;
-from cBugTranslation import cBugTranslation;
-from rHeapRelatedBugIds import rHeapRelatedBugIds;
+from .cBugTranslation import cBugTranslation;
+from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # C++ -> hide irrelevant frames

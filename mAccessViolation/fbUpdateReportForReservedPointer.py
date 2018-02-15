@@ -1,4 +1,4 @@
-from fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
+from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 
 def fbUpdateReportForReservedPointer(
   oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation

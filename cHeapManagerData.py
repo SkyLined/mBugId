@@ -1,5 +1,5 @@
-from fsGetNumberDescription import fsGetNumberDescription;
-from fsNumberOfBytes import fsNumberOfBytes;
+from .fsGetNumberDescription import fsGetNumberDescription;
+from .fsNumberOfBytes import fsNumberOfBytes;
 
 class cHeapManagerData(object):
   def __init__(oSelf,

@@ -1,5 +1,5 @@
 import os, re;
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 def cProcess_fasGetStack(oProcess, sGetStackCommand):
   asSymbolLoadStackOutput = None;

@@ -1,4 +1,4 @@
-from cHeapManagerData import cHeapManagerData;
+from .cHeapManagerData import cHeapManagerData;
 
 class cWindowsHeapManagerData(cHeapManagerData):
   def __init__(oSelf,

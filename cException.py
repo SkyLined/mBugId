@@ -1,7 +1,7 @@
 import re;
-from cStack import cStack;
-from cStowedException import cStowedException;
-from cWindowsStatusOrError import cWindowsStatusOrError;
+from .cStack import cStack;
+from .cStowedException import cStowedException;
+from .cWindowsStatusOrError import cWindowsStatusOrError;
 from mWindowsAPI.mDefines import *;
 
 class cException(object):

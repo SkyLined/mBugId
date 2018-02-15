@@ -1,4 +1,4 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 # This code:
 # 1) limits memory dumps to reasonable sizes by moving the start and/or end address, while making sure the memory

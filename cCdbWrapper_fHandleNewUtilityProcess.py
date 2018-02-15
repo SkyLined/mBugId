@@ -1,4 +1,4 @@
-from fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
+from .fsExceptionHandlingCdbCommands import fsExceptionHandlingCdbCommands;
 
 def cCdbWrapper_fHandleNewUtilityProcess(oCdbWrapper, uProcessId):
   # This is the utility process; cdb has loaded and started it. Go set some things up.

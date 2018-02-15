@@ -1,4 +1,4 @@
-from fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
+from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..dxConfig import dxConfig;
 

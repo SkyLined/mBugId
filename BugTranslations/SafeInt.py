@@ -1,5 +1,5 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
   # IntegerOverflow -> hide irrelevant frames

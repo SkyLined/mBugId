@@ -1,4 +1,4 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 

@@ -1,4 +1,4 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.

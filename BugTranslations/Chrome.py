@@ -1,5 +1,5 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
   # ASan build related -> Ignored

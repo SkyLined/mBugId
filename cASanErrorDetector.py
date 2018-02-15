@@ -1,8 +1,8 @@
 import re;
-from cBugReport import cBugReport;
-from ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-import mAccessViolation;
-from sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .cBugReport import cBugReport;
+from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from .mAccessViolation import fUpdateReportForTypeIdAndAddress as fUpdateAccessViolationReportForTypeIdAndAddress;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 dsSecurityImpact_by_sASanBugType = {
   "use-after-poison": "Potentially exploitable security issue",
@@ -453,7 +453,7 @@ class cASanErrorDetector(object):
       uAccessViolationAddress = uProblemAddress;
       # TODO: Maybe call fbAccessViolation_HandleNULLPointer, etc. from the file
       # cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION.py here?
-      mAccessViolation.fHandleForTypeIdAndAddress(
+      fUpdateAccessViolationReportForTypeIdAndAddress(
           oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress);
       
     else:

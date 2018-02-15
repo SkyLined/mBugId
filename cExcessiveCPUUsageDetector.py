@@ -1,6 +1,6 @@
 import re, threading;
-from cBugReport import cBugReport;
-from dxConfig import dxConfig;
+from .cBugReport import cBugReport;
+from .dxConfig import dxConfig;
 
 bDebugOutput = False;
 bDebugOutputCalculation = False;

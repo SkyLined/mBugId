@@ -1,5 +1,5 @@
+from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..cThreadEnvironmentBlock import cThreadEnvironmentBlock;
-from fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import oSystemInfo;
 

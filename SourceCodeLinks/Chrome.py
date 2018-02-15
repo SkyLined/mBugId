@@ -1,4 +1,4 @@
-from cSourceCodeLink import cSourceCodeLink;
+from .cSourceCodeLink import cSourceCodeLink;
 
 srBasePath = r"\w+:(\\\w+)*\\(%s)\\src\\" % "|".join([
   r"build\\slave\\(win-asan|syzygy_official|win_upload_clang)\\build",

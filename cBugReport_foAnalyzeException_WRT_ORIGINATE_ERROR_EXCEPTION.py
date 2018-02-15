@@ -1,6 +1,6 @@
 import json, re;
-from cStack import cStack;
-from dxConfig import dxConfig;
+from .cStack import cStack;
+from .dxConfig import dxConfig;
 
 def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oProcess, oException):
   # Seee documentation of RoOriginateError at https://msdn.microsoft.com/en-us/library/br224651(v=vs.85).aspx

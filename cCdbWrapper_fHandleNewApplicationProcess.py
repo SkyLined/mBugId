@@ -1,4 +1,4 @@
-from cProcess import cProcess;
+from .cProcess import cProcess;
 
 def cCdbWrapper_fHandleNewApplicationProcess(oCdbWrapper, uProcessId):
   # This first application process we attach to for an UWP application is the main process.

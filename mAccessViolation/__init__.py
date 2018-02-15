@@ -1,1 +1,1 @@
-from fUpdateReportForTypeIdAndAddress import fUpdateReportForTypeIdAndAddress;
+from .fUpdateReportForTypeIdAndAddress import fUpdateReportForTypeIdAndAddress;

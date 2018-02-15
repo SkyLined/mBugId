@@ -1,5 +1,5 @@
 import time;
-from cTimeout import cTimeout;
+from .cTimeout import cTimeout;
 
 def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments):
   assert nTimeToWait >= 0, "Negative timeout time does not make sense";

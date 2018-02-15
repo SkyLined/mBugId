@@ -1,5 +1,5 @@
 import re;
-from cStowedException import cStowedException;
+from .cStowedException import cStowedException;
 #from cStack import cStack;
 
 def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, oException):

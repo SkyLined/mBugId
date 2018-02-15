@@ -1,5 +1,4 @@
 import re;
-
 from mWindowsAPI.mTypes import BYTE, fcStructure, INT32;
 
 cCallRel32InstructionStructure = fcStructure("CALL_rel32",

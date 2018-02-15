@@ -1,4 +1,4 @@
-from cSourceCodeLink import cSourceCodeLink;
+from .cSourceCodeLink import cSourceCodeLink;
 
 # Available options:
 # http://searchfox.org/mozilla-central/source/<path>#<linenumber>

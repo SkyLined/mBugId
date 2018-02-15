@@ -1,5 +1,5 @@
 import re;
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
   # If this line starts with an address and opcode, make those semi-transparent.

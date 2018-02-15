@@ -1,4 +1,4 @@
-from dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
+from .dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
 
 uKiloByte = 10 ** 3;
 uMegaByte = 10 ** 6;

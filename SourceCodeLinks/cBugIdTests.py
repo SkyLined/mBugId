@@ -1,4 +1,4 @@
-from cSourceCodeLink import cSourceCodeLink;
+from .cSourceCodeLink import cSourceCodeLink;
 
 aoSourceCodeLinks = [
   cSourceCodeLink( # Blink

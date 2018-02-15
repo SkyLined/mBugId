@@ -1,8 +1,9 @@
 import datetime, re, time;
-from cBugReport import cBugReport;
-from cCdbStoppedException import cCdbStoppedException;
-from cProcess import cProcess;
-from dxConfig import dxConfig;
+from .cBugReport import cBugReport;
+from .cCdbStoppedException import cCdbStoppedException;
+from .cProcess import cProcess;
+from .dxConfig import dxConfig;
+
 from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, fResumeProcessForId, \
     fStopDebuggingProcessForId;
 
