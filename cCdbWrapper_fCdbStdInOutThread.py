@@ -234,6 +234,12 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       # silence it. So, we'll have to remove these from the output, which is sub-optimal, but should work well enough
       # for now. Also, page heap outputs stuff that we don't care about as well, which we hide here.
       uProcessId = oCdbWrapper.fuGetValueForRegister("$tpid", "Get current process id");
+      if uProcessId == oCdbWrapper.uUtilityProcessId:
+        # Our utility process is not expected to output anything, but since we're using cmd.exe, it might behave in a
+        # way that we do not expect: I've seen it output debug messages in low memory situations. It would be best to
+        # either suspend it entirely, or replace cmd.exe with a custom binary that does nothing at all. However, it's
+        # easier to just ignore these messages, so I'll do that for now:
+        continue;
       oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
       asDebugOutput = [
         sLine for sLine in asOutputWhileRunningApplication
