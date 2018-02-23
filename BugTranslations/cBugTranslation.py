@@ -36,7 +36,7 @@ class cBugTranslation(object):
       oBugTranslation.aasOriginalTopStackFrameSymbols = aasOriginalTopStackFrameSymbols;
     elif asOriginalTopStackFrameSymbols is not NOT_PROVIDED:
       for sOriginalTopStackFrameSymbol in asOriginalTopStackFrameSymbols:
-        assert type(sOriginalTopStackFrameSymbol) == str, \
+        assert type(sOriginalTopStackFrameSymbol) in [str, cRegExp], \
             "asOriginalTopStackFrameSymbols should be a list with strs, got list with %s:%s" % \
             (type(sOriginalTopStackFrameSymbol).__name__, repr(sOriginalTopStackFrameSymbol));
       oBugTranslation.aasOriginalTopStackFrameSymbols = [asOriginalTopStackFrameSymbols];
