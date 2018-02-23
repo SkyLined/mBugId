@@ -33,83 +33,100 @@ gduSizeInBits_by_sPointerType = {
 };
 
 def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, uProcessId, sViolationTypeId, uPointerSizedValue = None):
+  if sViolationTypeId == "E":
+    # The application is attempting to execute code at an address that does not point to executable memory; this cannot
+    # be ignored.
+    return False;
   # I could just pass the oProcess, as there is no code execution between when the exception handler was set and called,
   # but if that changes in the future, this.
   oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
   # See if we can fake execution of the current instruction, so we can continue the application as if it had been
   # executed without actually executing it.
   uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get current instruction pointer");
+  sInstructionPointerRegister = {"x86": "eip", "x64": "rip"}[oProcess.sISA];
   oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uInstructionPointer);
   if not oVirtualAllocation.bExecutable:
-    print "Memory at instruction pointer is not executable!?";
+    # This can happen if a call/return sets the instruction pointer to a corrupted value; it may point to a region that
+    # is not allocated, or contains non-executable data. (e.g. a poisoned value)
     return False; # This memory is not executable: we cannot continue execution.
-  asUnassembleOutput = oProcess.fasExecuteCdbCommand(
+  asDiassemblyOutput = oProcess.fasExecuteCdbCommand(
     sCommand = "u 0x%X L2" % uInstructionPointer, 
     sComment = "Get information about the instruction that caused the AV",
   );
-  if len(asUnassembleOutput) == 0:
+  if len(asDiassemblyOutput) == 0:
     # The instruction pointer does not point to valid memory.
     print "Cannot disassemble code at instruction pointer!?";
     return False;
-  oCurrentInstructionMatch = len(asUnassembleOutput) == 3 and \
-      re.match(r"^[0-9`a-f]+\s+[0-9`a-f]+\s+(\w+)(?:\s+(.*))?$", asUnassembleOutput[1], re.I);
-  oNextInstructionMatch = len(asUnassembleOutput) == 3 and \
-      re.match(r"^([0-9`a-f]+)\s+[0-9`a-f]+\s+\w+(?:\s+.*)?$", asUnassembleOutput[2], re.I);
+  assert len(asDiassemblyOutput) == 3, \
+      "Expected 3 lines of disassembly, got %d:\r\n%s" % (len(asDiassemblyOutput), "\r\n".join(asDiassemblyOutput));
+  (sSymbol, sCurrentInstruction, sNextInstruction) = asDiassemblyOutput;
+  # Grab info from current instruction (name and arguments):
+  oCurrentInstructionMatch = re.match(r"^[0-9`a-f]+\s+[0-9`a-f]+\s+(\w+)(?:\s+(.*))?$", sCurrentInstruction, re.I);
   assert oCurrentInstructionMatch, \
-      "Unrecognised unassemble output second line:\r\n%s" % "\r\n".join(asUnassembleOutput);
-  assert oNextInstructionMatch, \
-      "Unrecognised unassemble output third line:\r\n%s" % "\r\n".join(asUnassembleOutput);
+      "Unrecognised diassembly output second line:\r\n%s" % "\r\n".join(asDiassemblyOutput);
   (sCurrentInstructionName, sCurrentInstructionArguments) = oCurrentInstructionMatch.groups();
+  if sCurrentInstructionName not in ["add", "addsd", "call", "cmp", "jmp", "mov", "movzx", "movsd", "mulsd", "sub", "subsd"]:
+    print "Cannot handle instruction %s:\r\n%s" % (repr(sCurrentInstructionName), "\r\n".join(asDiassemblyOutput));
+    return False;
+  # Grab info from next instruction (it's starting address):
+  oNextInstructionMatch = re.match(r"^([0-9`a-f]+)\s+[0-9`a-f]+\s+\w+(?:\s+.*)?$", sNextInstruction, re.I);
+  assert oNextInstructionMatch, \
+      "Unrecognised diassembly output third line:\r\n%s" % "\r\n".join(asDiassemblyOutput);
   (sNextInstructionAddress,) = oNextInstructionMatch.groups();
   uNextInstructionAddress = long(sNextInstructionAddress.replace("`", ""), 16);
-  if sCurrentInstructionName not in ["add", "addsd", "cmp", "mov", "movzx", "movsd", "mulsd", "sub", "subsd"]:
-    print "Cannot handle instruction %s!?" % repr(sCurrentInstructionName);
-    return False;
-  if sCurrentInstructionName in ["cmp"]:
-    # This instruction will affect flags, so we'll read 8 bits to use as flags from the poisoned values.
-    uPoisonFlagsValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, 8, uPointerSizedValue);
-    asFlags = ["of", "sf", "zf", "af", "pf", "cf"];
-    print "r %s;" % ",".join([
-        "@%s=%d" % (asFlags[uIndex], (uPoisonFlagsValue >> uIndex) & 1)
-        for uIndex in xrange(len(asFlags))
-      ]);
-    asSpoofInstructionFlagsOutput = oProcess.fasExecuteCdbCommand(
-      sCommand = "r %s;" % ",".join([
-        "@%s=%d" % (asFlags[uIndex], (uPoisonFlagsValue >> uIndex) & 1)
-        for uIndex in xrange(len(asFlags))
-      ]),
-      sComment = "Set flags for instruction that caused the AV",
-    );
   # We do not care about the difference between these operations; for writes, we simply discard the value. For reads
   # we assume that we have full control over the memory at the specified address, and thus full control over the
   # result stored in the register, so we just fake reading a poisoned value.
   asCurrentInstructionArguments = sCurrentInstructionArguments.split(",");
-  assert len(asCurrentInstructionArguments) == 2, \
-      "Instruction on line 2 appears to have %d arguments instead of 2:\r\n%s" % \
-      (len(asCurrentInstructionArguments), "\r\n".join(asUnassembleOutput));
-  sInstructionPointerRegister = {"x86": "eip", "x64": "rip"}[oProcess.sISA];
-  if sViolationTypeId == "W" or sCurrentInstructionName in ["cmp"]:
-    # We fake write AVs that write a register to memory by advancing the instruction pointer to the next
-    # instruction. We do the same for compare instructions.
-    # This does not alter flags like a normal instruction!!!!
-    asSpoofInstructionOutput = oProcess.fasExecuteCdbCommand(
-      sCommand = "r @%s=0x%X;" % (sInstructionPointerRegister, uNextInstructionAddress),
-      sComment = "Skip instruction that caused the AV",
-    );
-    return True;
+  if sCurrentInstructionName in ["call", "jmp"]:
+    assert len(asCurrentInstructionArguments) == 1, \
+        "Instruction on line 2 appears to have %d arguments instead of 1:\r\n%s" % \
+        (len(asCurrentInstructionArguments), "\r\n".join(asDiassemblyOutput));
+    sSourceArgument = asCurrentInstructionArguments[0];
+  else:
+    assert len(asCurrentInstructionArguments) == 2, \
+        "Instruction on line 2 appears to have %d arguments instead of 2:\r\n%s" % \
+        (len(asCurrentInstructionArguments), "\r\n".join(asDiassemblyOutput));
+    if sCurrentInstructionName in ["cmp"]:
+      # This instruction will only affect flags, so we'll read 8 bits to use as flags from the poisoned values.
+      # TODO: At some point, we may want to do this for other arithmatic operations as well.
+      uPoisonFlagsValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, 8, uPointerSizedValue);
+      asFlags = ["of", "sf", "zf", "af", "pf", "cf"];
+      asSpoofInstructionFlagsOutput = oProcess.fasExecuteCdbCommand(
+        sCommand = "r @%s=0x%X,%s;" % (sInstructionPointerRegister, uNextInstructionAddress, ",".join([
+          "@%s=%d" % (asFlags[uIndex], (uPoisonFlagsValue >> uIndex) & 1)
+          for uIndex in xrange(len(asFlags))
+        ])),
+        sComment = "Set flags and skip the instruction that caused the AV",
+      );
+      return True;
+    (sDestinationArgument, sSourceArgument) = asCurrentInstructionArguments;
+    oDestinationArgumentPointerMatch = re.match("^(byte|(?:d|q|[xy]?(mm))?word) ptr \[.*\]$", sDestinationArgument);
+    if oDestinationArgumentPointerMatch:
+      # We fake write AVs by ignoring the write and advancing the instruction pointer to the next instruction.
+      # TODO: This does not alter flags like a normal instruction might!!!!
+      asSpoofInstructionOutput = oProcess.fasExecuteCdbCommand(
+        sCommand = "r @%s=0x%X;" % (sInstructionPointerRegister, uNextInstructionAddress),
+        sComment = "Skip instruction that caused the AV",
+      );
+      return True;
+  oSourceArgumentPointerMatch = re.match("^(byte|(?:d|q|[xy]?(mm))?word) ptr \[.*\]$", sSourceArgument);
+  if oSourceArgumentPointerMatch is None:
+    assert sCurrentInstructionName in ["call", "jmp"], \
+        "The source (%s) argument is expected to be a pointer for a %s instruction:\r\n%s" % \
+        (sSourceArgument, sCurrentInstructionName, "\r\n".join(asDiassemblyOutput));
+    # A call to an address taken from a register containing a bogus value would have resulted in an execute access
+    # violation, after which we cannot continue.
+    return False;
   # We fake read AVs that read memory into a register by setting that register to a poisoned value and advancing
   # the instruction pointer to the next instruction.
   # This does not alter flags like a normal instruction!!!!
-  sDestinationRegister = asCurrentInstructionArguments[0];
+  sDestinationRegister = sDestinationArgument;
   uDestinationSizeInBits = gduSizeInBits_by_sRegisterName[sDestinationRegister];
   assert uDestinationSizeInBits is not None, \
       "Unrecognised `mov` instruction first/destination argument (expected register, got %s):\r\n%s" % \
-      (sDestinationRegister, "\r\n".join(asUnassembleOutput));
-  oSourceArgumentMatch = re.match("^(byte|(?:d|q|[xy]?(mm))?word) ptr \[.*\]$", asCurrentInstructionArguments[1]);
-  assert oSourceArgumentMatch, \
-      "Unrecognized `mov` instruction second/source argument (expected `... ptr [...]`, got %s):\r\n%s" % \
-      (asCurrentInstructionArguments[1], "\r\n".join(asUnassembleOutput));
-  sPointerType, bIsMMPointer = oSourceArgumentMatch.groups();
+      (sDestinationRegister, "\r\n".join(asDiassemblyOutput));
+  sPointerType, bIsMMPointer = oSourceArgumentPointerMatch.groups();
   uSourceSizeInBits = gduSizeInBits_by_sPointerType[sPointerType];
   if not bIsMMPointer:
     uPoisonValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, uSourceSizeInBits, uPointerSizedValue);
