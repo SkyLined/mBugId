@@ -1,3 +1,51 @@
+2018-02-23
+==========
+cBugId and all its modules require a license to use. There is a 30 day trial
+period during which you can test BugId without a license. After the trial
+period you will need to get a license to continue to use it.
+
+Licenses for non-commercial use are available for free, while licenses for
+commercial use can be purchased from the author. For more details, and to
+acquire a license, please visit https://bugid.skylined.nl.
+
+As usual, various minor bugs have been addressed and small improvements have
+been made in many places, but only the important ones are mentioned here. You
+should check the commit logs if you want to know all the details.
+
+Changes that affect bug ids
+---------------------------
+* Iso bug translations have been improved.
+* SafeInt bug translations have been added.
+* The class name for C++ exceptions is now extracted from the exception
+  information, rather than guessed using the object's vftable.
+* A stack exhaustion caused by a lack of available memory is now reported as
+  an out-of-memory (OOM) bug.
+* An ASan out-of-memory debug message is now reported as an out-of-memory (OOM)
+  bug.
+* A breakpoint exceptions in a malloc() call is now reported as an
+  out-of-memory (OOM) bug.
+
+Changes to collateral
+---------------------
+* More instructions are handled to allow more crashes to be ignored in order
+  to determine collateral damage.
+
+Changes to events
+-----------------
+* The "Event" event has been removed.
+* The "License errors" event has been added. This event is fired when the
+  system does not have a valid license for cBugId or one of its dependencies.
+  Its argument is an array of error message.
+* The "License warnings" event has been added. This event is fired when the
+  system is in its trial period for cBugId or one of its dependencies, or if
+  one of the licenses is about to expire.
+
+Changes to tests
+----------------
++ A new "OOM Stack" test will trigger a stack exhaustion by allocating all
+  available memory before attempting to grow the stack.
++ Various SafeInt tests will trigger SafeInt exceptions.
+
 2018-01-30
 ==========
 There have been many major changes, and even more smaller ones. For brevity,
