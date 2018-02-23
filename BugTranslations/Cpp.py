@@ -34,14 +34,9 @@ aoBugTranslations = [
   # AppExit -> PureCall
   cBugTranslation(
     sOriginalBugTypeId = "AppExit",
-    aasOriginalTopStackFrameSymbols = [
-      [
-        "*!abort",
-        "*!_purecall",
-      ], [
-        "*!abort",
-        "*!purecall",
-      ],
+    asOriginalTopStackFrameSymbols = [
+      "*!abort",
+      re.compile(r".*!_?purecall"),
     ],
     sTranslatedBugTypeId = "PureCall",
     sTranslatedBugDescription = "Pure virtual function call (R6025).",
@@ -52,9 +47,7 @@ aoBugTranslations = [
     sOriginalBugTypeId = "PureCall",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*!_purecall",
-      ], [
-        "*!purecall",
+        re.compile(r".*!_?purecall"),
       ],
     ],
   ),
