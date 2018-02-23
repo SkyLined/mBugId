@@ -4,9 +4,6 @@
 [submodule "modules/mFileSystem"]
 	path = modules/mFileSystem
 	url = https://github.com/SkyLined/mFileSystem
-[submodule "mProductVersionAndLicense"]
-	path = mProductVersionAndLicense
-	url = https://github.com/SkyLined/mProductVersionAndLicense/
-[submodule "modules/mProductVersionAndLicense"]
-	path = modules/mProductVersionAndLicense
-	url = https://github.com/SkyLined/mProductVersionAndLicense/
+[submodule "modules/mProductDetails"]
+	path = modules/mProductDetails
+	url = https://github.com/SkyLined/mProductDetails/
