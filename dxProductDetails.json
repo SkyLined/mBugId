@@ -1,13 +1,12 @@
 {
   "bRequiresLicense": true, 
-  "oProductVersion": "2018-02-15 10:02", 
+  "oProductVersion": "2018-02-21 16:34", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
     "sType": "GitHub", 
     "sUserName": "SkyLined"
   }, 
-  "sLicenseServerCertificateFilePath": "license.skylined.nl.crt", 
   "sLicenseServerURL": "https://license.skylined.nl/fdxGetLicenseCheckResult.php", 
   "sProductName": "cBugId", 
   "sTrialPeriodDuration": "1m"

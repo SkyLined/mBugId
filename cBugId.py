@@ -30,7 +30,7 @@ sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
 for (sModuleName, sURL) in {
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
   "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
-  "mProductVersionAndLicense": "https://github.com/SkyLined/mProductVersionAndLicense/",
+  "mProductDetails": "https://github.com/SkyLined/mProductDetails/",
 }.items():
   try:
     __import__(sModuleName, globals(), locals(), [], -1);
