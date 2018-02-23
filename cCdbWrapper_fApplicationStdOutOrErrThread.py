@@ -16,7 +16,7 @@ def cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWrapper, oConsoleProcess, oStd
     }[oStdOutOrErrPipe.sDescription];
     
     if oCdbWrapper.bGenerateReportHTML:
-      oCdbWrapper.sCdbIOHTML += "<span class=\"Application%s\">%s</span><br/>" % \
+      oCdbWrapper.sCdbIOHTML += "<span class=\"Application%s\">%s</span><br/>\n" % \
           (oStdOutOrErrPipe.sDescription, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
     oCdbWrapper.fbFireEvent(
       sEventName,

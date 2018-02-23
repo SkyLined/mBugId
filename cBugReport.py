@@ -181,7 +181,7 @@ class cBugReport(object):
           sComment = "Get register information",
           bOutputIsInformative = True,
         );
-        sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
+        sRegistersHTML = "<br/>\n".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
           "sCollapsed": "Collapsed",
@@ -225,8 +225,8 @@ class cBugReport(object):
             });
       
       # Add relevant binaries information to cBugReport and HTML report.
-      sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
-      sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML) or "not available";
+      sBinaryInformationHTML = "<br/>\n<br/>\n".join(asBinaryInformationHTML);
+      sBinaryVersionHTML = "<br/>\n".join(asBinaryVersionHTML) or "not available";
       if sBinaryInformationHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Binary information",
@@ -283,8 +283,8 @@ class cBugReport(object):
             "sOptionalMemoryUsage": sOptionalMemoryUsageHTML or "",
             "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
-            "sBlocks": "\r\n".join(asBlocksHTML) + 
-                (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
+            "sBlocks": "\n".join(asBlocksHTML) + 
+                (bReportTruncated and "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available." or ""),
             "sBugIdVersion": oProductDetails.oProductVersion,
           };
         except MemoryError:

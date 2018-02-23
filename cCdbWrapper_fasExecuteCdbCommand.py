@@ -38,7 +38,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     if bAddCommandAndOutputToHTML:
       if gbLogCommandExecutionTime:
         nStartTime = time.clock();
-      oCdbWrapper.sCdbIOHTML += "<hr/>";
+      oCdbWrapper.sCdbIOHTML += "<hr/>\n";
       if not bShowOutputButNotCommandInHTMLReport:
         # Add the command and the prompt to the output:
         oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % \
@@ -47,7 +47,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
           # Optionally add the comment.
           oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span>" % oCdbWrapper.fsHTMLEncode(sComment);
         # End of line
-        oCdbWrapper.sCdbIOHTML += "<br/>";
+        oCdbWrapper.sCdbIOHTML += "<br/>\n";
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
   if bIgnoreOutput:
     bUseMarkers = False;
@@ -87,5 +87,5 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     finally:
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nEndTime = time.clock() - nStartTime;
-        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>" % nEndTime;
+        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nEndTime;
       

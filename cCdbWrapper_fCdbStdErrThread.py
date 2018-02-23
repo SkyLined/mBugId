@@ -12,7 +12,7 @@ def cCdbWrapper_fCdbStdErrThread(oCdbWrapper):
       break;
     if gbDebugIO: print "\r<stderr<%s" % sLine;
     if oCdbWrapper.bGenerateReportHTML:
-      sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
+      sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>\n" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
       oCdbWrapper.sCdbIOHTML += sLineHTML;
       oCdbWrapper.fbFireEvent("Log message", "StdErr output", {
         "Line": sLine,

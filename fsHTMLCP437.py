@@ -39,12 +39,12 @@ def fsHTMLCP437(sChar):
   return asCodePage437_to_HTML[ord(sChar)];
 
 if __name__ == "__main__":
-  sHTML = "<html><head><style>* { font-family: Courier, monospace; }</style></head><body>\r\n";
+  sHTML = "<html><head><style>* { font-family: Courier, monospace; }</style></head><body>\n";
   for uHighNibble in xrange(0, 0x10):
     sHTML += "|";
     for uLowNibble in xrange(0, 0x10):
       sChar = chr(uHighNibble * 16 + uLowNibble);
       sHTML += fsHTMLCP437(sChar);
-    sHTML += "|<br/>\r\n";
-  sHTML += "</body></html>\r\n";
+    sHTML += "|<br/>\n";
+  sHTML += "</body></html>\n";
   print sHTML;

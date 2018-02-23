@@ -100,4 +100,4 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       asHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asDisassemblyAfterAddress];
     elif asHTML:
       asHTML.append("(further disassembly not possible)");
-  return "<br/>".join(asHTML);
+  return "<br/>\n".join(asHTML);

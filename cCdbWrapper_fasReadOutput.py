@@ -121,7 +121,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
               if sIgnoredLine:
                 if bAddOutputToHTMLReport:
                   sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBStdOut";
-                  sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
+                  sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, oCdbWrapper.fsHTMLEncode(sIgnoredLine, uTabStop = 8));
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                 if bApplicationWillBeRun:
@@ -138,7 +138,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 # Some cruft got injected into the line; remove it and pretend that it was output before the line:
                 sReturnedLine, sCruft = oIgnoredCdbOutputLine.groups();
                 if bAddOutputToHTMLReport:
-                  sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
+                  sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>\n" % (oCdbWrapper.fsHTMLEncode(sCruft, uTabStop = 8));
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                 # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
@@ -152,7 +152,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                 if sReturnedLine:
                   if bAddOutputToHTMLReport:
                     sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
-                    sLineHTML = "<span class=\"%s\">%s</span><br/>" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
+                    sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, oCdbWrapper.fsHTMLEncode(sReturnedLine, uTabStop = 8));
                     # Add the line to the current block of I/O
                     oCdbWrapper.sCdbIOHTML += sLineHTML;
                   if bApplicationWillBeRun:
