@@ -331,22 +331,47 @@ class cASanErrorDetector(object):
     # |SUMMARY: AddressSanitizer: access-violation C:\b\c\b\win_asan_release\src\third_party\WebKit\Source\core\dom\Element.cpp:1341 in blink::Element::setAttribute(class blink::QualifiedName const &,class WTF::AtomicString const &)
     # |==1484==ABORTING
     
+    # |==4016==AddressSanitizer's allocator is terminating the process instead of returning 0
+    
+    # |==4916==ERROR: AddressSanitizer failed to allocate 0x08000000 (134217728) bytes at 0x38000000 (error code: 1455)
+    
+    # |==4824==ERROR: AddressSanitizer failed to allocate 0x10000 (65536) bytes of stack depot (error code: 1455)
+    
+    # |==6824==ERROR: AddressSanitizer failed to allocate aligned 0x100000 (1048576) bytes of SizeClassAllocator32 (error code: 1455)
+    
     # The ASan error message may be shown from the main process, rather than the process that triggered it. So, we will
     # scan all output for an error reported in oProcess
     for asOutput in oSelf.__dasStdErr_by_uProcessId.values():
       for uStartIndex in xrange(len(asOutput) - 1):
         sLine = asOutput[uStartIndex];
+        # Check for OOM report:
+        oAllocatorFailMatch = re.match(
+          r"^(%s)$" % "|".join([
+            r"==%d==AddressSanitizer's allocator is terminating the process instead of returning 0" % oProcess.uId,
+            r"==%d==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes (%s) \(error code: 1455\)" % \
+                (oProcess.uId, "|".join([r"at 0x[0-9`a-f]+", r"of( \w+)+"])),
+          ]),
+          sLine,
+          re.I,
+        );
+        if oAllocatorFailMatch:
+          oBugReport.sBugTypeId = "OOM",
+          oBugReport.sBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
+          oBugReport.sSecurityImpact = None,
+          return;
+        # Check for memory corruption report:
         oSummaryMatch = re.match(
-          r"^%s$" % "".join([
-            r"==%d(?:(\d+))?==ERROR: AddressSanitizer: " % oProcess.uId,
-            r"(.*) on(?: unknown)? address 0x([0-9a-f]+) (?:at |\()",
-              r"pc 0x([0-9a-f]+)",
-              r" bp 0x([0-9a-f]+)",
-              r" sp 0x([0-9a-f]+)",
+          r"^(?:%s)$" % "".join([
+            r"==%d==ERROR: AddressSanitizer: " % oProcess.uId,
+            r"(.*) on(?: unknown)? address 0x([0-9`a-f]+) (?:at |\()",
+              r"pc 0x([0-9`a-f]+)",
+              r" bp 0x([0-9`a-f]+)",
+              r" sp 0x([0-9`a-f]+)",
               r"(?: T(\d+))?",
             r"\)?",
           ]),
           sLine,
+          re.I,
         );
         if oSummaryMatch:
           break;
