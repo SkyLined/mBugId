@@ -14,6 +14,16 @@ aoBugTranslations = [
       ],
     ],
   ),
+  # Breakpoint -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "Breakpoint",
+    asOriginalTopStackFrameSymbols = [
+      "*!malloc",
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application triggered abreakpoint exception to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
+  ),
   # C++:std::bad_alloc -> OOM
   cBugTranslation(
     sOriginalBugTypeId = "C++:std::bad_alloc",
