@@ -321,8 +321,8 @@ def fTest(
     oBugId.fAddEventCallback("Log message", fLogMessageCallback);
     if bExcessiveCPUUsageChecks:
       oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
-    bBugIdStarted = True;
     oBugId.fStart();
+    bBugIdStarted = True;
     oBugId.fWait();
     if gbShowCdbIO: fOutput("= Finished ".ljust(80, "="));
     if gbTestFailed:
