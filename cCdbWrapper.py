@@ -30,8 +30,7 @@ from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
-from .oProductDetails import oProductDetails;
-
+from mProductDetails import cProductDetails;
 from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, oSystemInfo;
 
 guSymbolOptions = sum([
@@ -198,6 +197,7 @@ class cCdbWrapper(object):
   
   def fStart(oCdbWrapper):
     global guSymbolOptions;
+    oProductDetails = cProductDetails.foGetForProductName("cBugId");
     asLicenseErrors = oProductDetails.fasGetLicenseErrors();
     if asLicenseErrors:
       if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):

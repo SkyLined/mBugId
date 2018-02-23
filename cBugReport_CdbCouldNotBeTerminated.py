@@ -1,10 +1,11 @@
 from .dxConfig import dxConfig;
-from .oProductDetails import oProductDetails;
+from mProductDetails import cProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
 class cBugReport_CdbCouldNotBeTerminated(object):
   def __init__(oBugReport, oCdbWrapper):
+    oProductDetails = cProductDetails.foGetForProductName("cBugId");
     oBugReport.sBugTypeId = "CdbNotTerminated";
     oBugReport.sBugDescription = "Cdb could not be terminated";
     oBugReport.sBugLocation = None;
@@ -34,6 +35,7 @@ class cBugReport_CdbCouldNotBeTerminated(object):
         "sContent": oCdbWrapper.sCdbIOHTML
       });
       # Create HTML details
+      (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(oProductDetails);
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sOptionalUniqueStackId": "",
@@ -46,9 +48,11 @@ class cBugReport_CdbCouldNotBeTerminated(object):
         "sOptionalIntegrityLevel": "",
         "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
-        "sBugIdVersion": oProductDetails.oProductVersion,
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
+        "sBugIdVersion": oProductDetails.oProductVersion,
+        "sLicenseHeader": sLicenseHeaderHTML,
+        "sLicenseFooter": sLicenseFooterHTML,
       };
     else:
       oBugReport.sReportHTML = None;

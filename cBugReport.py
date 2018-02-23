@@ -15,7 +15,7 @@ from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from .cException import cException;
 from .cStack import cStack;
 from .dxConfig import dxConfig;
-from .oProductDetails import oProductDetails;
+from mProductDetails import cProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 from mFileSystem import mFileSystem;
@@ -118,6 +118,7 @@ class cBugReport(object):
     return oBugReport;
   
   def fReport(oBugReport, oCdbWrapper):
+    oProductDetails = cProductDetails.foGetForProductName("cBugId");
     # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
     # outside.
     oProcess = oBugReport.__oProcess;
@@ -265,6 +266,7 @@ class cBugReport(object):
       });
       # Create the report using all available information, or a limit amount of information if there is not enough
       # memory to do that.
+      (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(oProductDetails);
       while asBlocksHTML:
         bReportTruncated = False;
         try:
@@ -286,6 +288,8 @@ class cBugReport(object):
             "sBlocks": "\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available." or ""),
             "sBugIdVersion": oProductDetails.oProductVersion,
+            "sLicenseHeader": sLicenseHeaderHTML,
+            "sLicenseFooter": sLicenseFooterHTML,
           };
         except MemoryError:
           # We cannot add everything, so let's remove a block of information to free up some memory and reduce the size

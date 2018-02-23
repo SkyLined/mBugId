@@ -10,7 +10,10 @@ sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
 # Save the list of names of loaded modules:
 asOriginalModuleNames = sys.modules.keys();
 
-from cBugId import cBugId;
+import cBugId, mFileSystem, mProductDetails, mWindowsAPI;
+
+# Restore the search path
+sys.path = asOriginalSysPath;
 
 # Sub-packages should load all modules relative, or they will end up in the global namespace, which means they may get
 # loaded by the script importing it if it tries to load a differnt module with the same name. Obviously, that script
@@ -30,14 +33,19 @@ for sModuleName in sys.modules.keys():
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
 
+# Read product details for cBugId and all modules it uses.
+mProductDetails.cProductDetails.foReadForModule(cBugId);
+mProductDetails.cProductDetails.foReadForModule(mFileSystem);
+mProductDetails.cProductDetails.foReadForModule(mProductDetails);
+mProductDetails.cProductDetails.foReadForModule(mWindowsAPI);
+
+from cBugId import cBugId;
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
 from mWindowsAPI import oSystemInfo;
 from mWindowsAPI.mDefines import *;
 from mWindowsAPI.mDLLs import KERNEL32;
 from mWindowsAPI.mFunctions import *;
-# Restore the search path
-sys.path = asOriginalSysPath;
 
 gbDebugStartFinish = False;  # Show some output when a test starts and finishes.
 gbShowCdbIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).

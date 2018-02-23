@@ -37,7 +37,7 @@ for (sModuleName, sURL) in {
   except ImportError as oError:
     if oError.message == "No module named %s" % sModuleName:
       print "*" * 80;
-      print "cBugId depends on %s which you can download at:" % sModuleName;
+      print "%s depends on %s which you can download at:" % (os.path.filename(__file__), sModuleName);
       print "    %s" % sDownloadURL;
       print "After downloading, please save the code in this folder:";
       print "    %s" % os.path.join(sModuleFolderPath, sModuleName);
