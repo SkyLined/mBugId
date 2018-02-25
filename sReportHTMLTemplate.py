@@ -295,7 +295,7 @@ sReportHTMLTemplate = ("""
     <div class="Footer Block">
       This report was generated using <a href="https://github.com/SkyLined/BugId">BugId v%(sBugIdVersion)s</a>
         by <a href="mailto:bugid@skylined.nl">SkyLined</a>.<br/>
-      %(sLincenseFooter)s
+      %(sLicenseFooter)s
     </div>
   </body>
 </html>

@@ -15,6 +15,7 @@ from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 from .cException import cException;
 from .cStack import cStack;
 from .dxConfig import dxConfig;
+from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from mProductDetails import cProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
