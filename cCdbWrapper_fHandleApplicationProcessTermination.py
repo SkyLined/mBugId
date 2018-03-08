@@ -18,4 +18,4 @@ def cCdbWrapper_fHandleApplicationProcessTermination(oCdbWrapper, uProcessId):
     # close the handles now will hang until the process is resumed. Since this will not happen unless we continue
     # and let cdb resume, this causes a deadlock. To avoid this we will start another thread that will close the
     # handles. It will hang until we've resumed cdb (or terminated cdb, whatever comes first).
-    oCdbWrapper.foHelperThread(oConsoleProcess.fClose).start();
+#    oCdbWrapper.foHelperThread(oConsoleProcess.fClose).start();
