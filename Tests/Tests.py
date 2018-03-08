@@ -26,9 +26,9 @@ for sModuleName in sys.modules.keys():
       # These packages are loaded by cBugId:
       "mWindowsAPI", "mFileSystem", "mProductDetails",
       # These built-in modules are loaded by these packages:
-      "base64", "binascii", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc", "hashlib",
-      "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess", "textwrap",
-      "urllib", "urlparse", "winreg",
+      "base64", "binascii", "bz2", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc",
+      "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess",
+      "textwrap", "urllib", "urlparse", "winreg", "zlib",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
