@@ -303,9 +303,9 @@ class cCdbWrapper(object):
       assert sFlag in ["bVital"], \
           "Unknown flag %s" % sFlag;
     bVital = dxFlags.get("bVital", False);
+    dxThread = {"fActivity": fActivity, "oThread": None, "bStarted": False, "axActivityArguments": axActivityArguments}; 
     def fThreadWrapper():
-      dxThread = {"fActivity": fActivity, "oThread": threading.currentThread(), "axActivityArguments": axActivityArguments}; 
-      oCdbWrapper.adxThreads.append(dxThread);
+      dxThread["bStarted"] = True;
       try:
         try:
           fActivity(*axActivityArguments);
@@ -331,7 +331,7 @@ class cCdbWrapper(object):
         finally:
           oCdbWrapper.adxThreads.remove(dxThread);
     try:
-      return threading.Thread(target = fThreadWrapper);
+      oThread = threading.Thread(target = fThreadWrapper);
     except thread.error as oException:
       # We cannot create another thread. The most obvious reason for this error is that there are too many threads
       # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
@@ -340,6 +340,9 @@ class cCdbWrapper(object):
       for dxThread in oCdbWrapper.adxThreads:
         print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
       raise;
+    dxThread["oThread"] = oThread; 
+    oCdbWrapper.adxThreads.append(dxThread);
+    return oThread;
   
   # Select process/thread
   def fSelectProcess(oCdbWrapper, uProcessId):
