@@ -42,8 +42,8 @@ def fbUpdateReportForHeapManagerPointer(
   (sHeapBlockId, sHeapBlockDescription) = oHeapManagerData.ftsGetHeapBlockIdAndDescription();
   (sOffsetId, sOffsetDescription) = oHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(uAccessViolationAddress);
   
-  oBugReport.sBugDescription = "Access violation while %s %smemory at 0x%X; %s." % (sViolationTypeDescription, \
-      oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sOffsetDescription + sHeapBlockDescription);
+  oBugReport.sBugDescription = "Access violation while %s %smemory at 0x%X; %s %s." % (sViolationTypeDescription, \
+      oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sOffsetDescription, sHeapBlockDescription);
   sPotentialRisk = {
     "R": "might allow information disclosure and (less likely) arbitrary code execution",
     "W": "indicates arbitrary code execution may be possible",
