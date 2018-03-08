@@ -128,11 +128,11 @@ auValidPageHeapAllocationHeaderMarkers = [0xEEEEEEED, 0xEEEEEEEE];
 
 DPH_ALLOCATION_HEADER_64 = fcStructure("DPH_ALLOCATION_HEADER",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
-  (ULONG,           "uPadding"),                      # 0xEEEEEEEE
+  (ULONG,           "uPadding"),                      # 0xEEEEEEEE or (apparently) 0x00000000
   (PVOID_64,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
   uAlignmentBytes = 8,
 );
-auValidPageHeapAllocationHeaderPaddings = [0xEEEEEEEE];
+auValidPageHeapAllocationHeaderPaddings = [0x0, 0xEEEEEEEE];
 
 # Page heap stores a DPH_BLOCK_INFORMATION structure immediately before every heap block.
 # Some information on DPH_BLOCK_INFORMATION can be found here:
@@ -225,11 +225,13 @@ def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, 
         "Page heap allocation header marker has unhandled value 0x%X (expected %s):\r\n%s" % \
         (oAllocationHeader.uMarker, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderMarkers]),
         "\r\n".join(oAllocationHeader.fasDump()));
-    if hasattr(oAllocationHeader, "uPadding"):
-      assert oAllocationHeader.uPadding in auValidPageHeapAllocationHeaderPaddings, \
-          "Page heap allocation header padding has unhandled value 0x%X (expected %s):\r\n%s" % \
-          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]),
-          "\r\n".join(oAllocationHeader.fasDump()));
+# Maybe this should be enabled in a "strict" setting, as I would like to know what other values are common. But I've
+# missed bugs because this assertion terminated cBugId while reporting one, which is not good.
+#    if hasattr(oAllocationHeader, "uPadding"):
+#      assert oAllocationHeader.uPadding in auValidPageHeapAllocationHeaderPaddings, \
+#          "Page heap allocation header padding has unhandled value 0x%X (expected %s):\r\n%s" % \
+#          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]),
+#          "\r\n".join(oAllocationHeader.fasDump()));
     if gbDebugOutput:
       print (",- oAllocationHeader ").ljust(80, "-");
       for sLine in oAllocationHeader.fasDump():
