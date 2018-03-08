@@ -24,6 +24,8 @@ Changes that affect bug ids
   bug.
 * A breakpoint exceptions in a malloc() call is now reported as an
   out-of-memory (OOM) bug.
+* CPUUsage worm run-time has been increased again, as I found the shorter
+  period provided even worse results than the original.
 
 Changes to collateral
 ---------------------
@@ -40,11 +42,19 @@ Changes to events
   system is in its trial period for cBugId or one of its dependencies, or if
   one of the licenses is about to expire.
 
+Changes to console output
+-------------------------
+* The stdio pipes for application processes are no longer closed by BugId when
+  the process is terminated. There should not be any need to close these pipes,
+  but doing so could sometimes prevent BugId from showing the last lines of
+  output from the application if they were buffered. 
+
 Changes to tests
 ----------------
 + A new "OOM Stack" test will trigger a stack exhaustion by allocating all
   available memory before attempting to grow the stack.
 + Various SafeInt tests will trigger SafeInt exceptions.
++ List of loaded root modules has been updated to Python 2.7.14.
 
 2018-01-30
 ==========
