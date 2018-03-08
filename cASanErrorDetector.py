@@ -347,14 +347,15 @@ class cASanErrorDetector(object):
         # Check for OOM report:
         oAllocatorFailMatch = re.match(
           r"^(%s)$" % "|".join([
-            r"==%d==AddressSanitizer's allocator is terminating the process instead of returning 0" % oProcess.uId,
-            r"==%d==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes (%s) \(error code: 1455\)" % \
-                (oProcess.uId, "|".join([r"at 0x[0-9`a-f]+", r"of( \w+)+"])),
+            r"==(\d+)==AddressSanitizer's allocator is terminating the process instead of returning 0",
+            r"==(\d+)==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes " \
+                "(at 0x[0-9`a-f]+|of( \w+)+) \(error code: 1455\)",
           ]),
           sLine,
           re.I,
         );
         if oAllocatorFailMatch:
+          # The process in which the OOM crash happened may not be the process in which it is reported.
           oBugReport.sBugTypeId = "OOM",
           oBugReport.sBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
           oBugReport.sSecurityImpact = None,
