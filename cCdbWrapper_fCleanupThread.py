@@ -34,6 +34,15 @@ def cCdbWrapper_fCleanupThread(oCdbWrapper):
         oCdbWrapper.fbFireEvent("Log message", "Waiting for thread %d %s(%s)" % \
             (oThread.ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]])));
         oThread.join();
+        break;
+  assert len(oCdbWrapper.adxThreads) == 1, \
+    "Expected only cleanup thread to remain, got %d threads" % len(oCdbWrapper.adxThreads);
+  dxLastThread = oCdbWrapper.adxThreads[0];
+  assert dxLastThread["oThread"] == oCurrentThread, \
+      "Expected last thread to be cleanup thread (%d), got thread %d %s(%s)" % \
+      (oCurrentThread.ident, dxLastThread["oThread"].ident, repr(dxLastThread["fActivity"]), \
+      ", ".join([repr(xArgument) for xArgument in dxLastThread["axActivityArguments"]]));
+  
   # Report that we're finished.
   oCdbWrapper.fbFireEvent("Log message", "Finished");
   oCdbWrapper.fbFireEvent("Finished");
