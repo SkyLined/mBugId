@@ -35,14 +35,17 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       asFrameNotesHTML = [];
       sOptionalSourceHTML = None;
       if oStackFrame.sSourceFilePath:
-        sSourceFilePathAndLineNumber = "%s @ %d" % (oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        sSourceCodeLinkURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        if sSourceCodeLinkURL:
+        sSourceReference = (
+          oStackFrame.sSourceFilePath
+          + (oStackFrame.uSourceFileLineNumber is not None and (" @ %d" % oStackFrame.uSourceFileLineNumber) or "")
+        );
+        sSourceReferenceURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
+        if sSourceReferenceURL:
           sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % \
-              (oCdbWrapper.fsHTMLEncode(sSourceCodeLinkURL), oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber));
+              (oCdbWrapper.fsHTMLEncode(sSourceReferenceURL), oCdbWrapper.fsHTMLEncode(sSourceReference));
         else:
           sOptionalSourceHTML = "[%s]" % \
-              oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
+              oCdbWrapper.fsHTMLEncode(sSourceReference);
     if oCdbWrapper.bGenerateReportHTML:
       if oStackFrame.bIsInline:
         # This frame is hidden (because it is irrelevant to the crash)
@@ -88,10 +91,10 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       # Exception did not happen in the process' binary: add process' binary name to the location:
       oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
     if oTopIdStackFrame.sSourceFilePath:
-      if oTopIdStackFrame.uSourceFileLineNumber:
-        oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
-      else:
-        oBugReport.sBugSourceLocation = oTopIdStackFrame.sSourceFilePath;
+      oBugReport.sBugSourceLocation = (
+        oTopIdStackFrame.sSourceFilePath
+        + (oTopIdStackFrame.uSourceFileLineNumber is not None and " @ %d" % oTopIdStackFrame.uSourceFileLineNumber or "")
+      );
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];
