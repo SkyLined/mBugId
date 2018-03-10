@@ -6,7 +6,7 @@
   ], 
   "oProductVersion": "2018-03-08 09:18", 
   "oRepository": {
-    "sBranch": "master", 
+    "sBranch": "dev", 
     "sRepositoryName": "cBugId", 
     "sType": "GitHub", 
     "sUserName": "SkyLined"
