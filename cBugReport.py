@@ -16,11 +16,13 @@ from .cException import cException;
 from .cStack import cStack;
 from .dxConfig import dxConfig;
 from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
-from mProductDetails import cProductDetails;
+import mProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 from mFileSystem import mFileSystem;
 from mWindowsAPI.mDefines import *;
+
+import cBugId;
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
@@ -119,7 +121,10 @@ class cBugReport(object):
     return oBugReport;
   
   def fReport(oBugReport, oCdbWrapper):
-    oProductDetails = cProductDetails.foGetForProductName("cBugId");
+    oProductDetails = (
+      mProductDetails.foGetProductDetailsForMainModule()
+      or mProductDetails.foGetProductDetailsForModule(cBugId)
+    );
     # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
     # outside.
     oProcess = oBugReport.__oProcess;
@@ -288,7 +293,10 @@ class cBugReport(object):
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
             "sBlocks": "\n".join(asBlocksHTML) + 
                 (bReportTruncated and "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available." or ""),
-            "sBugIdVersion": oProductDetails.oProductVersion,
+            "sProductName": oProductDetails.sProductName,
+            "sProductVersion": oProductDetails.oProductVersion,
+            "sProductAuthor": oProductDetails.sProductAuthor,
+            "sProductURL": oProductDetails.sProductURL,
             "sLicenseHeader": sLicenseHeaderHTML,
             "sLicenseFooter": sLicenseFooterHTML,
           };

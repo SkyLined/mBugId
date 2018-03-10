@@ -288,13 +288,14 @@ sReportHTMLTemplate = ("""
 %(sOptionalApplicationArguments)s
         </table>
         <br/>
-        <a href="https://github.com/SkyLined/BugId">BugId</a> version <b>%(sBugIdVersion)s</b>. %(sLicenseHeader)s
+        <a href="%(sProductURL)s">%(sProductName)s</a> version %(sProductVersion)s by %(sProductAuthor)s.
+        %(sLicenseHeader)s
       </div>
     </div>
 %(sBlocks)s
     <div class="Footer Block">
-      This report was generated using <a href="https://github.com/SkyLined/BugId">BugId v%(sBugIdVersion)s</a>
-        by <a href="mailto:bugid@skylined.nl">SkyLined</a>.<br/>
+      This report was generated using <a href="%(sProductURL)s">%(sProductName)s version %(sProductVersion)s</a>
+        by %(sProductAuthor)s</a>.<br/>
       %(sLicenseFooter)s
     </div>
   </body>

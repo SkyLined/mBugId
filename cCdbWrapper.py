@@ -30,7 +30,7 @@ from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
-from mProductDetails import cProductDetails;
+import mProductDetails;
 from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, oSystemInfo;
 
 guSymbolOptions = sum([
@@ -197,14 +197,12 @@ class cCdbWrapper(object):
   
   def fStart(oCdbWrapper):
     global guSymbolOptions;
-    oProductDetails = cProductDetails.foGetForProductName("cBugId");
-    asLicenseErrors = oProductDetails.fasGetLicenseErrors();
+    oLicenseCollection = mProductDetails.foGetLicenseCollectionForAllLoadedProducts();
+    (asLicenseErrors, asLicenseWarnings) = oLicenseCollection.ftasGetLicenseErrorsAndWarnings();
     if asLicenseErrors:
       if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
         print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
-        os._exit(1);
-      return;
-    asLicenseWarnings = oProductDetails.fasGetLicenseWarnings();
+        os._exit(5);
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
     # Create a thread that interacts with the debugger to debug the application

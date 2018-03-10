@@ -10,7 +10,7 @@ sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
 # Save the list of names of loaded modules:
 asOriginalModuleNames = sys.modules.keys();
 
-import cBugId, mFileSystem, mProductDetails, mWindowsAPI;
+import cBugId, mFileSystem, mWindowsAPI;
 
 # Restore the search path
 sys.path = asOriginalSysPath;
@@ -32,12 +32,6 @@ for sModuleName in sys.modules.keys():
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
-
-# Read product details for cBugId and all modules it uses.
-mProductDetails.cProductDetails.foReadForModule(cBugId);
-mProductDetails.cProductDetails.foReadForModule(mFileSystem);
-mProductDetails.cProductDetails.foReadForModule(mProductDetails);
-mProductDetails.cProductDetails.foReadForModule(mWindowsAPI);
 
 from cBugId import cBugId;
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
@@ -406,7 +400,7 @@ if __name__ == "__main__":
   bQuickTestSuite = False;
   bExtendedTestSuite = False;
   while asArgs:
-    if asArgs[0] == "--extended": 
+    if asArgs[0] == "--all": 
       bExtendedTestSuite = True;
     elif asArgs[0] == "--report": 
       gbGenerateReportHTML = True;

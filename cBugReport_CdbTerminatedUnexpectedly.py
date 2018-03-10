@@ -1,12 +1,17 @@
 from .dxConfig import dxConfig;
 from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
-from mProductDetails import cProductDetails;
+import mProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
+import cBugId;
+
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):
-    oProductDetails = cProductDetails.foGetForProductName("cBugId");
+    oProductDetails = (
+      mProductDetails.foGetProductDetailsForMainModule()
+      or mProductDetails.foGetProductDetailsForModule(cBugId)
+    );
     if uExitCode < 0:
       uExitCode += 1 << 32;
     oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
@@ -29,7 +34,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sId = oBugReport.sBugTypeId;
     oBugReport.sStackId = None;
     oBugReport.sBugSourceLocation = None;
-    oBugReport.asVersionInformation = ["cBugId: %s" % oProductDetails.oProductVersion];
+    oBugReport.asVersionInformation = ["%s: %s" % (oProductDetails.sProductName, oProductDetails.oProductVersion)];
     if oCdbWrapper.bGenerateReportHTML:
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
@@ -53,7 +58,10 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sOptionalApplicationArguments": "",
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
-        "sBugIdVersion": oProductDetails.oProductVersion,
+        "sProductName": oProductDetails.sProductName,
+        "sProductVersion": oProductDetails.oProductVersion,
+        "sProductAuthor": oProductDetails.sProductAuthor,
+        "sProductURL": oProductDetails.sProductURL,
         "sLicenseHeader": sLicenseHeaderHTML,
         "sLicenseFooter": sLicenseFooterHTML,
       };

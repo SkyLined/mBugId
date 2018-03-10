@@ -12,6 +12,8 @@
     "sUserName": "SkyLined"
   }, 
   "sLicenseServerURL": "https://license.skylined.nl/fdxGetLicenseCheckResult.php", 
+  "sProductAuthor": "SkyLined", 
   "sProductName": "cBugId", 
+  "sProductURL": "https://github.com/SkyLined/cBugId", 
   "sTrialPeriodDuration": "1m"
 }
