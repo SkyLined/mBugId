@@ -42,8 +42,12 @@ aoBugTranslations = [
   # IllegalInstruction -> OOM
   cBugTranslation(
     sOriginalBugTypeId = "IllegalInstruction",
-    asOriginalTopStackFrameSymbols = [
-      "xul.dll!alloc::oom::default_oom_handler",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "xul.dll!alloc::oom::default_oom_handler",
+      ], [
+        "xul.dll!alloc::heap::{{impl}}::oom ",
+      ],
     ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application triggered a breakpoint to indicate it was unable to allocate enough memory.",
@@ -56,13 +60,7 @@ aoBugTranslations = [
       [
         re.compile("^(mozglue|xul)\.dll!arena_\w+$"),
       ], [
-        re.compile("^(mozglue|xul)\.dll!(\w+::)*\w+alloc(<\.\.\.>)?$"),
-      ], [
-        "xul.dll!alloc::oom::imp::oom",
-      ], [
-        "xul.dll!alloc::oom::oom",
-      ], [
-        "xul.dll!alloc::raw_vec::RawVec<...>::reserve",
+        re.compile("^(mozglue|xul)\.dll!(\w+::)*\w+alloc(<\.\.\.>|::.*)?$"),
       ], [
         "xul.dll!collections::vec::Vec<...>::reserve<...>",
       ],
