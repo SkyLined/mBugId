@@ -11,7 +11,7 @@
     "sType": "GitHub", 
     "sUserName": "SkyLined"
   }, 
-  "sLicenseServerURL": "https://license.skylined.nl/fdxGetLicenseCheckResult.php", 
+  "sLicenseServerURL": "https://license.skylined.nl/dxCheckLicense.php", 
   "sProductAuthor": "SkyLined", 
   "sProductName": "cBugId", 
   "sProductURL": "https://github.com/SkyLined/cBugId", 
