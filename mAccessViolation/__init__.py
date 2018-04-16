@@ -1,0 +1,1 @@
+from .fUpdateReportForTypeIdAndAddress import fUpdateReportForTypeIdAndAddress;

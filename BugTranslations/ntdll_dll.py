@@ -1,5 +1,6 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
+from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # These frames are never relevant
@@ -7,6 +8,12 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "ntdll.dll!DbgBreakPoint",
+      ], [
+        "ntdll.dll!KiUserExceptionDispatch",
+      ], [
+        "ntdll.dll!RtlDispatchException",
+      ], [
+        "ntdll.dll!RtlpExecuteHandlerForException",
       ],
     ],
   ),
@@ -55,9 +62,9 @@ aoBugTranslations = [
       ],
     ],
   ),
-  # OOM, HeapCorrupt, DoubleFree, MisalignedFree, OOBW -> hide irrelevant frames
+  # Heap related issues -> hide irrelevant heap management frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
+    sOriginalBugTypeId = rHeapRelatedBugIds,
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "ntdll.dll!DbgUiRemoteBreakin",
@@ -85,6 +92,16 @@ aoBugTranslations = [
         "ntdll.dll!RtlpFreeDebugInfo",
       ], [
         "ntdll.dll!RtlpFreeHeap",
+      ],
+    ],
+  ),
+  # Debug output errors -> hide irrelevant frames
+  cBugTranslation(
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "ntdll.dll!DbgPrintEx",
+      ], [
+        "ntdll.dll!vDbgPrintExWithPrefixInternal",
       ],
     ],
   ),

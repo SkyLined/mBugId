@@ -1,6 +1,12 @@
 import re;
 
-def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
+def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
+  # Find out if there is executable memory at the address requested, to determine if setting a breakpoint
+  # there makes sense.
+  oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAddress);
+  if not oVirtualAllocation.bExecutable:
+    return None; # The memory at the given address is not allocated and/or executable.
   # Select the right process.
   oCdbWrapper.fSelectProcess(uProcessId);
   # Put breakpoint only on relevant thread if provided.
@@ -28,17 +34,21 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
     and asBreakpointResult[3] == 'to track module load/unload state you must use BU.'
     and re.match(r'^bp%d at .* failed$' % uBreakpointId, asBreakpointResult[4])
   ):
-    oCdbWrapper.fLogMessageInReport(
-      "LogBreakpoint",
-      "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
-    );
+    oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+      "Breakpoint id": "%d" % uBreakpointId,
+      "Address": "0x%X" % uAddress,
+      "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+      "Error": "Invalid access to memory location.",
+    });
     return None;
   elif len(asBreakpointResult) == 1:
     if asBreakpointResult[0] == "Invalid address":
-      oCdbWrapper.fLogMessageInReport(
-        "LogBreakpoint",
-        "Cannot add breakpoint %d at address 0x%X in process %d/0x%X." % (uBreakpointId, uAddress, uProcessId, uProcessId),
-      );
+      oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+        "Breakpoint id": "%d" % uBreakpointId,
+        "Address": "0x%X" % uAddress,
+        "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+        "Error": "Invalid address.",
+      });
       return None;
     oActualBreakpointIdMatch = re.match(r"^breakpoint (\d+) (?:exists, redefining|redefined)$", asBreakpointResult[0]);
     assert oActualBreakpointIdMatch, \
@@ -51,21 +61,12 @@ def cCdbWrapper_fuAddBreakpoint(oCdbWrapper, uAddress, fCallback, uProcessId, uT
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);
-  oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId] = uAddress;
+  oCdbWrapper.fbFireEvent("Log message", "Added breakpoint", {
+    "Breakpoint id": "%d" % uBreakpointId,
+    "Address": uAddress,
+    "Process id": "%d/0x%X" % (uProcessId, uProcessId),
+  });
   oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId] = uProcessId;
   oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId] = fCallback;
   return uBreakpointId;
 
-def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
-  uProcessId = oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId];
-  oCdbWrapper.fSelectProcess(uProcessId);
-  # There can be any number of breakpoints according to the docs, so no need to reuse them. There is a bug in cdb:
-  # using "bc" to clear a breakpoint can still lead to a STATUS_BREAKPOINT exception at the original address later.
-  # There is nothing to detect this exception was caused by this bug, and filtering these exceptions is therefore
-  # hard to do correctly. An easier way to address this issue is to not "clear" the breakpoint, but replace the
-  # command executed when the breakpoint is hit with "gh" (go with exception handled).
-  asClearBreakpoint = oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = 'bp%d "gh";' % uBreakpointId,
-    sComment = 'Remove breakpoint',
-  );
-  del oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];

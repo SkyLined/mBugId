@@ -1,3 +1,219 @@
+2018-02-23
+==========
+cBugId and all its modules require a license to use. There is a 30 day trial
+period during which you can test BugId without a license. After the trial
+period you will need to get a license to continue to use it.
+
+Licenses for non-commercial use are available for free, while licenses for
+commercial use can be purchased from the author. For more details, and to
+acquire a license, please visit https://bugid.skylined.nl.
+
+As usual, various minor bugs have been addressed and small improvements have
+been made in many places, but only the important ones are mentioned here. You
+should check the commit logs if you want to know all the details.
+
+Changes that affect bug ids
+---------------------------
+* Iso bug translations have been improved.
+* SafeInt bug translations have been added.
+* The class name for C++ exceptions is now extracted from the exception
+  information, rather than guessed using the object's vftable.
+* A stack exhaustion caused by a lack of available memory is now reported as
+  an out-of-memory (OOM) bug.
+* An ASan out-of-memory debug message is now reported as an out-of-memory (OOM)
+  bug.
+* A breakpoint exceptions in a malloc() call is now reported as an
+  out-of-memory (OOM) bug.
+* CPUUsage worm run-time has been increased again, as I found the shorter
+  period provided even worse results than the original.
+
+Changes to collateral
+---------------------
+* More instructions are handled to allow more crashes to be ignored in order
+  to determine collateral damage.
+
+Changes to events
+-----------------
+* The "Event" event has been removed.
+* The "License errors" event has been added. This event is fired when the
+  system does not have a valid license for cBugId or one of its dependencies.
+  Its argument is an array of error message.
+* The "License warnings" event has been added. This event is fired when the
+  system is in its trial period for cBugId or one of its dependencies, or if
+  one of the licenses is about to expire.
+
+Changes to console output
+-------------------------
+* The stdio pipes for application processes are no longer closed by BugId when
+  the process is terminated. There should not be any need to close these pipes,
+  but doing so could sometimes prevent BugId from showing the last lines of
+  output from the application if they were buffered. 
+
+Changes to tests
+----------------
++ A new "OOM Stack" test will trigger a stack exhaustion by allocating all
+  available memory before attempting to grow the stack.
++ Various SafeInt tests will trigger SafeInt exceptions.
++ List of loaded root modules has been updated to Python 2.7.14.
+
+2018-01-30
+==========
+There have been many major changes, and even more smaller ones. For brevity,
+I'll only list those that are most likely to impact you.
+
+Changes that affect bug ids
+---------------------------
+* Use-After-Free bugs are now reported as `[RWE]AF` instead of `UAF[RWE]`.
+* `IncorrectHeap` bugs are now reported as `WrongHeap`.
+* Heap corruption that has been detect by checking page heap structures is now
+  reported at the end of the bug id between curly brackets. If this heap
+  corruption covers was reported with a VERIFIER STOP, this information covers
+  the start offset, so the start offset is not added to the bug id after the
+  heap block size as it would normally be. For instance, a one byte write at an
+  address two bytes past the end of a three byte buffer would be reported as
+  `OOBW[3]{+2~1}`, and a one byte write at an address two bytes before the
+  start of a three byte buffer would be reported as `OOBW[3]{-2~1}`.
+* Linear sequential buffer overflows in buffers that are not size-aligned and
+  thus overwrite the page heap block suffix are now detected as such when they
+  trigger a VERIFIER STOP or cause an AV. These are reported with bug ids that
+  start with `BOF` instead of `OOBW`. For instance, a one byte write past a
+  two bytes buffer would be reported as `BOF[2]{+0~1}`. For larger buffers and
+  overflows that cause an AV, rather than only page heap suffix corruption, the
+  bug ids will include the offset where the AV happened. For instance, writing
+  18 bytes into an 13 byte buffer would be reported as `BOF[13]+3{0~3}`:
+  The buffer overflow was detected at offset `+3` past the end of the buffer,
+  and had already corrupted `3` bytes starting at offset `0` from the end of
+  the buffer at that point. With collateral enabled, the next bug reported will
+  be `OOBW[13]+4{0~3}`, as the suffix corruption is still detected, but the AV
+  no longer happens at the address immediately after this corruption, so this
+  is not detected as a linear buffer overflow.
+* Bug ids for nearly linear overflows where some bytes are skipped could have
+  been incorrectly assumed to be normal linear overflows which would have
+  resulted in slightly incorrect BugIds. e.g. if the application overwrites 3
+  bytes past the end of a buffer without writing beyond the end of the page
+  heap page, then skip one byte and writes at offset 4 from the end to cause an
+  access violation, the bug id reported would have been `[size]0~3` instead of
+  `[size]+4`. While the former is not technically incorrect, for the new
+  collateral feature it makes more sense to report the corruption related to
+  the access violation, so subsequent collateral bugs have different bug ids
+* Improved bug translations may result in different (but more accurate) bug ids
+  for various bugs.
+* A workaround for a cdb stack unwinding bug should provide a better stack and
+  subsequent better stack hashes.
+
+Changes to bug reporting
+------------------------
+* ASan bug detection has been rewritten to work with the latest version of
+  BugId and Chromium ASan builds.
+* Added `dxConfig["bIgnoreAccessViolations"]`. When set to `true`, all access
+  violation exceptions are ignored. This is needed with Chromium ASan builds,
+  which trigger a lot of AVs on purpose (apparently by design).
+* Added `dxConfig["bReportBugsForOOMException"]`. When set to `true`, all first-
+  chance OOM exceptions BugId detects trigger a bug report. When set to `false`,
+  only second-chance OOM exceptions can trigger a bug report; the application
+  is allowed to attempt to handle them internally first.
+* Added a new type of bug report for "Cdb could not be terminated".
+* VERIFIER STOP messages are now detected using an "Application debug output"
+  event handler implemented in `cVerifierStopDetector`.
+
+Changes to collateral
+---------------------
+* Access Violations using invalid pointers will now also be handled by
+  "collateral". I found that values poisoned by collateral can sometimes be
+  used as indexes and that this resulted in address of the form
+      `uValidArrayStartAddress` + `uPoisonedIndex` * `uArrayElementSize`
+  If `uPoisonedIndex` is of a large enough type (32bit integer) on x64, this
+  will commonly result in attempts to access memory at invalid addresses.
+
+Changes to HTML bug reports
+---------------------------
+* Windows Run Time exceptions are no longer logged in HTML reports, as I
+  never used that info and I don't expect anyone else to need it.
+* "Ignored first chance event" output generated by cdb is removed from
+  application debug output.
+* Debug output generated by page heap is removed from application debug
+  output.
+* The total amount of memory used by the application has been added to the
+  report.
+
+Changes to events
+-----------------
+* Application debug output is now detected and "Application debug output"
+  events are fired.
+* "Started process" event has been renamed to "Process started".
+* "Attached to process" event has been renamed "Process attached".
+* Relevant event callbacks now get either a `mWindowsAPI.cConsoleProcess` or a
+  `mWindowsAPI.cProcess` instance as their first argument instead of the
+  process id, binary name and command-line. Note that `cConsoleProcess` is a
+  sub-class of `cProcess`. They also always get a `bIsMainProcess` as their
+  second argument, even for events that are only ever fired for main processes.
+* "Application debug output" events now get a `cProcess` instance as argument.
+* Log messages are now added to the HTML report using a "Log message" event
+  handler.
+* More log messages have been added for various events.
+* Callbacks for the "event" event can now be added, which are called whenever
+  another event is fired with a variable number of argument: (`oBugId`,
+  `sEventName`, *`axEventArguments`), where `axEventArguments` depends on the
+  event that fired.
+
+Bug fixes
+---------
+* Python `threading.Event.wait` is not reliable, which could cause a call to
+  `cBugId.fWait` to hang after BugId is finished. I am now using
+  `threading.Lock` objects which appears to not have this issue.
+* Module importing has been improved to prevent leaking internal modules to the
+  global namespace.
+* Bug translations to `None` will now correctly prevent reporting of a bug.
+* More cdb installation paths were added.
+* `oVersionInformation` now handles failed connections.
+* A few (full) tests were fixed as they had incorrect bug ids.
+* Source file information without line number information is now handled
+  correctly.
+* Breakpoints can only be set in allocated, executable memory.
+
+Code cleanup
+------------
+* All Access Violation handle code has been moved to an `mAccessViolation`
+  sub-module.
+* More code uses `mWindowsAPI` to gather information directly, rather than
+  ask cdb and parse it's output. This means a lot of old helper functions were
+  removed. It should also make this code more reliable and easier to maintain.
+* The way the cdb command line is constructed has been changed to make the code
+  easier to read.
+* Main processes are now tracked by uid, and marked as such as soon as
+  we know their id (which may be before cdb has attached to them).
+* Cdb and Application processes are now started as `mWindowsAPI.cConsoleProcess`
+  This allows more control over the processes. cdb now attaches to the new
+  application processes, instead of starting them.
+* cdb.exe should now be cleanly terminated with a "q" command in all but a very
+  few situations.
+* `cBugId.fStop` (and `cCdbWrapper.fStop`) now interrupt the application
+  to terminate cdb using a "q" command. Note that `cCdbWrapper.fStop` does
+  not wait for cdb to terminate but returns immediately.
+* Many `cCdbWrapper` methods have been moved to separate files.
+* Removed `rImportantStd*Lines`: I did not use this, so they were removed to
+  reduce code complexity.
+* Removed `aoInternalExceptions` and `cCdbWrapper.bFatalBugDetected`: `cBugId`
+  uses events to report exceptions, you should track them yourselves if you
+  need to.
+* Removed `cCdbWrapper.fuGetVariableId` and `cCdbWrapper.fReleaseVariableId`
+  as the were not used.
+* Removed `cCdbWrapper.duAddress_by_uBreakpointId` as it was not used.
+* `cCdbWrapper.fuAddBreakpoint` has been renamed to
+  `fuAddBreakpointForAddress` and `cCdbWrapper.fuAddBreakpointForSymbol`
+  has been added.
+* Initial breakpoints for new application processes can now be ignored, since
+  cdb no longer starts the application processes. This should remove any chance
+  of mistaking these for an application initiated breakpoint.
+
+Changes to tests
+----------------
+* Logging for tests has been expanded.
+* Excessive CPU usage checks are disabled for all checks that are not expected
+  to trigger them, which speeds up testing a little.
+* A test for `WrongHeap` bug ids has been created and added to the tests.
+* Test binaries have been rebuild.
+
 2017-12-21
 ==========
 New features

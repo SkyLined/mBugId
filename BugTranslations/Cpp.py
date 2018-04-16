@@ -1,5 +1,6 @@
-from cBugTranslation import cBugTranslation;
 import re;
+from .cBugTranslation import cBugTranslation;
+from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # C++ -> hide irrelevant frames
@@ -12,6 +13,16 @@ aoBugTranslations = [
         "*!_CxxThrowException",
       ],
     ],
+  ),
+  # Breakpoint -> OOM
+  cBugTranslation(
+    sOriginalBugTypeId = "Breakpoint",
+    asOriginalTopStackFrameSymbols = [
+      "*!malloc",
+    ],
+    sTranslatedBugTypeId = "OOM",
+    sTranslatedBugDescription = "The application triggered abreakpoint exception to indicate it was unable to allocate enough memory.",
+    sTranslatedSecurityImpact = None,
   ),
   # C++:std::bad_alloc -> OOM
   cBugTranslation(
@@ -33,14 +44,9 @@ aoBugTranslations = [
   # AppExit -> PureCall
   cBugTranslation(
     sOriginalBugTypeId = "AppExit",
-    aasOriginalTopStackFrameSymbols = [
-      [
-        "*!abort",
-        "*!_purecall",
-      ], [
-        "*!abort",
-        "*!purecall",
-      ],
+    asOriginalTopStackFrameSymbols = [
+      "*!abort",
+      re.compile(r".*!_?purecall"),
     ],
     sTranslatedBugTypeId = "PureCall",
     sTranslatedBugDescription = "Pure virtual function call (R6025).",
@@ -51,9 +57,7 @@ aoBugTranslations = [
     sOriginalBugTypeId = "PureCall",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*!_purecall",
-      ], [
-        "*!purecall",
+        re.compile(r".*!_?purecall"),
       ],
     ],
   ),
@@ -64,44 +68,28 @@ aoBugTranslations = [
       "*!__chkstk",
     ],
   ),
-  # Heap related issues -> hide irrelevant frames
+  # Heap related issues -> hide irrelevant heap management frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"^(OOM|HeapCorrupt|DoubleFree\[.*|MisalignedFree\[.*|OOBW\[.*)$"),
+    sOriginalBugTypeId = rHeapRelatedBugIds,
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "*!malloc",
+        re.compile(r".*!(m|re)alloc"),
       ], [
-        "*!realloc",
+        re.compile(r".*!mem(chr|cmp|cpy|move|set)"),
       ], [
-        "*!operator delete",
+        re.compile(r".*!operator (delete|new(\[\])?)"),
       ], [
-        "*!operator new",
-      ], [
-        "*!operator new[]",
+        re.compile(r".*!str(n?cat|r?chr|n?cmp|n?cpy|len|str)"),
       ], [
         "*!std::_Allocate",
       ], [
         "*!std::allocator<...>::allocate",
       ], [
-        "*!std::basic_string<...>::_Copy",
+        re.compile(r".*!std::basic_string<...>::(_Copy|_Grow|assign|basic_string<...>)"),
       ], [
-        "*!std::basic_string<...>::_Grow",
+        re.compile(r".*!std::_Tree_comp_alloc<...>::(_Buyheadnode|_Construct|\{ctor\})"),
       ], [
-        "*!std::basic_string<...>::assign",
-      ], [
-        "*!std::basic_string<...>::basic_string<...>",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Buyheadnode",
-      ], [
-        "*!std::_Tree_comp_alloc<...>::_Construct",
-      ], [
-        "*!std::_Tree_comp_alloc<..>::{ctor}",
-      ], [
-        "*!std::vector<...>::_Reallocate",
-      ], [
-        "*!std::vector<...>::_Reserve",
-      ], [
-        "*!std::vector<...>::resize",
+        re.compile(r".*!std::vector<...>::(_Reallocate|_Reserve|resize)"),
       ], [
         "*!std::_Wrap_alloc<...>::allocate",
       ],

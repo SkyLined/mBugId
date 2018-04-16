@@ -1,5 +1,5 @@
-from fsGetNumberDescription import fsGetNumberDescription;
-from fsNumberOfBytes import fsNumberOfBytes;
+from .fsGetNumberDescription import fsGetNumberDescription;
+from .fsNumberOfBytes import fsNumberOfBytes;
 
 class cHeapManagerData(object):
   def __init__(oSelf,
@@ -23,31 +23,34 @@ class cHeapManagerData(object):
     oSelf.uMemoryDumpEndAddress = oSelf.uAllocationEndPaddingSize and oSelf.uAllocationEndPaddingEndAddress or oSelf.uHeapBlockEndAddress;
     oSelf.uMemoryDumpSize = oSelf.uMemoryDumpEndAddress - oSelf.uMemoryDumpStartAddress;
   
-  def ftsGetIdAndDescription(oSelf):
-    sId = "[%s]" % fsGetNumberDescription(oSelf.uHeapBlockSize);
-    sDescription = "a %s heap block at 0x%X" % (fsNumberOfBytes(oSelf.uHeapBlockSize), oSelf.uHeapBlockStartAddress);
+  def ftsGetHeapBlockIdAndDescription(oSelf):
+    if oSelf.uHeapBlockSize is not None:
+      sId = "[%s]" % fsGetNumberDescription(oSelf.uHeapBlockSize);
+      sDescription = "a %s heap block at 0x%X" % (fsNumberOfBytes(oSelf.uHeapBlockSize), oSelf.uHeapBlockStartAddress);
+    else:
+      sId = "[?]";
+      sDescription = "a heap block of unknown size at an unknown address between 0x%08X and 0x%08X" % \
+          (oSelf.oVirtualAllocation.uStartAddress, oVirtualAllocation.uEndAddress);
     return (sId, sDescription);
   
-  def ftsGetIdAndDescriptionForAddress(oSelf, uAddress):
-    sId = "[%s]" % fsGetNumberDescription(oSelf.uHeapBlockSize);
+  def ftsGetOffsetIdAndDescriptionForAddress(oSelf, uAddress):
     iOffsetFromStartOfHeapBlock = uAddress - oSelf.uHeapBlockStartAddress;
     if iOffsetFromStartOfHeapBlock < 0:
-      sId += "-%s" % fsGetNumberDescription(-iOffsetFromStartOfHeapBlock, "-");
-      sOffset = "%s before" % fsNumberOfBytes(-iOffsetFromStartOfHeapBlock);
+      sId = "-%s" % fsGetNumberDescription(-iOffsetFromStartOfHeapBlock, "-");
+      sDescription = "%s before" % fsNumberOfBytes(-iOffsetFromStartOfHeapBlock);
     elif iOffsetFromStartOfHeapBlock < oSelf.uHeapBlockSize:
-      sId += "@%s" % fsGetNumberDescription(iOffsetFromStartOfHeapBlock);
+      sId = "@%s" % fsGetNumberDescription(iOffsetFromStartOfHeapBlock);
       if iOffsetFromStartOfHeapBlock == 0:
-        sOffset = "at the start of";
+        sDescription = "at the start of";
       else:
-        sOffset = "%s into" % fsNumberOfBytes(iOffsetFromStartOfHeapBlock);
+        sDescription = "%s into" % fsNumberOfBytes(iOffsetFromStartOfHeapBlock);
     else:
       uOffsetBeyondEndOfHeapBlock = iOffsetFromStartOfHeapBlock - oSelf.uHeapBlockSize;
-      sId += "+%s" % fsGetNumberDescription(uOffsetBeyondEndOfHeapBlock);
+      sId = "+%s" % fsGetNumberDescription(uOffsetBeyondEndOfHeapBlock);
       if uOffsetBeyondEndOfHeapBlock == 0:
-        sOffset = "at the end of";
+        sDescription = "at the end of";
       else:
-        sOffset = "%s beyond" % fsNumberOfBytes(uOffsetBeyondEndOfHeapBlock);
-    sDescription = "%s a %s heap block at 0x%X" % (sOffset, fsNumberOfBytes(oSelf.uHeapBlockSize), oSelf.uHeapBlockStartAddress);
+        sDescription = "%s beyond" % fsNumberOfBytes(uOffsetBeyondEndOfHeapBlock);
     return (sId, sDescription);
   
   def fatxMemoryRemarks(oSelf):

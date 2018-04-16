@@ -1,9 +1,10 @@
-from cBugTranslation import cBugTranslation;
+import re;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
-    sOriginalBugTypeId = "Assert",
+    sOriginalBugTypeId = re.compile("^Assert(:HRESULT)?$"),
     asOriginalTopStackFrameSymbols = [
       "*!CIsoMalloc::_InitializeEntry",
     ],

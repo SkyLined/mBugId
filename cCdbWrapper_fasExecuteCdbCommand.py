@@ -1,7 +1,7 @@
 import re, threading, time;
-from cCdbStoppedException import cCdbStoppedException;
-from cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
-from dxConfig import dxConfig;
+from .cCdbStoppedException import cCdbStoppedException;
+from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
+from .dxConfig import dxConfig;
 
 gbLogCommandExecutionTime = False;
 gbDebugIO = False; # Used for debugging cdb I/O issues
@@ -38,7 +38,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     if bAddCommandAndOutputToHTML:
       if gbLogCommandExecutionTime:
         nStartTime = time.clock();
-      oCdbWrapper.sCdbIOHTML += "<hr/>";
+      oCdbWrapper.sCdbIOHTML += "<hr/>\n";
       if not bShowOutputButNotCommandInHTMLReport:
         # Add the command and the prompt to the output:
         oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % \
@@ -47,7 +47,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
           # Optionally add the comment.
           oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span>" % oCdbWrapper.fsHTMLEncode(sComment);
         # End of line
-        oCdbWrapper.sCdbIOHTML += "<br/>";
+        oCdbWrapper.sCdbIOHTML += "<br/>\n";
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
   if bIgnoreOutput:
     bUseMarkers = False;
@@ -62,11 +62,12 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
   while uTries:
     oCdbWrapper.fbFireEvent("Cdb stdin input", sCommand);
     try:
-      oCdbWrapper.oCdbProcess.stdin.write("%s\r\n" % sCommand);
-    except Exception, oException:
+      oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes("%s\r\n" % sCommand);
+    except IOError:
       oCdbWrapper.bCdbRunning = False;
       if gbDebugIO: print "\r>stdin:EOF>";
-      oCdbWrapper.oCdbProcess.wait(); # This should not take long!
+      assert oCdbWrapper.oCdbConsoleProcess.fbWait(), \
+          "Could not wait for cdb.exe to terminate";
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;
@@ -86,5 +87,5 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     finally:
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nEndTime = time.clock() - nStartTime;
-        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>" % nEndTime;
+        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nEndTime;
       

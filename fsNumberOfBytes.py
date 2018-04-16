@@ -1,4 +1,3 @@
-
 def fsNumberOfBytes(uNumberOfBytes):
   if uNumberOfBytes == 1:
     return "1 byte";

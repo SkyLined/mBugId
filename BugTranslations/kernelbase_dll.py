@@ -1,4 +1,6 @@
-from cBugTranslation import cBugTranslation;
+import re;
+from .cBugTranslation import cBugTranslation;
+from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
   # * -> hide irrelevant frames
@@ -19,6 +21,15 @@ aoBugTranslations = [
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "kernelbase.dll!TerminateProcessOnMemoryExhaustion",
+      ],
+    ],
+  ),
+  # Heap related issues -> hide irrelevant heap management frames
+  cBugTranslation(
+    sOriginalBugTypeId = rHeapRelatedBugIds,
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "kernelbase.dll!LocalFree",
       ],
     ],
   ),

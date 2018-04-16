@@ -1,5 +1,5 @@
 import re;
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
   # If this line starts with an address and opcode, make those semi-transparent.
@@ -100,4 +100,4 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       asHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asDisassemblyAfterAddress];
     elif asHTML:
       asHTML.append("(further disassembly not possible)");
-  return "<br/>".join(asHTML);
+  return "<br/>\n".join(asHTML);

@@ -1,5 +1,6 @@
 import re;
-from fsHTMLCP437 import fsHTMLCP437;
+from .fsHTMLCP437 import fsHTMLCP437;
+
 def fsHTMLEncodeLine(sString, uTabStop = None):
   asResult = [];
   uLineIndex = 0;

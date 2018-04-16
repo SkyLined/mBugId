@@ -1,7 +1,7 @@
 import re;
+from .dxConfig import dxConfig;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 from mWindowsAPI.mDefines import *;
-from dxConfig import dxConfig;
 
 duPoisonValue_by_sISA = {
   "x86": 0x41414141,
@@ -13,10 +13,9 @@ class cCollateralBugHandler(object):
     oSelf.__duPoisonedAddress_by_uProcessId = {};
     oSelf.__uMaximumNumberOfBugs = uMaximumNumberOfBugs;
     oSelf.__uBugCount = 0;
-    oSelf.__fbExceptionHandler = None;
+    oSelf.__fbIgnoreException = None;
     oSelf.uValueIndex = 0;
-    oCdbWrapper.fAddEventCallback("Started process", oSelf.fHandleNewProcess);
-    oCdbWrapper.fAddEventCallback("Attached to process", oSelf.fHandleNewProcess);
+    oCdbWrapper.fAddEventCallback("Process attached", oSelf.fHandleNewProcess);
     oCdbWrapper.fAddEventCallback("Process terminated", oSelf.fHandleProcessTerminated);
   
   def fHandleNewProcess(oSelf, oProcess):
@@ -38,24 +37,35 @@ class cCollateralBugHandler(object):
 #      print "Set poison to invalid address 0x%08X" % uPoisonAddress;
     oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId] = uPoisonAddress;
   
-  def fSetExceptionHandler(oSelf, fbExceptionHandler):
-    assert oSelf.__fbExceptionHandler is None, \
+  def fSetIgnoreExceptionFunction(oSelf, fbIgnoreException):
+    assert oSelf.__fbIgnoreException is None, \
         "Cannot set two exception handlers!"
-    oSelf.__fbExceptionHandler = fbExceptionHandler;
+    oSelf.__fbIgnoreException = fbIgnoreException;
   
-  def fbHandleException(oSelf):
+  def fbTryToIgnoreException(oSelf):
+    # Try to handle this exception to allow the application to continue in order to find out what collateral bugs
+    # we can find.
     oSelf.__uBugCount += 1;
-    if oSelf.__uBugCount >= oSelf.__uMaximumNumberOfBugs or not oSelf.__fbExceptionHandler:
+    if oSelf.__uBugCount >= oSelf.__uMaximumNumberOfBugs or not oSelf.__fbIgnoreException:
       # Don't handle any more bugs, or don't handle this particular bug.
       return False;
-    fbExceptionHandler = oSelf.__fbExceptionHandler;
-    oSelf.__fbExceptionHandler = None;
-    return fbExceptionHandler(oSelf);
+    fbIgnoreException = oSelf.__fbIgnoreException;
+    oSelf.__fbIgnoreException = None;
+    return fbIgnoreException(oSelf);
+  
+  def fDiscardIgnoreExceptionFunction(oSelf):
+    # The exception was not considered a bug and the application should handle it; if a handler was set, discard it.
+    oSelf.__fbIgnoreException = None;
   
   def fHandleProcessTerminated(oSelf, oProcess):
     del oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
   
   def fiGetOffsetForPoisonedAddress(oSelf, oProcess, uAddress):
+    if oProcess.uId not in oSelf.__duPoisonedAddress_by_uProcessId:
+      # This is a special case: apparently his bug is in the utility process, which is not in our list.
+      # This is highly unexpected, but we need to handle it in order to generate a useful bug report to find out
+      # the root cause of this.
+      return None;
     uPoisonedAddress = oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
     iOffset = uAddress - uPoisonedAddress;
     # Let's allow a full page of offset on either side.
@@ -65,10 +75,10 @@ class cCollateralBugHandler(object):
     return iOffset
   
   def fuGetPoisonedValue(oSelf, oProcess, uBits, uPointerSizedValue = None):
-    auColleteralValues = dxConfig["auColleteralPoisonValues"];
+    auCollateralValues = dxConfig["auCollateralPoisonValues"];
     uPoisonValue = None;
-    if oSelf.uValueIndex < len(auColleteralValues):
-      uPoisonValue = auColleteralValues[oSelf.uValueIndex];
+    if oSelf.uValueIndex < len(auCollateralValues):
+      uPoisonValue = auCollateralValues[oSelf.uValueIndex];
     if uPoisonValue is None:
       uPoisonValue = uPointerSizedValue is None and duPoisonValue_by_sISA[oProcess.sISA] or uPointerSizedValue;
     oSelf.uValueIndex += 1;

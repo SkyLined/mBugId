@@ -1,7 +1,21 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
+  # ASan build related -> Ignored
+  cBugTranslation(
+    aasAdditionalIrrelevantStackFrameSymbols = [
+      [
+        "*!CrashForException_ExportThunk",
+      ], [
+        "*!crashpad::`anonymous namespace'::UnhandledExceptionHandler",
+      ], [
+        "*!crashpad::CrashpadClient::DumpAndCrash",
+      ], [
+        "*!crash_reporter::internal::CrashForExceptionInNonABICompliantCodeRange",
+      ],
+    ],
+  ),
   # Breakpoint -> Ignored
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
@@ -41,6 +55,10 @@ aoBugTranslations = [
       ], [
         "*!logging::LogMessage::~LogMessage",
         "*!base::`anonymous namespace'::OnNoMemory",
+      ], [
+        "*!ui::ClientGpuMemoryBufferManager::ClientGpuMemoryBufferManager", # std::vector throws breakpoint
+      ], [
+        "*!base::internal::SchedulerWorkerPoolImpl::Start", # CHECK() on thread start
       ],
     ],
     aasAdditionalIrrelevantStackFrameSymbols = [

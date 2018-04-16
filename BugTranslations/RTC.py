@@ -1,4 +1,4 @@
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [];
 aoBugTranslations.append(cBugTranslation(

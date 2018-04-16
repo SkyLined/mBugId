@@ -1,9 +1,8 @@
 import re;
-from cModule import cModule;
-from cStackFrame import cStackFrame;
-from dxConfig import dxConfig;
-from fsCleanCdbSymbolWithOffset import fsCleanCdbSymbolWithOffset;
-from fxCallModuleAndFunctionFromCallInstructionForReturnAddress import fxCallModuleAndFunctionFromCallInstructionForReturnAddress;
+from .cModule import cModule;
+from .cStackFrame import cStackFrame;
+from .dxConfig import dxConfig;
+from .ftoCallModuleAndFunctionFromCallInstructionForReturnAddress import ftoCallModuleAndFunctionFromCallInstructionForReturnAddress;
 
 srIgnoredWarningsAndErrors = r"^(?:%s)$" % "|".join([
   # These warnings and errors are ignored:
@@ -24,6 +23,7 @@ class cStack(object):
     oModule, uModuleOffset, #TODO naming inconsistency with iOffsetFromStartOfFunction
     oFunction, iOffsetFromStartOfFunction,
     sSourceFilePath = None, uSourceFileLineNumber = None,
+    sIsHiddenBecause = None,
   ):
     # frames must be created in order:
     assert uIndex == len(oStack.aoFrames), \
@@ -39,6 +39,7 @@ class cStack(object):
       oModule, uModuleOffset, 
       oFunction, iOffsetFromStartOfFunction,
       sSourceFilePath, uSourceFileLineNumber,
+      sIsHiddenBecause,
     );
     oStack.aoFrames.append(oStackFrame);
     return oStackFrame;
@@ -113,6 +114,8 @@ class cStack(object):
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
     uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
+    uStackPointer = oProcess.fuGetValueForRegister("$csp", "Get a stack pointer");
+    oStackVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uStackPointer);
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
@@ -146,6 +149,7 @@ class cStack(object):
       oStack = cStack();
       uFrameInstructionPointer = uInstructionPointer;
       uFrameIndex = 0;
+      oStackFrame = None;
       for sLine in asStackOutput[uStackStartIndex:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
           continue;
@@ -165,26 +169,47 @@ class cStack(object):
         ), sLine, re.I);
         assert oMatch, "Unknown stack output: %s\r\n%s" % (repr(sLine), "\r\n".join(asStackOutput));
         (sFrameIndex, sReturnAddress, sCdbSymbolOrAddress, sSourceFilePath, sSourceFileLineNumber) = oMatch.groups();
-        # We may have already parsed this before, but we had to restart because of symbol loading issues. In this
-        # case, we can continue to the next.
-        if int(sFrameIndex, 16) < uFrameIndex:
-          continue;
         uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
         (
           uAddress,
           sUnloadedModuleFileName, oModule, uModuleOffset,
           oFunction, iOffsetFromStartOfFunction
         ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
-        if oModule and not oModule.bSymbolsAvailable and uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
+        # There are bugs in cdb's stack unwinding; it can produce an incorrect frame followed by a bogus frames. The
+        # incorrect frame will have a return address that points to the stack (obviously incorrect) and the bogus
+        # frame will have a function address that is the same as this return address. The bogus frame will have the
+        # correct return address for the incorrect frame.
+        # We will try to detect the bogus frame, then copy relevant information from the incorrect frame and delete it
+        # to create a new frame that hase the combined correct information from both.
+        if (
+          uAddress # This frame's function does not point to a symbol, but an address (potentially the stack)
+          and oStack.aoFrames # This is not the first frame.
+          and oStackVirtualAllocation.fbContainsAddress(uAddress) # This frame's function definitely points to the stack
+          and oStack.aoFrames[-1].uReturnAddress == uAddress # The previous frame return address == this frame's function.
+        ):
+          # Remove the incorrect frame, and undo the update to the frame index.
+          oIncorrectFrame = oStack.aoFrames.pop();
+          uFrameIndex -= 1;
+          # Use most of the values from the incorrect frame, except the return address for the combined frame:
+          sCdbSymbolOrAddress = oIncorrectFrame.sCdbSymbolOrAddress;
+          uFrameInstructionPointer = oIncorrectFrame.uInstructionPointer;
+          # uReturnAddress = oIncorrectFrame.uReturnAddress; # this is the only thing valid in the bogus frame.
+          uAddress = oIncorrectFrame.uAddress;
+          sUnloadedModuleFileName = oIncorrectFrame.sUnloadedModuleFileName;
+          oModule = oIncorrectFrame.oModule; uModuleOffset = oIncorrectFrame.uModuleOffset;
+          oFunction = oIncorrectFrame.oFunction; iOffsetFromStartOfFunction = oIncorrectFrame.iFunctionOffset;
+          sSourceFilePath = oIncorrectFrame.sSourceFilePath; uSourceFileLineNumber = oIncorrectFrame.uSourceFileLineNumber;
+        elif oModule and not oModule.bSymbolsAvailable and uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
           # We will retry this to see if any symbol problems have been resolved:
           break;
+        bGotFrameFunctionNameFromCallTarget = False;
         if uReturnAddress:
           # See if we can get better symbol information from the call instruction.
           # First check cache.
           if uReturnAddress in dCache_toCallModuleAndFunction_by_uReturnAddress:
             toCallModuleAndFunction = dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress];
           else:
-            toCallModuleAndFunction = fxCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress);
+            toCallModuleAndFunction = ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress);
             # Cache this info.
             dCache_toCallModuleAndFunction_by_uReturnAddress[uReturnAddress] = toCallModuleAndFunction;
           if toCallModuleAndFunction and (oModule, oFunction) != toCallModuleAndFunction:
@@ -194,6 +219,16 @@ class cStack(object):
             sUnloadedModuleFileName = None;
             uModuleOffset = None;
             iOffsetFromStartOfFunction = None;
+            bGotFrameFunctionNameFromCallTarget = True;
+        # If we did not get this frame's function name from the call that created the frame, we are less certain that
+        # it's valid: let's check if this frame's instruction pointer points to exeutable memory
+        sIsHiddenBecause = None;
+        if uFrameInstructionPointer and not bGotFrameFunctionNameFromCallTarget:
+          oFrameCodeVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uFrameInstructionPointer);
+          if not oFrameCodeVirtualAllocation.bExecutable:
+            # This frame's instruction pointer does not point to executable memory; it is probably invalid.
+            sIsHiddenBecause = "Address not in executable memory";
+            uFrameInstructionPointer = None;
         # Symbols for a module with export symbol are untrustworthy unless the offset is zero. If the offset is not
         # zero, do not use the symbol, but rather the offset from the start of the module.
         if oFunction and (iOffsetFromStartOfFunction not in xrange(dxConfig["uMaxExportFunctionOffset"])):
@@ -203,29 +238,27 @@ class cStack(object):
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uFunctionAddress = oProcess.fuGetValue(
-                fsCleanCdbSymbolWithOffset(oFunction.sName),
-                "Get address of symbol"
-              );
+              uFunctionAddress = oProcess.fuGetAddressForSymbol(oFunction.sName);
               uModuleOffset = uFunctionAddress + iOffsetFromStartOfFunction - oModule.uStartAddress;
             oFunction = None;
             iOffsetFromStartOfFunction = None;
         uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
         oStackFrame = oStack.foCreateAndAddStackFrame(
           uIndex = uFrameIndex,
-          sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
+          sCdbSymbolOrAddress = sCdbSymbolOrAddress,
           uInstructionPointer = uFrameInstructionPointer,
           uReturnAddress = uReturnAddress,
-          uAddress = uAddress, 
+          uAddress = uAddress,
           sUnloadedModuleFileName = sUnloadedModuleFileName,
-          oModule = oModule, uModuleOffset = uModuleOffset, 
+          oModule = oModule, uModuleOffset = uModuleOffset,
           oFunction = oFunction, iOffsetFromStartOfFunction = iOffsetFromStartOfFunction,
           sSourceFilePath = sSourceFilePath, uSourceFileLineNumber = uSourceFileLineNumber,
+          sIsHiddenBecause = sIsHiddenBecause,
         );
+        uFrameIndex += 1;
         if uReturnAddress:
           # Last frame's return address is next frame's instruction pointer.
           uFrameInstructionPointer = uReturnAddress;
-        uFrameIndex += 1;
       else:
         # No symbol loading problems found: we are done.
         break;

@@ -1,14 +1,11 @@
 import os, re;
-from cModule import cModule;
-from cProcess_fauGetBytes import cProcess_fauGetBytes;
-from cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
-from cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
-from cProcess_foGetHeapManagerDataForAddress import cProcess_foGetHeapManagerDataForAddress;
-from cProcess_fsGet_String import cProcess_fsGetASCIIString, cProcess_fsGetUnicodeString;
-from cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
-from cProcess_fuGetValue import cProcess_fuGetValue;
-from cProcess_fuGetValueForRegister import cProcess_fuGetValueForRegister;
-from mWindowsAPI import *;
+from .cModule import cModule;
+from .cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
+from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
+from .cProcess_foGetHeapManagerDataForAddress import cProcess_foGetHeapManagerDataForAddress;
+from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
+from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
+from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -25,10 +22,7 @@ class cProcess(object):
     oProcess.bPageHeapEnabled = None;
     
     # Process Information is only determined when needed and cached.
-    oProcess.__oProcessInformation = None; 
-    
-    # oProcess.uPageSize is only determined when needed and cached
-    oProcess.__uPageSize = None;
+    oProcess.__oWindowsAPIProcess = None; 
     
     # oProcess.__uIntegrityLevel is only determined when needed and cached
     oProcess.__uIntegrityLevel = None;
@@ -41,16 +35,11 @@ class cProcess(object):
     # until the cache is invalidated.
     oProcess.__bAllModulesEnumerated = False;
   
-  def __foGetProcessInformation(oProcess):
-    if oProcess.__oProcessInformation is None:
-      oProcess.__oProcessInformation = cProcessInformation.foGetForId(oProcess.uId);
-      assert oProcess.__oProcessInformation.sBinaryPath is not None, \
-          "You cannot get process information for a 64-bit process from 32-bit Python";
-    return oProcess.__oProcessInformation;
-  
   @property
-  def sBinaryName(oProcess):
-    return oProcess.__foGetProcessInformation().sBinaryName;
+  def oWindowsAPIProcess(oProcess):
+    if oProcess.__oWindowsAPIProcess is None:
+      oProcess.__oWindowsAPIProcess = cWindowsAPIProcess(oProcess.uId);
+    return oProcess.__oWindowsAPIProcess;
   
   @property
   def sSimplifiedBinaryName(oProcess):
@@ -60,37 +49,9 @@ class cProcess(object):
     return oProcess.sBinaryName.lower();
   
   @property
-  def sBinaryBasePath(oProcess):
-    return os.path.dirname(oProcess.__foGetProcessInformation().sBinaryPath);
-  
-  @property
-  def sCommandLine(oProcess):
-    return oProcess.__foGetProcessInformation().sCommandLine;
-  
-  @property
-  def sISA(oProcess):
-    return oProcess.__foGetProcessInformation().sISA;
-  
-  @property
-  def uPointerSize(oProcess):
-    return {"x64": 8, "x86": 4}[oProcess.sISA];
-  
-  @property
-  def uPageSize(oProcess):
-    if oProcess.__uPageSize is None:
-      oProcess.__uPageSize = oProcess.fuGetValueForRegister("$pagesize", "Get page size for process");
-    return oProcess.__uPageSize;
-  
-  @property
-  def uIntegrityLevel(oProcess):
-    if oProcess.__uIntegrityLevel is None:
-      oProcess.__uIntegrityLevel = fuGetProcessIntegrityLevelForId(oProcess.uId);
-    return oProcess.__uIntegrityLevel;
-  
-  @property
   def oMainModule(oProcess):
     if oProcess.__oMainModule is None:
-      uMainModuleStartAddress = oProcess.__foGetProcessInformation().uBinaryStartAddress;
+      uMainModuleStartAddress = oProcess.oWindowsAPIProcess.uBinaryStartAddress;
       oProcess.__oMainModule = oProcess.foGetOrCreateModuleForStartAddress(uMainModuleStartAddress);
     return oProcess.__oMainModule;
   
@@ -138,8 +99,8 @@ class cProcess(object):
   def fasGetStack(oProcess, sCdbCommand):
     return cProcess_fasGetStack(oProcess, sCdbCommand);
   
-  def fuAddBreakpoint(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
-    return oProcess.oCdbWrapper.fuAddBreakpoint(
+  def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
+    return oProcess.oCdbWrapper.fuAddBreakpointForAddress(
       uAddress = uAddress,
       fCallback = fCallback,
       uProcessId = oProcess.uId,
@@ -152,20 +113,54 @@ class cProcess(object):
     oProcess.fSelectInCdb();
     return oProcess.oCdbWrapper.fasExecuteCdbCommand(sCommand, sComment, **dxArguments);
   
-  def fuGetValue(oProcess, sValue, sComment):
-    return cProcess_fuGetValue(oProcess, sValue, sComment);
+  def fuGetAddressForSymbol(oProcess, sSymbol):
+    return cProcess_fuGetAddressForSymbol(oProcess, sSymbol);
   def fuGetValueForRegister(oProcess, sRegister, sComment):
-    return cProcess_fuGetValueForRegister(oProcess, sRegister, sComment);
+    oProcess.fSelectInCdb();
+    return oProcess.oCdbWrapper.fuGetValueForRegister(sRegister, sComment);
   def fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment):
     return cProcess_fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment);
-  def fsGetSymbolForAddress(oProcess, sAddress, sComment):
-    return cCdbWrapper_fsGetSymbolForAddress(oProcess, sAddress, sComment);
-  def fsGetASCIIString(oProcess, sAddress, sComment):
-    return cProcess_fsGetASCIIString(oProcess, sAddress, sComment);
-  def fsGetUnicodeString(oProcess, sAddress, sComment):
-    return cProcess_fsGetUnicodeString(oProcess, sAddress, sComment);
-  def fauGetBytes(oProcess, uAddress, uSize, sComment):
-    return cProcess_fauGetBytes(oProcess, uAddress, uSize, sComment);
   def foGetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
     return cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType);
 
+  # Proxy properties and methods to oWindowsAPIProcess
+  @property
+  def sISA(oProcess):
+    return oProcess.oWindowsAPIProcess.sISA;
+  @property
+  def uPointerSize(oProcess):
+    return oProcess.oWindowsAPIProcess.uPointerSize;
+  @property
+  def sBinaryPath(oProcess):
+    return oProcess.oWindowsAPIProcess.sBinaryPath;
+  @property
+  def sBinaryName(oProcess):
+    return oProcess.oWindowsAPIProcess.sBinaryName;
+  @property
+  def sCommandLine(oProcess):
+    return oProcess.oWindowsAPIProcess.sCommandLine;
+  @property
+  def uIntegrityLevel(oProcess):
+    return oProcess.oWindowsAPIProcess.uIntegrityLevel;
+  def foGetVirtualAllocationForAddress(oSelf, uAddress):
+    return oSelf.oWindowsAPIProcess.foGetVirtualAllocationForAddress(uAddress);  
+  def fsReadStringForAddressAndSize(oSelf, uAddress, uSize, bUnicode = False):
+    return oSelf.oWindowsAPIProcess.fsReadStringForAddressAndSize(uAddress, uSize, bUnicode);  
+  def fsReadNullTerminatedStringForAddress(oSelf, uAddress, bUnicode = False):
+    return oSelf.oWindowsAPIProcess.fsReadNullTerminatedStringForAddress(uAddress, bUnicode);  
+  def fauReadBytesForAddressAndSize(oSelf, uAddress, uSize):
+    return oSelf.oWindowsAPIProcess.fauReadBytesForAddressAndSize(uAddress, uSize);  
+  def fuReadValueForAddressAndSize(oSelf, uAddress, uSize):
+    return oSelf.oWindowsAPIProcess.fuReadValueForAddressAndSize(uAddress, uSize);  
+  def fauReadValuesForAddressSizeAndCount(oSelf, uAddress, uSize, uCount):
+    return oSelf.oWindowsAPIProcess.fauReadValuesForAddressSizeAndCount(uAddress, uSize, uCount);  
+  def fuReadPointerForAddress(oSelf, uAddress):
+    return oSelf.oWindowsAPIProcess.fuReadPointerForAddress(uAddress);  
+  def fauReadPointersForAddressAndCount(oSelf, uAddress, uCount):
+    return oSelf.oWindowsAPIProcess.fauReadPointersForAddressAndCount(uAddress, uCount);  
+  def foReadStructureForAddress(oSelf, cStructure, uAddress):
+    return oSelf.oWindowsAPIProcess.foReadStructureForAddress(cStructure, uAddress);  
+  def fWriteBytesForAddress(oSelf, sData, uAddress):
+    return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress, bUnicode);
+  def fWriteStringForAddress(oSelf, sData, uAddress, bUnicode = False):
+    return oSelf.oWindowsAPIProcess.fWriteStringForAddress(oSelf, sData, uAddress, bUnicode);

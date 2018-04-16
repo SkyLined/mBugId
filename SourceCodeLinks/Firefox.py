@@ -1,4 +1,4 @@
-from cSourceCodeLink import cSourceCodeLink;
+from .cSourceCodeLink import cSourceCodeLink;
 
 # Available options:
 # http://searchfox.org/mozilla-central/source/<path>#<linenumber>
@@ -11,6 +11,6 @@ from cSourceCodeLink import cSourceCodeLink;
 aoSourceCodeLinks = [
   cSourceCodeLink( # base
     srPathHeader = r"c:\\builds\\moz2_slave\\m-rel-w32-00000000000000000000\\build\\src\\",
-    sURLTemplate = "https://dxr.mozilla.org/mozilla-central/search?q=path:%(path)s&redirect=true",
+    sFileOnlyURLTemplate = "https://dxr.mozilla.org/mozilla-central/search?q=path:%(path)s&redirect=true",
   ),
 ];

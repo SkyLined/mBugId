@@ -1,4 +1,4 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 def fsGetNumberDescription(uNumber, sSign = "+"):
   uArchitectureIndependentBugIdBytes = (dxConfig["uArchitectureIndependentBugIdBits"] or 0) / 8;

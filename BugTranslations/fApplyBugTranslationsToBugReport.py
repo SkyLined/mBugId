@@ -1,22 +1,23 @@
-from ASan import aoBugTranslations as aoBugTranslations_ASan;
-from chakra_dll import aoBugTranslations as aoBugTranslations_chakra_dll;
-from Chrome import aoBugTranslations as aoBugTranslations_Chrome;
-from combase_dll import aoBugTranslations as aoBugTranslations_combase_dll;
-from corpol_dll import aoBugTranslations as aoBugTranslations_corpol_dll;
-from Cpp import aoBugTranslations as aoBugTranslations_Cpp;
-from edgehtml_dll import aoBugTranslations as aoBugTranslations_edgehtml_dll;
-from edgecontent_dll import aoBugTranslations as aoBugTranslations_edgecontent_dll;
-from Firefox import aoBugTranslations as aoBugTranslations_Firefox;
-from iso import aoBugTranslations as aoBugTranslations_iso;
-from jscript9_dll import aoBugTranslations as aoBugTranslations_jscript9_dll;
-from kernelbase_dll import aoBugTranslations as aoBugTranslations_kernelbase_dll;
-from mshtml_dll import aoBugTranslations as aoBugTranslations_mshtml_dll;
-from ntdll_dll import aoBugTranslations as aoBugTranslations_ntdll_dll;
-from RTC import aoBugTranslations as aoBugTranslations_RTC;
-from SlashGS import aoBugTranslations as aoBugTranslations_SlashGS;
-from V8 import aoBugTranslations as aoBugTranslations_V8;
-from verifier_dll import aoBugTranslations as aoBugTranslations_verifier_dll;
-from wil import aoBugTranslations as aoBugTranslations_wil;
+from .ASan import aoBugTranslations as aoBugTranslations_ASan;
+from .chakra_dll import aoBugTranslations as aoBugTranslations_chakra_dll;
+from .Chrome import aoBugTranslations as aoBugTranslations_Chrome;
+from .combase_dll import aoBugTranslations as aoBugTranslations_combase_dll;
+from .corpol_dll import aoBugTranslations as aoBugTranslations_corpol_dll;
+from .Cpp import aoBugTranslations as aoBugTranslations_Cpp;
+from .edgehtml_dll import aoBugTranslations as aoBugTranslations_edgehtml_dll;
+from .edgecontent_dll import aoBugTranslations as aoBugTranslations_edgecontent_dll;
+from .Firefox import aoBugTranslations as aoBugTranslations_Firefox;
+from .iso import aoBugTranslations as aoBugTranslations_iso;
+from .jscript9_dll import aoBugTranslations as aoBugTranslations_jscript9_dll;
+from .kernelbase_dll import aoBugTranslations as aoBugTranslations_kernelbase_dll;
+from .mshtml_dll import aoBugTranslations as aoBugTranslations_mshtml_dll;
+from .ntdll_dll import aoBugTranslations as aoBugTranslations_ntdll_dll;
+from .RTC import aoBugTranslations as aoBugTranslations_RTC;
+from .SafeInt import aoBugTranslations as aoBugTranslations_SafeInt;
+from .SlashGS import aoBugTranslations as aoBugTranslations_SlashGS;
+from .V8 import aoBugTranslations as aoBugTranslations_V8;
+from .verifier_dll import aoBugTranslations as aoBugTranslations_verifier_dll;
+from .wil import aoBugTranslations as aoBugTranslations_wil;
 
 aoBugTranslations = [];
 for aoBugTranslations_X in [
@@ -35,6 +36,7 @@ for aoBugTranslations_X in [
   aoBugTranslations_mshtml_dll,
   aoBugTranslations_ntdll_dll,
   aoBugTranslations_RTC,
+  aoBugTranslations_SafeInt,
   aoBugTranslations_SlashGS,
   aoBugTranslations_V8,
   aoBugTranslations_verifier_dll,

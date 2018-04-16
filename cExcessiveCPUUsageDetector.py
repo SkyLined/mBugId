@@ -1,6 +1,6 @@
 import re, threading;
-from cBugReport import cBugReport;
-from dxConfig import dxConfig;
+from .cBugReport import cBugReport;
+from .dxConfig import dxConfig;
 
 bDebugOutput = False;
 bDebugOutputCalculation = False;
@@ -237,7 +237,7 @@ class cExcessiveCPUUsageDetector(object):
     oExcessiveCPUUsageDetector.uLastInstructionPointer = uInstructionPointer;
     oExcessiveCPUUsageDetector.uLastStackPointer = uStackPointer;
     oExcessiveCPUUsageDetector.uNextBreakpointAddress = uBreakpointAddress;
-    oExcessiveCPUUsageDetector.uWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
+    oExcessiveCPUUsageDetector.uWormBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
       uAddress = uBreakpointAddress,
       fCallback = lambda uBreakpointId: oExcessiveCPUUsageDetector.fMoveWormBreakpointUpTheStack(),
       uProcessId = oExcessiveCPUUsageDetector.uProcessId,
@@ -284,7 +284,7 @@ class cExcessiveCPUUsageDetector(object):
           uInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer, uReturnAddress, uStackPointer,
         );
         # Try to move the breakpoint to the return addess:
-        uNewWormBreakpointId = oCdbWrapper.fuAddBreakpoint(
+        uNewWormBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
           uAddress = uReturnAddress,
           fCallback = lambda uBreakpointId: oExcessiveCPUUsageDetector.fMoveWormBreakpointUpTheStack(),
           uProcessId = oExcessiveCPUUsageDetector.uProcessId,
@@ -346,7 +346,7 @@ class cExcessiveCPUUsageDetector(object):
         "Creating bug breakpoint at IP=%p, SP=%p...",
         oExcessiveCPUUsageDetector.uLastInstructionPointer, oExcessiveCPUUsageDetector.uLastStackPointer
       );
-      oExcessiveCPUUsageDetector.uBugBreakpointId = oCdbWrapper.fuAddBreakpoint(
+      oExcessiveCPUUsageDetector.uBugBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
         uAddress = oExcessiveCPUUsageDetector.uLastInstructionPointer,
         fCallback = lambda uBreakpointId: oExcessiveCPUUsageDetector.fReportCPUUsageBug(),
         uProcessId = oExcessiveCPUUsageDetector.uProcessId,
@@ -393,7 +393,7 @@ class cExcessiveCPUUsageDetector(object):
       oBugReport = cBugReport.foCreate(oWormProcess, sBugTypeId, sBugDescription, sSecurityImpact);
       oBugReport.bRegistersRelevant = False;
       oBugReport.fReport(oCdbWrapper);
-      oCdbWrapper.bFatalBugDetected = True;
+      oCdbWrapper.fStop();
     finally:
       oExcessiveCPUUsageDetector.oLock.release();
   

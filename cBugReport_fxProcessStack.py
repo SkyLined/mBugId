@@ -1,6 +1,6 @@
 import hashlib;
-from dxConfig import dxConfig;
-from SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
+from .dxConfig import dxConfig;
+from .SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
@@ -8,20 +8,18 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     asHTML = [];
     asNotesHTML = [];
   aoStackFramesPartOfId = [];
-  # If no frames have been marked as part of the id, mark as many as the default settings request:
-  bCanBeHidden = True;
-  bIdFramesMarked = False;
+  # For recursive function loops, the frames in the loop have already been marked as part of the id, and we need to
+  # check that none of them are hidden, as that makes no sense. For other exceptions, we still need to mark a few as
+  # part of the id, so will need to find out which it is:
+  bIdFramesHaveAlreadyBeenMarked = False;
   for oStackFrame in oStack.aoFrames:
     if oStackFrame.sIsHiddenBecause is not None:
-      assert bCanBeHidden, \
-        "Cannot have a hidden frame after a non-hidden frame";
       assert not oStackFrame.bIsPartOfId, \
-        "Cannot have a hidden frame that is part of the id";
-    else:
-      bCanBeHidden = False;
-    if oStackFrame.bIsPartOfId:
-      bIdFramesMarked = True;
-  if not bIdFramesMarked:
+          "Cannot have a hidden frame that is part of the id";
+    bIdFramesHaveAlreadyBeenMarked |= oStackFrame.bIsPartOfId;
+  # If id frames have not been marked, mark as many as the default settings request. Take into account that hidden
+  # frames should not be part of the id.
+  if not bIdFramesHaveAlreadyBeenMarked:
     # Mark up to `uStackHashFramesCount` frames as part of the id
     uFramesToBeMarkedCount = dxConfig["uStackHashFramesCount"];
     for oStackFrame in oStack.aoFrames:
@@ -37,14 +35,17 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       asFrameNotesHTML = [];
       sOptionalSourceHTML = None;
       if oStackFrame.sSourceFilePath:
-        sSourceFilePathAndLineNumber = "%s @ %d" % (oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        sSourceCodeLinkURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        if sSourceCodeLinkURL:
+        sSourceReference = (
+          oStackFrame.sSourceFilePath
+          + (oStackFrame.uSourceFileLineNumber is not None and (" @ %d" % oStackFrame.uSourceFileLineNumber) or "")
+        );
+        sSourceReferenceURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
+        if sSourceReferenceURL:
           sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % \
-              (oCdbWrapper.fsHTMLEncode(sSourceCodeLinkURL), oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber));
+              (oCdbWrapper.fsHTMLEncode(sSourceReferenceURL), oCdbWrapper.fsHTMLEncode(sSourceReference));
         else:
           sOptionalSourceHTML = "[%s]" % \
-              oCdbWrapper.fsHTMLEncode(sSourceFilePathAndLineNumber);
+              oCdbWrapper.fsHTMLEncode(sSourceReference);
     if oCdbWrapper.bGenerateReportHTML:
       if oStackFrame.bIsInline:
         # This frame is hidden (because it is irrelevant to the crash)
@@ -82,7 +83,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
   oBugReport.sStackId = ".".join(asStackIds);
   # Get the bug location.
-  oBugReport.sBugLocation = "(unknown)";
+  oBugReport.sBugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
     oBugReport.sBugLocation = oTopIdStackFrame.sSimplifiedAddress;
@@ -90,7 +91,10 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       # Exception did not happen in the process' binary: add process' binary name to the location:
       oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
     if oTopIdStackFrame.sSourceFilePath:
-      oBugReport.sBugSourceLocation = "%s @ %d" % (oTopIdStackFrame.sSourceFilePath, oTopIdStackFrame.uSourceFileLineNumber);
+      oBugReport.sBugSourceLocation = (
+        oTopIdStackFrame.sSourceFilePath
+        + (oTopIdStackFrame.uSourceFileLineNumber is not None and " @ %d" % oTopIdStackFrame.uSourceFileLineNumber or "")
+      );
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:
       asNotesHTML += ["There were more stack frames than shown above, but these were not considered relevant."];

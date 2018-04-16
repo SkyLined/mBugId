@@ -20,24 +20,24 @@ import os, sys, threading;
 # Augment the search path: look in main folder, parent folder or "modules" child folder, in that order.
 sMainFolderPath = os.path.dirname(os.path.abspath(__file__));
 sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
-sModuleFolderPath = os.path.join(sMainFolderPath, "modules");
-asAbsoluteLoweredSysPaths = [os.path.abspath(sPath).lower() for sPath in sys.path];
-sys.path += [sPath for sPath in [
-  sMainFolderPath,
-  sParentFolderPath,
-  sModuleFolderPath,
-] if sPath.lower() not in asAbsoluteLoweredSysPaths];
+sModulesFolderPath = os.path.join(sMainFolderPath, "modules");
+asOriginalSysPath = sys.path[:];
+sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
 
+# Load external dependecies to make sure they are available and shown an error
+# if any one fails to load. This error explains where the missing component
+# can be downloaded to fix the error.
 for (sModuleName, sURL) in {
   "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
   "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
+  "mProductDetails": "https://github.com/SkyLined/mProductDetails/",
 }.items():
   try:
     __import__(sModuleName, globals(), locals(), [], -1);
   except ImportError as oError:
     if oError.message == "No module named %s" % sModuleName:
       print "*" * 80;
-      print "cBugId depends on %s which you can download at:" % sModuleName;
+      print "%s depends on %s which you can download at:" % (os.path.filename(__file__), sModuleName);
       print "    %s" % sDownloadURL;
       print "After downloading, please save the code in this folder:";
       print "    %s" % os.path.join(sModuleFolderPath, sModuleName);
@@ -47,15 +47,16 @@ for (sModuleName, sURL) in {
       print "*" * 80;
     raise;
 
-from cCdbWrapper import cCdbWrapper;
-from oVersionInformation import oVersionInformation;
-from mWindowsAPI import oSystemInfo;
-from dxConfig import dxConfig;
+# Restore the search path
+sys.path = asOriginalSysPath;
+
+from .cCdbWrapper import cCdbWrapper;
+from .dxConfig import dxConfig;
+from mWindowsAPI import oSystemInfo, cProcess as cWindowsAPIProcess;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
   # functions and only exposes those things that should be exposed:
-  oVersionInformation = oVersionInformation;
   sOSISA = oSystemInfo.sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
   
@@ -70,14 +71,17 @@ class cBugId(object):
     asSymbolCachePaths = None, 
     asSymbolServerURLs = None,
     dsURLTemplate_by_srSourceFilePath = None,
-    rImportantStdOutLines = None,
-    rImportantStdErrLines = None,
     bGenerateReportHTML = False,
     uProcessMaxMemoryUse = None,
     uTotalMaxMemoryUse = None,
     uMaximumNumberOfBugs = 1,
   ):
-    oBugId.__oFinishedEvent = threading.Event();
+    # I was using an event to implement `fWait`, but I found that under unknown conditions, `Event.wait` may not
+    # return if the event is set... in this situation BugId will be done, but the caller of `fWait` will never know.
+    # So, I've replaced this code with a `Lock` to see if that resolves the issue.
+    # oBugId.__oFinishedEvent = threading.Event();
+    oBugId.__oFinishedLock = threading.Lock();
+    oBugId.__oFinishedLock.acquire();
     oBugId.__bStarted = False;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
@@ -94,19 +98,17 @@ class cBugId(object):
       asSymbolCachePaths = asSymbolCachePaths,
       asSymbolServerURLs = asSymbolServerURLs,
       dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath,
-      rImportantStdOutLines = rImportantStdOutLines,
-      rImportantStdErrLines = rImportantStdErrLines,
       bGenerateReportHTML = bGenerateReportHTML,
       uProcessMaxMemoryUse = uProcessMaxMemoryUse,
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
-    oBugId.__oCdbWrapper.fAddEventCallback("Finished", lambda: oBugId.__oFinishedEvent.set());
     
-  @property
-  def aoInternalExceptions(oBugId):
-    return oBugId.__oCdbWrapper.aoInternalExceptions[:];
-  
+    def fSetFinishedEvent():
+      # oBugId.__oFinishedEvent.set();
+      oBugId.__oFinishedLock.release();
+    oBugId.__oCdbWrapper.fAddEventCallback("Finished", fSetFinishedEvent);
+    
   def fStart(oBugId):
     oBugId.__bStarted = True;
     oBugId.__oCdbWrapper.fStart();
@@ -119,12 +121,11 @@ class cBugId(object):
   def fWait(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fWait()";
-    while 1:
-      try:
-        oBugId.__oFinishedEvent.wait();
-      except KeyboardInterrupt:
-        continue;
-      break;
+    # oBugId.__oFinishedEvent.wait();
+    assert oBugId.__oFinishedLock, \
+        "You cannot call fWait twice";
+    oBugId.__oFinishedLock.acquire();
+    oBugId.__oFinishedLock = None; # Make sure no further fWait calls can be made.
   
   def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
     oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
@@ -152,25 +153,39 @@ class cBugId(object):
   
   def fAddEventCallback(oBugId, sEventName, fCallback):
     # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
-    # not want to expose interal objects.
+    # not want to expose interal objects. A lot of this should actually be done in the relevant `fbFireEvent` calls, 
+    # but this was not possible before.
     if sEventName in [
-      "Attached to process",
-      "Failed to apply application memory limits",
-      "Failed to apply process memory limits",
-      "Page heap not enabled",
-      "Process terminated",
-      "Started process",
+      "Application debug output", # (cProcess oProcess, str[] asOutput)
+      "Failed to apply application memory limits", # (cProcess oProcess)
+      "Failed to apply process memory limits", # (cProcess oProcess)
+      "Page heap not enabled", # (cProcess oProcess, bool bPreventable)
+      "Process attached", # (cProcess oProcess)
+      "Process terminated", #(cProcess oProcess)
     ]:
       # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
-      # do not want to expose. We'll take the most useful information about the process and pass that as arguments
-      # to the callback instead.
+      # do not want to expose. We'll retreive the associated mWindowsAPI.cProcess object and pass that as the second
+      # argument to the callback instead. We'll also insert a boolean that indicates if the process is a main process.
       fOriginalCallback = fCallback;
       fCallback = lambda oBugId, oProcess, *axArguments: fOriginalCallback(
         oBugId, 
-        oProcess.uId,
-        oProcess.sBinaryName,
-        oProcess.sCommandLine,
-        oProcess in oBugId.__oCdbWrapper.aoMainProcesses, # bIsMainProcess
+        oProcess.oWindowsAPIProcess,
+        oProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
+        *axArguments
+      );
+    if sEventName in [
+      "Application stderr output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
+      "Application stdout output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
+      "Process started", # (mWindowsAPI.cConsoleProcess oConsoleProcess)
+    ]:
+      # These get a cConsoleProcess instance as their second argument from cCdbWrapper, which we'll use to find out
+      # if the process is a main process and insert that as a boolean as the third argument:
+      # to the callback instead.
+      fOriginalCallback = fCallback;
+      fCallback = lambda oBugId, oConsoleProcess, *axArguments: fOriginalCallback(
+        oBugId, 
+        oConsoleProcess,
+        oConsoleProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
         *axArguments
       );
     return oBugId.__oCdbWrapper.fAddEventCallback(

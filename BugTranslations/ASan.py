@@ -1,28 +1,7 @@
 import re;
-from cBugTranslation import cBugTranslation;
+from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # Breakpoint --> OOM
-  cBugTranslation(
-    sOriginalBugTypeId = "Breakpoint",
-    asOriginalTopStackFrameSymbols = [
-      "syzyasan_rtl.dll!base::debug::BreakDebugger",
-      "syzyasan_rtl.dll!agent::asan::StackCaptureCache::AllocateCachePage",
-    ],
-    sTranslatedBugTypeId = "OOM",
-    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
-    sTranslatedSecurityImpact = None,
-  ),
-  # Breakpoint --> ASan
-  cBugTranslation(
-    sOriginalBugTypeId = "Breakpoint",
-    asOriginalTopStackFrameSymbols = [
-      "*!__sanitizer::internal__exit",
-    ],
-    sTranslatedBugTypeId = "ASan",
-    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it detected an issue.",
-    sTranslatedSecurityImpact = "The security implications of this issue are unknown",
-  ),
   # IllegalInstruction --> ASan
   cBugTranslation(
     sOriginalBugTypeId = "IllegalInstruction",
@@ -30,117 +9,25 @@ aoBugTranslations = [
       "*!__sanitizer::Trap",
     ],
     sTranslatedBugTypeId = "ASan",
-    sTranslatedBugDescription = "ASan triggered an illegal instruction to indicate it detected an issue.",
+    # This is a backup in case cAsanErrorDetector does not detect and handle the ASan debug output we normally expect.
+    sTranslatedBugDescription = "ASan triggered an illegal instruction to indicate it detected an issue which cBugId does not recognize.",
     sTranslatedSecurityImpact = "The security implications of this issue are unknown",
   ),
-  # ASan -> hide irrelevant frames
+  # Asan (hide irrelevant frames only)
   cBugTranslation(
-    sOriginalBugTypeId = re.compile("ASan(:.+)?"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        re.compile("^.*!__asan_report_(load|store)\d+$"),
+        re.compile(r".*!agent::asan::\w+.*"),
       ], [
-        "*!__asan::AsanCheckFailed",
+        re.compile(r".*!asan_\w+.*"),
       ], [
-        "*!__asan::ScopedInErrorReport::~ScopedInErrorReport",
+        re.compile(r".*!__asan_\w+.*"),
       ], [
-        "*!__asan::ReportGenericError",
+        re.compile(r".*!__asan::\w+.*"),
       ], [
-        "*!__sanitizer::BlockingMutex::Lock",
+        re.compile(r".*!__sanitizer::\w+.*"),
       ], [
-        "*!__sanitizer::CheckFailed",
-      ], [
-        "*!__sanitizer::Die",
-      ], [
-        "*!__sanitizer::GenericScopedLock<...>::{ctor}",
-      ], [
-        "*!__sanitizer::internal__exit",
-      ], [
-        "*!__sanitizer::StackTrace::Print",
-      ], [
-        "*!__sanitizer::Symbolizer::SymbolizePC",
-      ],
-    ],
-  ),
-  # ASan --> OOM
-  cBugTranslation(
-    sOriginalBugTypeId = "ASan",
-    aasOriginalTopStackFrameSymbols = [
-      [
-        "*!__sanitizer::ReportAllocatorCannotReturnNull",
-      ], [
-        "*!__sanitizer::ReturnNullOrDieOnFailure::OnOOM",
-      ], [
-        "*!__sanitizer::ReportMmapFailureAndDie",
-      ], [
-        "*!__sanitizer::Abort",
-        "*!__asan::ReserveShadowMemoryRange",
-      ],
-    ],
-    sTranslatedBugTypeId = "OOM",
-    sTranslatedBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
-    sTranslatedSecurityImpact = None,
-  ),
-  # OOM (hide irrelevant frames only)
-  cBugTranslation(
-    sOriginalBugTypeId = "OOM",
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!__asan::Allocator::Allocate",
-      ], [
-        "*!__asan::asan_malloc",
-      ], [
-        "*!__sanitizer::CombinedAllocator<...>::Allocate",
-      ], [
-        "*!__sanitizer::DumpProcessMap",
-      ], [
-        "*!__sanitizer::internal_strdup",
-      ], [
-        "*!__sanitizer::InternalAlloc",
-      ], [
-        "*!__sanitizer::LargeMmapAllocator<...>::Allocate",
-      ], [
-        "*!__sanitizer::LargeMmapAllocator<...>::ReturnNullOrDieOnOOM",
-      ], [
-        "*!__sanitizer::ListOfModules::init",
-      ], [
-        "*!__sanitizer::LoadedModule::set",
-      ], [
-        "*!__sanitizer::MmapAlignedOrDie",
-      ], [
-        "*!__sanitizer::MmapOrDie",
-      ], [
-        "*!__sanitizer::MmapOrDieOnFatalError",
-      ], [
-        "*!__sanitizer::RawInternalAlloc",
-      ], [
-        "*!__sanitizer::ReportMmapFailureAndDie",
-      ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::AllocateBatch",
-      ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::AllocateRegion",
-      ], [
-        "*!__sanitizer::SizeClassAllocator32<...>::PopulateFreeList",
-      ], [
-        "*!__sanitizer::SizeClassAllocator32LocalCache<...>::Allocate",
-      ], [
-        "*!__sanitizer::SizeClassAllocator32LocalCache<...>::Refill",
-      ], [
-        "*!agent::asan::heap_managers::BlockHeapManager::Allocate",
-      ], [
-        "*!agent::asan::heap_managers::BlockHeapManager::Free",
-      ], [
-        "*!agent::asan::StackCaptureCache::GetStackCapture",
-      ], [
-        "*!agent::asan::StackCaptureCache::SaveStackTrace",
-      ], [
-        "*!agent::asan::WindowsHeapAdapter::HeapAlloc",
-      ], [
-        "*!agent::asan::WindowsHeapAdapter::HeapReAlloc",
-      ], [
-        "*!asan_HeapAlloc",
-      ], [
-        "*!asan_HeapReAlloc",
+        ".*!uprv_realloc_60",
       ],
     ],
   ),

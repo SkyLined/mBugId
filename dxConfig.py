@@ -1,4 +1,4 @@
-from dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
+from .dsDebuggingToolsPath_sISA import dsDebuggingToolsPath_sISA;
 
 uKiloByte = 10 ** 3;
 uMegaByte = 10 ** 6;
@@ -113,7 +113,7 @@ dxConfig = {
                                         # report. Value in percent of the check interval, e.g. a value of 75 for a
                                         # check interval of 10s means a bug will be reported if the application uses
                                         # the CPU more than 7.5 seconds during a 10s interval.
-  "nExcessiveCPUUsageWormRunTime": 1,   # How many seconds to allow a function to run to find the topmost function
+  "nExcessiveCPUUsageWormRunTime": 2.0, # How many seconds to allow a function to run to find the topmost function
                                         # involved in the CPU usage? Lower values yield results quicker, but may be
                                         # inaccurate. Higher values increase the time in which the code can run and
                                         # return to the topmost function. If you provide too large a value the CPU
@@ -123,17 +123,37 @@ dxConfig = {
                                         # the timeouts to fire closer to the intended time, but slows down debugging.
                                         # Making the value larger can cause timeouts to fire a lot later than requested.
   ### Exception handling
+  "bReportBugsForOOMExceptions": True,  # Report a bug the moment an exception is thrown that indicates the application
+                                        # was not able to allocate memory. Enabling this allows you to detect OOM
+                                        # crashes when the application handles this exception itself (and most likely
+                                        # terminates itself in response), but it may result in false positives if the
+                                        # application would have handled the OOM exception and continue to function
+                                        # normally. The best setting therefore depends on how the application handles
+                                        # OOM exceptions, so you may have to experiment with this.
   "bIgnoreCPPExceptions": False,        # Can be used to ignore C++ exceptions completely in applications that use them
                                         # a lot. This can speed up debugging quite a bit, but you risk not detecting
                                         # unhandled C++ exceptions. These will cause the application to terminate if
                                         # this setting is enabled, so you may want to look out for and investigate
-                                        # unexpected application termination.
+                                        # unexpected application termination. An example of such an application is
+                                        # Microsoft Internet Explorer, which triggers C++ exceptions all the time.
   "bIgnoreWinRTExceptions": False,      # Can be used to ignore Windows Runtime exceptions completely in applications
                                         # that use them a lot. This can speed up debugging quite a bit, but you risk
                                         # not detecting unhandled WinRT exceptions. These will cause the application to
                                         # terminate if this setting is enabled, so you may want to look out for and
-                                        # investigate unexpected application termination.
-  "bIgnoreFirstChanceNULLPointerAccessViolations": False,
+                                        # investigate unexpected application termination. An example of such an
+                                        # application is Microsoft Edge, which triggers WinRT exceptions all the time.
+  "bIgnoreFirstChanceAccessViolations": False, # Can be used to ignore all access violations that the application can
+                                        # handle correctly. You may want to enable this if the application deliberately
+                                        # causes access violations during normal operation: it will stop BugId from
+                                        # reporting that as a bug. An example of such an application is Oracle Java,
+                                        # which triggers a NULL pointer Access Violation during startup.
+  "bIgnoreAccessViolations": False,     # Can be used to ignore all access violations, even those not handled by the
+                                        # application. This prevents BugId from detecting the majority of bugs it was
+                                        # designed to detect, so do not use this unless absolutely needed! This can be
+                                        # useful for applications compiled with ASan, as ASan can cause a large number
+                                        # of correctly handled Access Violations that would slow down BugId, and ASan
+                                        # detects and reports the same types of bugs BugId would normally detect, so
+                                        # disabling AV detection should not prevent you from finding issues.
   ### HTML Report debug output settings
   "bLogInReport": False,                # Log relevant events in the HTML report
   "bShowAllCdbCommandsInReport": False, # Set to True to see all commands that are executed in cdb by BugId. Set to
@@ -165,5 +185,5 @@ dxConfig = {
                                         # found to be a bug. If the memory limits applied to the application and/or
                                         # its processes do not prevent a system-wide low-memory situation, this may
                                         # allow BugId to continue operating as expected.
-  "auColleteralPoisonValues": [],             # Values to be used in fake "read" operations for colleteral bug reports.
+  "auCollateralPoisonValues": [],       # Values to be used in fake "read" operations for colleteral bug reports.
 };

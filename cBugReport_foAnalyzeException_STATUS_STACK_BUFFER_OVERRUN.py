@@ -1,4 +1,4 @@
-from dxConfig import dxConfig;
+from .dxConfig import dxConfig;
 
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
@@ -59,6 +59,6 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
     uSize = dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize;
     if uSize > dxConfig["uMaxMemoryDumpSize"]:
       uSize = dxConfig["uMaxMemoryDumpSize"];
-    oBugReport.fAddMemoryDump( uStackPointer, uStackPointer + uSize, "Stack");
+    oBugReport.fAddMemoryDump(uStackPointer, uStackPointer + uSize, "Stack");
     oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oProcess.uPointerSize));
   return oBugReport;

@@ -1,6 +1,6 @@
-from cBugIdTests import aoSourceCodeLinks as aoSourceCodeLinks_cBugIdTests;
-from Chrome import aoSourceCodeLinks as aoSourceCodeLinks_Chrome;
-from Firefox import aoSourceCodeLinks as aoSourceCodeLinks_Firefox;
+from .cBugIdTests import aoSourceCodeLinks as aoSourceCodeLinks_cBugIdTests;
+from .Chrome import aoSourceCodeLinks as aoSourceCodeLinks_Chrome;
+from .Firefox import aoSourceCodeLinks as aoSourceCodeLinks_Firefox;
 
 aoSourceCodeLinks = (
   aoSourceCodeLinks_cBugIdTests

@@ -1,5 +1,5 @@
 import os, re;
-from cFunction import cFunction;
+from .cFunction import cFunction;
 
 class cModule(object):
   def __init__(oModule, oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):
@@ -15,14 +15,14 @@ class cModule(object):
     oModule.__sBinaryName = None;
     oModule.__sFileVersion = None;
     oModule.__sTimestamp = None;
-    oModule.__doFunction_by_sSymbol = {};
+    oModule.__doFunction_by_sName = {};
     oModule.__atsModuleInformationNameAndValuePairs = None;
     oModule.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
-  def foGetOrCreateFunctionForSymbol(oModule, sSymbol):
-    if sSymbol not in oModule.__doFunction_by_sSymbol:
-      oModule.__doFunction_by_sSymbol[sSymbol] = cFunction(oModule, sSymbol);
-    return oModule.__doFunction_by_sSymbol[sSymbol];
+  def foGetOrCreateFunctionForName(oModule, sName):
+    if sName not in oModule.__doFunction_by_sName:
+      oModule.__doFunction_by_sName[sName] = cFunction(oModule, sName);
+    return oModule.__doFunction_by_sName[sName];
   
   @property
   def bSymbolsAvailable(oModule):
@@ -263,8 +263,10 @@ class cModule(object):
       oModule.__atsModuleInformationNameAndValuePairs.append((sName, sValue));
     if oModule.__sBinaryPath is None and "Image path" in dsValue_by_sName:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
-      if oModule.oProcess.sBinaryBasePath:
-        sBinaryPath = os.path.join(oModule.oProcess.sBinaryBasePath, dsValue_by_sName["Image path"]);
+      sBinaryPath = oModule.oProcess.oWindowsAPIProcess.sBinaryPath;
+      sBinaryBasePath = sBinaryPath and os.path.dirname(oModule.oProcess.oWindowsAPIProcess.sBinaryPath);
+      if sBinaryBasePath:
+        sBinaryPath = os.path.join(sBinaryBasePath, dsValue_by_sName["Image path"]);
       else:
         sBinaryPath = os.path.abspath(dsValue_by_sName["Image path"]);
       # The above is kinda hacky, so check that the file exists before assuming the value is correct:

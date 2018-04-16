@@ -1,7 +1,7 @@
-def cProcess_fuGetValueForRegister(oProcess, sRegister, sComment):
+def cCdbWrapper_fuGetValueForRegister(oCdbWrapper, sRegister, sComment):
   # This is a register or pseudo-register: it's much faster to get these using the "r" command than printing them
   # as is done for other values:
-  asCommandOutput = oProcess.fasExecuteCdbCommand(
+  asCommandOutput = oCdbWrapper.fasExecuteCdbCommand(
     sCommand = "r @%s;" % sRegister,
     sComment = sComment,
   );

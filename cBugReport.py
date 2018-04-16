@@ -1,32 +1,35 @@
 import re;
-from BugTranslations import fApplyBugTranslationsToBugReport;
-from cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
-from cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
-from cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION;
-from cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION;
-from cBugReport_foAnalyzeException_STATUS_NO_MEMORY import cBugReport_foAnalyzeException_STATUS_NO_MEMORY;
-from cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN;
-from cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
-from cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
-from cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION;
-from cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
-from cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
-from cBugReport_fxProcessStack import cBugReport_fxProcessStack;
-from cException import cException;
-from cStack import cStack;
-from dxConfig import dxConfig;
+from .BugTranslations import fApplyBugTranslationsToBugReport;
+from .cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
+from .cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
+from .cBugReport_foAnalyzeException_STATUS_BREAKPOINT import cBugReport_foAnalyzeException_STATUS_BREAKPOINT;
+from .cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION;
+from .cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION import cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION;
+from .cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN;
+from .cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
+from .cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
+from .cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION;
+from .cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
+from .cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
+from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
+from .cException import cException;
+from .cStack import cStack;
+from .dxConfig import dxConfig;
+from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
+import mProductDetails;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .sReportHTMLTemplate import sReportHTMLTemplate;
 from mFileSystem import mFileSystem;
-from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from oVersionInformation import oVersionInformation;
-from sReportHTMLTemplate import sReportHTMLTemplate;
 from mWindowsAPI.mDefines import *;
+
+import cBugId;
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
   STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
+  STATUS_BREAKPOINT: cBugReport_foAnalyzeException_STATUS_BREAKPOINT,
   STATUS_FAIL_FAST_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAIL_FAST_EXCEPTION,
   STATUS_FAILFAST_OOM_EXCEPTION: cBugReport_foAnalyzeException_STATUS_FAILFAST_OOM_EXCEPTION,
-  STATUS_NO_MEMORY: cBugReport_foAnalyzeException_STATUS_NO_MEMORY,
   STATUS_STACK_BUFFER_OVERRUN: cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN,
   STATUS_STACK_OVERFLOW: cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW,
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
@@ -86,13 +89,19 @@ class cBugReport(object):
       uStackFramesCount = uStackFramesCount,
     );
     # Apply the first round of translations
+    sOriginal = oBugReport.sBugTypeId;
     fApplyBugTranslationsToBugReport(oBugReport);
+    if oBugReport.sBugTypeId is None:
+      return None;
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
       oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oException);
-      if oBugReport:
-        # Apply another round of translations
-        fApplyBugTranslationsToBugReport(oBugReport);
+      if oBugReport is None:
+        return None;
+      # Apply another round of translations
+      fApplyBugTranslationsToBugReport(oBugReport);
+      if oBugReport.sBugTypeId is None:
+        return None;
     return oBugReport;
   
   @classmethod
@@ -107,9 +116,15 @@ class cBugReport(object):
       uStackFramesCount = uStackFramesCount,
     );
     fApplyBugTranslationsToBugReport(oBugReport);
+    if oBugReport.sBugTypeId is None:
+      return None;
     return oBugReport;
   
   def fReport(oBugReport, oCdbWrapper):
+    oProductDetails = (
+      mProductDetails.foGetProductDetailsForMainModule()
+      or mProductDetails.foGetProductDetailsForModule(cBugId)
+    );
     # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
     # outside.
     oProcess = oBugReport.__oProcess;
@@ -173,7 +188,7 @@ class cBugReport(object):
           sComment = "Get register information",
           bOutputIsInformative = True,
         );
-        sRegistersHTML = "<br/>".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
+        sRegistersHTML = "<br/>\n".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
           "sCollapsed": "Collapsed",
@@ -193,31 +208,32 @@ class cBugReport(object):
       
       # Create and add disassembly blocks if needed:
       for oFrame in aoStackFramesPartOfId:
-        if oFrame.uIndex == 0:
-          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
-            oCdbWrapper,
-            oProcess,
-            uAddress = oFrame.uInstructionPointer,
-            sDescriptionOfInstructionAtAddress = "current instruction"
-          );
-        else:
-          sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
-            oCdbWrapper, 
-            oProcess,
-            uAddress = oFrame.uInstructionPointer,
-            sDescriptionOfInstructionBeforeAddress = "call",
-            sDescriptionOfInstructionAtAddress = "return address"
-          );
-        if sFrameDisassemblyHTML:
-          asBlocksHTML.append(sBlockHTMLTemplate % {
-            "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
-            "sCollapsed": "Collapsed",
-            "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
-          });
+        if oFrame.uInstructionPointer is not None:
+          if oFrame.uIndex == 0:
+            sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+              oCdbWrapper,
+              oProcess,
+              uAddress = oFrame.uInstructionPointer,
+              sDescriptionOfInstructionAtAddress = "current instruction"
+            );
+          else:
+            sFrameDisassemblyHTML = oBugReport.fsGetDisassemblyHTML(
+              oCdbWrapper, 
+              oProcess,
+              uAddress = oFrame.uInstructionPointer,
+              sDescriptionOfInstructionBeforeAddress = "call",
+              sDescriptionOfInstructionAtAddress = "return address"
+            );
+          if sFrameDisassemblyHTML:
+            asBlocksHTML.append(sBlockHTMLTemplate % {
+              "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oFrame.sAddress),
+              "sCollapsed": "Collapsed",
+              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
+            });
       
       # Add relevant binaries information to cBugReport and HTML report.
-      sBinaryInformationHTML = "<br/><br/>".join(asBinaryInformationHTML);
-      sBinaryVersionHTML = "<br/>".join(asBinaryVersionHTML) or "not available";
+      sBinaryInformationHTML = "<br/>\n<br/>\n".join(asBinaryInformationHTML);
+      sBinaryVersionHTML = "<br/>\n".join(asBinaryVersionHTML) or "not available";
       if sBinaryInformationHTML:
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Binary information",
@@ -241,6 +257,13 @@ class cBugReport(object):
           sIntegrityLevel += "; this process appears to be sandboxed.";
         sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
             (oProcess.uIntegrityLevel, sIntegrityLevel);
+      if oCdbWrapper.oJobObject is None or oBugReport.sBugTypeId != "OOM":
+        sOptionalMemoryUsageHTML = None;
+      else:
+        sOptionalMemoryUsageHTML = "<tr><td>Memory usage: </td><td>%6.1fMb (process)/ %6.1fMb (application)</td></tr>" % (
+          oCdbWrapper.oJobObject.fuGetMaxProcessMemoryUse() / 1000000,
+          oCdbWrapper.oJobObject.fuGetMaxTotalMemoryUse() / 1000000,
+        );
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Application and cdb output log",
@@ -249,6 +272,7 @@ class cBugReport(object):
       });
       # Create the report using all available information, or a limit amount of information if there is not enough
       # memory to do that.
+      (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(oProductDetails);
       while asBlocksHTML:
         bReportTruncated = False;
         try:
@@ -264,11 +288,17 @@ class cBugReport(object):
             "sSecurityImpact": (oBugReport.sSecurityImpact == "Denial of Service" and
                 "%s" or '<span class="SecurityImpact">%s</span>') % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact),
             "sOptionalIntegrityLevel": sOptionalIntegrityLevelHTML,
+            "sOptionalMemoryUsage": sOptionalMemoryUsageHTML or "",
             "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
                 "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
-            "sBlocks": "\r\n".join(asBlocksHTML) + 
-                (bReportTruncated and "\r\n<hr/>The report was truncated because there was not enough memory available to add all information available." or ""),
-            "sBugIdVersion": oVersionInformation.sCurrentVersion,
+            "sBlocks": "\n".join(asBlocksHTML) + 
+                (bReportTruncated and "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available." or ""),
+            "sProductName": oProductDetails.sProductName,
+            "sProductVersion": oProductDetails.oProductVersion,
+            "sProductAuthor": oProductDetails.sProductAuthor,
+            "sProductURL": oProductDetails.sProductURL,
+            "sLicenseHeader": sLicenseHeaderHTML,
+            "sLicenseFooter": sLicenseFooterHTML,
           };
         except MemoryError:
           # We cannot add everything, so let's remove a block of information to free up some memory and reduce the size

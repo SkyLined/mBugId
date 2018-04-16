@@ -1,15 +1,22 @@
-from dxConfig import dxConfig;
-from sBlockHTMLTemplate import sBlockHTMLTemplate;
-from sReportHTMLTemplate import sReportHTMLTemplate;
-from oVersionInformation import oVersionInformation;
+from .dxConfig import dxConfig;
+from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
+import mProductDetails;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .sReportHTMLTemplate import sReportHTMLTemplate;
+
+import cBugId;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):
+    oProductDetails = (
+      mProductDetails.foGetProductDetailsForMainModule()
+      or mProductDetails.foGetProductDetailsForModule(cBugId)
+    );
     if uExitCode < 0:
       uExitCode += 1 << 32;
     oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
     oBugReport.sBugDescription = "Cdb terminated unexpectedly";
-    oBugReport.sBugLocation = None;
+    oBugReport.sBugLocation = "cdb.exe!(unknown)";
     oBugReport.sSecurityImpact = None;
     oBugReport.oException = None;
     oBugReport.oStack = None;
@@ -27,7 +34,7 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     oBugReport.sId = oBugReport.sBugTypeId;
     oBugReport.sStackId = None;
     oBugReport.sBugSourceLocation = None;
-    oBugReport.asVersionInformation = ["cBugId: %s" % oVersionInformation.sCurrentVersion];
+    oBugReport.asVersionInformation = ["%s: %s" % (oProductDetails.sProductName, oProductDetails.oProductVersion)];
     if oCdbWrapper.bGenerateReportHTML:
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
@@ -36,20 +43,27 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
         "sContent": oCdbWrapper.sCdbIOHTML
       });
       # Create HTML details
+      (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(oProductDetails);
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sOptionalUniqueStackId": "",
-        "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
+        "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation),
         "sOptionalSource": "",
         "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
         "sBinaryVersion": "Not available",
         "sSecurityImpact": oBugReport.sSecurityImpact and \
               '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
         "sOptionalIntegrityLevel": "",
+        "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
-        "sBugIdVersion": oVersionInformation.sCurrentVersion,
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
+        "sProductName": oProductDetails.sProductName,
+        "sProductVersion": oProductDetails.oProductVersion,
+        "sProductAuthor": oProductDetails.sProductAuthor,
+        "sProductURL": oProductDetails.sProductURL,
+        "sLicenseHeader": sLicenseHeaderHTML,
+        "sLicenseFooter": sLicenseFooterHTML,
       };
     else:
       oBugReport.sReportHTML = None;
