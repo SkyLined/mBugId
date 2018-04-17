@@ -46,7 +46,7 @@ aoBugTranslations = [
       [
         "xul.dll!alloc::oom::default_oom_handler",
       ], [
-        "xul.dll!alloc::heap::{{impl}}::oom ",
+        "xul.dll!alloc::heap::{{impl}}::oom",
       ],
     ],
     sTranslatedBugTypeId = "OOM",
