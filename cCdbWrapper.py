@@ -203,6 +203,7 @@ class cCdbWrapper(object):
       if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
         print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
         os._exit(5);
+      return;
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
     # Create a thread that interacts with the debugger to debug the application
