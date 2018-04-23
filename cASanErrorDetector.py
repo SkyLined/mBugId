@@ -356,9 +356,9 @@ class cASanErrorDetector(object):
         );
         if oAllocatorFailMatch:
           # The process in which the OOM crash happened may not be the process in which it is reported.
-          oBugReport.sBugTypeId = "OOM",
-          oBugReport.sBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.",
-          oBugReport.sSecurityImpact = None,
+          oBugReport.sBugTypeId = "OOM";
+          oBugReport.sBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.";
+          oBugReport.sSecurityImpact = None;
           return;
         # Check for memory corruption report:
         oSummaryMatch = re.match(
