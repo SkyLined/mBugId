@@ -13,6 +13,8 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oT
     oBugReport.sBugDescription = "The process was unable to allocate addition stack memory.";
     oBugReport.sSecurityImpact = None;
     return oBugReport;
+  else:
+    oTestVirtualAllocation.fFree();
   
   # Stack exhaustion can be caused by recursive function calls, where one or more functions repeatedly call themselves
   # Figure out if this is the case and fide all frames at the top of the stack until the "first" frame in the loop.
