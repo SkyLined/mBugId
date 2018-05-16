@@ -4,7 +4,7 @@ SET _NT_SYMBOL_PATH=
 
 REM If the user wants to run a full test-suite, new reports will be generated so the old ones must be deleted so as to
 REM not leave old reports intermingled with the new ones.
-IF "%~1" == "--full" (
+IF "%~1" == "--all" (
   IF EXIST "Tests\Reports\*" (
     DEL "Tests\Reports\*" /Q
   )
