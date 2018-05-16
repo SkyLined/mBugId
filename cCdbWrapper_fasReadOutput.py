@@ -187,7 +187,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         # process it is debugging and show "?:???>"
         oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
         if oPromptMatch:
-          oCdbWrapper.sCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
+          oCdbWrapper.sCdbCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
           oCdbWrapper.fbFireEvent("Cdb stdout output", sLine);
           if not bIgnoreOutput:
             assert not sStartOfCommandOutputMarker, \

@@ -32,14 +32,11 @@ gduSizeInBits_by_sPointerType = {
   "byte": 8, "word": 16, "dword": 32, "qword": 64, "mmword": 64, "xmmword": 128, "ymmword": 256,
 };
 
-def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, uProcessId, sViolationTypeId, uPointerSizedValue = None):
+def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, uPointerSizedValue = None):
   if sViolationTypeId == "E":
     # The application is attempting to execute code at an address that does not point to executable memory; this cannot
     # be ignored.
     return False;
-  # I could just pass the oProcess, as there is no code execution between when the exception handler was set and called,
-  # but if that changes in the future, this.
-  oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
   # See if we can fake execution of the current instruction, so we can continue the application as if it had been
   # executed without actually executing it.
   uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get current instruction pointer");

@@ -1,1 +1,1 @@
-from .fUpdateReportForTypeIdAndAddress import fUpdateReportForTypeIdAndAddress;
+from .fUpdateReportForProcessThreadTypeIdAndAddress import fUpdateReportForProcessThreadTypeIdAndAddress;

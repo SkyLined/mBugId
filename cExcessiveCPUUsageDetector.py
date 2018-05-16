@@ -219,7 +219,7 @@ class cExcessiveCPUUsageDetector(object):
     
     # Select the relevant process and thread
     oCdbWrapper.fSelectProcessAndThread(uProcessId, uThreadId);
-    oWormProcess = oCdbWrapper.oCurrentProcess;
+    oWormProcess = oCdbWrapper.oCdbCurrentProcess;
     oExcessiveCPUUsageDetector.uProcessId = uProcessId;
     oExcessiveCPUUsageDetector.uThreadId = uThreadId;
     oExcessiveCPUUsageDetector.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
@@ -256,7 +256,7 @@ class cExcessiveCPUUsageDetector(object):
     oExcessiveCPUUsageDetector.oLock.acquire();
     try:
       oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
-      oWormProcess = oCdbWrapper.oCurrentProcess;
+      oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
       uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
       # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
@@ -363,7 +363,8 @@ class cExcessiveCPUUsageDetector(object):
     oExcessiveCPUUsageDetector.oLock.acquire();
     try:
       oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
-      oWormProcess = oCdbWrapper.oCurrentProcess;
+      oWormProcess = oCdbWrapper.oCdbCurrentProcess;
+      oWormThread = oCdbWrapper.oCdbCurrentThread;
       uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
       uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
       # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
@@ -390,7 +391,7 @@ class cExcessiveCPUUsageDetector(object):
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
           (oExcessiveCPUUsageDetector.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckInterval"]);
       sSecurityImpact = None;
-      oBugReport = cBugReport.foCreate(oWormProcess, sBugTypeId, sBugDescription, sSecurityImpact);
+      oBugReport = cBugReport.foCreate(oWormProcess, oWormThread, sBugTypeId, sBugDescription, sSecurityImpact);
       oBugReport.bRegistersRelevant = False;
       oBugReport.fReport(oCdbWrapper);
       oCdbWrapper.fStop();

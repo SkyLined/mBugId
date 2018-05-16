@@ -1,7 +1,7 @@
 from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 
 def fbUpdateReportForReservedPointer(
-  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
 ):
   if not oVirtualAllocation.bReserved:
     return False;
@@ -13,6 +13,6 @@ def fbUpdateReportForReservedPointer(
   oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
       "memory be allocated at the address rather than reserved.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
   );
   return True;

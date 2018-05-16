@@ -2,7 +2,7 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import oSystemInfo;
 
 def fbUpdateReportForNULLPointer(
-  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
 ):
   if uAccessViolationAddress == 0:
     sOffset = "";

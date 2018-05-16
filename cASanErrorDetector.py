@@ -1,7 +1,7 @@
 import re;
 from .cBugReport import cBugReport;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from .mAccessViolation import fUpdateReportForTypeIdAndAddress as fUpdateAccessViolationReportForTypeIdAndAddress;
+from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 dsSecurityImpact_by_sASanBugType = {
@@ -25,7 +25,7 @@ class cASanErrorDetector(object):
   def __fStdErrOutputCallback(oSelf, oConsoleProcess, sLine):
     oSelf.__dasStdErr_by_uProcessId.setdefault(oConsoleProcess.uId, []).append(sLine);
   
-  def fAddInformationToBugReport(oSelf, oBugReport, oProcess):
+  def fAddInformationToBugReport(oSelf, oBugReport, oProcess, oThread):
     # Sample ASan outputs
     # |=================================================================
     # |==1796:1960==ERROR: AddressSanitizer: use-after-poison on address 0x0dd092c4 at pc 0x1aaa90d1 bp 0x0103b8dc sp 0x0103b8d0
@@ -479,8 +479,8 @@ class cASanErrorDetector(object):
       uAccessViolationAddress = uProblemAddress;
       # TODO: Maybe call fbAccessViolation_HandleNULLPointer, etc. from the file
       # cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION.py here?
-      fUpdateAccessViolationReportForTypeIdAndAddress(
-          oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress);
+      fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
+          oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress);
       
     else:
       oBugReport.sBugTypeId = "ASan:%s" % sASanBugType;

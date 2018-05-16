@@ -41,6 +41,9 @@ class cProcess(object):
       oProcess.__oWindowsAPIProcess = cWindowsAPIProcess(oProcess.uId);
     return oProcess.__oWindowsAPIProcess;
   
+  def foGetThreadForId(oProcess, uThreadId):
+    return oProcess.oWindowsAPIProcess.foGetThreadForId(uThreadId);
+  
   @property
   def sSimplifiedBinaryName(oProcess):
     # Windows filesystems are case-insensitive and the casing of the binary name may change between versions.

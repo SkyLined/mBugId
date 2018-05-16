@@ -2,7 +2,7 @@ import re;
 from .cStowedException import cStowedException;
 #from cStack import cStack;
 
-def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, oException):
+def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, oThread, oException):
   # Parameter[0] = paStowedExceptionInformationArray;
   # Parameter[1] = uStowedExceptionInformationArrayLength;
   assert len(oException.auParameters) == 2, \

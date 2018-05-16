@@ -113,8 +113,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         else:
           # Any cached information about modules loaded in the process should be discarded
           oProcess.fClearCache();
-      # There will no longer be a current process.
-      oCdbWrapper.oCurrentProcess = None;
+      # There will no longer be a current process or thread.
+      oCdbWrapper.oCdbCurrentProcess = None;
+      oCdbWrapper.oCdbCurrentThread = None;
       ### Allocate reserve memory ####################################################################################
       # Reserve some memory for exception analysis in case the target application causes a system-wide low-memory
       # situation.
@@ -240,7 +241,14 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         # either suspend it entirely, or replace cmd.exe with a custom binary that does nothing at all. However, it's
         # easier to just ignore these messages, so I'll do that for now:
         continue;
-      oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+      oCdbWrapper.oCdbCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+      uThreadId = oCdbWrapper.fuGetValueForRegister("$tid", "Get current thread id");
+      oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+      if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbCurrentISA:
+        # Select process ISA if it is not yet the current ISA. ".block{}" is required
+        sSelectCommand += ".block{.effmach %s;};" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCdbCurrentProcess.sISA];
+        # Assuming there's no error, track the new current isa.
+        oCdbWrapper.sCdbCurrentISA = oCdbWrapper.oCdbCurrentProcess.sISA;
       asDebugOutput = [
         sLine for sLine in asOutputWhileRunningApplication
         if not re.match("^(%s)$" % "|".join([
@@ -250,7 +258,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       ];
       if asDebugOutput:
         # It could be that the output was from page heap, in which case no event is fired.
-        oCdbWrapper.fbFireEvent("Application debug output", oCdbWrapper.oCurrentProcess, asDebugOutput);
+        oCdbWrapper.fbFireEvent("Application debug output", oCdbWrapper.oCdbCurrentProcess, asDebugOutput);
       continue;
     uProcessId = long(sProcessIdHex, 16);
     uThreadId = long(sThreadIdHex, 16);
@@ -322,15 +330,21 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     if sIgnoredUnloadModule:
       # This exception makes no sense; we never requested it and do not care about it: ignore it.
       continue;
-    oCdbWrapper.oCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+    oCdbWrapper.oCdbCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
+    oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+    if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbCurrentISA:
+      # Select process ISA if it is not yet the current ISA. ".block{}" is required
+      sSelectCommand += ".block{.effmach %s;};" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCdbCurrentProcess.sISA];
+      # Assuming there's no error, track the new current isa.
+      oCdbWrapper.sCdbCurrentISA = oCdbWrapper.oCdbCurrentProcess.sISA;
     ### Free reserve memory for exception analysis ###################################################################
     if oReservedMemoryVirtualAllocation:
       oReservedMemoryVirtualAllocation.fFree();
       oReservedMemoryVirtualAllocation = None;
     # Make sure cdb switches to the right ISA for the current process.
-    if oCdbWrapper.oCurrentProcess.sISA != oCdbWrapper.sCdbISA:
+    if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbISA:
       oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCurrentProcess.sISA],
+        sCommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCdbCurrentProcess.sISA],
         sComment = "Switch to current process ISA",
         bRetryOnTruncatedOutput = True,
       );
@@ -350,7 +364,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     oBugReport = None;
     if not oBugReport: 
       # Check if this exception is considered a bug:
-      oBugReport = cBugReport.foCreateForException(oCdbWrapper.oCurrentProcess, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException);
+      oBugReport = cBugReport.foCreateForException(
+        oCdbWrapper.oCdbCurrentProcess,
+        oCdbWrapper.oCdbCurrentThread,
+        uExceptionCode,
+        sExceptionDescription,
+        bApplicationCannotHandleException,
+      );
     if oBugReport:
       # ...if it is, report it:
       oBugReport.fReport(oCdbWrapper);

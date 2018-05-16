@@ -52,7 +52,7 @@ gddtsDetails_uSpecialAddress_sISA = {
 };
 
 def fbUpdateReportForSpecialPointer(
-  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
 ):
   dtsDetails_uSpecialAddress = gddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
@@ -72,7 +72,7 @@ def fbUpdateReportForSpecialPointer(
         (sViolationTypeDescription, uAccessViolationAddress, sAddressDescription);
       oBugReport.sSecurityImpact = sSecurityImpact;
       oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-        fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId)
+        fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
       );
       return True;
   return False;

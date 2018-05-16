@@ -1,8 +1,8 @@
 import re, struct;
-from .mAccessViolation import fUpdateReportForTypeIdAndAddress as fUpdateAccessViolationReportForTypeIdAndAddress;
+from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from mWindowsAPI import cVirtualAllocation;
 
-def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oException):
+def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oThread, oException):
   oCdbWrapper = oProcess.oCdbWrapper;
   # Parameter[0] = access type (0 = read, 1 = write, 8 = execute)
   # Parameter[1] = address
@@ -101,8 +101,6 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         sViolationTypeId = "E";
     uAccessViolationAddress = long(sAddress.replace("`", ""), 16);
   oBugReport.atxMemoryRemarks.append(("Access violation", uAccessViolationAddress, None)); # TODO Find out size of access
-
-  
   
   if sViolationTypeId == "E":
     # Hide the top stack frame if it is for the address at which the execute access violation happened:
@@ -110,8 +108,9 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         and oBugReport.oStack.aoFrames[0].uInstructionPointer == uAccessViolationAddress:
       oBugReport.oStack.aoFrames[0].sIsHiddenBecause = "called address";
   
-  fUpdateAccessViolationReportForTypeIdAndAddress(
-      oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress);
+  fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
+    oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress
+  );
 
   if sViolationTypeId == "?":
     oBugReport.sBugDescription += " (the type-of-accesss code was 0x%X)" % oException.auParameters[0];

@@ -39,7 +39,7 @@ auErrorCodesForWhichAStackDumpIsUseful = [
   4, #BadStack
 ];
 
-def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oException):
+def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oThread, oException):
   # Parameter[0] = fail fast code
   assert len(oException.auParameters) == 1, \
       "Unexpected number of fail fast exception parameters (%d vs 1)" % len(oException.auParameters);

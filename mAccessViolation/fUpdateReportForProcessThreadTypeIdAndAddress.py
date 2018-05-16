@@ -9,7 +9,7 @@ from .fbUpdateReportForSpecialPointer import fbUpdateReportForSpecialPointer;
 from .fbUpdateReportForStackPointer import fbUpdateReportForStackPointer;
 from mWindowsAPI import cVirtualAllocation;
 
-def fUpdateReportForTypeIdAndAddress(oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress):
+def fUpdateReportForProcessThreadTypeIdAndAddress(oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress):
   
   sViolationTypeDescription = {"R":"reading", "W":"writing", "E":"executing"}.get(sViolationTypeId, "accessing");
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
@@ -27,7 +27,7 @@ def fUpdateReportForTypeIdAndAddress(oCdbWrapper, oBugReport, oProcess, sViolati
     fbUpdateReportForInvalidPointer,
   ]:
     if fbUpdateReportForSpecificPointerType(
-      oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress,
+      oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
       sViolationTypeDescription, oVirtualAllocation
     ):
       # We handled the pointer as this type, and it can be only one type, so stop trying other types:

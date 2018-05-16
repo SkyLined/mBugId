@@ -1,9 +1,8 @@
 from .dxConfig import dxConfig;
-from .cThreadEnvironmentBlock import cThreadEnvironmentBlock;
 from mWindowsAPI.mDefines import STATUS_STACK_OVERFLOW;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
-def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oException):
+def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oThread, oException):
   oStack = oBugReport.oStack;
   # Check if this stack exhaustion happened because it ran out of free memory to to commit more stack space by
   # attempting to allocate some memory in the process.

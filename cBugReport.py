@@ -36,8 +36,9 @@ dfoAnalyzeException_by_uExceptionCode = {
   WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
+  def __init__(oBugReport, oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
     oBugReport.__oProcess = oProcess;
+    oBugReport.__oThread = oThread;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
@@ -72,7 +73,7 @@ class cBugReport(object):
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
-  def foCreateForException(cBugReport, oProcess, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException):
+  def foCreateForException(cBugReport, oProcess, oThread, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if uExceptionCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
@@ -83,6 +84,7 @@ class cBugReport(object):
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oProcess,
+      oThread = oThread,
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
@@ -95,7 +97,7 @@ class cBugReport(object):
       return None;
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
-      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oException);
+      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oThread, oException);
       if oBugReport is None:
         return None;
       # Apply another round of translations
@@ -105,11 +107,12 @@ class cBugReport(object):
     return oBugReport;
   
   @classmethod
-  def foCreate(cBugReport, oProcess, sBugTypeId, sBugDescription, sSecurityImpact):
+  def foCreate(cBugReport, oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oProcess,
+      oThread = oThread,
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
@@ -129,6 +132,8 @@ class cBugReport(object):
     # outside.
     oProcess = oBugReport.__oProcess;
     del oBugReport.__oProcess;
+    oThread = oBugReport.__oThread;
+    del oBugReport.__oThread;
     oStack = oBugReport.__oStack;
     del oBugReport.__oStack;
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.

@@ -40,7 +40,7 @@ def ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uRetur
   );
   asSymbolOutput = oProcess.fasExecuteCdbCommand(
     sCommand = '.printf "%%y\\n", 0x%X;' % uCallTargetAddress, 
-    sComment = "Get symbol for call target (warmup to make sure symbols are loaded)",
+    sComment = "Get symbol for call target",
   );
   # Output for an invalid (NULL) pointer:
   #   >00000000

@@ -135,9 +135,10 @@ class cCdbWrapper(object):
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.doConsoleProcess_by_uId = {};
-    oCdbWrapper.oCurrentProcess = None; # The current process id in cdb's context
+    oCdbWrapper.oCdbCurrentProcess = None; # The current process id in cdb's context
+    oCdbWrapper.oCdbCurrentThread = None; # The current thread id in cdb's context
+    oCdbWrapper.sCdbCurrentISA = None; # The ISA cdb is debugging the current process in (can differ from the process' ISA!)
     # Initialize some variables
-    oCdbWrapper.sCurrentISA = None; # During exception handling, this is set to the ISA for the code that caused it.
     if bGenerateReportHTML:
       oCdbWrapper.sCdbIOHTML = ""; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
       oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.

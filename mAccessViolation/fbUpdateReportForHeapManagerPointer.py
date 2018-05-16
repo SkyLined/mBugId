@@ -3,7 +3,7 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(
-  oCdbWrapper, oBugReport, oProcess, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
 ):
   # This is not a special marker or NULL, so it must be some corrupt pointer
   # Get information about the memory region:
@@ -130,6 +130,6 @@ def fbUpdateReportForHeapManagerPointer(
   else:
     uPointerSizedValue = None;
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess.uId, sViolationTypeId, uPointerSizedValue = uPointerSizedValue)
+    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, uPointerSizedValue = uPointerSizedValue)
   );
   return True;

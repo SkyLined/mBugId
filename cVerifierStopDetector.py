@@ -14,6 +14,8 @@ class cVerifierStopDetector(object):
     oCdbWrapper.fAddEventCallback("Application debug output", oSelf.__fCheckDebugOutputForVerifierStopMessage);
 
   def __fCheckDebugOutputForVerifierStopMessage(oSelf, oProcess, asDebugOutput):
+    # TODO: oThread should be an argument to the event callback
+    oThread = oProcess.oCdbWrapper.oCdbCurrentThread;
     # Detect VERIFIER STOP messages, create a cBugReport and report them before stopping cdb.
     if len(asDebugOutput) == 0:
       return;
@@ -23,10 +25,9 @@ class cVerifierStopDetector(object):
     sErrorNumber, sProcessId, sMessage = oVerifierStopHeaderMatch.groups();
     uErrorNumber = long(sErrorNumber, 16);
     uProcessId = long(sProcessId, 16);
-    if oProcess.uId != uProcessId:
-      # I do not expect this to happen, but it does not hurt to make sure we are operating on the right process.
-      oSelf.oCdbWrapper.fSelectProcess(uProcessId);
-
+    assert oProcess.uId == uProcessId, \
+        "VERIFIER STOP reported in process %d, but cdb is debugging process %d" % (oProcess.uId, uProcessId);
+    
     uVerifierStopHeapBlockAddress = None;
     uVerifierStopHeapBlockSize = None;
     uVerifierStopHeapBlockHandle = None; 
@@ -70,7 +71,6 @@ class cVerifierStopDetector(object):
         # an empty or "Not used." description to indicates this.
         assert sDescription in ["", "Not used."] and uValue == 0, \
             "Unhandled VERIFIER STOP message line: %s\r\n%s" % (repr(sLine), "\r\n".join(asDebugOutput));
-    oProcess = oSelf.oCdbWrapper.oCurrentProcess;
     if uErrorNumber == 0x303:
       # |VERIFIER STOP 0000000000000303: pid 0xB2C: NULL handle passed as parameter. A valid handle must be used.
       # |
@@ -253,7 +253,7 @@ class cVerifierStopDetector(object):
           uMemoryDumpEndAddress - uMemoryDumpStartAddress
         );
     
-    oBugReport = cBugReport.foCreate(oProcess, sBugTypeId, sBugDescription, sSecurityImpact);
+    oBugReport = cBugReport.foCreate(oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact);
     if oSelf.oCdbWrapper.bGenerateReportHTML:
       if uMemoryDumpStartAddress:
         oBugReport.fAddMemoryDump(

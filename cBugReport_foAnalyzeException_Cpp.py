@@ -34,7 +34,7 @@ EXCEPTION_OBJECT_DESCRIPTION_4_64 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_4_
 );
 
 
-def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oException):
+def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oThread, oException):
   # Based on https://blogs.msdn.microsoft.com/oldnewthing/20100730-00/?p=13273/
   # Attempt to get the symbol of the virtual function table of the object that was thrown and add that the the type id:
   if oProcess.sISA == "x64":
