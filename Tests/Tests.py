@@ -28,7 +28,7 @@ for sModuleName in sys.modules.keys():
       # These built-in modules are loaded by these packages:
       "base64", "binascii", "bz2", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc",
       "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess",
-      "textwrap", "urllib", "urlparse", "winreg", "zlib",
+      "textwrap", "urllib", "urlparse", "uuid", "winreg", "zlib",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
