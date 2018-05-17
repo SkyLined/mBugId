@@ -399,7 +399,7 @@ def fTest(
 if __name__ == "__main__":
   asArgs = sys.argv[1:];
   bTestQuick = False;
-  bTestAll = True;
+  bTestAll = False;
   while asArgs:
     if asArgs[0] == "--all": 
       bTestQuick = False;
