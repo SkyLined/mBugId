@@ -110,7 +110,7 @@ class cStack(object):
     return oStack;
   
   @classmethod
-  def foCreate(cStack, oProcess, uStackFramesCount):
+  def foCreate(cStack, oProcess, oThread, uStackFramesCount):
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
     uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get instruction pointer");

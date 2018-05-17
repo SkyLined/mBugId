@@ -59,7 +59,7 @@ class cBugReport(object):
   @property
   def oStack(oBugReport):
     if oBugReport.__oStack is None:
-      oBugReport.__oStack = cStack.foCreate(oBugReport.__oProcess, oBugReport.uStackFramesCount);
+      oBugReport.__oStack = cStack.foCreate(oBugReport.__oProcess, oBugReport.__oThread, oBugReport.uStackFramesCount);
     return oBugReport.__oStack;
   
   def fAddMemoryDump(oBugReport, uStartAddress, uEndAddress, sDescription):
