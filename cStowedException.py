@@ -10,7 +10,7 @@ from mWindowsAPI.mTypes import \
     STOWED_EXCEPTION_INFORMATION_HEADER, \
     STOWED_EXCEPTION_INFORMATION_V1_32, STOWED_EXCEPTION_INFORMATION_V1_64, \
     STOWED_EXCEPTION_INFORMATION_V2_32, STOWED_EXCEPTION_INFORMATION_V2_64;
-from mWindowsAPI.mFunctions import SIZEOF;
+from mWindowsAPI.mFunctions import SIZEOF, POINTER_VALUE;
 from mWindowsAPI import cVirtualAllocation;
 
 def fsSignature(uSignature):
@@ -115,17 +115,18 @@ class cStowedException(object):
       oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE
       and oStowedExceptionInformation.NestedExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
     ):
+      uNestedExceptionAddress = POINTER_VALUE(oStowedExceptionInformation.NestedException);
       if oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
         sNestedExceptionTypeId = "Win32";
         oNestedException = cException.foCreateFromMemory(
           oProcess = oProcess,
-          uExceptionRecordAddress = oStowedExceptionInformation.NestedException,
+          uExceptionRecordAddress = uNestedExceptionAddress,
         );
       elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_STOWED:
         sNestedExceptionTypeId = "Stowed";
         oNestedException = cStowedException.foCreate(
           oProcess = oProcess,
-          uStowedExceptionAddress = oStowedExceptionInformation.NestedException,
+          uStowedExceptionAddress = uNestedExceptionAddress,
         );
       elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_CLR:
         sNestedExceptionTypeId = "CLR";
@@ -138,20 +139,19 @@ class cStowedException(object):
         # I have not been able to find more documentation for this, so this is based on reverse engineering.
         sWRTLanguageExceptionIUnkownClassName = fsGetCPPObjectClassNameFromVFTable(
           oProcess = oProcess,
-          uCPPObjectAddress = oStowedExceptionInformation.NestedException,
+          uCPPObjectAddress = uNestedExceptionAddress,
         );
 #      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LMAX:
       else:
-        uDataAddress = oStowedExceptionInformation.NestedException;
-        oDataVirtualAllocation = cVirtualAllocation(oProcess.uId, uDataAddress);
-        uDataOffset = uDataAddress - oDataVirtualAllocation.uStartAddress;
+        oDataVirtualAllocation = cVirtualAllocation(oProcess.uId, uNestedExceptionAddress);
+        uDataOffset = uNestedExceptionAddress - oDataVirtualAllocation.uStartAddress;
         uDataSize = min(0x80, oDataVirtualAllocation.uSize - uDataOffset);
         sData = ",".join([
           "%02X" % uByte
           for uByte in oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize)
         ]);
         sNestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
-            (oStowedExceptionInformation.NestedExceptionType, uDataAddress, sData);
+            (oStowedExceptionInformation.NestedExceptionType, uNestedExceptionAddress, sData);
     # Handle the two different forms:
     if uExceptionForm == 1:
       oStowedException = cStowedException(

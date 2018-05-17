@@ -24,6 +24,37 @@ from mWindowsAPI.mDefines import *;
 
 import cBugId;
 
+gaasRelevantRegisterNamesAndPadding_by_sISA = {
+  "x86": [
+    ["eax:8", "xmm0:32"],
+    ["ebx:8", "xmm1:32"],
+    ["ecx:8", "xmm2:32"],
+    ["edx:8", "xmm3:32"],
+    ["esi:8", "xmm4:32"],
+    ["edi:8", "xmm5:32"],
+    ["esp:8", "xmm6:32"],
+    ["ebp:8", "xmm7:32"],
+  ],
+  "x64": [
+    ["rax:16", "xmm0:32"],
+    ["rbx:16", "xmm1:32"],
+    ["rcx:16", "xmm2:32"],
+    ["rdx:16", "xmm3:32"],
+    ["rsi:16", "xmm4:32"],
+    ["rdi:16", "xmm5:32"],
+    ["rsp:16", "xmm6:32"],
+    ["rbp:16", "xmm7:32"],
+    ["r8:16",  "xmm8:32"],
+    ["r9:16",  "xmm9:32"],
+    ["r10:16", "xmm10:32"],
+    ["r11:16", "xmm11:32"],
+    ["r12:16", "xmm12:32"],
+    ["r13:16", "xmm13:32"],
+    ["r14:16", "xmm14:32"],
+    ["r15:16", "xmm15:32"],
+  ],
+}
+
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
   STATUS_ACCESS_VIOLATION: cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION,
@@ -188,16 +219,23 @@ class cBugReport(object):
       
       if oBugReport.bRegistersRelevant:
         # Create and add registers block
-        asRegisters = oProcess.fasExecuteCdbCommand(
-          sCommand = "rM 0x%X;" % (0x1 + 0x4 + 0x8 + 0x10 + 0x20 + 0x40),
-          sComment = "Get register information",
-          bOutputIsInformative = True,
-        );
-        sRegistersHTML = "<br/>\n".join([oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asRegisters]);
+        duRegisterValue_by_sName = oThread.fduGetRegisterValueByName();
+        uPadding = 3 + 3 + ({"x86":8, "x64": 16}[oProcess.sISA]);
+        asRegistersHTML = [];
+        for asRegisterNamesAndPadding in gaasRelevantRegisterNamesAndPadding_by_sISA[oProcess.sISA]:
+          asLine = [];
+          for sRegisterNameAndPadding in asRegisterNamesAndPadding:
+            (sRegisterName, sPadding) = sRegisterNameAndPadding.split(":");
+            uRegisterValue = duRegisterValue_by_sName[sRegisterName];
+            sRegisterValue = "%X" % uRegisterValue;
+            sValuePadding = " " * (long(sPadding) - len(sRegisterValue));
+            asLine.append("<td>%s = %s<span class=\"HexNumberHeader\">0x</span>%s</td>" % \
+                (sRegisterName.ljust(5), sValuePadding, sRegisterValue));
+          asRegistersHTML.append("<tr>%s</tr>" % "".join(asLine));
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Registers",
           "sCollapsed": "Collapsed",
-          "sContent": "<span class=\"Registers\">%s</span>" % sRegistersHTML,
+          "sContent": "<table class=\"Registers\">%s</table>" % "\n".join(asRegistersHTML),
         });
       
       # Add relevant memory blocks in order if needed

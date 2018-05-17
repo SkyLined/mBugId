@@ -87,6 +87,9 @@ sReportHTMLTemplate = ("""
         border: dotted black;
         border-width: 0 0 1pt 0;
       }
+      .HexNumberHeader {
+        opacity: 0.25;
+      }
       .Block {
         padding: 1em;
         border: 1px solid rgba(22, 19, 16, 0.2);
@@ -166,6 +169,14 @@ sReportHTMLTemplate = ("""
       }
       .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
         white-space: pre;
+      }
+      table.Registers {
+        border-spacing: 1ex 0;
+        border-collapse: separate;
+      }
+      table.Registers td + td {
+        padding-left: 1ex;
+        border-left: 1px solid rgba(0,0,0, 0.25);
       }
       .DisassemblyInformation {
       }

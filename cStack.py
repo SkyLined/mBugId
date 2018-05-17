@@ -113,8 +113,8 @@ class cStack(object):
   def foCreate(cStack, oProcess, oThread, uStackFramesCount):
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    uInstructionPointer = oProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
-    uStackPointer = oProcess.fuGetValueForRegister("$csp", "Get a stack pointer");
+    uInstructionPointer = oThread.fuGetRegister("*ip");
+    uStackPointer = oThread.fuGetRegister("*sp");
     oStackVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uStackPointer);
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};

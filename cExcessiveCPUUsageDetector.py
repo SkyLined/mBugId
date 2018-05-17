@@ -220,11 +220,12 @@ class cExcessiveCPUUsageDetector(object):
     # Select the relevant process and thread
     oCdbWrapper.fSelectProcessAndThread(uProcessId, uThreadId);
     oWormProcess = oCdbWrapper.oCdbCurrentProcess;
+    oWormThread = oCdbWrapper.oCdbCurrentThread;
     oExcessiveCPUUsageDetector.uProcessId = uProcessId;
     oExcessiveCPUUsageDetector.uThreadId = uThreadId;
     oExcessiveCPUUsageDetector.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
-    uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
-    uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
+    uInstructionPointer = oWormThread.fuGetRegister("*ip");
+    uStackPointer = oWormThread.fuGetRegister("*sp");
 # Ideally, we'de use the return address here but for some unknown reason cdb may not give a valid value at this point.
 # However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return addres will be
 # correct... sigh.
@@ -257,11 +258,13 @@ class cExcessiveCPUUsageDetector(object):
     try:
       oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
-      uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
-      uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
-      # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
-      assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress, \
-          "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
+      oWormThread = oCdbWrapper.oCdbCurrentThread;
+      uInstructionPointer = oWormThread.fuGetRegister("*ip");
+      uStackPointer = oWormThread.fuGetRegister("*sp");
+      # This is a sanity check: the instruction pointer should point to the address after the int3 instruction for the breakpoint.
+      assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress + 1, \
+          "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
+          (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
       # The code we're expecting to return to may actually be *called* in recursive code. We can detect this by checking
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer <= oExcessiveCPUUsageDetector.uLastStackPointer:
@@ -365,11 +368,12 @@ class cExcessiveCPUUsageDetector(object):
       oCdbWrapper.fSelectProcessAndThread(oExcessiveCPUUsageDetector.uProcessId, oExcessiveCPUUsageDetector.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       oWormThread = oCdbWrapper.oCdbCurrentThread;
-      uStackPointer = oWormProcess.fuGetValueForRegister("$csp", "Get stack pointer");
-      uInstructionPointer = oWormProcess.fuGetValueForRegister("$ip", "Get instruction pointer");
-      # This is a sanity check: the instruction pointer should be equal to the address at which we set the breakpoint.
-      assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress, \
-          "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
+      uStackPointer = oWormThread.fuGetRegister("*sp");
+      uInstructionPointer = oWormThread.fuGetRegister("*ip");
+      # This is a sanity check: the instruction pointer should point to the address after the int3 instruction for the breakpoint.
+      assert uInstructionPointer == oExcessiveCPUUsageDetector.uNextBreakpointAddress + 1, \
+          "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
+          (oExcessiveCPUUsageDetector.uNextBreakpointAddress, uInstructionPointer);
       # The code we're expecting to return to may actually be *called* in recursive code. We can detect this by checking
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer < oExcessiveCPUUsageDetector.uLastStackPointer:

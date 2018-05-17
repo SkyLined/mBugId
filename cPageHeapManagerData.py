@@ -243,8 +243,9 @@ def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddr
   # The page heap header structure at the start of the virtual allocation should point to a page heap allocation
   # information structure that points back to the same virtual allocation:
   DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION_32, 8: DPH_BLOCK_INFORMATION_64}[uPointerSize];
-  uHeapBlockHeaderStartAddress = oAllocationInformation.pUserAllocation - SIZEOF(DPH_BLOCK_INFORMATION);
-  uHeapBlockEndAddress = oAllocationInformation.pUserAllocation + oAllocationInformation.nUserRequestedSize;
+  uUserAllocationAddress = POINTER_VALUE(oAllocationInformation.pUserAllocation);
+  uHeapBlockHeaderStartAddress = uUserAllocationAddress - SIZEOF(DPH_BLOCK_INFORMATION);
+  uHeapBlockEndAddress = uUserAllocationAddress + oAllocationInformation.nUserRequestedSize;
   if oVirtualAllocation.bAllocated:
     # A DPH_BLOCK_INFORMATION structure is stored immediately before the heap block in the same allocation.
     oHeapBlockHeader = oVirtualAllocation.foReadStructureForOffset(
@@ -280,7 +281,7 @@ class cPageHeapManagerData(cHeapManagerData):
     # heap block.
     oVirtualAllocation = foGetVirtualAllocationForProcessAndAddress(
       oProcess,
-      oAllocationInformation.pVirtualBlock,
+      POINTER_VALUE(oAllocationInformation.pVirtualBlock),
     );
     if oVirtualAllocation.bAllocated:
       # This virtual allocation starts with a DPH_ALLOCATION_HEADER structure
@@ -304,7 +305,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess.uPointerSize,
     );
     # The DPH_ALLOCATION_HEADER structure contains a pointer to a DPH_HEAP_BLOCK structure
-    uAllocationInformationStartAddress = oAllocationHeader.poAllocationInformation;
+    uAllocationInformationStartAddress = POINTER_VALUE(oAllocationHeader.poAllocationInformation);
     oAllocationInformation = foGetAllocationInformationForProcessAndAddress(
       oProcess,
       uAllocationInformationStartAddress,
@@ -332,7 +333,7 @@ class cPageHeapManagerData(cHeapManagerData):
     oSelf.oVirtualAllocation = oVirtualAllocation;
     oSelf.oVirtualAllocation.uEndAddress;
     
-    oSelf.uHeapBlockStartAddress = oAllocationInformation.pUserAllocation;
+    oSelf.uHeapBlockStartAddress = POINTER_VALUE(oAllocationInformation.pUserAllocation);
     oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize;
     oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize;
 
