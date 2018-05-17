@@ -73,6 +73,7 @@ dsBinaries_by_sISA = {
 
 bFailed = False;
 gbGenerateReportHTML = False;
+gbSaveReportHTML = False;
 oOutputLock = threading.Lock();
 guTotalMaxMemoryUse =  0x01234567; # The test application memory use limit: it should be large enough to allow the test
                                    # to function, but small enough to detect excessive memory use before the entire
@@ -371,7 +372,7 @@ def fTest(
             fOutput("  Test bug #%d does not match %s." % (uCounter, sExpectedBugIdAndLocation));
             fDumpExpectedAndReported()
             break;
-    if gbGenerateReportHTML:
+    if gbSaveReportHTML:
       for oBugReport in aoBugReports:
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
         sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
@@ -397,15 +398,19 @@ def fTest(
 
 if __name__ == "__main__":
   asArgs = sys.argv[1:];
-  bQuickTestSuite = False;
-  bExtendedTestSuite = False;
+  bTestQuick = False;
+  bTestAll = True;
   while asArgs:
     if asArgs[0] == "--all": 
-      bExtendedTestSuite = True;
+      bTestQuick = False;
+      bTestAll = True;
+      gbGenerateReportHTML = True;
     elif asArgs[0] == "--report": 
       gbGenerateReportHTML = True;
+      gbSaveReportHTML = True;
     elif asArgs[0] == "--quick": 
-      bQuickTestSuite = True;
+      bTestQuick = True;
+      bTestAll = False;
     elif asArgs[0] == "--debug": 
       gbShowCdbIO = True;
     else:
@@ -418,7 +423,7 @@ if __name__ == "__main__":
     fTest(asArgs[0], asArgs[1:], None); # Expect no exceptions.
   else:
     fOutput("* Starting tests...");
-    if not bExtendedTestSuite:
+    if not bTestAll:
       # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
       # Disabling symbols should speed things up considerably.
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
@@ -432,7 +437,7 @@ if __name__ == "__main__":
     for sISA in asTestISAs:
       fTest(sISA,    ["Nop"],                                                   []); # No exceptions, just a clean program exit.
       fTest(sISA,    ["Breakpoint"],                                            ["Breakpoint ed2.531 @ <test-binary>!wmain"]);
-      if bQuickTestSuite:
+      if bTestQuick:
         continue; # Just do a test without a crash and breakpoint.
       # This will run the test in a cmd shell, so the exception happens in a child process. This should not affect the outcome.
       fTest(sISA,    ["Breakpoint"],                                            ["Breakpoint ed2.531 @ <test-binary>!wmain"],
@@ -449,7 +454,7 @@ if __name__ == "__main__":
       fTest(sISA,    ["PrivilegedInstruction"],                                 ["*PrivilegedInstruction 0fc\.(0fc|ed2) @ <test-binary>!fPrivilegedInstruction"]);
       fTest(sISA,    ["StackExhaustion", 0x100],                                ["StackExhaustion ed2.531 @ <test-binary>!wmain"]);
       fTest(sISA,    ["RecursiveCall", 2],                                      ["RecursiveCall 950.6d1 @ <test-binary>!fStackRecursionFunction1"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["RecursiveCall", 1],                                      ["RecursiveCall 950 @ <test-binary>!fStackRecursionFunction1"]);
         fTest(sISA,  ["RecursiveCall", 3],                                      ["RecursiveCall 950.4e9 @ <test-binary>!fStackRecursionFunction1"]);
         fTest(sISA,  ["RecursiveCall", 20],                                     ["RecursiveCall 950.48b @ <test-binary>!fStackRecursionFunction1"]);
@@ -466,7 +471,7 @@ if __name__ == "__main__":
       fTest(sISA,    ["WRTLanguage",  0x87654321, "message"],                   ["Stowed[0x87654321:WRTLanguage@cIUnknown] ed2.531 @ <test-binary>!wmain"]);
       # Double free
       fTest(sISA,    ["DoubleFree",                1],                          ["DoubleFree[1] ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["DoubleFree",                2],                          ["DoubleFree[2] ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["DoubleFree",                3],                          ["DoubleFree[3] ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["DoubleFree",                4],                          ["DoubleFree[4n] ed2.531 @ <test-binary>!wmain"]);
@@ -478,7 +483,7 @@ if __name__ == "__main__":
         
       # Misaligned free
       fTest(sISA,    ["MisalignedFree",            1,  1],                      ["MisalignedFree[1]+0 ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["MisalignedFree",            1,  2],                      ["MisalignedFree[1]+1 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["MisalignedFree",            2,  4],                      ["MisalignedFree[2]+2 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["MisalignedFree",            3,  6],                      ["MisalignedFree[3]+3 ed2.531 @ <test-binary>!wmain"]);
@@ -495,14 +500,14 @@ if __name__ == "__main__":
         fTest(sISA,  ["MisalignedFree",            1,  -5],                     ["MisalignedFree[1]-4n-1 ed2.531 @ <test-binary>!wmain"]);
       # NULL pointers
       fTest(sISA,    ["AccessViolation",   "Read",     1],                      ["AVR@NULL+1 ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["AccessViolation",   "Read", 2],                          ["AVR@NULL+2 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", 3],                          ["AVR@NULL+3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", 4],                          ["AVR@NULL+4n ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", 5],                          ["AVR@NULL+4n+1 ed2.531 @ <test-binary>!wmain"]);
       uSignPadding = {"x86": 0, "x64": 0xFFFFFFFF00000000}[sISA];
       fTest(sISA,    ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFF],    ["AVR@NULL-1 ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFE],    ["AVR@NULL-2 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFD],    ["AVR@NULL-3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFC],    ["AVR@NULL-4n ed2.531 @ <test-binary>!wmain"]);
@@ -512,7 +517,7 @@ if __name__ == "__main__":
         fTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFF8],    ["AVR@NULL-4n ed2.531 @ <test-binary>!wmain"]);
       # These are detected by Page Heap / Application Verifier
       fTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],                ["OOBW[1]{-1~1} ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],                ["OOBW[2]{-2~2} ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],                ["OOBW[3]{-3~3} ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],                ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
@@ -522,7 +527,7 @@ if __name__ == "__main__":
         fTest(sISA,  ["OutOfBounds", "Heap", "Write", guLargeHeapBlockSize, -4, 4], ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
       # Page heap does not appear to work for x86 tests on x64 platform.
       fTest(sISA,    ["UseAfterFree", "Read",    1,  0],                        ["RAF[1]@0 ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["UseAfterFree", "Write",   2,  1],                        ["WAF[2]@1 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Read",    3,  2],                        ["RAF[3]@2 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["WAF[4n]@3 ed2.531 @ <test-binary>!wmain"]);
@@ -531,7 +536,7 @@ if __name__ == "__main__":
         fTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["EAF[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
         fTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["EAF[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
       fTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBRAF[1]+0 ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["UseAfterFree", "Write",   2,  3],                        ["OOBWAF[2]+1 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Read",    3,  5],                        ["OOBRAF[3]+2 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["UseAfterFree", "Write",   4,  7],                        ["OOBWAF[4n]+3 ed2.531 @ <test-binary>!wmain"]);
@@ -546,7 +551,7 @@ if __name__ == "__main__":
         fTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBEAF[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
       fTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],             ["OOBR[4n]+4n ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xD, 5],             ["OOBR[4n+1]+3 ed2.531 @ <test-binary>!wmain", "OOBR[4n+1]+4n ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xE, 5],             ["OOBR[4n+2]+2 ed2.531 @ <test-binary>!wmain", "OOBR[4n+2]+3 ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],             ["OOBR[4n+3]+1 ed2.531 @ <test-binary>!wmain", "OOBR[4n+3]+2 ed2.531 @ <test-binary>!wmain"]);
@@ -555,7 +560,7 @@ if __name__ == "__main__":
       # This next test causes one AV, which is reported first. Then when collateral continues and the application
       # frees the memory, verifier.dll notices the corruption and reports it as well...
       fTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],             ["BOF[4n]+4n{+0~4n} ed2.531 @ <test-binary>!wmain", "BOF[4n]{+0~4n} ed2.531 @ <test-binary>!wmain"]);
-      if bExtendedTestSuite:
+      if bTestAll:
         # These tests cause multiple AVs as the buffer overflow continues to write beyond the end of the buffer.
         # The first one is detect as a BOF, as the AV is sequential to the heap corruption in the heap block suffix.
         # The second AV is sequential to the first, but no longer to the heap corruption, so it is not detected as a BOF
@@ -578,7 +583,7 @@ if __name__ == "__main__":
       # overflows are detected as soon as they read/write past the end of the stack.
       # fTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, 0x100000],     "AVW[Stack]+0 ed2.531 @ <test-binary>!wmain");
       
-      if bExtendedTestSuite:
+      if bTestAll:
         for (uBaseAddress, sDescription) in [
           # 0123456789ABCDEF
                  (0x44444444, "Unallocated"), # This is not guaranteed, but in my experience it's reliable.
@@ -605,18 +610,18 @@ if __name__ == "__main__":
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             fTest(sISA,    ["AccessViolation", "Read", uBaseAddress],           ["AVR@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
-            if bExtendedTestSuite:
+            if bTestAll:
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AVW@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Call", uBaseAddress],           ["AVE@%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ["AVE@%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
           elif sISA == "x64":
             fTest(sISA,    ["AccessViolation", "Read", uBaseAddress],           ["AVR@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
-            if bExtendedTestSuite:
+            if bTestAll:
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AV?@%s ed2.531 @ <test-binary>!wmain" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Call", uBaseAddress],           ["AVE@%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
               fTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ["AVE@%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
       # SafeInt tests
-      if not bExtendedTestSuite:
+      if not bTestAll:
         fTest(sISA,    ["SafeInt", "++", "signed", 64],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,    ["SafeInt", "--", "unsigned", 32],                       ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
         fTest(sISA,    ["SafeInt", "*",  "signed", 16],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
