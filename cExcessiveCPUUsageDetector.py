@@ -158,7 +158,24 @@ class cExcessiveCPUUsageDetector(object):
     if nTotalCPUUsagePercent > 100:
       nTotalCPUUsagePercent = 100.0;
     return uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent;
-
+  
+  def fbCheckForExcessiveCPUUsage(oSelf):
+    if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
+    oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
+    oExcessiveCPUUsageDetector.oLock.acquire();
+    try:
+      uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oExcessiveCPUUsageDetector.fxMaxCPUUsage();
+      if uMaxCPUProcessId is None:
+        return False; # No data available.
+      if nTotalCPUUsagePercent < dxConfig["nExcessiveCPUUsagePercent"]:
+        # CPU usage is not considered excessive
+        return False;
+      # Find out which function is using excessive CPU time in the most active thread.
+      oExcessiveCPUUsageDetector.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
+      return True;
+    finally:
+      oExcessiveCPUUsageDetector.oLock.release();
+  
   def fCheckUsage(oExcessiveCPUUsageDetector):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
     oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
@@ -171,7 +188,7 @@ class cExcessiveCPUUsageDetector(object):
       if uMaxCPUProcessId is None:
         return; # No data available.
       # If all threads in all processes combined have excessive CPU usage
-      if nTotalCPUUsagePercent > dxConfig["nExcessiveCPUUsagePercent"]:
+      if nTotalCPUUsagePercent >= dxConfig["nExcessiveCPUUsagePercent"]:
         # Find out which function is using excessive CPU time in the most active thread.
         oExcessiveCPUUsageDetector.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
       else:
