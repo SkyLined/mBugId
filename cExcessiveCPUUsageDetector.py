@@ -282,8 +282,8 @@ class cExcessiveCPUUsageDetector(object):
       oWormThread = oCdbWrapper.oCdbCurrentThread;
       uInstructionPointer = oWormThread.fuGetRegister("*ip");
       uStackPointer = oWormThread.fuGetRegister("*sp");
-      # This is a sanity check: the instruction pointer should point to the instruction for a hardware breakpoint or
-      # after the int3 instruction inserted by cdb for the breakpoint.
+      # This is a sanity check: the instruction pointer should point to the instruction (or after the int3 instruction
+      # inserted by cdb) where the breakpoint was set.
       assert uInstructionPointer in [oSelf.uNextBreakpointAddress, oSelf.uNextBreakpointAddress + 1], \
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
           (oSelf.uNextBreakpointAddress, uInstructionPointer);
@@ -392,8 +392,9 @@ class cExcessiveCPUUsageDetector(object):
       oWormThread = oCdbWrapper.oCdbCurrentThread;
       uStackPointer = oWormThread.fuGetRegister("*sp");
       uInstructionPointer = oWormThread.fuGetRegister("*ip");
-      # This is a sanity check: the instruction pointer should point to the address after the int3 instruction for the breakpoint.
-      assert uInstructionPointer == oSelf.uNextBreakpointAddress + 1, \
+      # This is a sanity check: the instruction pointer should point to the instruction (or after the int3 instruction
+      # inserted by cdb) where the breakpoint was set.
+      assert uInstructionPointer in [oSelf.uNextBreakpointAddress, oSelf.uNextBreakpointAddress + 1], \
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
           (oSelf.uNextBreakpointAddress, uInstructionPointer);
       # The code we're expecting to return to may actually be *called* in recursive code. We can detect this by checking
