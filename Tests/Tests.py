@@ -52,7 +52,8 @@ if oSystemInfo.sOSISA == "x64":
   dsComSpec_by_sISA["x86"] = os.path.join(os.environ.get("WinDir"), "SysWOW64", "cmd.exe");
 
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
-cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 1; # The test application is simple: CPU usage should be apparent after a few seconds.
+cBugId.dxConfig["nExcessiveCPUUsageCheckInitialTimeout"] = 0.5; # CPU usage should normalize after half a second.
+cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 0.5; # Excessive CPU usage should be apparent within half a second.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
 sPythonISA = {
@@ -320,7 +321,7 @@ def fTest(
           oBugId.fCheckForExcessiveCPUUsage(fExcessiveCPUUsageDetectedCallback);
       oBugId.foSetTimeout(
         sDescription = "Start check for excessive CPU usage",
-        nTimeout = cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"],
+        nTimeout = cBugId.dxConfig["nExcessiveCPUUsageCheckInitialTimeout"],
         fCallback = lambda oBugId: fExcessiveCPUUsageDetectedCallback(oBugId, False),
       );
     oBugId.fStart();
