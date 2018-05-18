@@ -315,6 +315,13 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         assert bHideLastExceptionFromApplication, \
             "Just making sure we are in a sane state";
         continue;
+      if sCreateExitProcess == "Exit":
+        # Something terminated the utility process. This can happen if the console we're running in gets closed. We'll
+        # ignore it, as all other processes should terminate as well so we will end up exiting cleanly. However, any
+        # attempt to use the utility process will fail, so I am using the magic value -1 as the utility process id to
+        # identify this situation.
+        oCdbWrapper.uUtilityProcessId = -1;
+        continue;
       # This is not an expected exception: report it as a bug.
       # We will need to "fake" that the utility process is part of the application, as code expectes to be able to
       # refer to it from doProcess_by_uId:
