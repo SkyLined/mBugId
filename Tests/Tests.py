@@ -315,7 +315,14 @@ def fTest(
     oBugId.fAddEventCallback("Process started", fProcessStartedCallback);
     oBugId.fAddEventCallback("Log message", fLogMessageCallback);
     if bExcessiveCPUUsageChecks:
-      oBugId.fSetCheckForExcessiveCPUUsageTimeout(1);
+      def fExcessiveCPUUsageDetectedCallback(bExcessiveCPUUsageDetected):
+        if not bExcessiveCPUUsageDetected:
+          oBugId.fCheckForExcessiveCPUUsage(fExcessiveCPUUsageDetectedCallback);
+      oBugId.foSetTimeout(
+        sDescription = "Start check for excessive CPU usage",
+        nTimeout = cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"],
+        fCallback = lambda oBugId: fExcessiveCPUUsageDetectedCallback(False),
+      );
     oBugId.fStart();
     bBugIdStarted = True;
     oBugId.fWait();
