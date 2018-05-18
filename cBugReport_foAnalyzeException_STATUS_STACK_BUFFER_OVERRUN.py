@@ -54,7 +54,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
     oBugReport.sBugDescription = sFastFailCodeDescription;
   oBugReport.sSecurityImpact = sSecurityImpact;
   if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
-    uStackPointer = oThread.fuGetRegisterValue("*sp");
+    uStackPointer = oThread.fuGetRegister("*sp");
     # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
     uSize = dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize;
     if uSize > dxConfig["uMaxMemoryDumpSize"]:
