@@ -427,7 +427,12 @@ if __name__ == "__main__":
   if asArgs:
     gbShowApplicationIO = True;
     fOutput("* Starting test...");
-    fTest(asArgs[0], asArgs[1:], None); # Expect no exceptions.
+    fTest(
+      sISA = asArgs[0],
+      axCommandLineArguments = asArgs[1:],
+      asExpectedBugIdAndLocations = None, # Expect no exceptions.
+      bExcessiveCPUUsageChecks = True,
+    );
   else:
     fOutput("* Starting tests...");
     if not bTestAll:
