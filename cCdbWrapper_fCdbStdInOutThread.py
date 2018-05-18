@@ -378,13 +378,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     if oReservedMemoryVirtualAllocation:
       oReservedMemoryVirtualAllocation.fFree();
       oReservedMemoryVirtualAllocation = None;
-    # Make sure cdb switches to the right ISA for the current process.
-    if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbISA:
-      oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = ".effmach %s;" % {"x86": "x86", "x64": "amd64"}[oCdbWrapper.oCdbCurrentProcess.sISA],
-        sComment = "Switch to current process ISA",
-        bRetryOnTruncatedOutput = True,
-      );
     ### Handle hit breakpoint ########################################################################################
     if uBreakpointId is not None:
       oCdbWrapper.fbFireEvent("Application suspended", "Breakpoint hit");
