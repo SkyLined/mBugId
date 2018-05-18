@@ -159,21 +159,26 @@ class cExcessiveCPUUsageDetector(object):
       nTotalCPUUsagePercent = 100.0;
     return uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent;
   
-  def fbCheckForExcessiveCPUUsage(oSelf):
+  def fCheckForExcessiveCPUUsage(oSelf, fCallback):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
-    oSelf.oLock.acquire();
-    try:
+    # We need to gather CPU Usage data now, wait nIntervalInSeconds and get it again to see if any thread is
+    # currently using a lot of CPU:
+    oSelf.fGetUsageData();
+    def fExcessiveCPUUsageCheckIntervalTimeoutHandler(): # Called after the nIntervalInSeconds timeout fires.
       uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oSelf.fxMaxCPUUsage();
-      if uMaxCPUProcessId is None:
-        return False; # No data available.
-      if nTotalCPUUsagePercent < dxConfig["nExcessiveCPUUsagePercent"]:
+      if uMaxCPUProcessId is None or nTotalCPUUsagePercent < dxConfig["nExcessiveCPUUsagePercent"]:
         # CPU usage is not considered excessive
-        return False;
-      # Find out which function is using excessive CPU time in the most active thread.
-      oSelf.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
-      return True;
-    finally:
-      oSelf.oLock.release();
+        fCallback(False);
+      else:
+        # Find out which function is using excessive CPU time in the most active thread.
+        # (This will eventually trigger a bug report).
+        oSelf.fInstallWorm(uMaxCPUProcessId, uMaxCPUThreadId, nTotalCPUUsagePercent);
+        fCallback(True);
+    oSelf.oCdbWrapper.foSetTimeout(
+      sDescription = "Check CPU usage for excessive CPU Usage detector",
+      nTimeToWait = dxConfig["nExcessiveCPUUsageCheckInterval"],
+      fCallback = fExcessiveCPUUsageCheckIntervalTimeoutHandler,
+    );
   
   def fCheckUsage(oSelf):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";

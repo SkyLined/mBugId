@@ -355,8 +355,8 @@ class cCdbWrapper(object):
   # Excessive CPU usage
   def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
     oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
-  def fbCheckForExcessiveCPUUsage(oCdbWrapper):
-    oCdbWrapper.oExcessiveCPUUsageDetector.fbCheckForExcessiveCPUUsage();
+  def fCheckForExcessiveCPUUsage(oCdbWrapper, fCallback):
+    oCdbWrapper.oExcessiveCPUUsageDetector.fCheckForExcessiveCPUUsage(fCallback);
   
   @property
   def nApplicationRunTime(oCdbWrapper):
