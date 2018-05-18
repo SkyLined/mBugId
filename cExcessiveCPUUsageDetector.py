@@ -296,7 +296,7 @@ class cExcessiveCPUUsageDetector(object):
         );
         return;
       uReturnAddress = oWormProcess.fuGetValueForRegister("$ra", "Get return address");
-      if uInstructionPointer == uReturnAddress:
+      if oSelf.uNextBreakpointAddress == uReturnAddress:
         oSelf.fWormDebugOutput(
           "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by leaving breakpoint in place and adjusting expected SP...",
           uInstructionPointer, oSelf.uLastStackPointer, uReturnAddress, uStackPointer
