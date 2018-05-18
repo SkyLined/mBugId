@@ -23,7 +23,6 @@ from .cCdbWrapper_fTerminateUWPApplication import cCdbWrapper_fTerminateUWPAppli
 from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from .cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from .cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointForAddress;
-from .cCdbWrapper_fuAddBreakpointForSymbol import cCdbWrapper_fuAddBreakpointForSymbol;
 from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
 from .cCollateralBugHandler import cCollateralBugHandler;
 from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
@@ -152,7 +151,9 @@ class cCdbWrapper(object):
     # You can set a breakpoint that results in a bug being reported when it is hit.
     # See fuAddBugBreakpoint and fReleaseBreakpointId for implementation details.
     oCdbWrapper.duProcessId_by_uBreakpointId = {};
+    oCdbWrapper.duAddress_by_uBreakpointId = {};
     oCdbWrapper.dfCallback_by_uBreakpointId = {};
+    oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId = {};
     # You can tell BugId to check for excessive CPU usage among all the threads running in the application.
     # See fSetCheckForExcessiveCPUUsageTimeout and cExcessiveCPUUsageDetector.py for more information
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
@@ -373,8 +374,6 @@ class cCdbWrapper(object):
   # Breakpoints
   def fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
     return cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId, sCommand);
-  def fuAddBreakpointForSymbol(ooCdbWrapper, sSymbol, fCallback, uProcessId, uThreadId = None, sCommand = None):
-    return cCdbWrapper_fuAddBreakpointForSymbol(ooCdbWrapper, sSymbol, fCallback, uProcessId, uThreadId, sCommand);
   def fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   

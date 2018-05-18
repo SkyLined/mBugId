@@ -12,7 +12,6 @@ from .cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugRep
 from .cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
 from .cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
-from .cException import cException;
 from .cStack import cStack;
 from .dxConfig import dxConfig;
 from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
@@ -104,14 +103,12 @@ class cBugReport(object):
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
-  def foCreateForException(cBugReport, oProcess, oThread, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException):
+  def foCreateForException(cBugReport, oProcess, oThread, oException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
-    if uExceptionCode == STATUS_STACK_OVERFLOW:
+    if oException.uCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
       uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
-    oException = cException.foCreate(oProcess, uExceptionCode, sExceptionDescription, bApplicationCannotHandleException);
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
-    if oException is None: return None;
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oProcess,

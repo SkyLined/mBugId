@@ -1,6 +1,7 @@
 import datetime, re, time;
 from .cBugReport import cBugReport;
 from .cCdbStoppedException import cCdbStoppedException;
+from .cException import cException;
 from .cProcess import cProcess;
 from .dxConfig import dxConfig;
 
@@ -47,9 +48,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
   oCdbWrapper.bFailedToApplyApplicationMemoryLimitsEventFired = True;
   # We may want to reserve some memory, which we'll track using this variable
   oReservedMemoryVirtualAllocation = None;
-  # There are situations where an exception should be handled by the debugger and not by the application, this
-  # boolean is set to True to indicate this and is used to execute either "gh" or "gn" in cdb.
-  bHideLastExceptionFromApplication = False;
+  # There are many exception that are handled by BugId and which should be hidden by the debugger from the application.
+  # This boolean is set to True to indicate this, or False if the exception should be handled by application.
+  bHideLastExceptionFromApplication = True; # The first exception is the initial breakpoint, which we hide
   # Create a list of commands to set up event handling.
   
   # Read the initial cdb output related to starting/attaching to the first process.
@@ -153,7 +154,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         bApplicationWillBeRun = True, # This command will cause the application to run.
         bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
       );
-      # The application should handle the next exception unless we explicitly want it to be hidden
+      # We will assume this exception will be handled by BugId and set bHideLastExceptionFromApplication to True to
+      # hide it from the application. If the application should see and handle this exception, we will set
+      # bHideLastExceptionFromApplication to False later
       bHideLastExceptionFromApplication = True;
       ### The debugger suspended the application #######################################################################
       # Send a nop command to cdb in case the application being debugged is reading stdin as well: in that case it may
@@ -226,7 +229,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       sProcessIdHex, sThreadIdHex,
       sCreateExitProcess, sCreateExitProcessIdHex,
       sIgnoredUnloadModule,
-      sExceptionDescription, sExceptionCode, sChance,
+      sExceptionCodeDescription, sExceptionCode, sChance,
       sBreakpointId,
     ) = oEventMatch.groups();
     if not sProcessIdHex:
@@ -352,6 +355,25 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       );
       # Assuming there's no error, track the new current isa.
       oCdbWrapper.sCdbCurrentISA = oCdbWrapper.oCdbCurrentProcess.sISA;
+    oException = uExceptionCode is not None and cException.foCreate(
+      oProcess = oCdbWrapper.oCdbCurrentProcess,
+      uCode = uExceptionCode,
+      sCodeDescription = sExceptionCodeDescription,
+      bApplicationCannotHandleException = bApplicationCannotHandleException,
+    ) or None;
+    if uExceptionCode == STATUS_BREAKPOINT:
+      if oException.uAddress in oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId.get(uProcessId, []):
+        # cdb appears to trigger int3s after the breakpoints have been removed, which we ignore.
+        continue;
+      if uProcessId == oCdbWrapper.uUtilityProcessId:
+        # cdb can trigger a breakpoint in the utility process, which we remove.
+        continue;
+      if oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint" and not bApplicationCannotHandleException:
+        # I cannot seem to figure out how to stop cdb from triggering a ntdll!DbgUiRemoteBreakin in new processes. From
+        # what I understand, using "sxi ibp" should do the trick but it does not appear to have any effect. I'll try to
+        # detect these exceptions from the function in which they are triggered; there is a chance of false positives,
+        # but I have not seen any. If we detect one, we ignore it:
+        continue;
     ### Free reserve memory for exception analysis ###################################################################
     if oReservedMemoryVirtualAllocation:
       oReservedMemoryVirtualAllocation.fFree();
@@ -382,9 +404,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
       oBugReport = cBugReport.foCreateForException(
         oCdbWrapper.oCdbCurrentProcess,
         oCdbWrapper.oCdbCurrentThread,
-        uExceptionCode,
-        sExceptionDescription,
-        bApplicationCannotHandleException,
+        oException,
       );
     if oBugReport:
       # ...if it is, report it:

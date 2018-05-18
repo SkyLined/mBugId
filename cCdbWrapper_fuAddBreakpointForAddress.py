@@ -67,6 +67,9 @@ def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uPro
     "Process id": "%d/0x%X" % (uProcessId, uProcessId),
   });
   oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId] = uProcessId;
+  oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId] = uAddress;
   oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId] = fCallback;
+  if uAddress in oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId.get(uProcessId, []):
+    oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId[uProcessId].remove(uAddress);
   return uBreakpointId;
 

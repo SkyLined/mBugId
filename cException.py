@@ -28,21 +28,24 @@ class cException(object):
   
   @classmethod
   def foCreateFromMemory(cException, oProcess, uExceptionRecordAddress):
-    return cException.foCreateHelper(oProcess,
+    return cException.foCreateHelper(
+      oProcess = oProcess,
       uExceptionRecordAddress = uExceptionRecordAddress,
       bApplicationCannotHandleException = False,
     );
     
   @classmethod
   def foCreate(cException, oProcess, uCode, sCodeDescription, bApplicationCannotHandleException):
-    return cException.foCreateHelper(oProcess, 
+    return cException.foCreateHelper(
+      oProcess = oProcess, 
       uCode = uCode,
       sCodeDescription = sCodeDescription,
       bApplicationCannotHandleException = bApplicationCannotHandleException,
     );
 
   @classmethod
-  def foCreateHelper(cException, oProcess,
+  def foCreateHelper(cException,
+      oProcess,
       # Either
         uExceptionRecordAddress = None,
       # Or
@@ -144,14 +147,8 @@ class cException(object):
         oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
         oException.oFunction, oException.iFunctionOffset
       ) = oProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
-      sCdbSymbolOrAddress = oException.sAddressSymbol;
-      if oException.uCode == STATUS_BREAKPOINT and oException.oFunction and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint":
-        # This breakpoint most likely got inserted into the process by cdb. There will be no trace of it in the stack,
-        # so do not try to check that exception information matches the first stack frame.
-        return None;
     else:
       oException.uAddress = oException.uInstructionPointer;
-      sCdbSymbolOrAddress = sCdbExceptionAddress; # "address (symbol)" from "ExceptionAddress:" (Note: will never be None)
     
     #### Work-around for a cdb bug ###############################################################################
     # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
