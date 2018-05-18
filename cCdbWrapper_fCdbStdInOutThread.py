@@ -190,7 +190,7 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     oEventMatch = re.match(
       "^(?:%s)$" % "".join([
         r"Last event: (?:",
-          r"<no event>",
+          r"<no event>",  # This means the application send debug output
         r"|"
           r"([0-9a-f]+)\.([0-9a-f]+): ",
           r"(?:",
@@ -231,9 +231,6 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     ) = oEventMatch.groups();
     if not sProcessIdHex:
       # The last event was an application debugger output event.
-      # Unfortunately, cdb outputs text whenever an ignored first chance exception happens and I cannot find out how to
-      # silence it. So, we'll have to remove these from the output, which is sub-optimal, but should work well enough
-      # for now. Also, page heap outputs stuff that we don't care about as well, which we hide here.
       uProcessId = oCdbWrapper.fuGetValueForRegister("$tpid", "Get current process id");
       if uProcessId == oCdbWrapper.uUtilityProcessId:
         # Our utility process is not expected to output anything, but since we're using cmd.exe, it might behave in a
@@ -253,6 +250,9 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
         );
         # Assuming there's no error, track the new current isa.
         oCdbWrapper.sCdbCurrentISA = oCdbWrapper.oCdbCurrentProcess.sISA;
+      # Unfortunately, cdb outputs text whenever an ignored first chance exception happens and I cannot find out how to
+      # silence it. So, we'll have to remove these from the output, which is sub-optimal, but should work well enough
+      # for now. Also, page heap outputs stuff that we don't care about as well, which we hide here.
       asDebugOutput = [
         sLine for sLine in asOutputWhileRunningApplication
         if not re.match("^(%s)$" % "|".join([
