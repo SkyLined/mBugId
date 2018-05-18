@@ -161,10 +161,9 @@ class cExcessiveCPUUsageDetector(object):
   
   def fbCheckForExcessiveCPUUsage(oSelf):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
-    oCdbWrapper = oExcessiveCPUUsageDetector.oCdbWrapper;
-    oExcessiveCPUUsageDetector.oLock.acquire();
+    oSelf.oLock.acquire();
     try:
-      uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oExcessiveCPUUsageDetector.fxMaxCPUUsage();
+      uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTime, nTotalCPUUsagePercent = oSelf.fxMaxCPUUsage();
       if uMaxCPUProcessId is None:
         return False; # No data available.
       if nTotalCPUUsagePercent < dxConfig["nExcessiveCPUUsagePercent"]:
