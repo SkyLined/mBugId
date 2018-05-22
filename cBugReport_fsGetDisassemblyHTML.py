@@ -16,6 +16,7 @@ def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
   
 def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
   # See dxConfig.py for a description of these "magic" values.
+  # In short, we need to guess how many bytes to disassemble to get the number of instructions we want disassembled.
   uDisassemblyBytesBefore = \
       dxConfig["uDisassemblyInstructionsBefore"] \
       * dxConfig["uDisassemblyAverageInstructionSize"] \
@@ -23,81 +24,77 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
   uDisassemblyBytesAfter = \
       dxConfig["uDisassemblyInstructionsAfter"] \
       * dxConfig["uDisassemblyAverageInstructionSize"];
+  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAddress);
+  if not oVirtualAllocation.bAllocated:
+    return None;
   # Get disassembly around code in which exception happened. This may not be possible if the instruction pointer points to unmapped memory.
-  asHTML = [];
+  asDisassemblyBeforeAddressHTML = [];
   if uDisassemblyBytesBefore > 0:
-    while uDisassemblyBytesBefore > 0:
-      # Get disassembly before address
-      uStartAddress = uAddress - uDisassemblyBytesBefore;
-      uEndAddress = uAddress - 1;
-      # Note: cannot use "u {start address} L{length}" as length is number of instructions, and we want number of bytes
-      # so we use "u {start address} {end address}". Also, the start and end may not be in a valid memory region, so we
-      # have to check before attempting to disassemble, or we may get an error. If either the start or end is in an
-      # invalid region, no disassmbly is returned. In this case we move the START address closer to the end address, as
-      # the later is more likely to be correct. We will try again and again, until we find that we cannot disassmble
-      # anything.
+    # Find out if we can get disassembly before uAddress by determining the start and end address we want and adjusting
+    # them to the start and end address of the memory region.
+    uStartAddress = max(uAddress - uDisassemblyBytesBefore, oVirtualAllocation.uStartAddress);
+    uEndAddress = min(uAddress - 1, oVirtualAllocation.uEndAddress);
+    if (uStartAddress < uEndAddress):
       asDisassemblyBeforeAddress = oProcess.fasExecuteCdbCommand(
-        sCommand = ".if ($vvalid(0x%X, 1)) { .if ($vvalid(0x%X, 1)) { u 0x%X 0x%X; } };" % \
-            (uStartAddress, uEndAddress, uStartAddress, uEndAddress),
+        sCommand = "u 0x%X 0x%X;" % (uStartAddress, uEndAddress),
         sComment = "Disassemble up to address 0x%X" % uAddress,
         bOutputIsInformative = True,
         bRetryOnTruncatedOutput = True,
       );
-      if len(asDisassemblyBeforeAddress) > 0:
-        break;
-      uDisassemblyBytesBefore -= 1;
     # Limit number of instructions
     asDisassemblyBeforeAddress = asDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
     if asDisassemblyBeforeAddress:
       # Optionally highlight and describe instruction before the address:
       if sDescriptionOfInstructionBeforeAddress:
         sInstructionBeforeAddress = asDisassemblyBeforeAddress.pop(-1);
-      asHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asDisassemblyBeforeAddress];
+      asDisassemblyBeforeAddressHTML = [
+        fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine)
+        for sLine in asDisassemblyBeforeAddress
+      ];
       if sDescriptionOfInstructionBeforeAddress:
-        asHTML.append(
+        asDisassemblyBeforeAddressHTML.append(
           "%s <span class=\"Important\">// %s</span>" % \
               (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sInstructionBeforeAddress, bImportant = True), \
               sDescriptionOfInstructionBeforeAddress)
         );
+  asDisassemblyAfterAddressHTML = [];
   if uDisassemblyBytesAfter > 0:
-    while uDisassemblyBytesAfter > 0:
-      # Get disassembly starting at address
-      uStartAddress = uAddress;
-      uEndAddress = uAddress + uDisassemblyBytesAfter;
-      # Note: cannot use "u {start address} L{length}" as length is number of instructions, and we want number of bytes
-      # so we use "u {start address} {end address}". Also, the start and end may not be in a valid memory region, so we
-      # have to check before attempting to disassemble, or we may get an error. If either the start or end is in an
-      # invalid region, no disassmbly is returned. In this case we move the END address closer to the end address, as
-      # the former is more likely to be correct. We will try again and again, until we find that we cannot disassmble
-      # anything.
+    # Find out if we can get disassembly after uAddress by determining the start and end address we want and adjusting
+    # them to the start and end address of the memory region.
+    uStartAddress = max(uAddress, oVirtualAllocation.uStartAddress);
+    uEndAddress = min(uAddress + uDisassemblyBytesAfter, oVirtualAllocation.uEndAddress);
+    if (uStartAddress < uEndAddress):
       asDisassemblyAtAndAfterAddress = oProcess.fasExecuteCdbCommand(
-        sCommand = ".if ($vvalid(0x%X, 1)) { .if ($vvalid(0x%X, 1)) { u 0x%X 0x%X; } };" % \
-            (uStartAddress, uEndAddress, uStartAddress, uEndAddress),
+        sCommand = "u 0x%X 0x%X;" % (uStartAddress, uEndAddress),
         sComment = "Disassemble starting at address 0x%X" % uAddress, 
         bOutputIsInformative = True,
         bRetryOnTruncatedOutput = True,
       );
-      if len(asDisassemblyAtAndAfterAddress) > 0:
-        break;
-      uDisassemblyBytesAfter -= 1;
-    if asDisassemblyAtAndAfterAddress:
-      assert len(asDisassemblyAtAndAfterAddress) >= 2, \
-          "Unexpected short disassembly output:\r\n%s" % "\r\n".join(asDisassemblyAtAndAfterAddress);
-      # The first line contains the address of the instruction
-      if not asHTML:
-        asHTML.append("(prior disassembly not possible)");
-      # disassembly starts with a line containing the address/symbol:
-      sAddressLine = asDisassemblyAtAndAfterAddress.pop(0);
-      asHTML.append(fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAddressLine));
-      # First line of disassembly at address is important;
-      sInstructionAtAddress = asDisassemblyAtAndAfterAddress.pop(0);
-      sInstructionAtAddressHTML = fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sInstructionAtAddress, bImportant = True);
-      if sDescriptionOfInstructionAtAddress:
-        sInstructionAtAddressHTML += " <span class=\"Important\">// %s</span>" % sDescriptionOfInstructionAtAddress;
-      asHTML.append(sInstructionAtAddressHTML);
-      # Limit the number of instructions, taking into account we already processed one:
-      asDisassemblyAfterAddress = asDisassemblyAtAndAfterAddress[:dxConfig["uDisassemblyInstructionsAfter"] - 1];
-      asHTML += [fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, s) for s in asDisassemblyAfterAddress];
-    elif asHTML:
-      asHTML.append("(further disassembly not possible)");
-  return "<br/>\n".join(asHTML);
+      if asDisassemblyAtAndAfterAddress:
+        assert len(asDisassemblyAtAndAfterAddress) >= 2, \
+            "Unexpected short disassembly output:\r\n%s" % "\r\n".join(asDisassemblyAtAndAfterAddress);
+        # The first line contains the address of the instruction
+        # disassembly starts with a line containing the address/symbol:
+        sAddressLine = asDisassemblyAtAndAfterAddress.pop(0);
+        sAddressLineHTML = fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAddressLine);
+        # First line of disassembly at address is important;
+        sInstructionAtAddress = asDisassemblyAtAndAfterAddress.pop(0);
+        sInstructionAtAddressHTML = fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sInstructionAtAddress, bImportant = True);
+        if sDescriptionOfInstructionAtAddress:
+          sInstructionAtAddressHTML += " <span class=\"Important\">// %s</span>" % sDescriptionOfInstructionAtAddress;
+        # Limit the number of instructions, taking into account we already processed one:
+        asDisassemblyAfterAddress = asDisassemblyAtAndAfterAddress[:dxConfig["uDisassemblyInstructionsAfter"] - 1];
+        asDisassemblyAtAndAfterAddressHTML = [
+          sAddressLineHTML,
+          sInstructionAtAddressHTML,
+        ] + [
+          fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine)
+          for sLing in asDisassemblyAfterAddress
+        ];
+  if not asDisassemblyBeforeAddressHTML:
+    if not asDisassemblyAtAndAfterAddressHTML:
+      return None;
+    asDisassemblyBeforeAddressHTML = ["(prior disaeembly not possible)"];
+  elif not asDisassemblyAtAndAfterAddressHTML:
+    asDisassemblyAtAndAfterAddressHTML = ["(further disassembly not possible)"];
+  return "<br/>\n".join(asDisassemblyBeforeAddressHTML + asDisassemblyAtAndAfterAddressHTML);
