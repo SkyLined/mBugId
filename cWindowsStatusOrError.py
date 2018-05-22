@@ -3983,7 +3983,8 @@ fAddStatusCodeOrError("STATUS_INVALID_USER_PRINCIPAL_NAME",                     
 fAddStatusCodeOrError("STATUS_FATAL_USER_CALLBACK_EXCEPTION",                   sDescription = "An unhandled exception was encountered during a user callback.",
                                                                                 sTypeId = "Verifier",
                                                                                 sSecurityImpact = "May be a security issue");
-fAddStatusCodeOrError("STATUS_ASSERTION_FAILURE",                               sDescription = "There has been an assertion failure.");
+fAddStatusCodeOrError("STATUS_ASSERTION_FAILURE",                               sDescription = "There has been an assertion failure.",
+                                                                                sTypeId = "Assert");
 fAddStatusCodeOrError("STATUS_VERIFIER_STOP",                                   sDescription = "Application verifier has found an error in the current process.");
 fAddStatusCodeOrError("STATUS_CALLBACK_POP_STACK",                              sDescription = "A user mode unwind is in progress.");
 fAddStatusCodeOrError("STATUS_INCOMPATIBLE_DRIVER_BLOCKED",                     sDescription = "%2 has been blocked from loading due to incompatibility with this system. Contact your software vendor for a compatible version of the driver.");

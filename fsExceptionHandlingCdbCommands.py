@@ -1,7 +1,7 @@
 from .dxConfig import dxConfig;
 from mWindowsAPI.mDefines import *;
 
-axHandledExceptions = [ # break on first chance exception before application is notified
+axExceptionsHandledByBugId = [ # break on first chance exception before application is notified
   # To be able to track which processes are running at any given time while the application being debugged, cpr and
   # epr must be enabled. Additionally, if epr is disabled the debugger will silently exit when the application
   # terminates. To distinguish this from other unexpected terminations of the debugger, epr must also be enabled.
@@ -9,7 +9,6 @@ axHandledExceptions = [ # break on first chance exception before application is 
   "epr", # end process
   "aph", # Application has stopped responding
   STATUS_ACCESS_VIOLATION,
-  STATUS_ASSERTION_FAILURE,
   STATUS_BREAKPOINT,
   STATUS_ARRAY_BOUNDS_EXCEEDED,
   STATUS_DATATYPE_MISALIGNMENT,
@@ -23,6 +22,12 @@ axHandledExceptions = [ # break on first chance exception before application is 
   STATUS_WX86_BREAKPOINT,
   "out",
 ];
+axExceptionsHandledByApplication = [ # break on second chance exception after the application failed to handle it.
+  # Assertion failures report using the NT_ASSERT macro raise a STATUS_ASSERTION_FAILURE exception, but not fatal. 
+  # If the application can handle them, let it:
+  STATUS_ASSERTION_FAILURE,
+];
+
 axIgnoredExceptions = [ # ignored completely
   "ibp",  # initial breakpoint
   "ld",   # Load module
@@ -46,8 +51,8 @@ def fsExceptionHandlingCdbCommands():
   sExceptionHandlingCommands = "sxd *;";
   # Make a copy of the default settings so we can modify them without affecting the default.
   daxExceptionHandling = {
-    "sxe": axHandledExceptions[:],
-    "sxd": [],
+    "sxe": axExceptionsHandledByBugId[:],
+    "sxd": axExceptionsHandledByApplication[:],
     "sxi": axIgnoredExceptions[:],
   };
   # C++ Exceptions are either handled as second chance exceptions, or ignored completely.
