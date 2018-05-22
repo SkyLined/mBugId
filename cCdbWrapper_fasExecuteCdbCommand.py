@@ -26,7 +26,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     bApplicationWillBeRun = False,
     bHandleSymbolLoadErrors = True,
     bIgnoreOutput = False,
-    srIgnoreErrors = False,
+    srIgnoredErrors = False,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
@@ -76,7 +76,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
         bApplicationWillBeRun = bApplicationWillBeRun,
         bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
         bIgnoreOutput = bIgnoreOutput,
-        srIgnoreErrors = uTries == 1 and srIgnoreErrors or False, # Only ignore errors the last try.
+        srIgnoredErrors = uTries == 1 and srIgnoredErrors or False, # Only ignore errors the last try.
         sStartOfCommandOutputMarker = bUseMarkers and sStartOfCommandOutputMarker or None,
         sEndOfCommandOutputMarker = bUseMarkers and sEndOfCommandOutputMarker or None,
       );

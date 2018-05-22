@@ -1,14 +1,13 @@
 import re;
 
+gsrIgnoredErrors = r"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$";
 def cProcess_fuGetAddressForSymbol(oProcess, sSymbol):
   # Get the address of the symbol without the offset:
   asCommandOutput = oProcess.fasExecuteCdbCommand(
     sCommand = '.printf "%%p\\n", @!"%s";' % sSymbol,
     sComment = "Get address for symbol",
-    srIgnoreErrors = r"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$",
+    srIgnoredErrors = gsrIgnoredErrors,
   );
-  if asCommandOutput is None:
-    return None;
   uValueAtIndex = 0;
   if len(asCommandOutput) == 2 and asCommandOutput[0].startswith("Unable to read dynamic function table entry at "):
     # It looks like we can safely ignore this error: the next line should contain the value.
@@ -16,7 +15,7 @@ def cProcess_fuGetAddressForSymbol(oProcess, sSymbol):
   else:
     assert len(asCommandOutput) == 1, \
         "Expected only one line in value result:\r\n%s" % "\r\n".join(asCommandOutput);
-  if asCommandOutput[uValueAtIndex].startswith("Couldn't resolve error at "):
+  if re.match(gsrIgnoredErrors, asCommandOutput[uValueAtIndex]):
     return None;
   try:
     return long(asCommandOutput[uValueAtIndex], 16);

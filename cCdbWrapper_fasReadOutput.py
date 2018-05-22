@@ -43,7 +43,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
   bApplicationWillBeRun = False,
   bHandleSymbolLoadErrors = True,
   bIgnoreOutput = False,
-  srIgnoreErrors = None,
+  srIgnoredErrors = None,
   sStartOfCommandOutputMarker = None, # Every command is preceded and followed by commands that outputs marker strings.
   sEndOfCommandOutputMarker = None,   # These are used to detect where the output of the cdb command starts in cases
                                       # where the application has output something out of sync. The applications output
@@ -195,10 +195,9 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             # If there is an error during execution of the command, the end marker will not be output. In this case, see
             # if it is an expected and ignored error, or thrown an assertion:
             if sEndOfCommandOutputMarker:
-              if not srIgnoreErrors or len(asReturnedLines) == 0 or not re.match(srIgnoreErrors, asReturnedLines[-1]):
+              if not srIgnoredErrors or len(asReturnedLines) == 0 or not re.match(srIgnoredErrors, asReturnedLines[-1]):
                 # The end-of-command marker is missing unexpectdly.
                 raise cEndOfCommandOutputMarkerMissingException(asReturnedLines);
-              bIgnoreOutput = True; # This output is invalid because of an error
           if oCdbWrapper.bGenerateReportHTML:
             # The prompt is always stored in a new block of I/O
             oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine);
