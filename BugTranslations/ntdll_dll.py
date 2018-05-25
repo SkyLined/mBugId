@@ -44,7 +44,7 @@ aoBugTranslations = [
     ],
     sTranslatedBugTypeId = "AVR@CFG",
     sTranslatedBugDescription = "The process attempted to call a function using an invalid function pointer, " \
-        "which caused an acces violation exception in Control Flow Guard. This is often caused by a NULL pointer.",
+        "which caused an access violation exception in Control Flow Guard. This is often caused by a NULL pointer.",
     sTranslatedSecurityImpact = "Unlikely to be an exploitable security issue, unless you can control the invalid function pointer",
   ),
   # CFG -> hide irrelevant frames
