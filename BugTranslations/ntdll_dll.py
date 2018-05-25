@@ -39,9 +39,7 @@ aoBugTranslations = [
       [
         "ntdll.dll!LdrpDispatchUserCallTarget",
       ], [
-        "ntdll.dll!LdrpValidateUserCallTargetBitMapCheck",
-      ], [
-        "ntdll.dll!LdrpValidateUserCallTarget",
+        re.compile("ntdll.dll!LdrpValidateUserCallTarget(BitMapCheck|ES)?"),
       ],
     ],
     sTranslatedBugTypeId = "AVR@CFG",
