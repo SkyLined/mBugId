@@ -9,6 +9,15 @@ aoBugTranslations = [
       ],
     ],
   ),
+  cBugTranslation(
+    sOriginalBugTypeId = "Breakpoint",
+    asOriginalTopStackFrameSymbols = [
+       "chakra.dll!Js::Throw::FatalInternalError",
+    ],
+    sTranslatedBugTypeId = "Assert",
+    sTranslatedBugDescription = "The application triggered a breakpoint to indicate a fatal error was detected.",
+    sTranslatedSecurityImpact = None,
+  ),
   # Breakpoint -> OOM
   cBugTranslation(
     sOriginalBugTypeId = "Breakpoint",
