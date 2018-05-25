@@ -14,10 +14,17 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     );
     if uExitCode < 0:
       uExitCode += 1 << 32;
-    oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
-    oBugReport.sBugDescription = "Cdb terminated unexpectedly";
+    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uExitCode);
+    if oWindowsStatusOrError:
+      oBugReport.sBugTypeId = "CdbTerminated:%s" % oWindowsStatusOrError.sTypeId;
+      oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code 0x%X (%s: %s)" % \
+          (uExitCode, oWindowsStatusOrError.sName, oWindowsStatusOrError.sDescription);
+      oBugReport.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
+    else:
+      oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
+      oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code 0x%X." % uExitCode;
+      oBugReport.sSecurityImpact = None;
     oBugReport.sBugLocation = "cdb.exe!(unknown)";
-    oBugReport.sSecurityImpact = None;
     oBugReport.oException = None;
     oBugReport.oStack = None;
     
