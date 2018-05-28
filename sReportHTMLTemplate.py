@@ -252,6 +252,8 @@ sReportHTMLTemplate = ("""
       }
       .LogImportantStdOutOutput {
       }
+      .LogMessage {
+      }
     </style>
     <script>
       function fAddClickHandler(oBlockHeaderElement) {

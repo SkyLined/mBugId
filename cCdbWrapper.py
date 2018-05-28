@@ -189,7 +189,7 @@ class cCdbWrapper(object):
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
       def fWriteLogMessageToReport(sMessage, dsData = None):
         sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
-        oCdbWrapper.sLogHTML += "<span class=\"%s\">%s%s</span><br/>\n" % \
+        oCdbWrapper.sLogHTML += "<span class=\"LogMessage\">%s%s</span><br/>\n" % \
             (oCdbWrapper.fsHTMLEncode(sMessage), sData and " (%s)" % oCdbWrapper.fsHTMLEncode(sData) or "");
       oCdbWrapper.fAddEventCallback("Log message", fWriteLogMessageToReport);
   
