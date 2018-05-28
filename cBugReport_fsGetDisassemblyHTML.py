@@ -1,18 +1,24 @@
 import re;
 from .dxConfig import dxConfig;
 
-def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bImportant = False):
+def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bHighlightLine, sRemark):
   # If this line starts with an address and opcode, make those semi-transparent.
   oMatch = re.match(r"^([0-9a-fA-F`]+\s+)([0-9a-fA-F]+\s+)(.+)$", sLine);
   if oMatch:
     sAddress, sOpcode, sInstruction = oMatch.groups();
-    return "".join([
-      "<span class=\"DisassemblyAddress\">%s</span>" % oCdbWrapper.fsHTMLEncode(sAddress),
-      "<span class=\"DisassemblyOpcode\">%s</span>" % oCdbWrapper.fsHTMLEncode(sOpcode),
-      "<span class=\"DisassemblyInstruction%s\">%s</span>" % \
-          (bImportant and " Important" or "", oCdbWrapper.fsHTMLEncode(sInstruction)),
+    return "<tr>%s</tr>" % "".join([
+      "<td class=\"DisassemblyAddress%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sAddress)),
+      "<td class=\"DisassemblyOpcode%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sOpcode)),
+      "<td class=\"DisassemblyInstruction%s\">%s%s</td>" % (
+        bHighlightLine and " Important" or "",
+        oCdbWrapper.fsHTMLEncode(sInstruction),
+        sRemark and (
+          bHighlightLine and (" // %s" % sRemark) or (" <span class=\"Important\">// %s</span>" % sRemark)
+        ) or "",
+      ),
     ]);
-  return "<span class=\"DisassemblyInformation\">%s</span>" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
+  return "<tr><td colspan=\"3\" class=\"DisassemblyInformation%s\">%s</td></tr>" % \
+      (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
   
 def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
   # See dxConfig.py for a description of these "magic" values.
@@ -49,18 +55,15 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       asDisassemblyBeforeAddress = asDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
       if asDisassemblyBeforeAddress:
         # Optionally highlight and describe instruction before the address:
-        if sDescriptionOfInstructionBeforeAddress:
-          sInstructionBeforeAddress = asDisassemblyBeforeAddress.pop(-1);
         asDisassemblyBeforeAddressHTML = [
-          fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine)
-          for sLine in asDisassemblyBeforeAddress
+          fsHTMLEncodeAndColorDisassemblyLine(
+            oCdbWrapper = oCdbWrapper,
+            sLine = asDisassemblyBeforeAddress[uIndex],
+            bHighlightLine = False,
+            sRemark = uIndex == len(asDisassemblyBeforeAddress) - 1 and sDescriptionOfInstructionBeforeAddress or None,
+          )
+          for uIndex in xrange(len(asDisassemblyBeforeAddress))
         ];
-        if sDescriptionOfInstructionBeforeAddress:
-          asDisassemblyBeforeAddressHTML.append(
-            "%s <span class=\"Important\">// %s</span>" % \
-                (fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sInstructionBeforeAddress, bImportant = True), \
-                sDescriptionOfInstructionBeforeAddress)
-          );
   asDisassemblyAfterAddressHTML = [];
   if dxConfig["uDisassemblyInstructionsAfter"] > 0:
     # Get disassembly after uAddress is easier, as we can just as for oVirtualAllocation.uEndAddress instructions
@@ -71,26 +74,22 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       bRetryOnTruncatedOutput = True,
       srIgnoredErrors = srIgnoredMemoryAccessError,
     );
-    if re.match(srIgnoredMemoryAccessError, asDisassemblyAtAndAfterAddress[-1]):
-      # If the virtual memory allocation ends shortly after the address, we could see this error:
-      asDisassemblyAtAndAfterAddress.pop();
     assert len(asDisassemblyAtAndAfterAddress) >= 2, \
         "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asDisassemblyAtAndAfterAddress);
-    # The first line contains the address of the instruction
-    # disassembly starts with a line containing the address/symbol:
-    sAddressLine = asDisassemblyAtAndAfterAddress.pop(0);
-    sAddressLineHTML = fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sAddressLine);
-    # First line of disassembly at address is important;
-    sInstructionAtAddress = asDisassemblyAtAndAfterAddress.pop(0);
-    sInstructionAtAddressHTML = fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sInstructionAtAddress, bImportant = True);
-    if sDescriptionOfInstructionAtAddress:
-      sInstructionAtAddressHTML += " <span class=\"Important\">// %s</span>" % sDescriptionOfInstructionAtAddress;
+    # The first line copntains the symbol at the address where we started disassembly, which we do not want in the
+    # output:
+    asDisassemblyAtAndAfterAddress.pop(0);
+    if re.match(srIgnoredMemoryAccessError, asDisassemblyAtAndAfterAddress[-1]):
+      # If the virtual memory allocation ends shortly after the address, we could an error that we want to remove:
+      asDisassemblyAtAndAfterAddress.pop();
     asDisassemblyAtAndAfterAddressHTML = [
-      sAddressLineHTML,
-      sInstructionAtAddressHTML,
-    ] + [
-      fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine)
-      for sLing in asDisassemblyAtAndAfterAddress
+      fsHTMLEncodeAndColorDisassemblyLine(
+        oCdbWrapper = oCdbWrapper,
+        sLine = asDisassemblyAtAndAfterAddress[uIndex],
+        bHighlightLine = uIndex == 0,
+        sRemark = uIndex == 0 and sDescriptionOfInstructionAtAddress or None,
+      )
+      for uIndex in xrange(len(asDisassemblyAtAndAfterAddress))
     ];
   if not asDisassemblyBeforeAddressHTML:
     if not asDisassemblyAtAndAfterAddressHTML:
@@ -98,4 +97,4 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
     asDisassemblyBeforeAddressHTML = ["(prior disassembly not possible)"];
   elif not asDisassemblyAtAndAfterAddressHTML:
     asDisassemblyAtAndAfterAddressHTML = ["(further disassembly not possible)"];
-  return "<br/>\n".join(asDisassemblyBeforeAddressHTML + asDisassemblyAtAndAfterAddressHTML);
+  return "<table>%s</table>" % "\n".join(asDisassemblyBeforeAddressHTML + asDisassemblyAtAndAfterAddressHTML);

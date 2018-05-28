@@ -167,7 +167,7 @@ sReportHTMLTemplate = ("""
         color: grey;
         white-space: pre;
       }
-      .BinaryInformation, .Disassembly, .Memory, .Registers, .Stack {
+      .BinaryInformation, .Memory, .Registers, .Stack {
         white-space: pre;
       }
       table.Registers {
