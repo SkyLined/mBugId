@@ -1,3 +1,51 @@
+2018-05-30
+==========
+Unfortunately, I have not had time to write release notes for all the changes
+I committed the past months. I am reconstructing these from commit logs so
+there may be a few missing from the below list:
+
+Changes that affect how cBugId is integrated into other projects
+----------------------------------------------------------------
+* CPU usage is now on demand; please call cBugId.fCheckForExcessiveCPUUsage()
+  to check for excessive CPU usage at any time while the application is
+  suspended. You can use cBugId.foSetTimeout to start excessive CPU usage
+  checks when the application has not responded for a certain amount of time.
+- Note that CPU usage detection can still result in random crashes in the
+  application for unknown reasons. This is assumed to be a hard-to-analyze
+  bug in how cdb handles breakpoints.
+
+Changes that affect bug ids
+---------------------------
+* Assertion failures reported through STATUS_ASSERTION_FAILURE exceptions are
+  now passed to the application first, as they are not considered fatal by
+  default and the application may be able to handle them.
+* Bug translations have been improved; the bug id now better reflects the root
+  cause of the issue for a number of crashes in a number of applications.
+* When cdb terminates unexpectedly, the bug id, description and security impact
+  are now based on the exit code if it is a Windows status or error code.
+
+Changes that affect reports
+---------------------------
+* Registers shown in report have been improved.
+* Disassembly shown in reports has been improved.
+
+Internal changes
+----------------
+* Code has been updated to reduce reliability on cdb.exe as this is know to
+  be unreliable every now and then.
+* Breakpoints are now really removed when requested, rather than replaced with
+  a nop.
+* Various bug fixes that resulted in code functioning as expected where older
+  code would not work as expected for some reason.
+* Various output and comments have been improved to remove spelling errors or
+  clarify complex situations.
+* Various asserts  have been added to collect information about potential
+  issues so they can be addressed when they are encountered.
+* Various code has been rewritten to optimize it and/or improve reliability.
+* Memory allocations created to check for OOM conditions are now freed to
+  prevent a memory leak.
+* Removed dead code.
+
 2018-02-23
 ==========
 cBugId and all its modules require a license to use. There is a 30 day trial
