@@ -253,7 +253,11 @@ class cModule(object):
     dsValue_by_sName = {};
     for sLine in as_lmov_Output[2:]:
       # These lines different from the "name: value" format and handled separately:
-      if sLine.strip() in ["Image was built with /Brepro flag.", "Has CLR image header, track-debug-data flag not set"]:
+      if sLine.strip() in [
+        "Image was built with /Brepro flag.",
+        "Has CLR image header, track-debug-data flag not set",
+        "Information from resource tables:",
+      ]:
         continue; # Ignored.
       oNameAndValueMatch = re.match(r"^\s+([^:]+):\s+(.*?)\s*$", sLine);
       assert oNameAndValueMatch, \
