@@ -413,7 +413,7 @@ if __name__ == "__main__":
       bTestQuick = False;
       bTestAll = True;
       gbGenerateReportHTML = True;
-    elif asArgs[0] == "--report": 
+    elif asArgs[0] in ["--report", "--reports"]: 
       gbGenerateReportHTML = True;
       gbSaveReportHTML = True;
     elif asArgs[0] == "--quick": 
