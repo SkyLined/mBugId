@@ -299,6 +299,9 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess,
       uAddressInVirtualAllocation,
     );
+    if not oVirtualAllocation.bAllocated:
+      # There really is nothing here for us to report details on:
+      return None;
     # The virtual allocation starts with a DPH_ALLOCATION_HEADER structure
     oAllocationHeader = foGetAllocationHeaderForVirtualAllocationAndPointerSize(
       oVirtualAllocation,
