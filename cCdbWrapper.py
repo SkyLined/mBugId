@@ -30,7 +30,7 @@ from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
 import mProductDetails;
-from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, oSystemInfo;
+from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, fsGetPythonISA;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -73,7 +73,12 @@ class cCdbWrapper(object):
     uTotalMaxMemoryUse,
     uMaximumNumberOfBugs,
   ):
-    oCdbWrapper.sCdbISA = sCdbISA or oSystemInfo.sOSISA;
+    if sCdbISA:
+      assert not sCdbISA == "x64" and fsGetPythonISA() == "x86", \
+          "You cannot use a 64-bit version of cdb.exe when you are using a 32-bit version of Python.";
+      oCdbWrapper.sCdbISA = sCdbISA;
+    else:
+      oCdbWrapper.sCdbISA = fsGetPythonISA();
     assert sApplicationBinaryPath or auApplicationProcessIds or sUWPApplicationPackageName, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
