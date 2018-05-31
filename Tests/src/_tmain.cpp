@@ -1,13 +1,13 @@
+#include <exception>
+#include <limits.h>
+#include <new>
 #include <Roerrorapi.h>
+#include <safeint.h>
 #include <SDKDDKVer.h>
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
 #include <Winstring.h>
-#include <exception>
-#include <new>
-#include <safeint.h>
-#include <limits.h>
 
 #define BYTE_TO_WRITE 0x41
 
@@ -158,6 +158,9 @@ ISAUINT guCounter;
 BOOL gbFreeHeap = FALSE;
 
 UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
+  // disable buffering
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
   HANDLE hHeap = GetProcessHeap();
   _set_abort_behavior( 0, _WRITE_ABORT_MSG);
   if (uArgumentsCount < 2) {
@@ -615,6 +618,8 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       0, // SIZE_T dwInitialSize,
       0 // SIZE_T dwMaximumSize
     );
+    _ftprintf(stderr, _T("Freeing a %Id/0x%IX byte heap memory block at 0x%p from heap 0x%p using heap 0x%p...\r\n"),
+        uMemoryBlockSize, uMemoryBlockSize, pMemory, hHeap, hSecondHeap);
     HeapFree(hSecondHeap, 0, pMemory);
   } else if (_tcsicmp(asArguments[1], _T("SafeInt")) == 0) {
     //--------------------------------------------------------------------------
