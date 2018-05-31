@@ -1,5 +1,6 @@
 import re;
 from mWindowsAPI import *;
+from .cPageHeapManagerData import cPageHeapManagerData;
 
 def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
   sType = sType or "unknown";
@@ -76,10 +77,13 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
   if len(asCdbHeapOutput) < 4:
     # No page heap output; make sure it is enabled for this process.
     oProcess.fEnsurePageHeapIsEnabled();
-    return;
-  # TODO: error resolving symbol should be handled by attempting to reload them, similar to cCdbWrapper_fasGetStack
-  if asCdbHeapOutput[0].startswith("unable to resolve ntdll!"):
-    return None;
+    # Try to manually figure things out.
+    try:
+      return cPageHeapManagerData.foGetForProcessAndAddress(oProcess, uAddress);
+    except AssertionError:
+      # That didn't work; we have no information about a heap block at this address.
+      return None;
+  
   assert re.match(r"^\s+address [0-9`a-f]+ found in\s*$", asCdbHeapOutput[0]), \
       "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
   oHeapTypeMatch = re.match(r"^\s+(_HEAP|_DPH_HEAP_ROOT) @ ([0-9`a-f]+)\s*$", asCdbHeapOutput[1]);
@@ -136,7 +140,7 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
       uHeapBlockStartAddress,
       uHeapBlockSize,
       bAllocated,
-    )
+    );
   else:
     assert sType in ["page heap", "unknown"], \
         "Expected heap allocator to be %s, but found page heap allocator" % sType;
@@ -183,7 +187,6 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
     uVirtualAllocationSize = long(sVirtualAllocationSize.replace("`", ""), 16);
     uHeapBlockStartAddress = sHeapBlockStartAddress and long(sHeapBlockStartAddress.replace("`", ""), 16);
     uHeapBlockSize = sHeapBlockSize and long(sHeapBlockSize.replace("`", ""), 16);
-    from cPageHeapManagerData import cPageHeapManagerData;
     #oHeapManagerData = cPageHeapManagerData.foGetForProcessAndAddress(oProcess, uAllocationStartAddress);
     oHeapManagerData = cPageHeapManagerData.foGetForProcessAndAllocationInformationStartAddress(
       oProcess,
