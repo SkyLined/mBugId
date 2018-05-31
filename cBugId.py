@@ -27,11 +27,11 @@ sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
 # Load external dependecies to make sure they are available and shown an error
 # if any one fails to load. This error explains where the missing component
 # can be downloaded to fix the error.
-for (sModuleName, sURL) in {
-  "mWindowsAPI": "https://github.com/SkyLined/mWindowsAPI/",
-  "mFileSystem": "https://github.com/SkyLined/mFileSystem/",
-  "mProductDetails": "https://github.com/SkyLined/mProductDetails/",
-}.items():
+for (sModuleName, sDownloadURL) in [
+  ("mWindowsAPI", "https://github.com/SkyLined/mWindowsAPI/"),
+  ("mFileSystem", "https://github.com/SkyLined/mFileSystem/"),
+  ("mProductDetails", "https://github.com/SkyLined/mProductDetails/"),
+]:
   try:
     __import__(sModuleName, globals(), locals(), [], -1);
   except ImportError as oError:
@@ -40,7 +40,7 @@ for (sModuleName, sURL) in {
       print "cBugId depends on %s which you can download at:" % sModuleName;
       print "    %s" % sDownloadURL;
       print "After downloading, please save the code in this folder:";
-      print "    %s" % os.path.join(sModuleFolderPath, sModuleName);
+      print "    %s" % os.path.join(sModulesFolderPath, sModuleName);
       print " - or -";
       print "    %s" % os.path.join(sParentFolderPath, sModuleName);
       print "Once you have completed these steps, please try again.";
