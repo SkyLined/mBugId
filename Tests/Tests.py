@@ -36,7 +36,7 @@ for sModuleName in sys.modules.keys():
 from cBugId import cBugId;
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 from mFileSystem import mFileSystem;
-from mWindowsAPI import oSystemInfo;
+from mWindowsAPI import oSystemInfo, fsGetPythonISA;
 from mWindowsAPI.mDefines import *;
 from mWindowsAPI.mDLLs import KERNEL32;
 from mWindowsAPI.mFunctions import *;
@@ -285,7 +285,7 @@ def fTest(
   bBugIdStarted = False;
   try:
     oBugId = cBugId(
-      sCdbISA = sISA,
+      sCdbISA = fsGetPythonISA(),
       sApplicationBinaryPath = sApplicationBinaryPath,
       asApplicationArguments = asApplicationArguments,
       asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
