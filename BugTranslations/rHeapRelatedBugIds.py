@@ -1,6 +1,6 @@
 import re;
 
-rHeapRelatedBugIds = re.compile(r"^(%s)(\[\d.*|@\w+)?$" % "|".join([
+rHeapRelatedBugIds = re.compile(r"^(%s)(\[\d.*|\[\?\]|@\w+)?$" % "|".join([
   "AV[RWE]",
   "BOF",
   "DoubleFree",
