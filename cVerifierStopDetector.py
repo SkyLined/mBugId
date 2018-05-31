@@ -98,12 +98,20 @@ class cVerifierStopDetector(object):
     
     uMemoryDumpStartAddress = None;
     atxMemoryRemarks = [];
-    (sHeapBlockId, sHeapBlockDescription) = oPageHeapManagerData.ftsGetHeapBlockIdAndDescription();
-    (sOffsetId, sOffsetDescription) = \
-        oPageHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(uVerifierStopHeapBlockAddress);
+    if oPageHeapManagerData:
+      (sHeapBlockId, sHeapBlockDescription) = oPageHeapManagerData.ftsGetHeapBlockIdAndDescription();
+      (sOffsetId, sOffsetDescription) = \
+          oPageHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(uVerifierStopHeapBlockAddress);
+    else:
+      sHeapBlockId = "[?]";
+      sHeapBlockDescription = "a heap block of unknown size starting at an unknown address and including memory " \
+          "at 0x%08X" % (uVerifierStopHeapBlockAddress);
+      sOffsetId = "";
+      sOffsetDescription = "at an unknown offset from";
     if (
       sMessage == "corrupted start stamp" \
       and uCorruptedStamp == 0xABCDBBBA \
+      and oPageHeapManagerData
       and not oPageHeapManagerData.oVirtualAllocation.bReserved
     ):
       # Verifier sometimes reports this and I am not sure what is going on. Page heap will report that the heap block was
@@ -121,8 +129,11 @@ class cVerifierStopDetector(object):
           "what kind of bug that might be. If you can reliably reproduce this, please contact the author of BugId " \
           "so this situation can be analyzed and BugId can be improved to report something more helpful here.";
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
-    elif sMessage in ["corrupted start stamp", "corrupted end stamp"] \
-        and oPageHeapManagerData.uHeapBlockStartAddress != uVerifierStopHeapBlockAddress:
+    elif (
+      sMessage in ["corrupted start stamp", "corrupted end stamp"]
+      and oPageHeapManagerData
+      and oPageHeapManagerData.uHeapBlockStartAddress != uVerifierStopHeapBlockAddress
+    ):
       # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
       # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
@@ -158,17 +169,19 @@ class cVerifierStopDetector(object):
           "heap (handle 0x%X)" % (uVerifierStopHeapHandle, sHeapBlockDescription, uVerifierStopHeapBlockHandle);
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
-      if oSelf.oCdbWrapper.bGenerateReportHTML:
+      if oSelf.oCdbWrapper.bGenerateReportHTML and oPageHeapManagerData:
+        # Theoretically we could use the virtual allocation data in page heap manager data is missing, but that's a lot
+        # of work for a situation that should happen very little.
         uMemoryDumpStartAddress = oPageHeapManagerData.uMemoryDumpStartAddress;
         uMemoryDumpEndAddress = oPageHeapManagerData.uMemoryDumpEndAddress;
-        if oPageHeapManagerData:
-          atxMemoryRemarks.extend(oPageHeapManagerData.fatxMemoryRemarks());
+        atxMemoryRemarks.extend(oPageHeapManagerData.fatxMemoryRemarks());
+        
       # Handle various VERIFIER STOP messages.
       if sMessage in ["corrupted start stamp", "corrupted end stamp"]:
         assert uCorruptionAddress is None, \
             "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
                 "\r\n".join(asDebugOutput);
-        if not oPageHeapManagerData.oHeapBlockHeader:
+        if not oPageHeapManagerData or not oPageHeapManagerData.oHeapBlockHeader:
           # This makes no sense: there is no heap block header because the memory is really freed by verifier but left
           # reserved to prevent it from being reallocated. So the start and end stamp no longer exist...
           assert oPageHeapManagerData.oVirtualAllocation.bReserved, \
@@ -213,7 +226,7 @@ class cVerifierStopDetector(object):
       # (meaning you allocate 1 byte, write 1 byte at offset -1) you would expect it to report that the "end stamp" of
       # the heap block header was corrupted. HOWEVER IT INCORRECTLY REPORTS THAT THE START STAMP WAS CORRUPTED. So, only
       # if we cannot detect any corruption ourselves will we use the information we got from the VERIFIER STOP message.
-      if not oPageHeapManagerData.bCorruptionDetected:
+      if not oPageHeapManagerData or not oPageHeapManagerData.bCorruptionDetected:
         sBugDescription = "Heap corruption reported but not detected %s %s." % \
           (sOffsetDescription, sHeapBlockDescription);
         sSecurityImpact = "Unknown - Application Verifier reported this but it could not be confirmed.";
