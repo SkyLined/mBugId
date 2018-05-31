@@ -75,7 +75,7 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
     ]), x)
   ];
   if len(asCdbHeapOutput) < 4:
-    # No page heap output; make sure it is enabled for this process.
+    # No !heap output; make sure it is enabled for this process.
     oProcess.fEnsurePageHeapIsEnabled();
     # Try to manually figure things out.
     try:
