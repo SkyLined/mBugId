@@ -74,7 +74,7 @@ class cCdbWrapper(object):
     uMaximumNumberOfBugs,
   ):
     if sCdbISA:
-      assert not sCdbISA == "x64" and fsGetPythonISA() == "x86", \
+      assert not (sCdbISA == "x64" and fsGetPythonISA() == "x86"), \
           "You cannot use a 64-bit version of cdb.exe when you are using a 32-bit version of Python.";
       oCdbWrapper.sCdbISA = sCdbISA;
     else:
