@@ -2,8 +2,19 @@ import re;
 from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # All these are never relevant to the bug
+  # Everything reported through a verifier stop should get the verifier calls removed, as these are not relevant to
+  # the bug; they are only the messenger.
   cBugTranslation(
+    sOriginalBugTypeId = re.compile(r"^(%s)(\[\d.*|\[\?\]|@\w+)?$" % "|".join([
+      "DoubleFree",
+      "HeapCorrupt",
+      "MisalignedFree",
+      "OOM",
+      "OOBW",
+      "WAF",
+      "BOF",
+      "WrongHeap",
+    ])),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "verifier.dll!AVrfDebugPageHeapAllocate",
