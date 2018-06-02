@@ -161,11 +161,11 @@ def fTest(
     if gbShowCdbIO: fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
-  def fApplicationDebugOutputCallback(oBugId, oProcessInformation, bIsMainProcess, asOutput):
+  def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asOutput):
     bFirstLine = True;
     for sOutput in asOutput:
-      sLogLine = "%s process %d/0x%X (%s): %s>%s" % (bIsMainProcess and "Main" or "Sub", oProcessInformation.uId, \
-          oProcessInformation.uId, oProcessInformation.sBinaryName, bFirstLine and "debug" or "     ", sOutput);
+      sLogLine = "%s process %d/0x%X (%s): %s>%s" % (bIsMainProcess and "Main" or "Sub", oProcess.uId, \
+          oProcess.uId, oProcess.sBinaryName, bFirstLine and "debug" or "     ", sOutput);
       if gbShowApplicationIO: fOutput(sLogLine);
       asLog.append(sLogLine);
       bFirstLine = False;
@@ -202,14 +202,14 @@ def fTest(
       fOutput("  BugId unexpectedly failed to debug the application");
     fOutput("  Error:       %s" % repr(sErrorMessage));
     oBugId.fStop();
-  def fFailedToApplyMemoryLimitsCallback(oBugId, oProcessInformation):
+  def fFailedToApplyMemoryLimitsCallback(oBugId, oProcess):
     global gbTestFailed;
     gbTestFailed = True;
     if not gbShowCdbIO: 
       for sLine in asLog:
         fOutput(sLine);
-    fOutput("- Failed to apply memory limits to process %d/0x%X (%s: %s) for test: %s" % (oProcessInformation.uId, \
-        oProcessInformation.uId, oProcessInformation.sBinaryName, oProcessInformation.sCommandLine, sTestDescription));
+    fOutput("- Failed to apply memory limits to process %d/0x%X (%s: %s) for test: %s" % (oProcess.uId, \
+        oProcess.uId, oProcess.sBinaryName, oProcess.sCommandLine, sTestDescription));
     oBugId.fStop();
   def fFinishedCallback(oBugId):
     if gbShowCdbIO: fOutput("Finished");
@@ -251,19 +251,19 @@ def fTest(
       uFrameIndex -= 1;
     fOutput("@" * 80);
     oBugId.fStop();
-  def fPageHeapNotEnabledCallback(oBugId, oProcessInformation, bIsMainProcess, bPreventable):
-    assert oProcessInformation.sBinaryName == "cmd.exe", \
+  def fPageHeapNotEnabledCallback(oBugId, oProcess, bIsMainProcess, bPreventable):
+    assert oProcess.sBinaryName == "cmd.exe", \
         "It appears you have not enabled page heap for %s, which is required to run tests." % sBinaryName;
-  def fProcessAttachedCallback(oBugId, oProcessInformation, bIsMainProcess):
+  def fProcessAttachedCallback(oBugId, oProcess, bIsMainProcess):
     asLog.append("%s process %d/0x%X (%s): attached." % (bIsMainProcess and "Main" or "Sub", \
-        oProcessInformation.uId, oProcessInformation.uId, oProcessInformation.sBinaryName));
+        oProcess.uId, oProcess.uId, oProcess.sBinaryName));
   def fProcessStartedCallback(oBugId, oConsoleProcess, bIsMainProcess):
     # This is always a main process
     asLog.append("%s process %d/0x%X (%s): started." % \
         (bIsMainProcess and "Main" or "Sub", oConsoleProcess.uId, oConsoleProcess.uId, oConsoleProcess.sBinaryName));
-  def fProcessTerminatedCallback(oBugId, oProcessInformation, bIsMainProcess):
+  def fProcessTerminatedCallback(oBugId, oProcess, bIsMainProcess):
     asLog.append("%s process %d/0x%X (%s): terminated." % (bIsMainProcess and "Main" or "Sub", \
-        oProcessInformation.uId, oProcessInformation.uId, oProcessInformation.sBinaryName));
+        oProcess.uId, oProcess.uId, oProcess.sBinaryName));
   def fLogMessageCallback(oBugId, sMessage, dsData = None):
     sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
     sLogLine = "log>%s%s" % (sMessage, sData and " (%s)" % sData or "");
