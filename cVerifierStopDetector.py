@@ -95,19 +95,20 @@ class cVerifierStopDetector(object):
         oProcess,
         uVerifierStopHeapBlockAddress,
       );
+      # Adjust the address accordingly.
+      uVerifierStopHeapBlockAddress = oPageHeapManagerData.uHeapBlockStartAddress;
     
     uMemoryDumpStartAddress = None;
     atxMemoryRemarks = [];
     if oPageHeapManagerData:
-      (sHeapBlockId, sHeapBlockDescription) = oPageHeapManagerData.ftsGetHeapBlockIdAndDescription();
-      (sOffsetId, sOffsetDescription) = \
-          oPageHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(uVerifierStopHeapBlockAddress);
+      (sBlockSizeId, sBlockOffsetId, sBlockOffsetDescription, sBlockSizeDescription) = \
+          oPageHeapManagerData.ftsGetIdAndDescriptionForAddress(uVerifierStopHeapBlockAddress);
+      sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
+      sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
     else:
-      sHeapBlockId = "[?]";
-      sHeapBlockDescription = "a heap block of unknown size starting at an unknown address and including memory " \
-          "at 0x%08X" % (uVerifierStopHeapBlockAddress);
-      sOffsetId = "";
-      sOffsetDescription = "at an unknown offset from";
+      sBlockSizeAndOffsetId = "[?]";
+      sBlockOffsetAndSizeDescription = "at an unknown offset from a heap block of unknown size at an unknown address " \
+          "somewhere around 0x%08X" % (uVerifierStopHeapBlockAddress);
     if (
       sMessage == "corrupted start stamp" \
       and uCorruptedStamp == 0xABCDBBBA \
@@ -122,7 +123,7 @@ class cVerifierStopDetector(object):
       # I cannot think of any situation in which all this information is correct, and I suspect that verifier is
       # reporting the wrong kind of error. However, I have been unable to find a reliable repro for this to debug, so I
       # do not know exactly what is going on and what to report...
-      sBugTypeId = "UnknownVerifierError%s%s" % (sHeapBlockId, sOffsetId);
+      sBugTypeId = "UnknownVerifierError%s" % sBlockSizeAndOffsetId;
       sBugDescription = "Application verifier reported a corrupt memory block, but no memory is allocated at the " \
           "address provided. This suggests that the verfier report is incorrect. However, it is likely that the " \
           "application does have some kind of memory corruption bug that triggers this report, but it is unknown " \
@@ -138,9 +139,9 @@ class cVerifierStopDetector(object):
       # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
       # can special case it.
-      sBugTypeId = "MisalignedFree%s%s" % (sHeapBlockId, sOffsetId);
-      sBugDescription = "The application attempted to free memory using a pointer that was %s %s." % \
-          (sOffsetDescription, sHeapBlockDescription);
+      sBugTypeId = "MisalignedFree%s" % sBlockSizeAndOffsetId;
+      sBugDescription = "The application attempted to free memory using a pointer that was %s." % \
+          sBlockOffsetAndSizeDescription;
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     elif sMessage == "block already freed":
       # |VERIFIER STOP 00000007: pid 0x1358: block already freed
@@ -149,8 +150,8 @@ class cVerifierStopDetector(object):
       # |        152F016C : Heap block
       # |        000004C8 : Block size
       # |        00000000 :
-      sBugTypeId = "DoubleFree%s" % sHeapBlockId;
-      sBugDescription = "The application attempted to free %s twice" % sHeapBlockDescription;
+      sBugTypeId = "DoubleFree%s" % sBlockSizeId;
+      sBugDescription = "The application attempted to free %s twice" % sBlockSizeDescription;
       sSecurityImpact = "Potentially exploitable security issue, if the attacker can force the application to " \
           "allocate memory between the two frees";
     elif sMessage == "corrupted heap pointer or using wrong heap":
@@ -164,9 +165,9 @@ class cVerifierStopDetector(object):
           "Missing 'Heap used in the call' value in the VERIFIER STOP message.\r\n%s" % "\r\n".join(asDebugOutput);
       assert uVerifierStopHeapBlockHandle is not None, \
           "Missing 'Heap owning the block' value in the VERIFIER STOP message.\r\n%s" % "\r\n".join(asDebugOutput);
-      sBugTypeId = "WrongHeap%s" % sHeapBlockId;
+      sBugTypeId = "WrongHeap%s" % sBlockSizeId;
       sBugDescription = "The application provided an incorrect heap handle (0x%X) for %s which belongs to another " \
-          "heap (handle 0x%X)" % (uVerifierStopHeapHandle, sHeapBlockDescription, uVerifierStopHeapBlockHandle);
+          "heap (handle 0x%X)" % (uVerifierStopHeapHandle, sBlockSizeDescription, uVerifierStopHeapBlockHandle);
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
       if oSelf.oCdbWrapper.bGenerateReportHTML and oPageHeapManagerData:
@@ -227,31 +228,24 @@ class cVerifierStopDetector(object):
       # the heap block header was corrupted. HOWEVER IT INCORRECTLY REPORTS THAT THE START STAMP WAS CORRUPTED. So, only
       # if we cannot detect any corruption ourselves will we use the information we got from the VERIFIER STOP message.
       if not oPageHeapManagerData or not oPageHeapManagerData.bCorruptionDetected:
-        sBugDescription = "Heap corruption reported but not detected %s %s." % \
-          (sOffsetDescription, sHeapBlockDescription);
+        sBugDescription = "Heap corruption reported but not detected %s." % sBlockOffsetAndSizeDescription;
         sSecurityImpact = "Unknown - Application Verifier reported this but it could not be confirmed.";
         sCorruptionId = "{?}";
       else:
         uExpectedCorruptionStartAddress = oPageHeapManagerData.uCorruptionStartAddress;
         uExpectedCorruptionEndAddress = oPageHeapManagerData.uCorruptionEndAddress;
         sCorruptionId = "{%s}" % oPageHeapManagerData.sCorruptionId;
-        (sOffsetId, sOffsetDescription) = \
-            oPageHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(oPageHeapManagerData.uCorruptionStartAddress); 
-        sOffsetId = ""; # sCorruptionId will have the same info, this would be superfluous.
+        (sIgnoredBlockSizeId, sIgnoredBlockOffsetId, sBlockOffsetDescription, sBlockSizeDescription) = oPageHeapManagerData.ftsGetIdAndDescriptionForAddress( \
+            oPageHeapManagerData.uCorruptionStartAddress);
         sBugDescription = "Heap corruption detected at 0x%X; %s %s." % \
-            (oPageHeapManagerData.uCorruptionStartAddress, sOffsetDescription, sHeapBlockDescription);
+            (oPageHeapManagerData.uCorruptionStartAddress, sBlockOffsetDescription, sBlockSizeDescription);
         if oPageHeapManagerData.uCorruptionStartAddress == oPageHeapManagerData.uHeapBlockEndAddress:
           sBugAccessTypeId = "BOF";
           sBugDescription += " This appears to be a classic buffer-overrun vulnerability.";
           sSecurityImpact = "Potentially highly exploitable security issue.";
         else:
           sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled.";
-      sBugTypeId = "".join([
-        sBugAccessTypeId, 
-        sHeapBlockId,
-        sOffsetId,
-        sCorruptionId,
-      ]);
+      sBugTypeId = sBugAccessTypeId +  sBlockSizeId + sCorruptionId;
       if uExpectedCorruptionStartAddress and oSelf.oCdbWrapper.bGenerateReportHTML:
         # Expand memory dump size to include all corrupted memory if needed
         if uExpectedCorruptionStartAddress < uMemoryDumpStartAddress:

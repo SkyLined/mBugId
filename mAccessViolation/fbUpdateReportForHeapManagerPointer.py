@@ -39,11 +39,12 @@ def fbUpdateReportForHeapManagerPointer(
     );
   bOutOfBounds = (uAccessViolationAddress < oHeapManagerData.uHeapBlockStartAddress) \
               or (uAccessViolationAddress >= oHeapManagerData.uHeapBlockEndAddress);
-  (sHeapBlockId, sHeapBlockDescription) = oHeapManagerData.ftsGetHeapBlockIdAndDescription();
-  (sOffsetId, sOffsetDescription) = oHeapManagerData.ftsGetOffsetIdAndDescriptionForAddress(uAccessViolationAddress);
-  
-  oBugReport.sBugDescription = "Access violation while %s %smemory at 0x%X; %s %s." % (sViolationTypeDescription, \
-      oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sOffsetDescription, sHeapBlockDescription);
+  (sBlockSizeId, sBlockOffsetId, sBlockOffsetDescription, sBlockSizeDescription) = \
+      oHeapManagerData.ftsGetIdAndDescriptionForAddress(uAccessViolationAddress);
+  sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
+  sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
+  oBugReport.sBugDescription = "Access violation while %s %smemory at 0x%X; %s." % (sViolationTypeDescription, \
+      oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sBlockOffsetAndSizeDescription);
   sPotentialRisk = {
     "R": "might allow information disclosure and (less likely) arbitrary code execution",
     "W": "indicates arbitrary code execution may be possible",
@@ -110,8 +111,7 @@ def fbUpdateReportForHeapManagerPointer(
               "having triggered an access violation.";
   oBugReport.sBugTypeId = "".join([
     sBugAccessTypeId,
-    sHeapBlockId,
-    sOffsetId,
+    sBlockSizeAndOffsetId,
     sCorruptionId,
   ]);
   # If this was a read AV, the heap manager may have made the memory inaccessible to detect use-after-frees. In this

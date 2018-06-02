@@ -426,8 +426,8 @@ class cPageHeapManagerData(cHeapManagerData):
       oSelf.__fDetectCorruption();
     assert oSelf.bCorruptionDetected, \
         "Cannot get a corruption id if no corruption was detected!";
-    sCorruptionOffsetId, sCorruptionOffsetDescription = \
-        oSelf.ftsGetOffsetIdAndDescriptionForAddress(oSelf.__uCorruptionStartAddress);
+    (sIgnoredSizeId, sCorruptionOffsetId, sCorruptionOffsetDescription, sIgnoredSizeDescription) = \
+        oSelf.ftsGetIdAndDescriptionForAddress(oSelf.__uCorruptionStartAddress);
     # ^^^ sCorruptionOffsetDescription is not used.
     uCorruptionLength = oSelf.__uCorruptionEndAddress - oSelf.__uCorruptionStartAddress;
     sId = "%s~%s" % (sCorruptionOffsetId, fsGetNumberDescription(uCorruptionLength));
