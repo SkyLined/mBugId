@@ -283,6 +283,7 @@ def fTest(
         fOutput("  => %s" % sExpectedBugIdAndLocation);
     fOutput("-" * 80);
   bBugIdStarted = False;
+  bBugIdStopped = False;
   try:
     oBugId = cBugId(
       sCdbISA = sISA, # Debug with a cdb.exe for an ISA that matches the target process.
@@ -327,6 +328,7 @@ def fTest(
     oBugId.fStart();
     bBugIdStarted = True;
     oBugId.fWait();
+    bBugIdStopped = True;
     if gbShowCdbIO: fOutput("= Finished ".ljust(80, "="));
     if gbTestFailed:
       return;
@@ -340,6 +342,8 @@ def fTest(
         uCounter += 1;
         fOutput("  Expected #%d: %s" % (uCounter, sExpectedBugIdAndLocation));
         fOutput("  Reported   : %s" % (oBugReport and "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation)));
+        if oBugReport:
+          fOutput("               %s" % oBugReport.sBugDescription);
     if sExpectedFailedToDebugApplicationErrorMessage:
       pass;
     elif asExpectedBugIdAndLocations is None:
@@ -394,9 +398,8 @@ def fTest(
         );
         fOutput("  Wrote report: %s" % sReportsFilePath);
   except Exception, oException:
-    if bBugIdStarted:
-      oBugId.fStop();
-      oBugId.fWait();
+    if bBugIdStarted and not bBugIdStopped:
+      oBugId.fTerminate();
     fOutput("- Failed test: %s" % sTestDescription);
     fOutput("  Exception:   %s" % repr(oException));
     raise;
