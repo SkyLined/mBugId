@@ -1,3 +1,17 @@
+2018-06-01
+==========
++ cdb.exe ISA (Instruction Set Architecture; x86 or x64) default is now based
+  on the ISA of the Python version BugId is running in. It should ideally be
+  set to the ISA of the processes it is going to be debugging. A warning event
+  is fired when you try to debug an x86 process in x64 cdb.exe as page heap
+  information will be hard or impossible to collect in that case.
++ When !heap does not return data, the code will attempt to find page heap
+  information by reading page heap structures from the virtual memory in which
+  the heap block is stored. This will not work for freed blocks where the
+  virtual memory is already deallocated.
++ Submodule load order is now fixed for better error handling.
++ Minor improvements not worth mentioning.
+
 2018-05-30
 ==========
 Unfortunately, I have not had time to write release notes for all the changes
