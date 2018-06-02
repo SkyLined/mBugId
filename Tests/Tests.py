@@ -285,7 +285,7 @@ def fTest(
   bBugIdStarted = False;
   try:
     oBugId = cBugId(
-      sCdbISA = fsGetPythonISA(),
+      sCdbISA = sISA, # Debug with a cdb.exe for an ISA that matches the target process.
       sApplicationBinaryPath = sApplicationBinaryPath,
       asApplicationArguments = asApplicationArguments,
       asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.

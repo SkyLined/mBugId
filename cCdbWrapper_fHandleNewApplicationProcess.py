@@ -15,6 +15,15 @@ def cCdbWrapper_fHandleNewApplicationProcess(oCdbWrapper, uProcessId):
     oCdbWrapper.auProcessIdsPendingAttach.remove(uProcessId);
   # Create a new process object and make it the current process.
   oProcess = oCdbWrapper.doProcess_by_uId[uProcessId] = cProcess(oCdbWrapper, uProcessId);
+  if oCdbWrapper.sCdbISA != oProcess.sISA:
+    # We assume that the user can specify the ISA of the target application when they start cBugId, so if a main
+    # process is mismatched, this could have been prevented.
+    bPreventable = bIsMainProcess;
+    if not oProcess.oCdbWrapper.fbFireEvent("Cdb ISA not ideal", oProcess, oCdbWrapper.sCdbISA, bPreventable):
+      # This is fatal if it's preventable and there is no callback handler
+      assert not bPreventable, \
+          "Cdb ISA %s is not ideal for debugging %s process %d/0x%X (running %s)." % \
+          (oCdbWrapper.sCdbISA, oProcess.sISA, oProcess.uId, oProcess.uId, oProcess.sBinaryName);
   oCdbWrapper.fSelectProcess(uProcessId);
   
   # If we have a JobObject, add this process to it.

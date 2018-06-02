@@ -58,7 +58,7 @@ guSymbolOptions = sum([
 
 class cCdbWrapper(object):
   def __init__(oCdbWrapper,
-    sCdbISA,                                  # Which version of cdb should be used to debug this application? ("x86" or "x64")
+    sCdbISA, # Which version of cdb should be used to debug this application? ("x86" or "x64")
     sApplicationBinaryPath,
     auApplicationProcessIds,
     sUWPApplicationPackageName,
@@ -126,6 +126,7 @@ class cCdbWrapper(object):
       "License errors": [], # (str[] asErrors)
       "License warnings": [], # (str[] asWarnings)
       "Page heap not enabled": [], # (cProcess oProcess, bool bPreventable)
+      "Cdb ISA not ideal": [], # (cProcess oProcess, str sCdbISA, bool bPreventable)
       "Process attached": [], # (cProcess oProcess)
       "Process started": [], # (mWindowsAPI.cConsoleProcess oConsoleProcess)
       "Process terminated": [], #(cProcess oProcess)

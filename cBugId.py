@@ -52,7 +52,7 @@ sys.path = asOriginalSysPath;
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
-from mWindowsAPI import oSystemInfo, cProcess as cWindowsAPIProcess;
+from mWindowsAPI import oSystemInfo;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
@@ -61,7 +61,7 @@ class cBugId(object):
   dxConfig = dxConfig; # Expose so external scripts can modify
   
   def __init__(oBugId,
-    sCdbISA = None, # Which version of cdb should be used to debug this application?
+    sCdbISA = None, # Which version of cdb should be used to debug this application? Try not to use; could lead to bad bug reports!
     sApplicationBinaryPath = None,
     auApplicationProcessIds = None,
     sUWPApplicationPackageName = None,
@@ -162,6 +162,7 @@ class cBugId(object):
       "Failed to apply application memory limits", # (cProcess oProcess)
       "Failed to apply process memory limits", # (cProcess oProcess)
       "Page heap not enabled", # (cProcess oProcess, bool bPreventable)
+      "Cdb ISA not ideal", # (cProcess oProcess, str sCdbISA, bool bPreventable)
       "Process attached", # (cProcess oProcess)
       "Process terminated", #(cProcess oProcess)
     ]:
