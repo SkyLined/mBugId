@@ -1,6 +1,5 @@
 import datetime, re, time;
 from .cBugReport import cBugReport;
-from .cCdbStoppedException import cCdbStoppedException;
 from .cException import cException;
 from .cProcess import cProcess;
 from .dxConfig import dxConfig;
