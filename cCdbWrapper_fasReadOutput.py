@@ -169,6 +169,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           if gbDebugIO: print "<stdout:EOF<";
           oCdbWrapper.oCdbConsoleProcess.fbWait(5), \
               "Could not wait for cdb.exe to die within 5 seconds!";
+          oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:

@@ -68,6 +68,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       if gbDebugIO: print "\r>stdin:EOF>";
       assert oCdbWrapper.oCdbConsoleProcess.fbWait(), \
           "Could not wait for cdb.exe to terminate";
+      oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;
