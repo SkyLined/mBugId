@@ -9,6 +9,8 @@ aoBugTranslations = [
       [
         "ntdll.dll!DbgBreakPoint",
       ], [
+        "ntdll.dll!KiRaiseUserExceptionDispatcher",
+      ], [
         "ntdll.dll!KiUserExceptionDispatch",
       ], [
         "ntdll.dll!RtlDispatchException",
