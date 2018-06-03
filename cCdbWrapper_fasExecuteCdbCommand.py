@@ -30,9 +30,8 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
-  # Commands can only be executed from within the cCdbWrapper.fCdbStdInOutThread call.
-  assert threading.currentThread() == oCdbWrapper.oCdbStdInOutThread, \
-      "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutThread call.";
+  assert oCdbWrapper.oCdbStdInOutHelperThread.fbIsCurrentThread(), \
+      "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutHelperThread call.";
   if oCdbWrapper.bGenerateReportHTML:
     bAddCommandAndOutputToHTML = dxConfig["bShowAllCdbCommandsInReport"] or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]);
     if bAddCommandAndOutputToHTML:
@@ -68,7 +67,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       if gbDebugIO: print "\r>stdin:EOF>";
       assert oCdbWrapper.oCdbConsoleProcess.fbWait(), \
           "Could not wait for cdb.exe to terminate";
-      oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
+      oCdbWrapper.fbFireEvent("Log message", "Failed to write to cdb.exe stdin");
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;

@@ -1,6 +1,7 @@
 import re;
 from .cCdbStoppedException import cCdbStoppedException;
 from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
+from .cHelperThread import cHelperThread;
 from .dxConfig import dxConfig;
 
 from mFileSystem import mFileSystem;
@@ -76,11 +77,10 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
     oCdbWrapper.oTimeoutAndInterruptLock.acquire();
     try:
       oCdbWrapper.bApplicationIsRunnning = True;
-      oInterruptOnTimeoutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbInterruptOnTimeoutThread);
-      oInterruptOnTimeoutThread.start();
+      oCdbWrapper.oInterruptOnTimeoutHelperThread.fStart();
     finally:
       oCdbWrapper.oTimeoutAndInterruptLock.release();
-  try: # "try:" because the oInterruptOnTimeoutThread thread needs to be stopped in a "finally:" if there is an exception.
+  try: # "try:" because the oInterruptOnTimeoutHelperThread needs to be stopped in a "finally:" if there is an exception.
     while 1:
       sChar = oCdbWrapper.oCdbConsoleProcess.oStdOutPipe.fsReadBytes(1); # return "" if pipe is closed.
       if sChar == "\r":
@@ -167,9 +167,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "":
           oCdbWrapper.bCdbRunning = False;
           if gbDebugIO: print "<stdout:EOF<";
-          oCdbWrapper.oCdbConsoleProcess.fbWait(5), \
-              "Could not wait for cdb.exe to die within 5 seconds!";
-          oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
+          oCdbWrapper.fbFireEvent("Log message", "Failed to read from cdb.exe stdout");
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:
@@ -211,7 +209,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         oCdbWrapper.bApplicationIsRunnning = False;
       finally:
         oCdbWrapper.oTimeoutAndInterruptLock.release();
-      oInterruptOnTimeoutThread.join();
+      oCdbWrapper.oInterruptOnTimeoutHelperThread.fWait();
   if bIgnoreOutput:
     return None;
   del asLines;

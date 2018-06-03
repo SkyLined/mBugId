@@ -1,4 +1,5 @@
 from mWindowsAPI import cConsoleProcess, fsGetProcessISAForId, fStopDebuggingProcessForId;
+from .cHelperThread import cHelperThread
 
 def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
   oCdbWrapper.fbFireEvent("Log message", "Starting application", {
@@ -40,8 +41,13 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
   # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
   # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
   # after the process terminates, or this cdb stdio thread dies.
-  oCdbWrapper.foHelperThread(oCdbWrapper.fApplicationStdOutOrErrThread, oConsoleProcess, oConsoleProcess.oStdOutPipe).start();
-  oCdbWrapper.foHelperThread(oCdbWrapper.fApplicationStdOutOrErrThread, oConsoleProcess, oConsoleProcess.oStdErrPipe).start();
+  for (sPipeName, oPipe) in {
+    "stdout": oConsoleProcess.oStdOutPipe,
+    "stderr": oConsoleProcess.oStdErrPipe,
+  }.items():
+    sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
+    oHelperThread = cHelperThread(oCdbWrapper, sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe);
+    oHelperThread.fStart();
   oCdbWrapper.doConsoleProcess_by_uId[oConsoleProcess.uId] = oConsoleProcess;
   oCdbWrapper.fAttachToProcessForId(oConsoleProcess.uId, bMustBeResumed = True);
   return oConsoleProcess;

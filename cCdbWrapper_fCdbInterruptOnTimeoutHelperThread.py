@@ -1,7 +1,7 @@
 import time;
 from .dxConfig import dxConfig;
 
-def cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper):
+def cCdbWrapper_fCdbInterruptOnTimeoutHelperThread(oCdbWrapper):
   # Thread that checks if a timeout has fired every N seconds (N = nTimeoutInterruptGranularity in dxConfig.py).
   while 1:
     oCdbWrapper.oTimeoutAndInterruptLock.acquire();

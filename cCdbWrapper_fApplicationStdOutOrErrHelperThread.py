@@ -2,7 +2,7 @@ from .dxConfig import dxConfig;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
-def cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWrapper, oConsoleProcess, oStdOutOrErrPipe):
+def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess, oStdOutOrErrPipe):
   uProcessId = oConsoleProcess.uId;
   sEventName = {
     "StdOut": "Application stdout output",

@@ -3,9 +3,9 @@ from .cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminat
 from .cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 from mWindowsAPI import *;
 
-def cCdbWrapper_fCleanupThread(oCdbWrapper):
+def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
   # wait for debugger thread to terminate.
-  oCdbWrapper.oCdbStdInOutThread.join();
+  oCdbWrapper.oCdbStdInOutHelperThread.fWait();
   oCdbWrapper.fbFireEvent("Log message", "cdb stdin/out closed");
   if not oCdbWrapper.bCdbWasTerminatedOnPurpose:
     if not oCdbWrapper.oCdbConsoleProcess.bIsRunning:
@@ -17,32 +17,30 @@ def cCdbWrapper_fCleanupThread(oCdbWrapper):
     else:
       oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
   # wait for stderr thread to terminate.
-  oCdbWrapper.oCdbStdErrThread.join();
+  oCdbWrapper.oCdbStdErrHelperThread.fWait();
   oCdbWrapper.fbFireEvent("Log message", "cdb stderr closed");
   if oCdbWrapper.bCdbWasTerminatedOnPurpose:
     # Wait for cdb.exe to terminate
     oCdbWrapper.oCdbConsoleProcess.fbWait();
     oCdbWrapper.fbFireEvent("Log message", "cdb.exe terminated");
   # Wait for all other threads to terminate
-  oCurrentThread = threading.currentThread();
-  while len(oCdbWrapper.adxThreads) > 1:
-    for dxThread in oCdbWrapper.adxThreads:
-      oThread = dxThread["oThread"];
-      if oThread != oCurrentThread:
-        # There is no timeout on this join, so we may hang forever. To be able to analyze such a bug, we will log the
-        # details of the thread we are waiting on here:
-        oCdbWrapper.fbFireEvent("Log message", "Waiting for thread %d %s(%s)" % \
-            (oThread.ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]])));
-        oThread.join();
-        break;
-  assert len(oCdbWrapper.adxThreads) == 1, \
-    "Expected only cleanup thread to remain, got %d threads" % len(oCdbWrapper.adxThreads);
-  dxLastThread = oCdbWrapper.adxThreads[0];
-  assert dxLastThread["oThread"] == oCurrentThread, \
-      "Expected last thread to be cleanup thread (%d), got thread %d %s(%s)" % \
-      (oCurrentThread.ident, dxLastThread["oThread"].ident, repr(dxLastThread["fActivity"]), \
-      ", ".join([repr(xArgument) for xArgument in dxLastThread["axActivityArguments"]]));
-  
+  while len(oCdbWrapper.aoActiveHelperThreads) > 1:
+    for oHelperThread in oCdbWrapper.aoActiveHelperThreads:
+      if oHelperThread == oCdbWrapper.oCleanupHelperThread: continue;
+      # There is no timeout on this join, so we may hang forever. To be able to analyze such a bug, we will log the
+      # details of the thread we are waiting on here:
+      oCdbWrapper.fbFireEvent("Log message", "Waiting for thread", {
+        "Thread": str(oHelperThread),
+      });
+      oHelperThread.fWait();
+      # The list may have been changed while we waited, so start again.
+      break;
+  assert (
+    len(oCdbWrapper.aoActiveHelperThreads) == 1 \
+    and oCdbWrapper.aoActiveHelperThreads[0] == oCdbWrapper.oCleanupHelperThread
+  ), \
+      "Expected only cleanup helper thread to remain, got %s" % \
+      ", ".join([str(oHelperThread) for oHelperThread in oCdbWrapper.aoActiveHelperThreads]);
   # Report that we're finished.
   oCdbWrapper.fbFireEvent("Log message", "Finished");
   oCdbWrapper.fbFireEvent("Finished");

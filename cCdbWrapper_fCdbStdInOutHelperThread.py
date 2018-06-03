@@ -33,7 +33,7 @@ def fnGetDebuggerTime(sDebuggerTime):
   );
   return (oDateTime - datetime.datetime(1976,8,28)).total_seconds();
 
-def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
+def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
   # Create a job object to limit memory use if requested:
   if oCdbWrapper.uProcessMaxMemoryUse is not None or oCdbWrapper.uTotalMaxMemoryUse is not None:
     oCdbWrapper.oJobObject = cJobObject();
@@ -380,9 +380,18 @@ def cCdbWrapper_fCdbStdInOutThread(oCdbWrapper):
     ### Handle hit breakpoint ########################################################################################
     if uBreakpointId is not None:
       oCdbWrapper.fbFireEvent("Application suspended", "Breakpoint hit");
-      # A breakpoint was hit; fire the callback
+      # A breakpoint was hit; sanity checks, log message and fire the callback
+      uCurrentProcessId = oCdbWrapper.oCdbCurrentProcess.uId;
+      uExpectedProcessId = oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId];
+      assert uCurrentProcessId == uExpectedProcessId, \
+          "Breakpoint #%d was set in process %d/0x%X but reported to have been hit in process %d/0x%X" % \
+          (uBreakpointId, uExpectedProcessId, uExpectedProcessId, uCurrentProcessId, uCurrentProcessId);
+      uBreakpointAddress = oCdbWrapper.duAddress_by_uBreakpointId[uBreakpointId];
+      # We could sanity check the breakpoint address matched current eip/rip, but I don't have time to implement it and
+      # it would slow things down a bit.
       oCdbWrapper.fbFireEvent("Log message", "Breakpoint hit", {
         "Breakpoint id": "%d" % uBreakpointId,
+        "Address": "0x%X" % uBreakpointAddress,
       });
       fBreakpointCallback = oCdbWrapper.dfCallback_by_uBreakpointId[uBreakpointId];
       fBreakpointCallback(uBreakpointId);

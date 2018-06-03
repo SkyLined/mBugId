@@ -1,15 +1,15 @@
 import itertools, json, os, re, subprocess, sys, thread, threading, time;
 from .cASanErrorDetector import cASanErrorDetector;
 from .cCdbStoppedException import cCdbStoppedException;
-from .cCdbWrapper_fApplicationStdOutOrErrThread import cCdbWrapper_fApplicationStdOutOrErrThread;
+from .cCdbWrapper_fApplicationStdOutOrErrHelperThread import cCdbWrapper_fApplicationStdOutOrErrHelperThread;
 from .cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from .cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from .cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
 from .cCdbWrapper_fAttachToProcessForId import cCdbWrapper_fAttachToProcessForId;
-from .cCdbWrapper_fCleanupThread import cCdbWrapper_fCleanupThread;
-from .cCdbWrapper_fCdbInterruptOnTimeoutThread import cCdbWrapper_fCdbInterruptOnTimeoutThread;
-from .cCdbWrapper_fCdbStdErrThread import cCdbWrapper_fCdbStdErrThread;
-from .cCdbWrapper_fCdbStdInOutThread import cCdbWrapper_fCdbStdInOutThread;
+from .cCdbWrapper_fCleanupHelperThread import cCdbWrapper_fCleanupHelperThread;
+from .cCdbWrapper_fCdbInterruptOnTimeoutHelperThread import cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
+from .cCdbWrapper_fCdbStdErrHelperThread import cCdbWrapper_fCdbStdErrHelperThread;
+from .cCdbWrapper_fCdbStdInOutHelperThread import cCdbWrapper_fCdbStdInOutHelperThread;
 from .cCdbWrapper_fHandleApplicationProcessTermination import cCdbWrapper_fHandleApplicationProcessTermination;
 from .cCdbWrapper_fHandleNewApplicationProcess import cCdbWrapper_fHandleNewApplicationProcess;
 from .cCdbWrapper_fHandleNewUtilityProcess import cCdbWrapper_fHandleNewUtilityProcess;
@@ -26,6 +26,7 @@ from .cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointFo
 from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
 from .cCollateralBugHandler import cCollateralBugHandler;
 from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
+from .cHelperThread import cHelperThread;
 from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
@@ -134,7 +135,7 @@ class cCdbWrapper(object):
 
   
     # This is where we keep track of the threads that are executing (for debug purposes):
-    oCdbWrapper.adxThreads = [];
+    oCdbWrapper.aoActiveHelperThreads = [];
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
@@ -215,11 +216,13 @@ class cCdbWrapper(object):
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
     # Create a thread that interacts with the debugger to debug the application
-    oCdbWrapper.oCdbStdInOutThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdInOutThread, bVital = True);
+    oCdbWrapper.oCdbStdInOutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe stdin/out thread", oCdbWrapper.fCdbStdInOutHelperThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
-    oCdbWrapper.oCdbStdErrThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCdbStdErrThread, bVital = True);
+    oCdbWrapper.oCdbStdErrHelperThread = cHelperThread(oCdbWrapper, "cdb.exe stderr thread", oCdbWrapper.fCdbStdErrHelperThread, bVital = True);
     # Create a thread that waits for the debugger to terminate and cleans up after it.
-    oCdbWrapper.oCleanupThread = oCdbWrapper.foHelperThread(oCdbWrapper.fCleanupThread, bVital = True);
+    oCdbWrapper.oCleanupHelperThread = cHelperThread(oCdbWrapper, "cleanup thread", oCdbWrapper.fCleanupHelperThread, bVital = True);
+    # Create a thread that waits for a certain amount of time while cdb is running and then interrupts it.
+    oCdbWrapper.oInterruptOnTimeoutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe interrupt on timeout thread", oCdbWrapper.fCdbInterruptOnTimeoutHelperThread);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application.
     oCdbWrapper.uUtilityProcessId = None;
@@ -257,9 +260,9 @@ class cCdbWrapper(object):
       sBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe"),
       asArguments = asArguments,
     );
-    oCdbWrapper.oCdbStdInOutThread.start();
-    oCdbWrapper.oCdbStdErrThread.start();
-    oCdbWrapper.oCleanupThread.start();
+    oCdbWrapper.oCdbStdInOutHelperThread.fStart();
+    oCdbWrapper.oCdbStdErrHelperThread.fStart();
+    oCdbWrapper.oCleanupHelperThread.fStart();
     # If we need to start a binary for this application, do so:
     if oCdbWrapper.sApplicationBinaryPath:
       oMainConsoleProcess = oCdbWrapper.foStartApplicationProcess(
@@ -304,53 +307,6 @@ class cCdbWrapper(object):
       assert not oCdbConsoleProcess or not oCdbConsoleProcess.bRunning, \
           "cCdbWrapper is being destroyed while cdb.exe is still running.";
   
-  # Create helper thread
-  def foHelperThread(oCdbWrapper, fActivity, *axActivityArguments, **dxFlags):
-    for sFlag in dxFlags:
-      assert sFlag in ["bVital"], \
-          "Unknown flag %s" % sFlag;
-    bVital = dxFlags.get("bVital", False);
-    dxThread = {"fActivity": fActivity, "oThread": None, "bStarted": False, "axActivityArguments": axActivityArguments}; 
-    def fThreadWrapper():
-      dxThread["bStarted"] = True;
-      try:
-        try:
-          fActivity(*axActivityArguments);
-        except cCdbStoppedException as oCdbStoppedException:
-          # There is only one type of exception that is expected which is raised in the cdb stdin/out thread when cdb has
-          # terminated. This exception is only used to terminate that thread and should be caught and handled here, to
-          # prevent it from being reported as an (unexpected) internal exception.
-          pass;
-        except Exception, oException:
-          cException, oException, oTraceBack = sys.exc_info();
-          if not oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
-            oCdbWrapper.fTerminate();
-            raise;
-      finally:
-        try:
-          if bVital and oCdbWrapper.bCdbRunning:
-            if oCdbWrapper.oCdbConsoleProcess and oCdbWrapper.oCdbConsoleProcess.bIsRunning:
-              # A vital thread terminated and cdb is still running: terminate cdb
-              oCdbWrapper.oCdbConsoleProcess.fbTerminate()
-              assert not oCdbWrapper.oCdbConsoleProcess.bIsRunning, \
-                  "Could not terminate cdb";
-            oCdbWrapper.bCdbRunning = False;
-        finally:
-          oCdbWrapper.adxThreads.remove(dxThread);
-    try:
-      oThread = threading.Thread(target = fThreadWrapper);
-    except thread.error as oException:
-      # We cannot create another thread. The most obvious reason for this error is that there are too many threads
-      # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
-      # running threads, so we might detect any threads that should have terminated but haven't.
-      print "Threads:";
-      for dxThread in oCdbWrapper.adxThreads:
-        print "%04d %s(%s)" % (dxThread["oThread"].ident, repr(dxThread["fActivity"]), ", ".join([repr(xArgument) for xArgument in dxThread["axActivityArguments"]]));
-      raise;
-    dxThread["oThread"] = oThread; 
-    oCdbWrapper.adxThreads.append(dxThread);
-    return oThread;
-  
   # Select process/thread
   def fSelectProcess(oCdbWrapper, uProcessId):
     return oCdbWrapper.fSelectProcessAndThread(uProcessId = uProcessId);
@@ -391,8 +347,8 @@ class cCdbWrapper(object):
     cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, 0, fCallback, *axCallbackArguments);
   def fClearTimeout(oCdbWrapper, oTimeout):
     return cCdbWrapper_fClearTimeout(oCdbWrapper, oTimeout);
-  def fCdbInterruptOnTimeoutThread(oCdbWrapper):
-    return cCdbWrapper_fCdbInterruptOnTimeoutThread(oCdbWrapper);
+  def fCdbInterruptOnTimeoutHelperThread(oCdbWrapper):
+    return cCdbWrapper_fCdbInterruptOnTimeoutHelperThread(oCdbWrapper);
   def fRunTimeoutCallbacks(oCdbWrapper):
     cCdbWrapper_fRunTimeoutCallbacks(oCdbWrapper);
   
@@ -409,14 +365,14 @@ class cCdbWrapper(object):
     return cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper);
   
   # stdin/out/err handling threads
-  def fCdbStdInOutThread(oCdbWrapper):
-    return cCdbWrapper_fCdbStdInOutThread(oCdbWrapper);
-  def fCdbStdErrThread(oCdbWrapper):
-    return cCdbWrapper_fCdbStdErrThread(oCdbWrapper);
-  def fCleanupThread(oCdbWrapper):
-    return cCdbWrapper_fCleanupThread(oCdbWrapper);
-  def fApplicationStdOutOrErrThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe):
-    return cCdbWrapper_fApplicationStdOutOrErrThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe);
+  def fCdbStdInOutHelperThread(oCdbWrapper):
+    return cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper);
+  def fCdbStdErrHelperThread(oCdbWrapper):
+    return cCdbWrapper_fCdbStdErrHelperThread(oCdbWrapper);
+  def fCleanupHelperThread(oCdbWrapper):
+    return cCdbWrapper_fCleanupHelperThread(oCdbWrapper);
+  def fApplicationStdOutOrErrHelperThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe):
+    return cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWraper, oConsoleProcess, oStdOutOrErrPipe);
   
   # Event handling
   def fAddEventCallback(oCdbWrapper, sEventName, fCallback):
