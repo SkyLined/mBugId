@@ -5,12 +5,12 @@ from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 aoBugTranslations = [
   # C++ -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = "C++",
+    sOriginalBugTypeId = re.compile(r"C\+\+(\:.+)?"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "kernelbase.dll!RaiseException",
       ], [
-        "*!_CxxThrowException",
+        re.compile(r".*!_?CxxThrowException"),
       ],
     ],
   ),
@@ -28,15 +28,6 @@ aoBugTranslations = [
   cBugTranslation(
     sOriginalBugTypeId = "C++:std::bad_alloc",
     asOriginalTopStackFrameSymbols = [],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "kernelbase.dll!RaiseException",
-      ], [
-        "*!_CxxThrowException",
-      ], [
-        "*!__scrt_throw_std_bad_alloc",
-      ],
-    ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application triggered a C++ std::bad_alloc exception to indicate it was unable to allocate enough memory.",
     sTranslatedSecurityImpact = None,
@@ -79,19 +70,23 @@ aoBugTranslations = [
       ], [
         re.compile(r".*!operator (delete|new(\[\])?)"),
       ], [
+        "*!__scrt_throw_std_bad_alloc",
+      ], [
         re.compile(r".*!str(n?cat|r?chr|n?cmp|n?cpy|len|str)"),
       ], [
         "*!std::_Allocate",
       ], [
         "*!std::allocator<...>::allocate",
       ], [
-        re.compile(r".*!std::basic_string<...>::(_Copy|_Grow|assign|basic_string<...>)"),
+        re.compile(r".*!std::basic_string<...>::(_Construct_lv_contents|_Copy|_Grow|assign|basic_string<...>)"),
       ], [
         re.compile(r".*!std::_Tree_comp_alloc<...>::(_Buyheadnode|_Construct|\{ctor\})"),
       ], [
         re.compile(r".*!std::vector<...>::(_Reallocate|_Reserve|resize)"),
       ], [
         "*!std::_Wrap_alloc<...>::allocate",
+      ], [
+        "*!std::_Xbad_alloc",
       ],
     ],
   ),
