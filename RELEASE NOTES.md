@@ -1,3 +1,16 @@
+2018-06-02
+==========
++ The way different threads are created and maintained in cBugId has been
+  updated. This makes the code cleaner but most importantly, it appears to fix
+  a bug where cBugId would hang after analysis was completed, and cdb.exe
+  terminated. I suspected the root cause was calling `theading::Thread.join()`
+  because it did not always return when a thread terminated. Since this was
+  used by the cleanup thread to wait for the end of analysis when cdb.exe dies,
+  it would explain the issue. I've replaced this code with code that waits for
+  a `threading::Lock` that is released when the thread dies and it appears to
+  have resolved the issue. It might point to a bug in Python, but I do not have
+  time to try to prove this was the case - I'm just happen the bug is gone.
+
 2018-06-01
 ==========
 + cdb.exe ISA (Instruction Set Architecture; x86 or x64) default is now based
