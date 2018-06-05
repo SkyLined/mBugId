@@ -1,3 +1,9 @@
+2018-06-05
+==========
++ C++ bug translations, specifically OOM exceptions have been improved.
++ "STATUS_INVALID_HANDLE" exceptions are now reported as "InvalidHandle" in
+  bug ids.
+
 2018-06-02
 ==========
 + The way different threads are created and maintained in cBugId has been
