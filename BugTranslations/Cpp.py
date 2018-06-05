@@ -78,11 +78,15 @@ aoBugTranslations = [
       ], [
         "*!std::allocator<...>::allocate",
       ], [
-        re.compile(r".*!std::basic_string<...>::(_Construct_lv_contents|_Copy|_Grow|assign|basic_string<...>)"),
+        re.compile(r".*!std::basic_string<...>::(%s)" % "|".join([
+          "assign", "basic_string<...>", "_Construct_lv_contents", "_Copy", "_Grow", "operator=",
+        ])),
       ], [
         re.compile(r".*!std::_Tree_comp_alloc<...>::(_Buyheadnode|_Construct|\{ctor\})"),
       ], [
-        re.compile(r".*!std::vector<...>::(_Reallocate|_Reserve|resize)"),
+        re.compile(r".*!std::vector<...>::(%s)" % "|".join([
+          "_Buy", "_Range_construct_or_tidy", "_Reallocate", "_Reserve", "resize", "vector<...>",
+        ])),
       ], [
         "*!std::_Wrap_alloc<...>::allocate",
       ], [
