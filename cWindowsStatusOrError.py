@@ -3233,7 +3233,8 @@ fAddStatusCodeOrError("STATUS_ACCESS_VIOLATION",                                
                                                                                 sSecurityImpact = "May be a security issue");
 fAddStatusCodeOrError("STATUS_IN_PAGE_ERROR",                                   sDescription = "The instruction at 0x%08lx referenced memory at 0x%08lx. The required data was not placed into memory because of an I/O error status of 0x%08lx.");
 fAddStatusCodeOrError("STATUS_PAGEFILE_QUOTA",                                  sDescription = "The page file quota for the process has been exhausted.");
-fAddStatusCodeOrError("STATUS_INVALID_HANDLE",                                  sDescription = "An invalid HANDLE was specified.");
+fAddStatusCodeOrError("STATUS_INVALID_HANDLE",                                  sDescription = "An invalid HANDLE was specified.",
+                                                                                sTypeId = "InvalidHandle");
 fAddStatusCodeOrError("STATUS_BAD_INITIAL_STACK",                               sDescription = "An invalid initial stack was specified in a call to NtCreateThread.");
 fAddStatusCodeOrError("STATUS_BAD_INITIAL_PC",                                  sDescription = "An invalid initial start address was specified in a call to NtCreateThread.");
 fAddStatusCodeOrError("STATUS_INVALID_CID",                                     sDescription = "An invalid client ID was specified.");
