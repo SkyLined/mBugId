@@ -253,7 +253,7 @@ def fTest(
     oBugId.fStop();
   def fPageHeapNotEnabledCallback(oBugId, oProcess, bIsMainProcess, bPreventable):
     assert oProcess.sBinaryName == "cmd.exe", \
-        "It appears you have not enabled page heap for %s, which is required to run tests." % sBinaryName;
+        "It appears you have not enabled page heap for %s, which is required to run tests." % oProcess.sBinaryName;
   def fProcessAttachedCallback(oBugId, oProcess, bIsMainProcess):
     asLog.append("%s process %d/0x%X (%s): attached." % (bIsMainProcess and "Main" or "Sub", \
         oProcess.uId, oProcess.uId, oProcess.sBinaryName));
