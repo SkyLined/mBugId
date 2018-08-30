@@ -60,6 +60,11 @@ class cBugId(object):
   sOSISA = oSystemInfo.sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
   
+  @classmethod
+  def fbCdbFound(oSelf, sCdbISA):
+    # Returns True if cdb.exe is found in the path to the Debugging Tools for Windows as specified in dxConfig.
+    return os.path.isfile(os.path.join(dxConfig["sDebuggingToolsPath_%s" % sCdbISA], "cdb.exe"));
+  
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application? Try not to use; could lead to bad bug reports!
     sApplicationBinaryPath = None,
