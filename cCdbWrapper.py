@@ -138,7 +138,11 @@ class cCdbWrapper(object):
     oCdbWrapper.aoActiveHelperThreads = [];
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
-    assert oCdbWrapper.sDebuggingToolsPath, "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
+    assert oCdbWrapper.sDebuggingToolsPath, \
+        "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
+    assert os.path.isdir(oCdbWrapper.sDebuggingToolsPath), \
+        "%s Debugging Tools for Windows path %s not found" % (oCdbWrapper.sCdbISA, oCdbWrapper.sDebuggingToolsPath);
+    
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.doConsoleProcess_by_uId = {};
     oCdbWrapper.oCdbCurrentProcess = None; # The current process id in cdb's context
@@ -183,7 +187,6 @@ class cCdbWrapper(object):
     oCdbWrapper.nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
-    oCdbWrapper.oCdbConsoleProcess = None;
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     
@@ -256,10 +259,15 @@ class cCdbWrapper(object):
     ] or []) + [
       os.getenv("ComSpec"), "/K", "ECHO OFF", 
     ];
+    sCdbBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe");
+    assert os.path.isfile(sCdbBinaryPath), \
+        "%s Debugging Tools for Windows cdb.exe file %s not found" % (oCdbWrapper.sCdbISA, sCdbBinaryPath);
     oCdbWrapper.oCdbConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
-      sBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe"),
+      sBinaryPath = sCdbBinaryPath,
       asArguments = asArguments,
     );
+    assert oCdbWrapper.oCdbConsoleProcess, \
+        "Cannot find %s!" % sCdbBinaryPath;
     oCdbWrapper.oCdbStdInOutHelperThread.fStart();
     oCdbWrapper.oCdbStdErrHelperThread.fStart();
     oCdbWrapper.oCleanupHelperThread.fStart();
