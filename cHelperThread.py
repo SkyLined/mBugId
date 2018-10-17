@@ -17,8 +17,9 @@ class cHelperThread(object):
     oSelf.__oWaitLock = threading.Lock();
     
   def __str__(oSelf):
-    sId = "#%d" % oSelf.__oThread.ident if oSelf.__oThread else "not started";
-    return "Thread %s [%s] %s(%s)" % (sId, oSelf.sName, repr(oSelf.__fActivity), ", ".join([repr(xArgument) for xArgument in oSelf.__axActivityArguments]));
+    uThreadId = oSelf.uId;
+    sThreadId = ("#%d" % uThreadId) if uThreadId else "not started";
+    return "Thread %s [%s] %s(%s)" % (sThreadId, oSelf.sName, repr(oSelf.__fActivity), ", ".join([repr(xArgument) for xArgument in oSelf.__axActivityArguments]));
   
   @property
   def bRunning(oSelf):
