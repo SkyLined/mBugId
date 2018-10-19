@@ -33,14 +33,15 @@ class cModule(object):
         sComment = "Load symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
         bRetryOnTruncatedOutput = True,
       );
-      assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
-          "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
-      # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
-      # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
-      oModule.__fGetModuleSymbolAndVersionInformation();
-      assert oModule.__sSymbolStatus != "deferred", \
-          "Symbols are still reported as deferred after attempting to load them";
-      if oModule.__sSymbolStatus in ["export symbols", "no symbols"]:
+      if asLoadSymbolsOutput != ["Symbol loaded for %s failed" % oModule.sCdbId]:
+        assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
+            "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
+        # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
+        # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
+        oModule.__fGetModuleSymbolAndVersionInformation();
+        assert oModule.__sSymbolStatus != "deferred", \
+            "Symbols are still reported as deferred after attempting to load them";
+      if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
         # Loading the symbols failed; force reload the module and overwriting any cached pdbs.
         asIgnoredReloadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
           sCommand = "!sym noisy; .block {.reload /f /o /v %s;}; !sym quiet;" % oModule.__sBinaryName,
@@ -48,7 +49,7 @@ class cModule(object):
           bRetryOnTruncatedOutput = True,
         );
         oModule.__fGetModuleSymbolAndVersionInformation();
-        if oModule.__sSymbolStatus in ["export symbols", "no symbols"]:
+        if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
           # We cannot load symbols for this module for some reason.
           oModule.__bSymbolLoadingFailed = True;
     return {
