@@ -65,7 +65,7 @@ class cBugId(object):
     # Returns True if cdb.exe is found in the path to the Debugging Tools for Windows as specified in dxConfig.
     return (
       dxConfig["sDebuggingToolsPath_%s" % sCdbISA]
-      and os.path.isfile(os.path.join(dxConfig["sDebuggingToolsPath_%s" % sCdbISA], "cdb.exe")
+      and os.path.isfile(os.path.join(dxConfig["sDebuggingToolsPath_%s" % sCdbISA], "cdb.exe"))
     );
   
   def __init__(oBugId,
