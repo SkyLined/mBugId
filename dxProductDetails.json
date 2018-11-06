@@ -1,6 +1,8 @@
 {
   "asDependentOnProductNames": [
+    "mDebugOuput"
     "mFileSystem", 
+    "mMultiThreading", 
     "mProductDetails", 
     "mWindowsAPI"
   ], 
