@@ -66,9 +66,9 @@ dfoAnalyzeException_by_uExceptionCode = {
   WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
 class cBugReport(object):
-  def __init__(oBugReport, oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
+  def __init__(oBugReport, oProcess, oWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact, uStackFramesCount):
     oBugReport.__oProcess = oProcess;
-    oBugReport.__oThread = oThread;
+    oBugReport.__oWindowsAPIThread = oWindowsAPIThread;
     oBugReport.sBugTypeId = sBugTypeId;
     oBugReport.sBugDescription = sBugDescription;
     oBugReport.sSecurityImpact = sSecurityImpact;
@@ -89,7 +89,7 @@ class cBugReport(object):
   @property
   def oStack(oBugReport):
     if oBugReport.__oStack is None:
-      oBugReport.__oStack = cStack.foCreate(oBugReport.__oProcess, oBugReport.__oThread, oBugReport.uStackFramesCount);
+      oBugReport.__oStack = cStack.foCreate(oBugReport.__oProcess, oBugReport.__oWindowsAPIThread, oBugReport.uStackFramesCount);
     return oBugReport.__oStack;
   
   def fAddMemoryDump(oBugReport, uStartAddress, uEndAddress, sDescription):
@@ -103,7 +103,7 @@ class cBugReport(object):
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
-  def foCreateForException(cBugReport, oProcess, oThread, oException):
+  def foCreateForException(cBugReport, oProcess, oWindowsAPIThread, oException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if oException.uCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
@@ -112,7 +112,7 @@ class cBugReport(object):
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oProcess,
-      oThread = oThread,
+      oWindowsAPIThread = oWindowsAPIThread,
       sBugTypeId = oException.sTypeId,
       sBugDescription = oException.sDescription,
       sSecurityImpact = oException.sSecurityImpact,
@@ -125,7 +125,7 @@ class cBugReport(object):
       return None;
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
-      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oThread, oException);
+      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oWindowsAPIThread, oException);
       if oBugReport is None:
         return None;
       # Apply another round of translations
@@ -135,12 +135,12 @@ class cBugReport(object):
     return oBugReport;
   
   @classmethod
-  def foCreate(cBugReport, oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact):
+  def foCreate(cBugReport, oProcess, oWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oProcess = oProcess,
-      oThread = oThread,
+      oWindowsAPIThread = oWindowsAPIThread,
       sBugTypeId = sBugTypeId,
       sBugDescription = sBugDescription,
       sSecurityImpact = sSecurityImpact,
@@ -160,8 +160,8 @@ class cBugReport(object):
     # outside.
     oProcess = oBugReport.__oProcess;
     del oBugReport.__oProcess;
-    oThread = oBugReport.__oThread;
-    del oBugReport.__oThread;
+    oWindowsAPIThread = oBugReport.__oWindowsAPIThread;
+    del oBugReport.__oWindowsAPIThread;
     oStack = oBugReport.__oStack;
     del oBugReport.__oStack;
     # Calculate sStackId, determine sBugLocation and optionally create and return sStackHTML.
@@ -216,7 +216,7 @@ class cBugReport(object):
       
       if oBugReport.bRegistersRelevant:
         # Create and add registers block
-        duRegisterValue_by_sName = oThread.fduGetRegisterValueByName();
+        duRegisterValue_by_sName = oWindowsAPIThread.fduGetRegisterValueByName();
         uPadding = 3 + 3 + ({"x86":8, "x64": 16}[oProcess.sISA]);
         asRegistersHTML = [];
         for asRegisterNamesAndPadding in gaasRelevantRegisterNamesAndPadding_by_sISA[oProcess.sISA]:

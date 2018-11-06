@@ -10,7 +10,7 @@ from mWindowsAPI.mTypes import \
     STOWED_EXCEPTION_INFORMATION_HEADER, \
     STOWED_EXCEPTION_INFORMATION_V1_32, STOWED_EXCEPTION_INFORMATION_V1_64, \
     STOWED_EXCEPTION_INFORMATION_V2_32, STOWED_EXCEPTION_INFORMATION_V2_64;
-from mWindowsAPI.mFunctions import SIZEOF, POINTER_VALUE;
+from mWindowsAPI.mFunctions import fuSizeOf, fuPointerValue;
 from mWindowsAPI import cVirtualAllocation;
 
 def fsSignature(uSignature):
@@ -98,9 +98,9 @@ class cStowedException(object):
         "x86": STOWED_EXCEPTION_INFORMATION_V2_32,
         "x64": STOWED_EXCEPTION_INFORMATION_V2_64,
       }[oProcess.sISA];
-    assert oStowedExceptionInformationHeader.Size == SIZEOF(cStowedExceptionInformation), \
+    assert oStowedExceptionInformationHeader.Size == fuSizeOf(cStowedExceptionInformation), \
         "STOWED_EXCEPTION_INFORMATION structure is 0x%X bytes, but 0x%X was expected!?" % \
-        (oStowedExceptionInformationHeader.Size, SIZEOF(cStowedExceptionInformation));
+        (oStowedExceptionInformationHeader.Size, fuSizeOf(cStowedExceptionInformation));
     oStowedExceptionInformation = oProcess.foReadStructureForAddress(
       cStructure = cStowedExceptionInformation,
       uAddress = uStowedExceptionInformationAddress,
@@ -115,7 +115,7 @@ class cStowedException(object):
       oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE
       and oStowedExceptionInformation.NestedExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
     ):
-      uNestedExceptionAddress = POINTER_VALUE(oStowedExceptionInformation.NestedException);
+      uNestedExceptionAddress = fuPointerValue(oStowedExceptionInformation.NestedException);
       if oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
         sNestedExceptionTypeId = "Win32";
         oNestedException = cException.foCreateFromMemory(

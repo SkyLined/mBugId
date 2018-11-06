@@ -8,14 +8,10 @@ def cCdbWrapper_fRunTimeoutCallbacks(oCdbWrapper):
     # Timeouts can create new timeouts, which may need to fire immediately, so this is run in a loop until no more
     # timeouts need to be fired.
     aoTimeoutsToFire = [];
-    oCdbWrapper.oTimeoutAndInterruptLock.acquire();
-    try:
-      for oTimeout in oCdbWrapper.aoTimeouts[:]:
-        if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
-          oCdbWrapper.aoTimeouts.remove(oTimeout);
-          aoTimeoutsToFire.append(oTimeout);
-    finally:
-      oCdbWrapper.oTimeoutAndInterruptLock.release();
+    for oTimeout in oCdbWrapper.aoTimeouts[:]:
+      if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
+        oCdbWrapper.aoTimeouts.remove(oTimeout);
+        aoTimeoutsToFire.append(oTimeout);
     if not aoTimeoutsToFire:
       return;
     for oTimeoutToFire in aoTimeoutsToFire:

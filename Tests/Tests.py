@@ -11,9 +11,15 @@ sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
 asOriginalModuleNames = sys.modules.keys();
 
 import cBugId, mFileSystem, mWindowsAPI;
+from mDebugOutput import fShowFileDebugOutputForClass;
+from mMultiThreading import cLock, cThread, cWithCallbacks;
 
 # Restore the search path
 sys.path = asOriginalSysPath;
+
+#fShowFileDebugOutputForClass(cLock);
+#fShowFileDebugOutputForClass(cThread);
+#fShowFileDebugOutputForClass(cWithCallbacks);
 
 # Sub-packages should load all modules relative, or they will end up in the global namespace, which means they may get
 # loaded by the script importing it if it tries to load a differnt module with the same name. Obviously, that script
@@ -24,11 +30,11 @@ for sModuleName in sys.modules.keys():
     or sModuleName.lstrip("_").split(".", 1)[0] in [
       "cBugId", # This was loaded as part of the cBugId package
       # These packages are loaded by cBugId:
-      "mWindowsAPI", "mFileSystem", "mProductDetails",
+      "mWindowsAPI", "mDebugOutput", "mMultiThreading", "mFileSystem", "mProductDetails", "oConsole",
       # These built-in modules are loaded by these packages:
       "base64", "binascii", "bz2", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc",
       "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess",
-      "textwrap", "urllib", "urlparse", "uuid", "winreg", "zlib",
+      "textwrap", "Queue", "urllib", "urlparse", "uuid", "winreg", "zlib",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
@@ -52,8 +58,8 @@ if oSystemInfo.sOSISA == "x64":
   dsComSpec_by_sISA["x86"] = os.path.join(os.environ.get("WinDir"), "SysWOW64", "cmd.exe");
 
 cBugId.dxConfig["bShowAllCdbCommandsInReport"] = True;
-cBugId.dxConfig["nExcessiveCPUUsageCheckInitialTimeout"] = 0.5; # CPU usage should normalize after half a second.
-cBugId.dxConfig["nExcessiveCPUUsageCheckInterval"] = 0.5; # Excessive CPU usage should be apparent within half a second.
+gnExcessiveCPUUsageCheckInitialTimeoutInSeconds = 0.5; # CPU usage should normalize after half a second.
+cBugId.dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"] = 0.5; # Excessive CPU usage should be apparent within half a second.
 cBugId.dxConfig["uArchitectureIndependentBugIdBits"] = 32; # Test architecture independent bug ids
 
 sPythonISA = {
@@ -322,7 +328,7 @@ def fTest(
           oBugId.fCheckForExcessiveCPUUsage(fExcessiveCPUUsageDetectedCallback);
       oBugId.foSetTimeout(
         sDescription = "Start check for excessive CPU usage",
-        nTimeout = cBugId.dxConfig["nExcessiveCPUUsageCheckInitialTimeout"],
+        nTimeoutInSeconds = gnExcessiveCPUUsageCheckInitialTimeoutInSeconds,
         fCallback = lambda oBugId: fExcessiveCPUUsageDetectedCallback(oBugId, False),
       );
     oBugId.fStart();

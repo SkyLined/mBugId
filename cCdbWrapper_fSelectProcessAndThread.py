@@ -20,7 +20,7 @@ def cCdbWrapper_fSelectProcessAndThread(oCdbWrapper, uProcessId = None, uThreadI
     # We're not tracking the current thread; always set this.
     # TODO: track the current thread to reduce the number of times we may need to execute this command:
     sSelectCommand += "~~[0x%X]s;" % uThreadId;
-    oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+    oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);
     asSelected.append("thread");
   if sSelectCommand:
     # We need to select a different process, isa or thread in cdb.
@@ -41,4 +41,4 @@ def cCdbWrapper_fSelectProcessAndThread(oCdbWrapper, uProcessId = None, uThreadI
     if "process" in asSelected and "thread" not in asSelected:
       # We changed the process, but did not choose a thread; find out what the new thread is:
       uThreadId = oCdbWrapper.fuGetValueForRegister("$tid", "Get current thread id");
-      oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+      oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);

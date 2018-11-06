@@ -1,6 +1,7 @@
-﻿import sys, threading;
+﻿import sys;
 
 from cCdbStoppedException import cCdbStoppedException;
+from mMultiThreading import cLock, cThread;
 
 class cHelperThread(object):
   def __init__(oSelf, oCdbWrapper, sName, fActivity, *axActivityArguments, **dxFlags):
@@ -11,10 +12,10 @@ class cHelperThread(object):
     oSelf.sName = sName;
     oSelf.__fActivity = fActivity
     oSelf.__axActivityArguments = axActivityArguments; 
-    oSelf.__bVital = dxFlags.get("bVital", False);
+    oSelf.__bVital = dxFlags.get("bVital", False); # Vital in this respect means kill cdb.exe if the thread terminates.
     
-    oSelf.__oThread = None
-    oSelf.__oWaitLock = threading.Lock();
+    oSelf.__oThread = None;
+    oSelf.__oStartedLock = cLock();
     
   def __str__(oSelf):
     uThreadId = oSelf.uId;
@@ -23,18 +24,22 @@ class cHelperThread(object):
   
   @property
   def bRunning(oSelf):
-    return oSelf in oSelf.__oCdbWrapper.aoActiveHelperThreads;
+    # Consider it running between the moment it was started to the moment it terminated. This includes the brief moment
+    # where the thread is started but not yet running.
+    return (oSelf.__oThread.bStarted and not oSelf.__oThread.bTerminated) if oSelf.__oThread else False;
   
   @property
   def uId(oSelf):
-    return oSelf.__oThread and oSelf.__oThread.ident;
+    return oSelf.__oThread.uId if oSelf.__oThread else None;
   
   def fbIsCurrentThread(oSelf):
-    return threading.currentThread().ident == oSelf.uId;
+    return oSelf.__oThread == cThread.foGetCurrent();
   
   def fStart(oSelf):
+    assert not oSelf.bRunning, \
+        "Cannot run twice in parallel.";
     try:
-      oSelf.__oThread = threading.Thread(target = oSelf.__fRun);
+      oSelf.__oThread = cThread(oSelf.__fRun);
     except thread.error as oException:
       # We cannot create another thread. The most obvious reason for this error is that there are too many threads
       # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
@@ -45,14 +50,15 @@ class cHelperThread(object):
     assert not oSelf.bRunning, \
         "Cannot start a thread while it is running";
     oSelf.__oCdbWrapper.aoActiveHelperThreads.append(oSelf);
-    oSelf.__oWaitLock.acquire();
-    oSelf.__oThread.start();
+    oSelf.__oStartedLock.fAcquire();
+    oSelf.__oThread.fStart();
+    oSelf.__oStartedLock.fWait();
   
   def fWait(oSelf):
-    oSelf.__oWaitLock.acquire();
-    oSelf.__oWaitLock.release();
+    oSelf.__oThread.fWait();
   
   def __fRun(oSelf):
+    oSelf.__oStartedLock.fRelease();
     oSelf.__oCdbWrapper.fbFireEvent("Log message", "helper thread started", {
       "Thread": str(oSelf),
     });
@@ -71,7 +77,6 @@ class cHelperThread(object):
           raise;
     finally:
       oSelf.__oCdbWrapper.aoActiveHelperThreads.remove(oSelf);
-      oSelf.__oWaitLock.release();
       oSelf.__oCdbWrapper.fbFireEvent("Log message", "helper thread terminated", {
         "Thread": str(oSelf),
       });

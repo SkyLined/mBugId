@@ -41,7 +41,7 @@ class cProcess(object):
       oProcess.__oWindowsAPIProcess = cWindowsAPIProcess(oProcess.uId);
     return oProcess.__oWindowsAPIProcess;
   
-  def foGetThreadForId(oProcess, uThreadId):
+  def foGetWindowsAPIThreadForId(oProcess, uThreadId):
     return oProcess.oWindowsAPIProcess.foGetThreadForId(uThreadId);
   
   @property

@@ -1,11 +1,11 @@
-def cCdbWrapper_fAttachToProcessForId(oCdbWrapper, uProcessId, bMustBeResumed = False):
+def cCdbWrapper_fAttachForProcessId(oCdbWrapper, uProcessId, bMustBeResumed = False):
   assert oCdbWrapper.oCdbConsoleProcess is not None, \
       "You cannot attach to a process when cdb is not running."
   # Note that we're attaching to this process
   oCdbWrapper.auProcessIdsPendingAttach.append(uProcessId);
   if bMustBeResumed:
     oCdbWrapper.auProcessIdsThatNeedToBeResumedAfterAttaching.append(uProcessId);
-  def fAttachToProcessHelper():
+  def fAttachOnInterruptHandler():
     # Report 
     oCdbWrapper.fbFireEvent("Log message", "Attaching to process", {
       "Process": "%d/0x%X" % (uProcessId, uProcessId),
@@ -28,5 +28,5 @@ def cCdbWrapper_fAttachToProcessForId(oCdbWrapper, uProcessId, bMustBeResumed = 
           "Unexpected .attach output: %s" % repr(asAttachToProcessOutput);
   oCdbWrapper.fInterrupt(
     "Attaching to process %d/0x%X" % (uProcessId, uProcessId),
-    fAttachToProcessHelper,
+    fAttachOnInterruptHandler,
   );

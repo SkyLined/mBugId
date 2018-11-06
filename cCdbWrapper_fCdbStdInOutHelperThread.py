@@ -4,8 +4,8 @@ from .cException import cException;
 from .cProcess import cProcess;
 from .dxConfig import dxConfig;
 
-from mWindowsAPI import cJobObject, fbTerminateThreadForId, cVirtualAllocation, fResumeProcessForId, \
-    fStopDebuggingProcessForId;
+from mWindowsAPI import cJobObject, fbResumeForThreadId, fbTerminateForThreadId, cVirtualAllocation, \
+    fStopDebuggingForProcessId;
 
 from mWindowsAPI.mDefines import *;
 
@@ -115,14 +115,14 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
           oProcess.fClearCache();
       # There will no longer be a current process or thread.
       oCdbWrapper.oCdbCurrentProcess = None;
-      oCdbWrapper.oCdbCurrentThread = None;
+      oCdbWrapper.oCdbCurrentWindowsAPIThread = None;
       ### Allocate reserve memory ####################################################################################
       # Reserve some memory for exception analysis in case the target application causes a system-wide low-memory
       # situation.
       if dxConfig["uReservedMemory"]:
         if oReservedMemoryVirtualAllocation is None:
           try:
-            oReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateInProcessForId(
+            oReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateForProcessId(
               uProcessId = oCdbWrapper.oCdbConsoleProcess.uId,
               uSize = dxConfig["uReservedMemory"],
             );
@@ -138,12 +138,12 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       oTimeMatch = len(asCdbTimeOutput) > 0 and re.match(r"^Debug session time: (.*?)\s*$", asCdbTimeOutput[0]);
       assert oTimeMatch, "Failed to get debugger time!\r\n%s" % "\r\n".join(asCdbTimeOutput);
       del asCdbTimeOutput;
-      oCdbWrapper.oApplicationTimeLock.acquire();
+      oCdbWrapper.oApplicationTimeLock.fAcquire();
       try:
         oCdbWrapper.nApplicationResumeDebuggerTime = fnGetDebuggerTime(oTimeMatch.group(1));
         oCdbWrapper.nApplicationResumeTime = time.clock();
       finally:
-        oCdbWrapper.oApplicationTimeLock.release();
+        oCdbWrapper.oApplicationTimeLock.fRelease();
       ### Resume application #########################################################################################
       if oCdbWrapper.bStopping: break; # Unless we have been requested to stop.
       asOutputWhileRunningApplication = oCdbWrapper.fasExecuteCdbCommand(
@@ -213,7 +213,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     assert oEventMatch, "Invalid .lastevent output on line #1:\r\n%s" % "\r\n".join(asLastEventOutput);
     oEventTimeMatch = re.match(r"^\s*debugger time: (.*?)\s*$", asCleanedLastEventOutput[1]);
     assert oEventTimeMatch, "Invalid .lastevent output on line #2:\r\n%s" % "\r\n".join(asLastEventOutput);
-    oCdbWrapper.oApplicationTimeLock.acquire();
+    oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
       if oCdbWrapper.nApplicationResumeDebuggerTime:
         # Add the time between when the application was resumed and when the event happened to the total application
@@ -223,7 +223,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       oCdbWrapper.nApplicationResumeDebuggerTime = None;
       oCdbWrapper.nApplicationResumeTime = None;
     finally:
-      oCdbWrapper.oApplicationTimeLock.release();
+      oCdbWrapper.oApplicationTimeLock.fRelease();
     (
       sProcessIdHex, sThreadIdHex,
       sCreateExitProcess, sCreateExitProcessIdHex,
@@ -242,7 +242,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
         continue;
       oCdbWrapper.oCdbCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
       uThreadId = oCdbWrapper.fuGetValueForRegister("$tid", "Get current thread id");
-      oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+      oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);
       if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbCurrentISA:
         # Select process ISA if it is not yet the current ISA. ".block{}" is required
         oCdbWrapper.fasExecuteCdbCommand(
@@ -309,8 +309,9 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
         and uExceptionCode in [STATUS_ACCESS_VIOLATION, STATUS_STACK_BUFFER_OVERRUN]
       ):
         # Terminate the thread in which we triggered an AV, so the utility process can continue running.
-        assert fbTerminateThreadForId(uThreadId), \
-            "Cannot terminate utility thread in utility process";
+        # Since it is suspended, it will not terminate when we ask it to.
+        assert not fbTerminateForThreadId(uThreadId, bWait = False), \
+            "Expected thread to still be suspended, but it was terminated";
         # Mark the interrupt as handled.
         oCdbWrapper.uUtilityInterruptThreadId = None;
         oCdbWrapper.fbFireEvent("Log message", "Application interrupted");
@@ -344,7 +345,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       # This exception makes no sense; we never requested it and do not care about it: ignore it.
       continue;
     oCdbWrapper.oCdbCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
-    oCdbWrapper.oCdbCurrentThread = oCdbWrapper.oCdbCurrentProcess.foGetThreadForId(uThreadId);
+    oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);
     if oCdbWrapper.oCdbCurrentProcess.sISA != oCdbWrapper.sCdbCurrentISA:
       # Select process ISA if it is not yet the current ISA. ".block{}" is required
       oCdbWrapper.fasExecuteCdbCommand(
@@ -404,7 +405,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       # Check if this exception is considered a bug:
       oBugReport = cBugReport.foCreateForException(
         oCdbWrapper.oCdbCurrentProcess,
-        oCdbWrapper.oCdbCurrentThread,
+        oCdbWrapper.oCdbCurrentWindowsAPIThread,
         oException,
       );
     if oBugReport:

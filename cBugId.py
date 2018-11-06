@@ -17,18 +17,20 @@ import os, sys, threading;
                                                                                 
 """;
 
-# Augment the search path: look in main folder, parent folder or "modules" child folder, in that order.
+# Augment the search path for loading external modules.
+# look in main folder, parent folder or "modules" child folder, in that order.
 sMainFolderPath = os.path.dirname(os.path.abspath(__file__));
 sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
 sModulesFolderPath = os.path.join(sMainFolderPath, "modules");
 asOriginalSysPath = sys.path[:];
 sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
 
-# Load external dependecies to make sure they are available and shown an error
-# if any one fails to load. This error explains where the missing component
-# can be downloaded to fix the error.
+# Try to load external modules to make sure they are available. Show an error
+# message if any one fails to load.
 for (sModuleName, sDownloadURL) in [
   ("mWindowsAPI", "https://github.com/SkyLined/mWindowsAPI/"),
+  ("mDebugOutput", "https://github.com/SkyLined/mDebugOutput/"),
+  ("mMultiThreading", "https://github.com/SkyLined/mMultiThreading/"),
   ("mFileSystem", "https://github.com/SkyLined/mFileSystem/"),
   ("mProductDetails", "https://github.com/SkyLined/mProductDetails/"),
 ]:
@@ -47,12 +49,15 @@ for (sModuleName, sDownloadURL) in [
       print "*" * 80;
     raise;
 
+# Actually load the stuff from external modules that we need.
+from mWindowsAPI import oSystemInfo;
+from mMultiThreading import cLock;
+
 # Restore the search path
 sys.path = asOriginalSysPath;
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
-from mWindowsAPI import oSystemInfo;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
@@ -84,12 +89,7 @@ class cBugId(object):
     uTotalMaxMemoryUse = None,
     uMaximumNumberOfBugs = 1,
   ):
-    # I was using an event to implement `fWait`, but I found that under unknown conditions, `Event.wait` may not
-    # return if the event is set... in this situation BugId will be done, but the caller of `fWait` will never know.
-    # So, I've replaced this code with a `Lock` to see if that resolves the issue.
-    # oBugId.__oFinishedEvent = threading.Event();
-    oBugId.__oFinishedLock = threading.Lock();
-    oBugId.__oFinishedLock.acquire();
+    oBugId.__oRunningLock = cLock(bLocked = True);
     oBugId.__bStarted = False;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
@@ -113,8 +113,7 @@ class cBugId(object):
     );
     
     def fSetFinishedEvent():
-      # oBugId.__oFinishedEvent.set();
-      oBugId.__oFinishedLock.release();
+      oBugId.__oRunningLock.fRelease();
     oBugId.__oCdbWrapper.fAddEventCallback("Finished", fSetFinishedEvent);
     
   def fStart(oBugId):
@@ -129,21 +128,20 @@ class cBugId(object):
   def fWait(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fWait()";
-    # oBugId.__oFinishedEvent.wait();
-    assert oBugId.__oFinishedLock, \
+    assert oBugId.__oRunningLock, \
         "You cannot call fWait twice";
-    oBugId.__oFinishedLock.acquire();
-    oBugId.__oFinishedLock = None; # Make sure no further fWait calls can be made.
+    oBugId.__oRunningLock.fWait();
+    oBugId.__oRunningLock = None; # Make sure no further fWait calls can be made.
   
-  def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeout):
-    oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeout);
+  def fSetCheckForExcessiveCPUUsageTimeout(oBugId, nTimeoutInSeconds):
+    oBugId.__oCdbWrapper.fSetCheckForExcessiveCPUUsageTimeout(nTimeoutInSeconds);
   def fCheckForExcessiveCPUUsage(oBugId, fCallback):
     return oBugId.__oCdbWrapper.fCheckForExcessiveCPUUsage(lambda bExcessiveCPUUsageDetected: fCallback(oBugId, bExcessiveCPUUsageDetected));
   
-  def foSetTimeout(oBugId, sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments):
+  def foSetTimeout(oBugId, sDescription, nTimeoutInSeconds, fCallback, *axTimeoutCallbackArguments):
     # The first argument of any callback on cBugId is the oBugId instance; add it:
     axTimeoutCallbackArguments = [oBugId] + list(axTimeoutCallbackArguments);
-    return oBugId.__oCdbWrapper.foSetTimeout(sDescription, nTimeout, fCallback, *axTimeoutCallbackArguments);
+    return oBugId.__oCdbWrapper.foSetTimeout(sDescription, nTimeoutInSeconds, fCallback, *axTimeoutCallbackArguments);
   
   def fClearTimeout(oBugId, oTimeout):
     oBugId.__oCdbWrapper.fClearTimeout(oTimeout);
@@ -153,8 +151,8 @@ class cBugId(object):
         "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
     return oBugId.__oCdbWrapper.nApplicationRunTime;
   
-  def fAttachToProcessesForExecutableNames(oBugId, *asBinaryNames):
-    return oBugId.__oCdbWrapper.fAttachToProcessesForExecutableNames(*asBinaryNames);
+  def fAttachForProcessExecutableNames(oBugId, *asBinaryNames):
+    return oBugId.__oCdbWrapper.fAttachForProcessExecutableNames(*asBinaryNames);
   
   def fbFinished(oBugId):
     assert oBugId.__bStarted is True, \

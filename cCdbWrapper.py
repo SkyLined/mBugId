@@ -4,24 +4,25 @@ from .cCdbStoppedException import cCdbStoppedException;
 from .cCdbWrapper_fApplicationStdOutOrErrHelperThread import cCdbWrapper_fApplicationStdOutOrErrHelperThread;
 from .cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from .cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
-from .cCdbWrapper_fAttachToProcessesForExecutableNames import cCdbWrapper_fAttachToProcessesForExecutableNames;
-from .cCdbWrapper_fAttachToProcessForId import cCdbWrapper_fAttachToProcessForId;
-from .cCdbWrapper_fCleanupHelperThread import cCdbWrapper_fCleanupHelperThread;
+from .cCdbWrapper_fAttachForProcessId import cCdbWrapper_fAttachForProcessId;
+from .cCdbWrapper_fAttachForProcessExecutableNames import cCdbWrapper_fAttachForProcessExecutableNames;
 from .cCdbWrapper_fCdbInterruptOnTimeoutHelperThread import cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
 from .cCdbWrapper_fCdbStdErrHelperThread import cCdbWrapper_fCdbStdErrHelperThread;
 from .cCdbWrapper_fCdbStdInOutHelperThread import cCdbWrapper_fCdbStdInOutHelperThread;
+from .cCdbWrapper_fCleanupHelperThread import cCdbWrapper_fCleanupHelperThread;
+from .cCdbWrapper_fClearTimeout import cCdbWrapper_fClearTimeout;
 from .cCdbWrapper_fHandleApplicationProcessTermination import cCdbWrapper_fHandleApplicationProcessTermination;
 from .cCdbWrapper_fHandleNewApplicationProcess import cCdbWrapper_fHandleNewApplicationProcess;
 from .cCdbWrapper_fHandleNewUtilityProcess import cCdbWrapper_fHandleNewUtilityProcess;
 from .cCdbWrapper_fInterruptApplicationExecution import cCdbWrapper_fInterruptApplicationExecution;
+from .cCdbWrapper_foSetTimeout import cCdbWrapper_foSetTimeout;
 from .cCdbWrapper_foStartApplicationProcess import cCdbWrapper_foStartApplicationProcess;
 from .cCdbWrapper_fRemoveBreakpoint import cCdbWrapper_fRemoveBreakpoint;
 from .cCdbWrapper_fRunTimeoutCallbacks import cCdbWrapper_fRunTimeoutCallbacks;
 from .cCdbWrapper_fSelectProcessAndThread import cCdbWrapper_fSelectProcessAndThread;
+from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from .cCdbWrapper_fStartUWPApplication import cCdbWrapper_fStartUWPApplication;
 from .cCdbWrapper_fTerminateUWPApplication import cCdbWrapper_fTerminateUWPApplication;
-from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
-from .cCdbWrapper_f_Timeout import cCdbWrapper_foSetTimeout, cCdbWrapper_fClearTimeout;
 from .cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointForAddress;
 from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
 from .cCollateralBugHandler import cCollateralBugHandler;
@@ -31,7 +32,8 @@ from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
 import mProductDetails;
-from mWindowsAPI import cConsoleProcess, fbTerminateProcessForId, fsGetPythonISA;
+from mWindowsAPI import cConsoleProcess, fsGetPythonISA;
+from mMultiThreading import cLock;
 
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
@@ -103,7 +105,7 @@ class cCdbWrapper(object):
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
     oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
-    oCdbWrapper.oEventCallbacksLock = threading.Lock();
+    oCdbWrapper.oEventCallbacksLock = cLock();
     oCdbWrapper.dafEventCallbacks_by_sEventName = {
       # These are the names of all the events that cCdbWrapper can throw. If it's not in the list, you cannot use it in
       # `fAddEventCallback`, `fRemoveEventCallback`, or `fbFireEvent`. The same event names are used by cBugId, but
@@ -146,7 +148,7 @@ class cCdbWrapper(object):
     oCdbWrapper.doProcess_by_uId = {};
     oCdbWrapper.doConsoleProcess_by_uId = {};
     oCdbWrapper.oCdbCurrentProcess = None; # The current process id in cdb's context
-    oCdbWrapper.oCdbCurrentThread = None; # The current thread id in cdb's context
+    oCdbWrapper.oCdbCurrentWindowsAPIThread = None; # The current thread id in cdb's context
     oCdbWrapper.sCdbCurrentISA = None; # The ISA cdb is debugging the current process in (can differ from the process' ISA!)
     # Initialize some variables
     if bGenerateReportHTML:
@@ -170,11 +172,10 @@ class cCdbWrapper(object):
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
     # Keep track of timeouts that should fire at some point in the future and timeouts that should fire now.
     oCdbWrapper.aoTimeouts = [];
-    oCdbWrapper.bApplicationIsRunnning = False; # Will be set to true while the application is running in cdb.
     oCdbWrapper.uUtilityInterruptThreadId = None; # Will be set to the thread id in which we triggered an AV to
                                                   # interrupt the application.
-    # Lock for the above four timeout and interrupt variables
-    oCdbWrapper.oTimeoutAndInterruptLock = threading.RLock();
+    # Two locks, one of which is always locked while the application is executing. 
+    oCdbWrapper.bApplicationIsRunning = False;
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
     # and resume the application as well as what time it thinks it was when an exception happened. The difference is
@@ -183,7 +184,7 @@ class cCdbWrapper(object):
     # we can call time.clock(): this time would incorrectly be added to the time the application has spent running.
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
-    oCdbWrapper.oApplicationTimeLock = threading.RLock();
+    oCdbWrapper.oApplicationTimeLock = cLock();
     oCdbWrapper.nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
@@ -285,7 +286,7 @@ class cCdbWrapper(object):
     for uProcessId in oCdbWrapper.auApplicationProcessIds:
       # We assume all application processes have been suspended. This makes sense because otherwise they might crash
       # before BugId has a chance to attach.
-      oCdbWrapper.fAttachToProcessForId(uProcessId, bMustBeResumed = True);
+      oCdbWrapper.fAttachForProcessId(uProcessId, bMustBeResumed = True);
   
   def fTerminate(oCdbWrapper):
     # Call `fTerminate` when you need to stop cBugId asap, e.g. when an internal error is detected. This function does
@@ -301,7 +302,7 @@ class cCdbWrapper(object):
     # Tell the cdb stdin/out thread we are stopping, so it executes a "q" command and terminates as soon as possible.
     oCdbWrapper.bStopping = True; 
     # Interrupt the application if it is running, to make sure the stdin/out thread has a chance to execute a command.
-    if oCdbWrapper.bApplicationIsRunnning:
+    if oCdbWrapper.bApplicationIsRunning:
       oCdbWrapper.fInterruptApplicationExecution();
   
   def __del__(oCdbWrapper):
@@ -324,22 +325,22 @@ class cCdbWrapper(object):
     return cCdbWrapper_fSelectProcessAndThread(oCdbWrapper, uProcessId, uThreadId);
   
   # Excessive CPU usage
-  def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeout):
-    oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeout);
+  def fSetCheckForExcessiveCPUUsageTimeout(oCdbWrapper, nTimeoutInSeconds):
+    oCdbWrapper.oExcessiveCPUUsageDetector.fStartTimeout(nTimeoutInSeconds);
   def fCheckForExcessiveCPUUsage(oCdbWrapper, fCallback):
     oCdbWrapper.oExcessiveCPUUsageDetector.fCheckForExcessiveCPUUsage(fCallback);
   
   @property
   def nApplicationRunTime(oCdbWrapper):
     # This can be exact (when the application is suspended) or an estimate (when the application is running).
-    if not oCdbWrapper.bApplicationIsRunnning:
+    if not oCdbWrapper.bApplicationIsRunning:
       # Fast and exact path.
       return oCdbWrapper.nConfirmedApplicationRunTime;
-    oCdbWrapper.oApplicationTimeLock.acquire();
+    oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
       return oCdbWrapper.nConfirmedApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
     finally:
-      oCdbWrapper.oApplicationTimeLock.release();
+      oCdbWrapper.oApplicationTimeLock.fRelease();
   
   # Breakpoints
   def fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uProcessId, uThreadId = None, sCommand = None):
@@ -348,8 +349,8 @@ class cCdbWrapper(object):
     return cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, *axArguments, **dxArguments);
   
   # Timeouts/interrupt
-  def foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments):
-    return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeToWait, fCallback, *axCallbackArguments);
+  def foSetTimeout(oCdbWrapper, sDescription, nTimeoutInSeconds, fCallback, *axCallbackArguments):
+    return cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeoutInSeconds, fCallback, *axCallbackArguments);
   def fInterrupt(oCdbWrapper, sDescription, fCallback, *axCallbackArguments):
     # An interrupt == an immediate timeout
     cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, 0, fCallback, *axCallbackArguments);
@@ -386,27 +387,27 @@ class cCdbWrapper(object):
   def fAddEventCallback(oCdbWrapper, sEventName, fCallback):
     assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
         "Unknown event name %s" % repr(sEventName);
-    oCdbWrapper.oEventCallbacksLock.acquire();
+    oCdbWrapper.oEventCallbacksLock.fAcquire();
     try:
       oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].append(fCallback);
     finally:
-      oCdbWrapper.oEventCallbacksLock.release();
+      oCdbWrapper.oEventCallbacksLock.fRelease();
   def fRemoveEventCallback(oCdbWrapper, sEventName, fCallback):
     assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
         "Unknown event name %s" % repr(sEventName);
-    oCdbWrapper.oEventCallbacksLock.acquire();
+    oCdbWrapper.oEventCallbacksLock.fAcquire();
     try:
       oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName].remove(fCallback);
     finally:
-      oCdbWrapper.oEventCallbacksLock.release();
+      oCdbWrapper.oEventCallbacksLock.fRelease();
   def fbFireEvent(oCdbWrapper, sEventName, *axCallbackArguments):
     assert sEventName in oCdbWrapper.dafEventCallbacks_by_sEventName, \
         "Unknown event name %s" % repr(sEventName);
-    oCdbWrapper.oEventCallbacksLock.acquire();
+    oCdbWrapper.oEventCallbacksLock.fAcquire();
     try:
       afCallbacks = oCdbWrapper.dafEventCallbacks_by_sEventName[sEventName][:];
     finally:
-      oCdbWrapper.oEventCallbacksLock.release();
+      oCdbWrapper.oEventCallbacksLock.fRelease();
     for fCallback in afCallbacks:
       fCallback(*axCallbackArguments);
     return len(afCallbacks) > 0;
@@ -414,10 +415,10 @@ class cCdbWrapper(object):
   # Start/attach to processes
   def foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
     return cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments);
-  def fAttachToProcessForId(oCdbWrapper, uProcessId, bMustBeResumed = False):
-    return cCdbWrapper_fAttachToProcessForId(oCdbWrapper, uProcessId, bMustBeResumed);
-  def fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames):
-    return cCdbWrapper_fAttachToProcessesForExecutableNames(oCdbWrapper, *asBinaryNames);
+  def fAttachForProcessId(oCdbWrapper, uProcessId, bMustBeResumed = False):
+    return cCdbWrapper_fAttachForProcessId(oCdbWrapper, uProcessId, bMustBeResumed);
+  def fAttachForProcessExecutableNames(oCdbWrapper, *asBinaryNames):
+    return cCdbWrapper_fAttachForProcessExecutableNames(oCdbWrapper, *asBinaryNames);
   # Start/stop UWP applications.
   def fStartUWPApplication(oCdbWrapper, oUWPApplication, sArgument):
     return cCdbWrapper_fStartUWPApplication(oCdbWrapper, oUWPApplication, sArgument);

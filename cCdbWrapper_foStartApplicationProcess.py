@@ -1,5 +1,5 @@
-from mWindowsAPI import cConsoleProcess, fsGetProcessISAForId, fStopDebuggingProcessForId;
-from .cHelperThread import cHelperThread
+from mWindowsAPI import cConsoleProcess, fsGetISAForProcessId;
+from .cHelperThread import cHelperThread;
 
 def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
   oCdbWrapper.fbFireEvent("Log message", "Starting application", {
@@ -22,7 +22,7 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     return None;
   # a 32-bit debugger cannot debug 64-bit processes. Report this.
   if oCdbWrapper.sCdbISA == "x86":
-    if fsGetProcessISAForId(oConsoleProcess.uId) == "x64":
+    if fsGetISAForProcessId(oConsoleProcess.uId) == "x64":
       assert oConsoleProcess.fbTerminate(5), \
           "Failed to terminate process %d/0x%X within 5 seconds" % \
           (oConsoleProcess.uId, oConsoleProcess.uId);
@@ -49,5 +49,5 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     oHelperThread = cHelperThread(oCdbWrapper, sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe);
     oHelperThread.fStart();
   oCdbWrapper.doConsoleProcess_by_uId[oConsoleProcess.uId] = oConsoleProcess;
-  oCdbWrapper.fAttachToProcessForId(oConsoleProcess.uId, bMustBeResumed = True);
+  oCdbWrapper.fAttachForProcessId(oConsoleProcess.uId, bMustBeResumed = True);
   return oConsoleProcess;

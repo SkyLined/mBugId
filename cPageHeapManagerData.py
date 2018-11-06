@@ -3,6 +3,7 @@ from .cHeapManagerData import cHeapManagerData;
 from .dxConfig import dxConfig;
 from .fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import cVirtualAllocation;
+from mWindowsAPI.mFunctions import fuPointerValue, fuSizeOf;
 from mWindowsAPI.mTypes import *;
 from mWindowsAPI.mDefines import *;
 
@@ -243,8 +244,8 @@ def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddr
   # The page heap header structure at the start of the virtual allocation should point to a page heap allocation
   # information structure that points back to the same virtual allocation:
   DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION_32, 8: DPH_BLOCK_INFORMATION_64}[uPointerSize];
-  uUserAllocationAddress = POINTER_VALUE(oAllocationInformation.pUserAllocation);
-  uHeapBlockHeaderStartAddress = uUserAllocationAddress - SIZEOF(DPH_BLOCK_INFORMATION);
+  uUserAllocationAddress = fuPointerValue(oAllocationInformation.pUserAllocation);
+  uHeapBlockHeaderStartAddress = uUserAllocationAddress - fuSizeOf(DPH_BLOCK_INFORMATION);
   uHeapBlockEndAddress = uUserAllocationAddress + oAllocationInformation.nUserRequestedSize;
   if oVirtualAllocation.bAllocated:
     # A DPH_BLOCK_INFORMATION structure is stored immediately before the heap block in the same allocation.
@@ -281,7 +282,7 @@ class cPageHeapManagerData(cHeapManagerData):
     # heap block.
     oVirtualAllocation = foGetVirtualAllocationForProcessAndAddress(
       oProcess,
-      POINTER_VALUE(oAllocationInformation.pVirtualBlock),
+      fuPointerValue(oAllocationInformation.pVirtualBlock),
     );
     if oVirtualAllocation.bAllocated:
       # This virtual allocation starts with a DPH_ALLOCATION_HEADER structure
@@ -308,7 +309,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess.uPointerSize,
     );
     # The DPH_ALLOCATION_HEADER structure contains a pointer to a DPH_HEAP_BLOCK structure
-    uAllocationInformationStartAddress = POINTER_VALUE(oAllocationHeader.poAllocationInformation);
+    uAllocationInformationStartAddress = fuPointerValue(oAllocationHeader.poAllocationInformation);
     oAllocationInformation = foGetAllocationInformationForProcessAndAddress(
       oProcess,
       uAllocationInformationStartAddress,
@@ -330,20 +331,20 @@ class cPageHeapManagerData(cHeapManagerData):
     
     oSelf.uAllocationInformationStartAddress = uAllocationInformationStartAddress;
     oSelf.oAllocationInformation = oAllocationInformation;
-    oSelf.uAllocationInformationEndAddress = uAllocationInformationStartAddress + SIZEOF(oAllocationInformation);
+    oSelf.uAllocationInformationEndAddress = uAllocationInformationStartAddress + fuSizeOf(oAllocationInformation);
     oSelf.uAllocationInformationSize = oSelf.uAllocationInformationEndAddress - oSelf.uAllocationInformationStartAddress;
 
     oSelf.oVirtualAllocation = oVirtualAllocation;
     oSelf.oVirtualAllocation.uEndAddress;
     
-    oSelf.uHeapBlockStartAddress = POINTER_VALUE(oAllocationInformation.pUserAllocation);
+    oSelf.uHeapBlockStartAddress = fuPointerValue(oAllocationInformation.pUserAllocation);
     oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize;
     oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize;
 
     if oAllocationHeader:
       oSelf.uAllocationHeaderStartAddress = oVirtualAllocation.uStartAddress;
       oSelf.oAllocationHeader = oAllocationHeader;
-      oSelf.uAllocationHeaderEndAddress = oVirtualAllocation.uStartAddress + SIZEOF(oAllocationHeader);
+      oSelf.uAllocationHeaderEndAddress = oVirtualAllocation.uStartAddress + fuSizeOf(oAllocationHeader);
       oSelf.uAllocationHeaderSize = oSelf.uAllocationHeaderEndAddress - oSelf.uAllocationHeaderStartAddress;
     else:
 #      oSelf.uAllocationHeaderStartAddress = None;
@@ -354,7 +355,7 @@ class cPageHeapManagerData(cHeapManagerData):
     if oHeapBlockHeader:
       oSelf.uHeapBlockHeaderStartAddress = uHeapBlockHeaderStartAddress;
       oSelf.oHeapBlockHeader = oHeapBlockHeader;
-      oSelf.uHeapBlockHeaderEndAddress = uHeapBlockHeaderStartAddress + SIZEOF(oHeapBlockHeader);
+      oSelf.uHeapBlockHeaderEndAddress = uHeapBlockHeaderStartAddress + fuSizeOf(oHeapBlockHeader);
       oSelf.uHeapBlockHeaderSize = oSelf.uHeapBlockHeaderEndAddress - oSelf.uHeapBlockHeaderStartAddress;
       assert oSelf.uHeapBlockHeaderEndAddress == oSelf.uHeapBlockStartAddress, \
           "Page heap block header end address 0x%X should be the same as the heap block start address 0x%X" % \
@@ -579,4 +580,3 @@ class cPageHeapManagerData(cHeapManagerData):
         print "Result:   0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress);
       else:
         print "Result:   OK";
-

@@ -15,7 +15,7 @@ class cVerifierStopDetector(object):
 
   def __fCheckDebugOutputForVerifierStopMessage(oSelf, oProcess, asDebugOutput):
     # TODO: oThread should be an argument to the event callback
-    oThread = oProcess.oCdbWrapper.oCdbCurrentThread;
+    oWindowsAPIThread = oProcess.oCdbWrapper.oCdbCurrentWindowsAPIThread;
     # Detect VERIFIER STOP messages, create a cBugReport and report them before stopping cdb.
     if len(asDebugOutput) == 0:
       return;
@@ -260,7 +260,7 @@ class cVerifierStopDetector(object):
           uMemoryDumpEndAddress - uMemoryDumpStartAddress
         );
     
-    oBugReport = cBugReport.foCreate(oProcess, oThread, sBugTypeId, sBugDescription, sSecurityImpact);
+    oBugReport = cBugReport.foCreate(oProcess, oWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact);
     if oSelf.oCdbWrapper.bGenerateReportHTML:
       if uMemoryDumpStartAddress:
         oBugReport.fAddMemoryDump(

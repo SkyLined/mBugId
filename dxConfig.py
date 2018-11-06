@@ -107,19 +107,19 @@ dxConfig = {
   "sDumpPath": None,                    # Path where you want cBugId to save dump file. None = current folder.
   "bFullDump": False,                   # Create a full (True) or small memory dump (False).
   ### Excessive CPU usage detection
-  "nExcessiveCPUUsageCheckInterval": 10.0, # How many seconds to gather thread CPU usage data.
+  "nExcessiveCPUUsageCheckIntervalInSeconds": 10.0, # How many seconds to gather thread CPU usage data.
   "nExcessiveCPUUsagePercent": 90,      # How long do all threads in all processes for the application need to use the
                                         # CPU during the usage check interval to trigger an excessive CPU usage bug
                                         # report. Value in percent of the check interval, e.g. a value of 75 for a
                                         # check interval of 10s means a bug will be reported if the application uses
                                         # the CPU more than 7.5 seconds during a 10s interval.
-  "nExcessiveCPUUsageWormRunTime": 2.0, # How many seconds to allow a function to run to find the topmost function
+  "nExcessiveCPUUsageWormRunTimeInSeconds": 2.0, # How many seconds to allow a function to run to find the topmost function
                                         # involved in the CPU usage? Lower values yield results quicker, but may be
                                         # inaccurate. Higher values increase the time in which the code can run and
                                         # return to the topmost function. If you provide too large a value the CPU
                                         # using loop may finish, giving you invalid results.
   ### Timeouts
-  "nTimeoutGranularity": 0.01,          # How often to check for timeouts, in seconds. Making this value smaller causes
+  "nTimeoutGranularityInSeconds": 0.01, # How often to check for timeouts, in seconds. Making this value smaller causes
                                         # the timeouts to fire closer to the intended time, but slows down debugging.
                                         # Making the value larger can cause timeouts to fire a lot later than requested.
   ### Exception handling
@@ -178,7 +178,7 @@ dxConfig = {
                                         # error callback. If False, BugId will only make sure page heap is enabled
                                         # when a bug is detected.
   ### UWP applications
-  "nUWPApplicationAttachTimeout": 10,   # The number of seconds to wait for an UWP application to start.
+  "nUWPApplicationAttachTimeoutInSeconds": 10,   # The number of seconds to wait for an UWP application to start.
   ### cdb limits
   "uReservedMemory": 10 * uMegaByte,    # Reserve some memory for analysis of crashes. This memory is freed before
                                         # analysis of an exception starts and reallocated if the exception was not

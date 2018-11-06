@@ -7,7 +7,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oT
   # Check if this stack exhaustion happened because it ran out of free memory to to commit more stack space by
   # attempting to allocate some memory in the process.
   try:
-    oTestVirtualAllocation = cVirtualAllocation.foCreateInProcessForId(oProcess.uId, oSystemInfo.uPageSize);
+    oTestVirtualAllocation = cVirtualAllocation.foCreateForProcessId(oProcess.uId, oSystemInfo.uPageSize);
   except MemoryError:
     oBugReport.sBugTypeId = "OOM";
     oBugReport.sBugDescription = "The process was unable to allocate addition stack memory.";

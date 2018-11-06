@@ -74,12 +74,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
   asLines = [];
   if bApplicationWillBeRun:
     # Signal that the application is running and start the interrupt on timeout thread.
-    oCdbWrapper.oTimeoutAndInterruptLock.acquire();
-    try:
-      oCdbWrapper.bApplicationIsRunnning = True;
-      oCdbWrapper.oInterruptOnTimeoutHelperThread.fStart();
-    finally:
-      oCdbWrapper.oTimeoutAndInterruptLock.release();
+    oCdbWrapper.bApplicationIsRunning = True;
+    oCdbWrapper.oInterruptOnTimeoutHelperThread.fStart();
   try: # "try:" because the oInterruptOnTimeoutHelperThread needs to be stopped in a "finally:" if there is an exception.
     while 1:
       sChar = oCdbWrapper.oCdbConsoleProcess.oStdOutPipe.fsReadBytes(1); # return "" if pipe is closed.
@@ -203,12 +199,8 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
           break;
   finally:
     if bApplicationWillBeRun:
-      oCdbWrapper.oTimeoutAndInterruptLock.acquire();
-      try:
-        # Signal that the application is no longer running and wait for the interrupt on timeout thread to stop.
-        oCdbWrapper.bApplicationIsRunnning = False;
-      finally:
-        oCdbWrapper.oTimeoutAndInterruptLock.release();
+      # Signal that the application is no longer running and wait for the interrupt on timeout thread to stop.
+      oCdbWrapper.bApplicationIsRunning = False;
       oCdbWrapper.oInterruptOnTimeoutHelperThread.fWait();
   if bIgnoreOutput:
     return None;
