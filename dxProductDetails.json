@@ -1,12 +1,12 @@
 {
   "asDependentOnProductNames": [
-    "mDebugOuput",
+    "mDebugOuput", 
     "mFileSystem", 
     "mMultiThreading", 
     "mProductDetails", 
     "mWindowsAPI"
   ], 
-  "oProductVersion": "2018-11-06 16:53", 
+  "oProductVersion": "2018-11-06 17:12", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
