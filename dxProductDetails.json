@@ -1,6 +1,6 @@
 {
   "asDependentOnProductNames": [
-    "mDebugOuput"
+    "mDebugOuput",
     "mFileSystem", 
     "mMultiThreading", 
     "mProductDetails", 
