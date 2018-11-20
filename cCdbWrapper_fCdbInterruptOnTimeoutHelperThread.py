@@ -7,7 +7,7 @@ def cCdbWrapper_fCdbInterruptOnTimeoutHelperThread(oCdbWrapper):
     # It checks if a timeout has fired every N seconds (N = nTimeoutGranularityInSeconds in dxConfig.py).
     time.sleep(dxConfig["nTimeoutGranularityInSeconds"]);
     for oTimeout in oCdbWrapper.aoTimeouts[:]:
-      if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
+      if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTimeInSeconds):
         # Yes, interrupt the application so the timeouts can be fired and then stop looking through the list.
         oCdbWrapper.fbFireEvent("Log message", "Interrupting application to fire timeout", {
           "Timeout": oTimeout.sDescription

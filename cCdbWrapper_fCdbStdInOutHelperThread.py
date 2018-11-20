@@ -9,7 +9,7 @@ from mWindowsAPI import cJobObject, fbResumeForThreadId, fbTerminateForThreadId,
 
 from mWindowsAPI.mDefines import *;
 
-def fnGetDebuggerTime(sDebuggerTime):
+def fnGetDebuggerTimeInSeconds(sDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.
   sMonths = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
   oTimeMatch = re.match("^%s$" % r"\s+".join([
@@ -140,8 +140,8 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       del asCdbTimeOutput;
       oCdbWrapper.oApplicationTimeLock.fAcquire();
       try:
-        oCdbWrapper.nApplicationResumeDebuggerTime = fnGetDebuggerTime(oTimeMatch.group(1));
-        oCdbWrapper.nApplicationResumeTime = time.clock();
+        oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = fnGetDebuggerTimeInSeconds(oTimeMatch.group(1));
+        oCdbWrapper.nApplicationResumeTimeInSeconds = time.clock();
       finally:
         oCdbWrapper.oApplicationTimeLock.fRelease();
       ### Resume application #########################################################################################
@@ -215,13 +215,13 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     assert oEventTimeMatch, "Invalid .lastevent output on line #2:\r\n%s" % "\r\n".join(asLastEventOutput);
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
-      if oCdbWrapper.nApplicationResumeDebuggerTime:
+      if oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds:
         # Add the time between when the application was resumed and when the event happened to the total application
         # run time.
-        oCdbWrapper.nConfirmedApplicationRunTime += fnGetDebuggerTime(oEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTime;
-      # Mark the application as suspended by setting nApplicationResumeDebuggerTime to None.
-      oCdbWrapper.nApplicationResumeDebuggerTime = None;
-      oCdbWrapper.nApplicationResumeTime = None;
+        oCdbWrapper.nConfirmedApplicationRunTimeInSeconds += fnGetDebuggerTimeInSeconds(oEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds;
+      # Mark the application as suspended by setting nApplicationResumeDebuggerTimeInSeconds to None.
+      oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;
+      oCdbWrapper.nApplicationResumeTimeInSeconds = None;
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
     (

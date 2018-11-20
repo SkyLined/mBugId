@@ -185,9 +185,9 @@ class cCdbWrapper(object):
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
     oCdbWrapper.oApplicationTimeLock = cLock();
-    oCdbWrapper.nConfirmedApplicationRunTime = 0; # Total time spent running before last interruption
-    oCdbWrapper.nApplicationResumeDebuggerTime = None;  # debugger time at the moment the application was last resumed
-    oCdbWrapper.nApplicationResumeTime = None;          # time.clock() at the moment the application was last resumed
+    oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
+    oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
+    oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.clock() at the moment the application was last resumed
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     
@@ -331,14 +331,14 @@ class cCdbWrapper(object):
     oCdbWrapper.oExcessiveCPUUsageDetector.fCheckForExcessiveCPUUsage(fCallback);
   
   @property
-  def nApplicationRunTime(oCdbWrapper):
+  def nApplicationRunTimeInSeconds(oCdbWrapper):
     # This can be exact (when the application is suspended) or an estimate (when the application is running).
     if not oCdbWrapper.bApplicationIsRunning:
       # Fast and exact path.
-      return oCdbWrapper.nConfirmedApplicationRunTime;
+      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds;
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
-      return oCdbWrapper.nConfirmedApplicationRunTime + time.clock() - oCdbWrapper.nApplicationResumeTime;
+      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds + time.clock() - oCdbWrapper.nApplicationResumeTimeInSeconds;
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
   

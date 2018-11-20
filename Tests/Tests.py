@@ -433,7 +433,7 @@ if __name__ == "__main__":
     else:
       break;
     asArgs.pop(0);
-  nStartTime = time.clock();
+  nStartTimeInSeconds = time.clock();
   if asArgs:
     gbShowApplicationIO = True;
     fOutput("* Starting test...");
@@ -661,10 +661,10 @@ if __name__ == "__main__":
             for uBits in [8, 16, 32, 64]:
               if uBits != 64 and sOperation != "truncate":
                 fTest(sISA,    ["SafeInt", sOperation, sSignedness, uBits],     ["%s ed2.531 @ <test-binary>!wmain" % sTypeId]);
-  nTestTime = time.clock() - nStartTime;
+  nTestTimeInSeconds = time.clock() - nStartTimeInSeconds;
   if gbTestFailed:
-    fOutput("- Testing failed after %3.3f seconds" % nTestTime);
+    fOutput("- Testing failed after %3.3f seconds" % nTestTimeInSeconds);
     sys.exit(1);
   else:
-    fOutput("+ Testing completed in %3.3f seconds" % nTestTime);
+    fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
     sys.exit(0);

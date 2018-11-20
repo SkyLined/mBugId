@@ -36,7 +36,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     bAddCommandAndOutputToHTML = dxConfig["bShowAllCdbCommandsInReport"] or (bOutputIsInformative and dxConfig["bShowInformativeCdbCommandsInReport"]);
     if bAddCommandAndOutputToHTML:
       if gbLogCommandExecutionTime:
-        nStartTime = time.clock();
+        nStartTimeInSeconds = time.clock();
       oCdbWrapper.sCdbIOHTML += "<hr/>\n";
       if not bShowOutputButNotCommandInHTMLReport:
         # Add the command and the prompt to the output:
@@ -86,6 +86,6 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       uTries -= 1;
     finally:
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
-        nEndTime = time.clock() - nStartTime;
-        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nEndTime;
+        nExecutionTimeInSeconds = time.clock() - nStartTimeInSeconds;
+        oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nExecutionTimeInSeconds;
       

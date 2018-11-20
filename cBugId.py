@@ -146,10 +146,10 @@ class cBugId(object):
   def fClearTimeout(oBugId, oTimeout):
     oBugId.__oCdbWrapper.fClearTimeout(oTimeout);
   
-  def fnApplicationRunTime(oBugId):
+  def fnApplicationRunTimeInSeconds(oBugId):
     assert oBugId.__bStarted is True, \
-        "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTime()";
-    return oBugId.__oCdbWrapper.nApplicationRunTime;
+        "You must call cBugId.fStart() before calling cBugId.fnApplicationRunTimeInSeconds()";
+    return oBugId.__oCdbWrapper.nApplicationRunTimeInSeconds;
   
   def fAttachForProcessExecutableNames(oBugId, *asBinaryNames):
     return oBugId.__oCdbWrapper.fAttachForProcessExecutableNames(*asBinaryNames);

@@ -9,7 +9,7 @@ def cCdbWrapper_fRunTimeoutCallbacks(oCdbWrapper):
     # timeouts need to be fired.
     aoTimeoutsToFire = [];
     for oTimeout in oCdbWrapper.aoTimeouts[:]:
-      if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTime):
+      if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTimeInSeconds):
         oCdbWrapper.aoTimeouts.remove(oTimeout);
         aoTimeoutsToFire.append(oTimeout);
     if not aoTimeoutsToFire:
