@@ -1,3 +1,31 @@
+2018-11-21
+==========
+Externally noticeable changes
+-----------------------------
++ Bug ids for Access Violation exceptions have been standardized to the
+  following format: `<bug type id>:<memory details>[<size>][<offset>]`. This
+  includes bug ids for guard page access exceptions, as
+  `STATUS_GUARD_PAGE_VIOLATION` exceptions are just a sub-type of
+  `STATUS_ACCESS_VIOLATION`. bug type ids `W2RO` and `DEP` have been changed
+  back to `AVW` and `AVE` to simplify things.
++ Text descriptions for Access Violation exceptions should now all follow the
+  same format.
++ Determining if an Access Violations happened near the stack is now more
+  precise by relying on the actual virtual allocation for the stack to
+  determine what memory range is part of the stack.
++ Determining the integrity level of a process was throwing unpredictable
+  exceptions. Since I do not care much about this information and have little
+  time to fix it, I've opted to disable the code and not put the integrity
+  level in the report anymore.
+
+Internal changes
+----------------
++ I've renamed more time related variables to include "InSeconds" in the name.
++ Test coverage has been improved by allowing you to trigger Access Violations
+  in memory regions with specific properties (i.e. unallocated memory, reserved
+  memory, inaccessible memory, and guard pages). Tests have been rebuild with
+  VS 2017 and latest Win 10 SDK.
+
 2018-11-07
 ==========
 I have forgotten to update this file through a number of releases. Change
