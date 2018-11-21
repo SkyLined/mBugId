@@ -281,23 +281,26 @@ class cBugReport(object):
           "sCollapsed": "Collapsed",
           "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
         });
-      # Get process integrity level.
-      if oProcess.uIntegrityLevel is None:
-        sOptionalIntegrityLevelHTML = "(unknown)";
-      else:
-        sIntegrityLevel =  " ".join([s for s in [
-          {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oProcess.uIntegrityLevel >> 12, "Unknown"),
-          "Integrity",
-          oProcess.uIntegrityLevel & 0x100 and "Plus",
-        ] if s]);
-        if oProcess.uIntegrityLevel >= 0x3000:
-          sIntegrityLevel += "; this process appears to run with elevated privileges!";
-        elif oProcess.uIntegrityLevel >= 0x2000:
-          sIntegrityLevel += "; this process appears to not be sandboxed!";
-        else:
-          sIntegrityLevel += "; this process appears to be sandboxed.";
-        sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
-            (oProcess.uIntegrityLevel, sIntegrityLevel);
+# Getting the integrity level has become error-prone and I don't care enough about it to find out what the issue is
+# so I have disabled it.
+      sOptionalIntegrityLevelHTML = "";
+#      # Get process integrity level.
+#      if oProcess.uIntegrityLevel is None:
+#        sOptionalIntegrityLevelHTML = "(unknown)";
+#      else:
+#        sIntegrityLevel =  " ".join([s for s in [
+#          {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oProcess.uIntegrityLevel >> 12, "Unknown"),
+#          "Integrity",
+#          oProcess.uIntegrityLevel & 0x100 and "Plus",
+#        ] if s]);
+#        if oProcess.uIntegrityLevel >= 0x3000:
+#          sIntegrityLevel += "; this process appears to run with elevated privileges!";
+#        elif oProcess.uIntegrityLevel >= 0x2000:
+#          sIntegrityLevel += "; this process appears to not be sandboxed!";
+#        else:
+#          sIntegrityLevel += "; this process appears to be sandboxed.";
+#        sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
+#            (oProcess.uIntegrityLevel, sIntegrityLevel);
       if oCdbWrapper.oJobObject is None or oBugReport.sBugTypeId != "OOM":
         sOptionalMemoryUsageHTML = None;
       else:
