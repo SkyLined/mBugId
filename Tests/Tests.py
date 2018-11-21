@@ -633,7 +633,7 @@ if __name__ == "__main__":
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AV?:Invalid 630.ed2 @ <test-binary>!fWriteByte"]);
             else:
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AVW:Invalid ed2.531 @ <test-binary>!wmain"]);
-            fTest(sISA,  ["AccessViolation", "Jump", uBaseAddress],           ["AVE:Invalid 46f.ed2 @ <test-binary>!fJump"]);
+            fTest(sISA,    ["AccessViolation", "Jump", uBaseAddress],           ["AVE:Invalid 46f.ed2 @ <test-binary>!fJump"]);
             fTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ["AVE:Invalid f47.ed2 @ <test-binary>!fCall"]);
         
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
