@@ -9,8 +9,6 @@
 #include <windows.h>
 #include <Winstring.h>
 
-#define BYTE_TO_WRITE 0x41
-
 // Use Instruction Set Architecture (ISA) specific (unsigned) integers:
 #ifdef _WIN64
   #define ISAINT signed __int64
@@ -59,6 +57,19 @@ ISAINT fiParseNumber(_TCHAR* sInput) {
     iNumber = -iNumber;
   };
   return iNumber;
+};
+BYTE fuReadByte(PVOID pAddress) {
+  return *(PBYTE)pAddress;
+};
+BYTE fuReadByte(PBYTE pAddress) {
+  return *pAddress;
+};
+#define BYTE_TO_WRITE 0x41
+VOID fWriteByte(PVOID pAddress) {
+  *(PBYTE)pAddress = BYTE_TO_WRITE;
+};
+VOID fWriteByte(PBYTE pAddress) {
+  *pAddress = BYTE_TO_WRITE;
 };
 
 extern "C" {
@@ -200,9 +211,14 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     _tprintf(_T("          crashes the application).\r\n"));
     _tprintf(_T("  Numbered NUMBER FLAGS\r\n"));
     _tprintf(_T("    e.g. Numbered 0x41414141 0x42424242\r\n"));
-    _tprintf(_T("  AccessViolation [Call|Jmp|Read|Write] ADDRESS\r\n"));
+    _tprintf(_T("  AccessViolation [Call|Jmp|Read|Write] ( ADDRESS | TYPE )\r\n"));
+    _tprintf(_T("         TYPE can be any of \"Unallocated\", \"Reserved\", \"NoAccess\", or \"Guard\".\r\n"));
+    _tprintf(_T("         If a TYPE keyword is specified, the code creates a memory region of that\r\n"));
+    _tprintf(_T("         type and uses its address instead of a user supplied address.\r\n"));
     _tprintf(_T("    e.g. AccessViolation Call 0xDEADBEEF\r\n"));
     _tprintf(_T("         (attempt to execute code at address 0xDEADBEEF using a CALL instruction)\r\n"));
+    _tprintf(_T("    e.g. AccessViolation Read Unallocated\r\n"));
+    _tprintf(_T("         (attempt to read from unallocated memory)\r\n"));
     _tprintf(_T("  UseAfterFree [Call|Jmp|Read|Write] SIZE OFFSET\r\n"));
     _tprintf(_T("    e.g. UseAfterFree Read 0x20 4\r\n"));
     _tprintf(_T("         (free a 0x20 byte heap buffer and read from offset 4 of the free memory)\r\n"));
@@ -287,11 +303,19 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     throw oException;
   } else if (_tcsicmp(asArguments[1], _T("FailFast")) == 0) {
     /*                                                                        */
-    if (uArgumentsCount < 3) {
-      _ftprintf(stderr, _T("Please provide a HRESULT value.\r\n"));
+    if (uArgumentsCount < 4) {
+      _ftprintf(stderr, _T("Please provide ExceptionCode and ExceptionAddress values.\r\n"));
       return 1;
     };
-    HRESULT hResult = (HRESULT)fuParseNumber(asArguments[2]);
+    EXCEPTION_RECORD oExceptionRecord = {
+      (DWORD)fuParseNumber(asArguments[2]), // ExceptionCode
+      EXCEPTION_NONCONTINUABLE, // ExceptionFlags
+      NULL, // ExceptionRecord
+      (PVOID)fuParseNumber(asArguments[3]), // ExceptionAddress
+      0, // NumberParameters
+      {0}, // ExceptionInformation
+    };
+    RaiseFailFastException(&oExceptionRecord, NULL, 0);
   } else if (_tcsicmp(asArguments[1], _T("WRTOriginate")) == 0) {
     /*                                                                        */
     if (uArgumentsCount < 4) {
@@ -384,9 +408,9 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
         bHeapAlloc ? _T("HeapAlloc") : bCPP ? _T("new BYTE[]") : _T("HeapAlloc to cause low memory"));
     while (1) {
       if (bHeapAlloc) {
-        BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
+        (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
       } else if (bCPP) {
-        BYTE* pMemory = new BYTE[uBlockSize];
+        new BYTE[uBlockSize];
       } else {
         BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, 0, uBlockSize);
         if (pMemory == NULL) {
@@ -411,7 +435,38 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Please provide an access type (call, jump, read, write) and a UINT address to access.\r\n"));
       return 1;
     };
-    VOID* pAddress = fpParsePointer(asArguments[3]);
+    VOID* pAddress;
+    if (_tcsicmp(asArguments[3], _T("Unallocated")) == 0) {
+      pAddress = VirtualAlloc(NULL, 1, MEM_COMMIT, PAGE_NOACCESS);
+      if (pAddress == NULL) {
+        _ftprintf(stderr, _T("Cannot allocate memory.\r\n"));
+        return 1;
+      };
+      if (!VirtualFree(pAddress, 0, MEM_RELEASE)) {
+        _ftprintf(stderr, _T("Cannot free allocated memory.\r\n"));
+        return 1;
+      };
+    } else if (_tcsicmp(asArguments[3], _T("Reserved")) == 0) {
+      pAddress = VirtualAlloc(NULL, 1, MEM_RESERVE, PAGE_NOACCESS);
+      if (pAddress == NULL) {
+        _ftprintf(stderr, _T("Cannot reserve memory.\r\n"));
+        return 1;
+      };
+    } else if (_tcsicmp(asArguments[3], _T("NoAccess")) == 0) {
+      pAddress = VirtualAlloc(NULL, 1, MEM_COMMIT, PAGE_NOACCESS);
+      if (pAddress == NULL) {
+        _ftprintf(stderr, _T("Cannot allocate NoAccess memory.\r\n"));
+        return 1;
+      };
+    } else if (_tcsicmp(asArguments[3], _T("Guard")) == 0) {
+      pAddress = VirtualAlloc(NULL, 1, MEM_COMMIT, PAGE_GUARD);
+      if (pAddress == NULL) {
+        _ftprintf(stderr, _T("Cannot allocated guard page memory.\r\n"));
+        return 1;
+      };
+    } else {
+      pAddress = fpParsePointer(asArguments[3]);
+    };
     if (_tcsicmp(asArguments[2], _T("Call")) == 0) {
       _ftprintf(stderr, _T("Calling address 0x%p...\r\n"), pAddress);
       fCall(pAddress);
@@ -420,10 +475,10 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       fJump(pAddress);
     } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       _ftprintf(stderr, _T("Reading from address 0x%p...\r\n"), pAddress);
-      BYTE x = *(BYTE*)pAddress;
+      fuReadByte(pAddress);
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing to address 0x%p...\r\n"), pAddress);
-      *(BYTE*)pAddress = BYTE_TO_WRITE;
+      fWriteByte(pAddress);
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read, or Write, not %s\r\n"), asArguments[2]);
       return 1;
@@ -449,11 +504,11 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
     } else if (_tcsicmp(asArguments[2], _T("Read")) == 0) {
       _ftprintf(stderr, _T("Reading at offset %Id/0x%IX from a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
-      BYTE x = *(pMemory + iOffset);
+      fuReadByte(pMemory + iOffset);
     } else if (_tcsicmp(asArguments[2], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing at offset %Id/0x%IX to a %Id/0x%IX byte freed heap memory block at 0x%p...\r\n"),
           iOffset, iOffset, uSize, uSize, pMemory);
-      *(pMemory + iOffset) = BYTE_TO_WRITE;
+      fWriteByte(pMemory + iOffset);
     } else {
       _ftprintf(stderr, _T("Please use Call, Jmp, Read, or Write, not %s\r\n"), asArguments[2]);
       return 1;
@@ -508,13 +563,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Reading at offset %Id/0x%IX from a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory + iOffset; pAddress < pMemory + iOffset + uAccessSize; pAddress++) {
-        BYTE x = *pAddress;
+        fuReadByte(pAddress);
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing at offset %Id/0x%IX to a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           iOffset, iOffset, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (gpAddress = pMemory + iOffset, guCounter = uAccessSize; guCounter--; gpAddress++) {
-        *gpAddress = BYTE_TO_WRITE;
+        fWriteByte(gpAddress);
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
@@ -548,13 +603,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Reading %Id/0x%IX bytes beyond a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           uOverrunSize, uOverrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress < pMemory + uMemoryBlockSize + uOverrunSize; pAddress++) {
-        BYTE x = *pAddress;
+        fuReadByte(pAddress);
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing %Id/0x%IX bytes beyond a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           uOverrunSize, uOverrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (gpAddress = pMemory + uMemoryBlockSize, guCounter = uOverrunSize; guCounter--; gpAddress++) {
-        *gpAddress = BYTE_TO_WRITE;
+        fWriteByte(gpAddress);
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
@@ -588,13 +643,13 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
       _ftprintf(stderr, _T("Reading %Id/0x%IX bytes before a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           uUnderrunSize, uUnderrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (BYTE* pAddress = pMemory; pAddress >= pMemory - uUnderrunSize; pAddress--) {
-        BYTE x = *pAddress;
+        fuReadByte(pAddress);
       };
     } else if (_tcsicmp(asArguments[3], _T("Write")) == 0) {
       _ftprintf(stderr, _T("Writing %Id/0x%IX bytes before a %Id/0x%IX byte %s memory block at 0x%p...\r\n"),
           uUnderrunSize, uUnderrunSize, uMemoryBlockSize, uMemoryBlockSize, sMemoryType, pMemory);
       for (gpAddress = pMemory, guCounter = uUnderrunSize; guCounter--; gpAddress--) {
-        *gpAddress = BYTE_TO_WRITE;
+        fWriteByte(gpAddress);
       };
     } else {
       _ftprintf(stderr, _T("Please use Read or Write, not %s\r\n"), asArguments[3]);
