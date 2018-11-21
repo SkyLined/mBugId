@@ -616,14 +616,14 @@ if __name__ == "__main__":
         fTest(sISA,  ["AccessViolation", "Write", "Reserved"],                  ["AVW:Reserved[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
         fTest(sISA,  ["AccessViolation", "Write", "NoAccess"],                  ["AVW:NoAccess[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
         fTest(sISA,  ["AccessViolation", "Write", "Guard"],                     ["AVW:Guard[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
-        fTest(sISA,  ["AccessViolation", "Jump", "Unallocated"],                ["AVE:Unallocated ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Jump", "Reserved"],                   ["AVE:Reserved[4n]@0 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Jump", "NoAccess"],                   ["AVE:NoAccess[4n]@0 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["AccessViolation", "Jump", "Unallocated"],                ["AVE:Unallocated 46f.ed2 @ tests_x86.exe!fJump"]);
+        fTest(sISA,  ["AccessViolation", "Jump", "Reserved"],                   ["AVE:Reserved[4n]@0 46f.ed2 @ tests_x86.exe!fJump"]);
+        fTest(sISA,  ["AccessViolation", "Jump", "NoAccess"],                   ["AVE:NoAccess[4n]@0 46f.ed2 @ tests_x86.exe!fJump"]);
         fTest(sISA,  ["AccessViolation", "Jump", "Guard"],                      ["AVE:Guard[4n]@0 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Call", "Unallocated"],                ["AVE:Unallocated ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Call", "Reserved"],                   ["AVE:Reserved[4n]@0 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Call", "NoAccess"],                   ["AVE:NoAccess[4n]@0 ed2.531 @ <test-binary>!wmain"]);
-        fTest(sISA,  ["AccessViolation", "Call", "Guard"],                      ["AVE:Guard[4n]@0 ed2.531 @ <test-binary>!wmain"]);
+        fTest(sISA,  ["AccessViolation", "Call", "Unallocated"],                ["AVE:Unallocated f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["AccessViolation", "Call", "Reserved"],                   ["AVE:Reserved[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["AccessViolation", "Call", "NoAccess"],                   ["AVE:NoAccess[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fTest(sISA,  ["AccessViolation", "Call", "Guard"],                      ["AVE:Guard[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
         if sISA == "x64":
             # On x64, there are some limitations to exceptions occuring at addresses between the userland and kernelland
             # memory address ranges.
@@ -632,7 +632,7 @@ if __name__ == "__main__":
             if uBaseAddress >= 0x800000000000 and uBaseAddress < 0xffff800000000000:
               fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AV?:Invalid 630.ed2 @ <test-binary>!fWriteByte"]);
             else:
-              fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AVW:Invalid ed2.531 @ <test-binary>!wmain"]);
+              fTest(sISA,  ["AccessViolation", "Write", uBaseAddress],          ["AVW:Invalid 630.ed2 @ <test-binary>!fWriteByte"]);
             fTest(sISA,    ["AccessViolation", "Jump", uBaseAddress],           ["AVE:Invalid 46f.ed2 @ <test-binary>!fJump"]);
             fTest(sISA,    ["AccessViolation", "Call", uBaseAddress],           ["AVE:Invalid f47.ed2 @ <test-binary>!fCall"]);
         
