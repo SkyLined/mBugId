@@ -14,7 +14,7 @@ aoBugTranslations.append(cBugTranslation(
       "*!_RTC_CheckStackVars2",
     ],
   ],
-  sTranslatedBugTypeId = "OOBW@Stack",
+  sTranslatedBugTypeId = "OOBW:Stack",
   sTranslatedBugDescription = "The Windows Run-Time detected that a stack variable was modified, which suggests an out-of-bounds write on the stack.",
   sTranslatedSecurityImpact = "Potentially exploitable security issue",
 ));

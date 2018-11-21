@@ -52,7 +52,7 @@ gddtsDetails_uSpecialAddress_sISA = {
 };
 
 def fbUpdateReportForSpecialPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
   dtsDetails_uSpecialAddress = gddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
@@ -67,9 +67,9 @@ def fbUpdateReportForSpecialPointer(
     if uOffset <= dxConfig["uMaxAddressOffset"]:
       sSign = iOffset < 0 and "-" or "+";
       sOffset = iOffset != 0 and "%s%s" % (sSign, fsGetNumberDescription(uOffset, sSign)) or "";
-      oBugReport.sBugTypeId = "AV%s@%s%s" % (sViolationTypeId, sSpecialAddressId, sOffset);
-      oBugReport.sBugDescription = "Access violation while %s memory at 0x%X using %s." % \
-        (sViolationTypeDescription, uAccessViolationAddress, sAddressDescription);
+      oBugReport.sBugTypeId = "AV%s:%s%s" % (sViolationTypeId, sSpecialAddressId, sOffset);
+      oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using %s." % \
+        (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress, sAddressDescription);
       oBugReport.sSecurityImpact = sSecurityImpact;
       oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
         fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)

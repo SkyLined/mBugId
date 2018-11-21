@@ -3,7 +3,7 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
   # This is not a special marker or NULL, so it must be some corrupt pointer
   # Get information about the memory region:
@@ -43,8 +43,8 @@ def fbUpdateReportForHeapManagerPointer(
       oHeapManagerData.ftsGetIdAndDescriptionForAddress(uAccessViolationAddress);
   sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
   sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
-  oBugReport.sBugDescription = "Access violation while %s %smemory at 0x%X; %s." % (sViolationTypeDescription, \
-      oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sBlockOffsetAndSizeDescription);
+  oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s %smemory at 0x%X; %s." % \
+      (uAccessViolationAddress, sViolationVerb, oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sBlockOffsetAndSizeDescription);
   sPotentialRisk = {
     "R": "might allow information disclosure and (less likely) arbitrary code execution",
     "W": "indicates arbitrary code execution may be possible",

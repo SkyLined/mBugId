@@ -2,7 +2,7 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import oSystemInfo;
 
 def fbUpdateReportForNULLPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
   if uAccessViolationAddress == 0:
     sOffset = "";
@@ -13,9 +13,9 @@ def fbUpdateReportForNULLPointer(
     if uAccessViolationNegativeOffset >= oSystemInfo.uAllocationAddressGranularity:
       return False;
     sOffset = "-%s" % fsGetNumberDescription(uAccessViolationNegativeOffset, "-");
-  oBugReport.sBugTypeId = "AV%s@NULL%s" % (sViolationTypeId, sOffset);
-  oBugReport.sBugDescription = "Access violation while %s memory at 0x%X using a NULL pointer." % \
-      (sViolationTypeDescription, uAccessViolationAddress);
+  oBugReport.sBugTypeId = "AV%s:NULL%s" % (sViolationTypeId, sOffset);
+  oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using a NULL pointer." % \
+      (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress);
   oBugReport.sSecurityImpact = None;
   # You normally cannot allocate memory at address 0, so it is impossible for an exploit to avoid this exception.
   # Therefore there is no collateral bug handling.

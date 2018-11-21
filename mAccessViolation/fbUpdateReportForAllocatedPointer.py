@@ -1,8 +1,9 @@
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
+from mWindowsAPI.mDefines import *;
 
 def fbUpdateReportForAllocatedPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationTypeDescription, oVirtualAllocation
+  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
   if not oVirtualAllocation.bAllocated:
     return False;
@@ -10,10 +11,19 @@ def fbUpdateReportForAllocatedPointer(
   if oCdbWrapper.bGenerateReportHTML:
     oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
     oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
-  sMemoryProtectionsDescription = {
-    0x01: "allocated but inaccessible", 0x02: "read-only",            0x04: "read- and writable",  0x08: "read- and writable",
-    0x10: "executable",                 0x20: "read- and executable",
-  }[oVirtualAllocation.uProtection];
+  if oVirtualAllocation.bGuard:
+    (sMemoryProtectionsId, sMemoryProtectionsDescription) = ("Guard", "guard page");
+  else:
+    (sMemoryProtectionsId, sMemoryProtectionsDescription) = {
+      PAGE_NOACCESS:          ("NoAccess",    "allocated but inaccessible"),
+      PAGE_READONLY:          ("ReadOnly",    "read-only"),
+      PAGE_READWRITE:         ("Read/Write",  "read- and writable"),
+      PAGE_WRITECOPY:         ("Read/Write",  "read- and writable"),
+      PAGE_EXECUTE:           ("Exec",        "executable"),
+      PAGE_EXECUTE_READ:      ("Exec/Read",   "read- and executable"),
+      PAGE_EXECUTE_READWRITE: ("Full",        "read-, write-, and execute"),
+      PAGE_EXECUTE_WRITECOPY: ("Full",        "read-, write-, and execute"),
+    }[oVirtualAllocation.uProtection & 0xFF]; 
   (sBlockSizeId, sBlockOffsetId, sBlockOffsetDescription, sBlockSizeDescription) = \
       ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress(
         uBlockStartAddress = oVirtualAllocation.uStartAddress,
@@ -21,26 +31,26 @@ def fbUpdateReportForAllocatedPointer(
         sBlockType = "%s memory" % sMemoryProtectionsDescription,
         uAddress = uAccessViolationAddress,
       );
-  sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
-  sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
   if sViolationTypeId == "W":
-    assert not oVirtualAllocation.bWritable, \
+    assert not oVirtualAllocation.bWritable or oVirtualAllocation.bGuard, \
         "A write access violation in writable memory should not be possible";
-    oBugReport.sBugTypeId = "W2RO%s" % sBlockSizeAndOffsetId;
-    oBugReport.sBugDescription = "Access violation while writing to read-only memory %s." % sBlockOffsetAndSizeDescription;
+    oBugReport.sBugTypeId = "W2RO:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to write %s %s." % \
+        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
   elif sViolationTypeId == "R":
-    assert not oVirtualAllocation.bReadable, \
+    assert not oVirtualAllocation.bReadable or oVirtualAllocation.bGuard, \
         "A read access violation in readble memory should not be possible";
-    oBugReport.sBugTypeId = "AVR%s" % sBlockSizeAndOffsetId;
-    oBugReport.sBugDescription = "Access violation while reading from inaccessible memory %s." % sBlockOffsetAndSizeDescription;
+    oBugReport.sBugTypeId = "AVR:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to read %s %s." % \
+        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
   elif sViolationTypeId == "E":
-    oBugReport.sBugTypeId = "DEP%s" % sBlockSizeAndOffsetId;
-    oBugReport.sBugDescription = "Data execution prevention triggered an access violation while attempting to " + \
-        "execute non-executable memory %s." % sBlockOffsetAndSizeDescription;
+    oBugReport.sBugTypeId = "DEP:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+    oBugReport.sBugDescription = "An Access Violation exception caused by Data Execution Prevention happened at 0x%X while attempting to execute %s %s." % \
+        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
   else:
-    oBugReport.sBugTypeId = "AV%s%s" % (sViolationTypeId, sBlockSizeAndOffsetId);
-    oBugReport.sBugDescription = "An Access Violation exception happend while attempting to %s memory %s" % \
-        (sViolationTypeDescription, sBlockOffsetAndSizeDescription);
+    oBugReport.sBugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to %s %s %s." % \
+        (uAccessViolationAddress, sViolationVerb, sBlockOffsetDescription, sBlockSizeDescription);
   oBugReport.sSecurityImpact = "Unlikely to be an exploitable security issue unless the address can be controlled.";
   # Add a memory dump
   if oCdbWrapper.bGenerateReportHTML:

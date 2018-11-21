@@ -3,9 +3,9 @@ from .dxConfig import dxConfig;
 # Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
 # I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
 dtsFastFailErrorInformation_by_uCode = {
-  0:  ("OOBW@Stack",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
+  0:  ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
   1:  ("VTGuard",       "VTGuard detected an invalid virtual function table cookie",  "Potentially exploitable security issue"),
-  2:  ("OOBW@Stack",   "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
+  2:  ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
   3:  ("CorruptList",   "Safe unlinking detected a corrupted LIST_ENTRY",             "Potentially exploitable security issue"),
   4:  ("BadStack",      "FAST_FAIL_INCORRECT_STACK",                                  "Potentially exploitable security issue"),
   5:  ("InvalidArg",    "FAST_FAIL_INVALID_ARG",                                      "Potentially exploitable security issue"),
