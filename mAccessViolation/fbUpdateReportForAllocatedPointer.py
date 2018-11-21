@@ -34,23 +34,15 @@ def fbUpdateReportForAllocatedPointer(
   if sViolationTypeId == "W":
     assert not oVirtualAllocation.bWritable or oVirtualAllocation.bGuard, \
         "A write access violation in writable memory should not be possible";
-    oBugReport.sBugTypeId = "W2RO:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
-    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to write %s %s." % \
-        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
   elif sViolationTypeId == "R":
     assert not oVirtualAllocation.bReadable or oVirtualAllocation.bGuard, \
         "A read access violation in readble memory should not be possible";
-    oBugReport.sBugTypeId = "AVR:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
-    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to read %s %s." % \
-        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
   elif sViolationTypeId == "E":
-    oBugReport.sBugTypeId = "DEP:%s%s%s" % (sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
-    oBugReport.sBugDescription = "An Access Violation exception caused by Data Execution Prevention happened at 0x%X while attempting to execute %s %s." % \
-        (uAccessViolationAddress, sBlockOffsetDescription, sBlockSizeDescription);
-  else:
-    oBugReport.sBugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
-    oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to %s %s %s." % \
-        (uAccessViolationAddress, sViolationVerb, sBlockOffsetDescription, sBlockSizeDescription);
+    assert not oVirtualAllocation.bExecutable or oVirtualAllocation.bGuard, \
+        "A read access violation in readble memory should not be possible";
+  oBugReport.sBugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+  oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to %s %s %s." % \
+      (uAccessViolationAddress, sViolationVerb, sBlockOffsetDescription, sBlockSizeDescription);
   oBugReport.sSecurityImpact = "Unlikely to be an exploitable security issue unless the address can be controlled.";
   # Add a memory dump
   if oCdbWrapper.bGenerateReportHTML:
