@@ -459,7 +459,7 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
         return 1;
       };
     } else if (_tcsicmp(asArguments[3], _T("Guard")) == 0) {
-      pAddress = VirtualAlloc(NULL, 1, MEM_COMMIT, PAGE_GUARD);
+      pAddress = VirtualAlloc(NULL, 1, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_GUARD);
       if (pAddress == NULL) {
         _ftprintf(stderr, _T("Cannot allocated guard page memory.\r\n"));
         return 1;
