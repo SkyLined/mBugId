@@ -6,16 +6,16 @@
     "mProductDetails", 
     "mWindowsAPI"
   ], 
-  "oProductVersion": "2018-11-21 16:38", 
+  "oProductVersion": "2019-01-04 18:04", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
     "sType": "GitHub", 
     "sUserName": "SkyLined"
   }, 
+  "oTrialPeriodDuration": "1m", 
   "sLicenseServerURL": "https://license.skylined.nl/License_dxCheck.php", 
   "sProductAuthor": "SkyLined", 
   "sProductName": "cBugId", 
-  "sProductURL": "https://github.com/SkyLined/cBugId", 
-  "oTrialPeriodDuration": "1m"
+  "sProductURL": "https://github.com/SkyLined/cBugId"
 }
