@@ -30,11 +30,11 @@ for sModuleName in sys.modules.keys():
     or sModuleName.lstrip("_").split(".", 1)[0] in [
       "cBugId", # This was loaded as part of the cBugId package
       # These packages are loaded by cBugId:
-      "mWindowsAPI", "mDebugOutput", "mMultiThreading", "mFileSystem", "mProductDetails", "oConsole",
+      "mDateTime", "mDebugOutput", "mFileSystem", "mMultiThreading", "mProductDetails", "mWindowsAPI", "oConsole",
       # These built-in modules are loaded by these packages:
-      "base64", "binascii", "bz2", "contextlib", "cStringIO", "ctypes", "datetime", "encodings", "fnmatch", "gc",
-      "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl", "struct", "subprocess",
-      "textwrap", "Queue", "urllib", "urlparse", "uuid", "winreg", "zlib",
+      "base64", "binascii", "bz2", "calendar", "contextlib", "cStringIO", "ctypes", "datetime", "encodings",
+      "fnmatch", "gc", "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl",
+      "struct", "subprocess", "textwrap", "Queue", "urllib", "urlparse", "uuid", "winreg", "zlib",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
