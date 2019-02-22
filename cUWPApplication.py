@@ -26,51 +26,42 @@ class cUWPApplication(object):
     asQueryOutput = fasRunApplication("powershell", "Get-AppxPackage %s" % oUWPApplication.sPackageName);
     oUWPApplication.sPackageFullName = None;
     oUWPApplication.sPackageFamilyName = None;
-    # Output should consist of "Name : Value" Pairs. Values can be lists that span multiple lines. In this case
-    # the value starts with "{" and each line ends with "," except the last line which ends with "}"
-    bInCurlyBraceList = False;
-    bNameChecked = False;
+    # Output should consist of "Name : Value" Pairs. Values can span multiple lines in which case additional lines
+    # start with a number of spaces. There is never a space before a line that start with "Name :".
+    # --- example multi-line output ---
+    # Publisher         : CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, 
+    #                     S=Washington, C=US
+    # ---
+    # Dependencies      : {Microsoft.NET.CoreRuntime.1.1_1.1.25915.0_x86__8wekyb3d8bbwe, 
+    #                     Microsoft.VCLibs.140.00.Debug_14.0.26428.1_x86__8wekyb3d8bbwe}
+    dsValue_by_sName = {};
+    sCurrentName = None;
     for sLine in asQueryOutput:
       if sLine:
-        if bInCurlyBraceList:
-          # 
-          oValueMatch = re.match(r"^ (.*)[,}]$", sLine);
-          assert oValueMatch, \
-              "Unrecognized Get-AppxPackage output: %s in\r\n%s" % (repr(sLine), "\r\n".join(asQueryOutput));
-          sValue, sLineEnd = oValueMatch.groups();
-          bInCurlyBraceList = sLineEnd == ",";
+        if sLine[0] == " ":
+          assert sCurrentName is not None, \
+              "Get-AppxPackage output firstline starts with a space: %s in\r\n%s" % (repr(sLine), "\r\n".join(asQueryOutput));
+          dsValue_by_sName[sCurrentName] += " " + sLine.strip();
         else:
-          oNameAndValueMatch = re.match(r"^(.*?)\s* : (\{)?(.*?)$", sLine);
+          oNameAndValueMatch = re.match(r"^(.*?)\s+: (.*)$", sLine);
           assert oNameAndValueMatch, \
               "Unrecognized Get-AppxPackage output: %s in\r\n%s" % (repr(sLine), "\r\n".join(asQueryOutput));
-        sName, sCurlyBrace, sValue = oNameAndValueMatch.groups();
-        if sCurlyBrace:
-          assert sValue[-1] in ",}", \
-              "Expected comma or end of curly brace list: %s in\r\n%s" %  (repr(sLine), "\r\n".join(asQueryOutput));
-          bInCurlyBraceList = sValue[-1] == ",";
-          sValue = sValue[:-1];
-        if sName == "Name":
-          assert not bInCurlyBraceList, \
-              "The package name is not supposed to be a list";
-          assert sValue.lower() == oUWPApplication.sPackageName.lower(), \
-              "Expected application package name to be %s, but got %s.\r\n%s" % \
-              (oUWPApplication.sPackageName, sValue, "\r\n".join(asQueryOutput));
-          bNameChecked = True;
-        elif sName == "PackageFullName":
-          assert not bInCurlyBraceList, \
-              "The package full name is not supposed to be a list";
-          oUWPApplication.sPackageFullName = sValue;
-        elif sName == "PackageFamilyName":
-          assert not bInCurlyBraceList, \
-              "The package family name is not supposed to be a list";
-          oUWPApplication.sPackageFamilyName = sValue;
-    assert bNameChecked, \
+          sCurrentName, sValue = oNameAndValueMatch.groups();
+          assert sCurrentName not in dsValue_by_sName, \
+              "Get-AppxPackage output contains value for %s twice:\r\n%s" % (repr(sCurrentName), "\r\n".join(asQueryOutput));
+          dsValue_by_sName[sCurrentName] = sValue;
+    sNameValue = dsValue_by_sName.get("Name");
+    assert sNameValue, 
         "Expected Get-AppxPackage output to contain 'Name' value.\r\n%s" % "\r\n".join(asQueryOutput);
+    assert sNameValue.lower() == oUWPApplication.sPackageName.lower(), \
+        "Expected application package name to be %s, but got %s.\r\n%s" % \
+        (oUWPApplication.sPackageName, sNameValue, "\r\n".join(asQueryOutput));
+    oUWPApplication.sPackageFullName = dsValue_by_sName.get("PackageFullName");
     assert oUWPApplication.sPackageFullName, \
         "Expected Get-AppxPackage output to contain 'PackageFullName' value.\r\n%s" % "\r\n".join(asQueryOutput);
+    oUWPApplication.sPackageFamilyName = dsValue_by_sName.get("PackageFamilyName");
     assert oUWPApplication.sPackageFamilyName, \
         "Expected Get-AppxPackage output to contain 'PackageFamilyName' value.\r\n%s" % "\r\n".join(asQueryOutput);
-    
     # Sanity check the application id
     asApplicationIds = fasRunApplication("powershell", "(Get-AppxPackageManifest %s).package.applications.application.id" % oUWPApplication.sPackageFullName);
     assert sApplicationId in asApplicationIds, \
