@@ -1,3 +1,19 @@
+2019-03-04
+==========
+This update introduces new modules; you will need to download a new license
+file to use it.
+
+Externally noticeable changes
+-----------------------------
++ Older version may fail to check for updates because a new version of
+  `mProductDetails` requires changes to `dxProductsDetails.json` structure.
++ Handling of UWP Application has been improved to prevent errors for certain
+  UWP applications.
+
+Internal changes
+----------------
++ `mFileSystem` module has been replaced with `mFileSytem2`
+
 2018-11-21
 ==========
 Externally noticeable changes
