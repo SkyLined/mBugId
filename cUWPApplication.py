@@ -51,7 +51,7 @@ class cUWPApplication(object):
               "Get-AppxPackage output contains value for %s twice:\r\n%s" % (repr(sCurrentName), "\r\n".join(asQueryOutput));
           dsValue_by_sName[sCurrentName] = sValue;
     sNameValue = dsValue_by_sName.get("Name");
-    assert sNameValue, 
+    assert sNameValue, \
         "Expected Get-AppxPackage output to contain 'Name' value.\r\n%s" % "\r\n".join(asQueryOutput);
     assert sNameValue.lower() == oUWPApplication.sPackageName.lower(), \
         "Expected application package name to be %s, but got %s.\r\n%s" % \
