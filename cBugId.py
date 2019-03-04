@@ -31,7 +31,7 @@ for (sModuleName, sDownloadURL) in [
   ("mWindowsAPI", "https://github.com/SkyLined/mWindowsAPI/"),
   ("mDebugOutput", "https://github.com/SkyLined/mDebugOutput/"),
   ("mMultiThreading", "https://github.com/SkyLined/mMultiThreading/"),
-  ("mFileSystem", "https://github.com/SkyLined/mFileSystem/"),
+  ("mFileSystem2", "https://github.com/SkyLined/mFileSystem2/"),
   ("mProductDetails", "https://github.com/SkyLined/mProductDetails/"),
 ]:
   try:

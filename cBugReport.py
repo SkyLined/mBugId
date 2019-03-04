@@ -18,7 +18,7 @@ from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterH
 import mProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
-from mFileSystem import mFileSystem;
+import mFileSystem2;
 from mWindowsAPI.mDefines import *;
 
 import cBugId;
@@ -366,7 +366,7 @@ class cBugReport(object):
       sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
       # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
       # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
-      sDumpFileName = mFileSystem.fsValidName(sDesiredDumpFileName, bUnicode = False);
+      sDumpFileName = mFileSystem2.fsGetValidName(sDesiredDumpFileName, bUnicode = False);
       if dxConfig["sDumpFilePath"]:
         sDumpFilePath = os.path.join(dxConfig["sDumpFilePath"], sDumpFileName);
       else:

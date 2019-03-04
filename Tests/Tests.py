@@ -10,7 +10,7 @@ sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
 # Save the list of names of loaded modules:
 asOriginalModuleNames = sys.modules.keys();
 
-import cBugId, mFileSystem, mWindowsAPI;
+import cBugId, mFileSystem2, mWindowsAPI;
 from mDebugOutput import fShowFileDebugOutputForClass;
 from mMultiThreading import cLock, cThread, cWithCallbacks;
 
@@ -30,18 +30,18 @@ for sModuleName in sys.modules.keys():
     or sModuleName.lstrip("_").split(".", 1)[0] in [
       "cBugId", # This was loaded as part of the cBugId package
       # These packages are loaded by cBugId:
-      "mDateTime", "mDebugOutput", "mFileSystem", "mMultiThreading", "mProductDetails", "mWindowsAPI", "oConsole",
+      "mDateTime", "mDebugOutput", "mFileSystem2", "mMultiThreading", "mProductDetails", "mWindowsAPI", "oConsole",
       # These built-in modules are loaded by these packages:
       "base64", "binascii", "bz2", "calendar", "contextlib", "cStringIO", "ctypes", "datetime", "encodings",
-      "fnmatch", "gc", "hashlib", "hmac", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl",
-      "struct", "subprocess", "textwrap", "Queue", "urllib", "urlparse", "uuid", "winreg", "zlib",
+      "fnmatch", "gc", "hashlib", "hmac", "io", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl",
+      "struct", "subprocess", "textwrap", "Queue", "urllib", "urlparse", "uuid", "winreg", "zipfile", "zlib",
     ]
   ), \
       "Module %s was unexpectedly loaded outside of the cBugId package!" % sModuleName;
 
 from cBugId import cBugId;
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
-from mFileSystem import mFileSystem;
+import mFileSystem2;
 from mWindowsAPI import oSystemInfo, fsGetPythonISA;
 from mWindowsAPI.mDefines import *;
 from mWindowsAPI.mDLLs import KERNEL32;
@@ -71,7 +71,7 @@ asTestISAs = {
   "x64": ["x64", "x86"],
 }[sPythonISA];
 
-sReportsFolderName = mFileSystem.fsPath(sTestsFolderPath, "Reports");
+sReportsFolderName = os.path.join(sTestsFolderPath, "Reports");
 
 dsBinaries_by_sISA = {
   "x86": os.path.join(sTestsFolderPath, "bin", "Tests_x86.exe"),
@@ -395,13 +395,9 @@ def fTest(
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
         sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
         # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
-        sValidReportFileName = mFileSystem.fsValidName(sDesiredReportFileName, bUnicode = False);
-        sReportsFilePath = mFileSystem.fsPath(sReportsFolderName, sValidReportFileName);
-        mFileSystem.fWriteDataToFile(
-          oBugReport.sReportHTML,
-          sReportsFilePath,
-          fbRetryOnFailure = lambda: False,
-        );
+        sValidReportFileName = mFileSystem2.fsGetValidName(sDesiredReportFileName, bUnicode = False);
+        sReportsFilePath = os.path.join(sReportsFolderName, sValidReportFileName);
+        mFileSystem2.foCreateFile(sReportsFilePath, oBugReport.sReportHTML);
         fOutput("  Wrote report: %s" % sReportsFilePath);
   except Exception, oException:
     if bBugIdStarted and not bBugIdStopped:
