@@ -9,6 +9,7 @@ Externally noticeable changes
   `mProductDetails` requires changes to `dxProductsDetails.json` structure.
 + Handling of UWP Application has been improved to prevent errors for certain
   UWP applications.
++ `sDumpPath` config setting has been renamed `sDumpFilePath`.
 
 Internal changes
 ----------------

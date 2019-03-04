@@ -104,7 +104,7 @@ dxConfig = {
   ### Dump file settings
   "bSaveDump": False,                   # Save a dump file.
   "bOverwriteDump": False,              # Overwrite any existing dump file.
-  "sDumpPath": None,                    # Path where you want cBugId to save dump file. None = current folder.
+  "sDumpFilePath": None,                # Path where you want cBugId to save dump file. None = current folder.
   "bFullDump": False,                   # Create a full (True) or small memory dump (False).
   ### Excessive CPU usage detection
   "nExcessiveCPUUsageCheckIntervalInSeconds": 10.0, # How many seconds to gather thread CPU usage data.
