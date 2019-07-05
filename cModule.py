@@ -44,7 +44,7 @@ class cModule(object):
       if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
         # Loading the symbols failed; force reload the module and overwriting any cached pdbs.
         asIgnoredReloadSymbolsOutput = oModule.oProcess.fasExecuteCdbCommand(
-          sCommand = "!sym noisy; .block {.reload /f /o /v %s;}; !sym quiet;" % oModule.__sBinaryName,
+          sCommand = "!sym noisy; .block {.reload /f /o /v /w \"%s\";}; !sym quiet;" % oModule.__sBinaryName,
           sComment = "Reload symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
           bRetryOnTruncatedOutput = True,
         );
