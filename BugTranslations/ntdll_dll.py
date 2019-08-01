@@ -41,7 +41,7 @@ aoBugTranslations = [
       [
         "ntdll.dll!LdrpDispatchUserCallTarget",
       ], [
-        re.compile("ntdll.dll!LdrpValidateUserCallTarget(BitMapCheck|ES)?"),
+        re.compile(r"ntdll\.dll!LdrpValidateUserCallTarget(BitMapCheck|ES)?"),
       ],
     ],
     sTranslatedBugTypeId = "AVR@CFG",
@@ -71,27 +71,13 @@ aoBugTranslations = [
       ], [
         "ntdll.dll!FindNodeOrParent",
       ], [
-        "ntdll.dll!RtlAllocateHeap",
-      ], [
-        "ntdll.dll!RtlDebugAllocateHeap",
-      ], [
-        "ntdll.dll!RtlDebugFreeHeap",
-      ], [
         "ntdll.dll!RtlDeleteCriticalSection",
-      ], [
-        "ntdll.dll!RtlFreeHeap",
       ], [
         "ntdll.dll!RtlInsertElementGenericTableAvl",
       ], [
-        "ntdll.dll!RtlpAllocateHeap",
-      ], [
-        "ntdll.dll!RtlpAllocateHeapInternal",
-      ], [
-        "ntdll.dll!RtlpAllocateHeapRaiseException",
-      ], [
         "ntdll.dll!RtlpFreeDebugInfo",
       ], [
-        "ntdll.dll!RtlpFreeHeap",
+        re.compile(r"ntdll\.dll!Rtlp?(Debug)?(Allocate|Free)Heap\w*"),
       ],
     ],
   ),
