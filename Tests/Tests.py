@@ -30,7 +30,8 @@ for sModuleName in sys.modules.keys():
     or sModuleName.lstrip("_").split(".", 1)[0] in [
       "cBugId", # This was loaded as part of the cBugId package
       # These packages are loaded by cBugId:
-      "mDateTime", "mDebugOutput", "mFileSystem2", "mMultiThreading", "mProductDetails", "mWindowsAPI", "oConsole",
+      "mDateTime", "mDebugOutput", "mFileSystem2", "mMultiThreading", "mProductDetails", "mWindowsAPI", "mWindowsSDK",
+      "oConsole",
       # These built-in modules are loaded by these packages:
       "base64", "binascii", "bz2", "calendar", "contextlib", "cStringIO", "ctypes", "datetime", "encodings",
       "fnmatch", "gc", "hashlib", "hmac", "io", "json", "math", "msvcrt", "nturl2path", "shutil", "socket", "ssl",
@@ -43,9 +44,8 @@ from cBugId import cBugId;
 from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 import mFileSystem2;
 from mWindowsAPI import oSystemInfo, fsGetPythonISA;
-from mWindowsAPI.mDefines import *;
-from mWindowsAPI.mDLLs import KERNEL32;
-from mWindowsAPI.mFunctions import *;
+from mWindowsSDK import *;
+from mWindowsAPI.mDLLs import oKernel32;
 
 gbDebugStartFinish = False;  # Show some output when a test starts and finishes.
 gbShowCdbIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
@@ -106,9 +106,11 @@ def fOutput(sMessage = "", bCRLF = True):
   oOutputLock and oOutputLock.release();
 
 def fSetTitle(sTitle):
-  assert KERNEL32.SetConsoleTitleW(sTitle), \
+  assert oKernel32.SetConsoleTitleW(
+    LPCWSTR(foCreateBuffer(sTitle, bUnicode = True), bCast = True),
+  ), \
       "SetConsoleTitleW(%s) => Error %08X" % \
-      (repr(sTitle), KERNEL32.GetLastError());
+      (repr(sTitle), oKernel32.GetLastError());
   
 gbTestFailed = False;
 
