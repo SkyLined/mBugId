@@ -45,7 +45,6 @@ from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails
 import mFileSystem2;
 from mWindowsAPI import oSystemInfo, fsGetPythonISA;
 from mWindowsSDK import *;
-from mWindowsAPI.mDLLs import oKernel32;
 
 gbDebugStartFinish = False;  # Show some output when a test starts and finishes.
 gbShowCdbIO = False;          # Show cdb I/O during tests (you'll want to run only 1 test at a time for this).
@@ -106,6 +105,7 @@ def fOutput(sMessage = "", bCRLF = True):
   oOutputLock and oOutputLock.release();
 
 def fSetTitle(sTitle):
+  oKernel32 = foLoadKernel32DLL();
   assert oKernel32.SetConsoleTitleW(
     LPCWSTR(foCreateBuffer(sTitle, bUnicode = True), bCast = True),
   ), \
