@@ -10,30 +10,26 @@ IF "%~1" == "--all" (
   )
   REM If you can add the x86 and x64 binaries of python to the path, or add links to the local folder, tests will be run
   REM in both
-  WHERE PYTHON_X86 2>&1 >nul
-  IF ERRORLEVEL 0 (
-    WHERE PYTHON_X64 2>&1 >nul
-    IF ERRORLEVEL 0 (
+  WHERE PYTHON_X86 >nul 2>&1
+  IF NOT ERRORLEVEL 0 (
+    ECHO - PYTHON_X86 was not found; not testing both x86 and x64 ISAs.
+  ) ELSE (
+    WHERE PYTHON_X64 >nul 2>&1
+    IF NOT ERRORLEVEL 0 (
+      ECHO - PYTHON_X64 was not found; not testing both x86 and x64 ISAs.
+    ) ELSE (
       GOTO :TEST_BOTH_ISAS
     )
   )
 )
 
-IF DEFINED PYTHON (
-  CALL :CHECK_PYTHON
-  IF ERRORLEVEL 1 EXIT /B 1
-) ELSE (
-  REM Try to detect the location of python automatically
-  FOR /F "usebackq delims=" %%I IN (`where "python" 2^>nul`) DO SET PYTHON="%%~I"
-  IF NOT DEFINED PYTHON (
-    REM Check if python is found in its default installation path.
-    SET PYTHON="%SystemDrive%\Python27\python.exe"
-    CALL :CHECK_PYTHON
-    IF ERRORLEVEL 1 EXIT /B 1
-  )
+WHERE PYTHON 2>&1 >nul
+IF ERRORLEVEL 1 (
+  ECHO - PYTHON was not found!
+  EXIT /B 1
 )
 
-%PYTHON% "%~dpn0\%~n0.py" %*
+CALL PYTHON "%~dpn0\%~n0.py" %*
 IF ERRORLEVEL 1 GOTO :ERROR
 ENDLOCAL
 EXIT /B 0
@@ -51,13 +47,3 @@ EXIT /B 0
 :ERROR
   ECHO    - Error %ERRORLEVEL%
   EXIT /B %ERRORLEVEL%
-
-:CHECK_PYTHON
-  REM Make sure path is quoted and check if it exists.
-  SET PYTHON="%PYTHON:"=%"
-  IF NOT EXIST %PYTHON% (
-    ECHO - Cannot find Python at %PYTHON%, please set the "PYTHON" environment variable to the correct path.
-    EXIT /B 1
-  )
-  EXIT /B 0
-
