@@ -3,80 +3,66 @@ from .cHeapManagerData import cHeapManagerData;
 from .dxConfig import dxConfig;
 from .fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import cVirtualAllocation;
-from mWindowsAPI.mFunctions import fuPointerValue, fuSizeOf;
-from mWindowsAPI.mTypes import *;
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 gbDebugOutput = False;
 
 # SINGLE_LIST_ENTRY
-SINGLE_LIST_ENTRY_32 = fcStructure("SINGLE_LIST_ENTRY",
-  (PVOID_32,        "Next"),                          # PSINGLE_LIST_ENTRY
-  uAlignmentBytes = 4,
+SINGLE_LIST_ENTRY32 = fcTypeDefStructure32("SINGLE_LIST_ENTRY32",
+  (P32VOID,        "Next"),                          # PSINGLE_LIST_ENTRY
 );
-SINGLE_LIST_ENTRY_64 = fcStructure("SINGLE_LIST_ENTRY",
-  (PVOID_64,        "Next"),                          # PSINGLE_LIST_ENTRY
-  uAlignmentBytes = 8,
+SINGLE_LIST_ENTRY64 = fcTypeDefStructure64("SINGLE_LIST_ENTRY64",
+  (P64VOID,        "Next"),                          # PSINGLE_LIST_ENTRY
 );
 # LIST_ENTRY
-LIST_ENTRY_32 = fcStructure("LIST_ENTRY",
-  (PVOID_32,        "pBLink"),                        # PLIST_ENTRY_32
-  (PVOID_32,        "pFLink"),                        # PLIST_ENTRY_32
-  uAlignmentBytes = 4,
+LIST_ENTRY32 = fcTypeDefStructure32("LIST_ENTRY32",
+  (P32VOID,        "pBLink"),                        # PLIST_ENTRY32
+  (P32VOID,        "pFLink"),                        # PLIST_ENTRY32
 );
-LIST_ENTRY_64 = fcStructure("LIST_ENTRY",
-  (PVOID_64,        "pBLink"),                        # PLIST_ENTRY_64
-  (PVOID_64,        "pFLink"),                        # PLIST_ENTRY_64
-  uAlignmentBytes = 8,
+LIST_ENTRY64 = fcTypeDefStructure64("LIST_ENTRY64",
+  (P64VOID,        "pBLink"),                        # PLIST_ENTRY64
+  (P64VOID,        "pFLink"),                        # PLIST_ENTRY64
 );
 # RTL_BALANCED_LINKS
-RTL_BALANCED_LINKS_32 = fcStructure("RTL_BALANCED_LINKS",
-  (PVOID_32,        "Parent"),                        # PRTL_BALANCED_LINKS
-  (PVOID_32,        "LeftChild"),                     # PRTL_BALANCED_LINKS
-  (PVOID_32,        "RightChild"),                    # PRTL_BALANCED_LINKS
+RTL_BALANCED_LINKS32 = fcTypeDefStructure32("RTL_BALANCED_LINKS32",
+  (P32VOID,        "Parent"),                        # PRTL_BALANCED_LINKS
+  (P32VOID,        "LeftChild"),                     # PRTL_BALANCED_LINKS
+  (P32VOID,        "RightChild"),                    # PRTL_BALANCED_LINKS
   (CHAR,            "Balance"),
   (UCHAR * 3,       "Reserved"),
-  uAlignmentBytes = 4,
 );
-RTL_BALANCED_LINKS_64 = fcStructure("RTL_BALANCED_LINKS",
-  (PVOID_64,        "Parent"),                        # PRTL_BALANCED_LINKS
-  (PVOID_64,        "LeftChild"),                     # PRTL_BALANCED_LINKS
-  (PVOID_64,        "RightChild"),                    # PRTL_BALANCED_LINKS
+RTL_BALANCED_LINKS64 = fcTypeDefStructure64("RTL_BALANCED_LINKS64",
+  (P64VOID,        "Parent"),                        # PRTL_BALANCED_LINKS
+  (P64VOID,        "LeftChild"),                     # PRTL_BALANCED_LINKS
+  (P64VOID,        "RightChild"),                    # PRTL_BALANCED_LINKS
   (CHAR,            "Balance"),
   (UCHAR * 3,       "Reserved"),
-  uAlignmentBytes = 8,
 );
 # DPH_DELAY_FREE_FLAGS
-DPH_DELAY_FREE_FLAGS_32 = fcStructure("DPH_DELAY_FREE_FLAGS",
+DPH_DELAY_FREE_FLAGS32 = fcTypeDefStructure32("DPH_DELAY_FREE_FLAGS32",
   (UINT32,          "All"),
-  uAlignmentBytes = 4,
 );
-DPH_DELAY_FREE_FLAGS_64 = fcStructure("DPH_DELAY_FREE_FLAGS",
+DPH_DELAY_FREE_FLAGS64 = fcTypeDefStructure64("DPH_DELAY_FREE_FLAGS64",
   (UINT32,          "All"),
-  uAlignmentBytes = 8,
 );
 DPH_DELAY_FREE_FLAGS_PageHeapBlock    = 1 << 0;
 DPH_DELAY_FREE_FLAGS_NormalHeapBlock  = 1 << 1;
 DPH_DELAY_FREE_FLAGS_Lookaside        = 1 << 2;
 # DPH_DELAY_FREE_QUEUE_ENTRY
-DPH_DELAY_FREE_QUEUE_ENTRY_32 = fcStructure("DPH_DELAY_FREE_QUEUE_ENTRY",
-  (DPH_DELAY_FREE_FLAGS_32, "Flags"),
-  (PVOID_32,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
-  uAlignmentBytes = 4,
+DPH_DELAY_FREE_QUEUE_ENTRY32 = fcTypeDefStructure32("DPH_DELAY_FREE_QUEUE_ENTRY32",
+  (DPH_DELAY_FREE_FLAGS32, "Flags"),
+  (P32VOID,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
 );
-DPH_DELAY_FREE_QUEUE_ENTRY_64 = fcStructure("DPH_DELAY_FREE_QUEUE_ENTRY",
-  (DPH_DELAY_FREE_FLAGS_64, "Flags"),
-  (PVOID_64,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
-  uAlignmentBytes = 8,
+DPH_DELAY_FREE_QUEUE_ENTRY64 = fcTypeDefStructure64("DPH_DELAY_FREE_QUEUE_ENTRY64",
+  (DPH_DELAY_FREE_FLAGS64, "Flags"),
+  (P64VOID,        "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
 );
 # DPH_HEAP_BLOCK_FLAGS
-DPH_HEAP_BLOCK_FLAGS_32 = fcStructure("DPH_HEAP_BLOCK_FLAGS",
+DPH_HEAP_BLOCK_FLAGS32 = fcTypeDefStructure32("DPH_HEAP_BLOCK_FLAGS32",
   (UINT32,          "All"),
-  uAlignmentBytes = 4,
 );
-DPH_HEAP_BLOCK_FLAGS_64 = fcStructure("DPH_HEAP_BLOCK_FLAGS",
+DPH_HEAP_BLOCK_FLAGS64 = fcTypeDefStructure64("DPH_HEAP_BLOCK_FLAGS64",
   (UINT32,          "All"),
-  uAlignmentBytes = 8,
 );
 DPH_HEAP_BLOCK_FLAGS_UnusedNode       = 1 << 1;
 DPH_HEAP_BLOCK_FLAGS_Delay            = 1 << 2;
@@ -84,54 +70,50 @@ DPH_HEAP_BLOCK_FLAGS_Lookaside        = 1 << 3;
 DPH_HEAP_BLOCK_FLAGS_Free             = 1 << 4;
 DPH_HEAP_BLOCK_FLAGS_Busy             = 1 << 5;
 # DPH_HEAP_BLOCK
-DPH_HEAP_BLOCK_32 = fcStructure("DPH_HEAP_BLOCK",
+DPH_HEAP_BLOCK32 = fcTypeDefStructure32("DPH_HEAP_BLOCK32",
   UNION (
-    (PVOID_32,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
-    (LIST_ENTRY_32, "AvailableEntry"),
-    (RTL_BALANCED_LINKS_32, "TableLinks"),
+    (P32VOID,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
+    (LIST_ENTRY32, "AvailableEntry"),
+    (RTL_BALANCED_LINKS32, "TableLinks"),
   ),
-  (PVOID_32,        "pUserAllocation"),
-  (PVOID_32,        "pVirtualBlock"),
-  (SIZE_T_32,       "nVirtualBlockSize"),
+  (P32VOID,        "pUserAllocation"),
+  (P32VOID,        "pVirtualBlock"),
+  (SIZE_T32,       "nVirtualBlockSize"),
   (UINT32,          "uState"),                        # I've only seen 4 (free) and 20 (allocated)
   (UINT32,          "nUserRequestedSize"),
-  (LIST_ENTRY_32,   "AdjacencyEntry"),
+  (LIST_ENTRY32,   "AdjacencyEntry"),
   (UINT32,          "uUnknown1"),                     # 
-  (PVOID_32,        "StackTrace"),                    # PRTL_TRACE_BLOCK
-  uAlignmentBytes = 4,
+  (P32VOID,        "StackTrace"),                    # PRTL_TRACE_BLOCK
 );
-DPH_HEAP_BLOCK_64 = fcStructure("DPH_HEAP_BLOCK",
+DPH_HEAP_BLOCK64 = fcTypeDefStructure64("DPH_HEAP_BLOCK64",
   UNION (
-    (PVOID_64,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
-    (LIST_ENTRY_64, "AvailableEntry"),
-    (RTL_BALANCED_LINKS_64, "TableLinks"),
+    (P64VOID,    "pNextAlloc"),                      # PDPH_HEAP_BLOCK
+    (LIST_ENTRY64, "AvailableEntry"),
+    (RTL_BALANCED_LINKS64, "TableLinks"),
   ),
-  (PVOID_64,        "pUserAllocation"),
-  (PVOID_64,        "pVirtualBlock"),
-  (SIZE_T_64,       "nVirtualBlockSize"),
+  (P64VOID,        "pUserAllocation"),
+  (P64VOID,        "pVirtualBlock"),
+  (SIZE_T64,       "nVirtualBlockSize"),
   (UINT32,          "uState"),                        # I've only seen 4 (free) and 20 (allocated)
   (UINT64,          "nUserRequestedSize"),
-  (LIST_ENTRY_64,   "AdjacencyEntry"),
+  (LIST_ENTRY64,   "AdjacencyEntry"),
   (UINT64,          "uUnknown1"),                     # 
-  (PVOID_64,        "StackTrace"),                    # PRTL_TRACE_BLOCK
-  uAlignmentBytes = 8,
+  (P64VOID,        "StackTrace"),                    # PRTL_TRACE_BLOCK
 );
 DPH_STATE_ALLOCATED = 0x20;
 DPH_STATE_FREED = 0x4;
 
 # Page heap stores a DPH_ALLOCATION_HEADER structure at the start of the virtual allocation for a heap block.
-DPH_ALLOCATION_HEADER_32 = fcStructure("DPH_ALLOCATION_HEADER",
+DPH_ALLOCATION_HEADER32 = fcTypeDefStructure32("DPH_ALLOCATION_HEADER32",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
-  (PVOID_32,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
-  uAlignmentBytes = 4,
+  (P32VOID,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
 );
 auValidPageHeapAllocationHeaderMarkers = [0xEEEEEEED, 0xEEEEEEEE];
 
-DPH_ALLOCATION_HEADER_64 = fcStructure("DPH_ALLOCATION_HEADER",
+DPH_ALLOCATION_HEADER64 = fcTypeDefStructure64("DPH_ALLOCATION_HEADER64",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
   (ULONG,           "uPadding"),                      # 0xEEEEEEEE or (apparently) 0x00000000
-  (PVOID_64,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
-  uAlignmentBytes = 8,
+  (P64VOID,        "poAllocationInformation"),       # PDPH_HEAP_BLOCK
 );
 auValidPageHeapAllocationHeaderPaddings = [0x0, 0xEEEEEEEE];
 
@@ -139,35 +121,33 @@ auValidPageHeapAllocationHeaderPaddings = [0x0, 0xEEEEEEEE];
 # Some information on DPH_BLOCK_INFORMATION can be found here:
 # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
 # http://www.nirsoft.net/kernel_struct/vista/DPH_BLOCK_INFORMATION.html
-DPH_BLOCK_INFORMATION_32 = fcStructure("DPH_BLOCK_INFORMATION",
+DPH_BLOCK_INFORMATION32 = fcTypeDefStructure32("DPH_BLOCK_INFORMATION32",
   (ULONG,           "StartStamp"),
-  (PVOID_32,        "Heap"),
-  (SIZE_T_32,       "RequestedSize"),
-  (SIZE_T_32,       "ActualSize"),
+  (P32VOID,        "Heap"),
+  (SIZE_T32,       "RequestedSize"),
+  (SIZE_T32,       "ActualSize"),
   UNION(
-    (LIST_ENTRY_32, "FreeQueue"),
-    (SINGLE_LIST_ENTRY_32, "FreePushList"),
+    (LIST_ENTRY32, "FreeQueue"),
+    (SINGLE_LIST_ENTRY32, "FreePushList"),
     (WORD,          "TraceIndex"),
   ),
-  (PVOID_32,        "StackTrace"),
+  (P32VOID,        "StackTrace"),
   (ULONG,           "EndStamp"),
-  uAlignmentBytes = 4,
 );
-DPH_BLOCK_INFORMATION_64 = fcStructure("DPH_BLOCK_INFORMATION",
+DPH_BLOCK_INFORMATION64 = fcTypeDefStructure64("DPH_BLOCK_INFORMATION64",
   (ULONG,           "StartStamp"),
   (ULONG,           "PaddingStart"),
-  (PVOID_64,        "Heap"),
-  (SIZE_T_64,       "RequestedSize"),
-  (SIZE_T_64,       "ActualSize"),
+  (P64VOID,        "Heap"),
+  (SIZE_T64,       "RequestedSize"),
+  (SIZE_T64,       "ActualSize"),
   UNION(
-    (LIST_ENTRY_64, "FreeQueue"),
-    (SINGLE_LIST_ENTRY_64, "FreePushList"),
+    (LIST_ENTRY64, "FreeQueue"),
+    (SINGLE_LIST_ENTRY64, "FreePushList"),
     (WORD,          "TraceIndex"),
   ),
-  (PVOID_64,        "StackTrace"),
+  (P64VOID,        "StackTrace"),
   (ULONG,           "PaddingEnd"),
   (ULONG,           "EndStamp"),
-  uAlignmentBytes = 8,
 );
 uPaddingStartAllocated = 0xABCDBBBB;
 uPaddingStartFreed = 0xABCDBBBA;
@@ -190,7 +170,7 @@ def foGetAllocationInformationForProcessAndAddress(oProcess, uAllocationInformat
   if not oAllocationInformationVirtualAllocation.bAllocated:
     return None;
   # Read the page heap allocation information
-  DPH_HEAP_BLOCK = {4: DPH_HEAP_BLOCK_32, 8: DPH_HEAP_BLOCK_64}[oProcess.uPointerSize]; 
+  DPH_HEAP_BLOCK = {4: DPH_HEAP_BLOCK32, 8: DPH_HEAP_BLOCK64}[oProcess.uPointerSize]; 
   oAllocationInformation = oAllocationInformationVirtualAllocation.foReadStructureForOffset(
     cStructure = DPH_HEAP_BLOCK,
     uOffset = uAllocationInformationStartAddress - oAllocationInformationVirtualAllocation.uStartAddress,
@@ -217,7 +197,7 @@ def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, 
     if not oVirtualAllocation.bAllocated:
       return None;
     # A page heap allocation for a heap block starts with a DPH_ALLOCATION_HEADER structure:
-    DPH_ALLOCATION_HEADER = {4: DPH_ALLOCATION_HEADER_32, 8: DPH_ALLOCATION_HEADER_64}[uPointerSize];
+    DPH_ALLOCATION_HEADER = {4: DPH_ALLOCATION_HEADER32, 8: DPH_ALLOCATION_HEADER64}[uPointerSize];
     oAllocationHeader = oVirtualAllocation.foReadStructureForOffset(
       cStructure = DPH_ALLOCATION_HEADER,
       uOffset = 0,
@@ -243,9 +223,9 @@ def foGetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, 
 def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddress, oAllocationInformation, oVirtualAllocation, oAllocationHeader):
   # The page heap header structure at the start of the virtual allocation should point to a page heap allocation
   # information structure that points back to the same virtual allocation:
-  DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION_32, 8: DPH_BLOCK_INFORMATION_64}[uPointerSize];
-  uUserAllocationAddress = fuPointerValue(oAllocationInformation.pUserAllocation);
-  uHeapBlockHeaderStartAddress = uUserAllocationAddress - fuSizeOf(DPH_BLOCK_INFORMATION);
+  DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION32, 8: DPH_BLOCK_INFORMATION64}[uPointerSize];
+  uUserAllocationAddress = oAllocationInformation.pUserAllocation.value;
+  uHeapBlockHeaderStartAddress = uUserAllocationAddress - DPH_BLOCK_INFORMATION.fuGetSize();
   uHeapBlockEndAddress = uUserAllocationAddress + oAllocationInformation.nUserRequestedSize;
   if oVirtualAllocation.bAllocated:
     # A DPH_BLOCK_INFORMATION structure is stored immediately before the heap block in the same allocation.
@@ -282,7 +262,7 @@ class cPageHeapManagerData(cHeapManagerData):
     # heap block.
     oVirtualAllocation = foGetVirtualAllocationForProcessAndAddress(
       oProcess,
-      fuPointerValue(oAllocationInformation.pVirtualBlock),
+      oAllocationInformation.pVirtualBlock.value,
     );
     if oVirtualAllocation.bAllocated:
       # This virtual allocation starts with a DPH_ALLOCATION_HEADER structure
@@ -309,7 +289,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess.uPointerSize,
     );
     # The DPH_ALLOCATION_HEADER structure contains a pointer to a DPH_HEAP_BLOCK structure
-    uAllocationInformationStartAddress = fuPointerValue(oAllocationHeader.poAllocationInformation);
+    uAllocationInformationStartAddress = oAllocationHeader.poAllocationInformation.value;
     oAllocationInformation = foGetAllocationInformationForProcessAndAddress(
       oProcess,
       uAllocationInformationStartAddress,
@@ -331,20 +311,19 @@ class cPageHeapManagerData(cHeapManagerData):
     
     oSelf.uAllocationInformationStartAddress = uAllocationInformationStartAddress;
     oSelf.oAllocationInformation = oAllocationInformation;
-    oSelf.uAllocationInformationEndAddress = uAllocationInformationStartAddress + fuSizeOf(oAllocationInformation);
+    oSelf.uAllocationInformationEndAddress = uAllocationInformationStartAddress + oAllocationInformation.fuGetSize();
     oSelf.uAllocationInformationSize = oSelf.uAllocationInformationEndAddress - oSelf.uAllocationInformationStartAddress;
 
     oSelf.oVirtualAllocation = oVirtualAllocation;
-    oSelf.oVirtualAllocation.uEndAddress;
     
-    oSelf.uHeapBlockStartAddress = fuPointerValue(oAllocationInformation.pUserAllocation);
-    oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize;
-    oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize;
+    oSelf.uHeapBlockStartAddress = oAllocationInformation.pUserAllocation.value;
+    oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize.value;
+    oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize.value;
 
     if oAllocationHeader:
       oSelf.uAllocationHeaderStartAddress = oVirtualAllocation.uStartAddress;
       oSelf.oAllocationHeader = oAllocationHeader;
-      oSelf.uAllocationHeaderEndAddress = oVirtualAllocation.uStartAddress + fuSizeOf(oAllocationHeader);
+      oSelf.uAllocationHeaderEndAddress = oVirtualAllocation.uStartAddress + oAllocationHeader.fuGetSize();
       oSelf.uAllocationHeaderSize = oSelf.uAllocationHeaderEndAddress - oSelf.uAllocationHeaderStartAddress;
     else:
 #      oSelf.uAllocationHeaderStartAddress = None;
@@ -355,7 +334,7 @@ class cPageHeapManagerData(cHeapManagerData):
     if oHeapBlockHeader:
       oSelf.uHeapBlockHeaderStartAddress = uHeapBlockHeaderStartAddress;
       oSelf.oHeapBlockHeader = oHeapBlockHeader;
-      oSelf.uHeapBlockHeaderEndAddress = uHeapBlockHeaderStartAddress + fuSizeOf(oHeapBlockHeader);
+      oSelf.uHeapBlockHeaderEndAddress = uHeapBlockHeaderStartAddress + oHeapBlockHeader.fuGetSize();
       oSelf.uHeapBlockHeaderSize = oSelf.uHeapBlockHeaderEndAddress - oSelf.uHeapBlockHeaderStartAddress;
       assert oSelf.uHeapBlockHeaderEndAddress == oSelf.uHeapBlockStartAddress, \
           "Page heap block header end address 0x%X should be the same as the heap block start address 0x%X" % \
@@ -366,8 +345,8 @@ class cPageHeapManagerData(cHeapManagerData):
 #      oSelf.uHeapBlockHeaderEndAddress = None;
 #      oSelf.uHeapBlockHeaderSize = None;
     
-    oSelf.bAllocated = oAllocationInformation.uState == DPH_STATE_ALLOCATED;
-    oSelf.bFreed = oAllocationInformation.uState == DPH_STATE_FREED;
+    oSelf.bAllocated = oAllocationInformation.uState.value == DPH_STATE_ALLOCATED;
+    oSelf.bFreed = oAllocationInformation.uState.value == DPH_STATE_FREED;
     
     if uHeapBlockEndPaddingSize:
       oSelf.uHeapBlockEndPaddingStartAddress = oSelf.uHeapBlockEndAddress;
@@ -445,17 +424,17 @@ class cPageHeapManagerData(cHeapManagerData):
     return sId;
   
   def fuHeapBlockHeaderFieldAddress(oSelf, sFieldName, sSubFieldName = None):
-    uAddress = oSelf.uHeapBlockHeaderStartAddress + oSelf.oHeapBlockHeader.fuOffsetOf(sFieldName);
+    uAddress = oSelf.uHeapBlockHeaderStartAddress + oSelf.oHeapBlockHeader.fuGetOffsetOfMember(sFieldName);
     if sSubFieldName:
       oField = getattr(oSelf.oHeapBlockHeader, sFieldName);
-      uAddress += oField.fuOffsetOf(sSubFieldName);
+      uAddress += oField.fuGetOffsetOfMember(sSubFieldName);
     return uAddress;
 
   def fuHeapBlockHeaderFieldSize(oSelf, sFieldName, sSubFieldName = None):
+    oField = getattr(oSelf.oHeapBlockHeader, sFieldName);
     if sSubFieldName:
-      oField = getattr(oSelf.oHeapBlockHeader, sFieldName);
-      return oField.fuSizeOf(sSubFieldName);
-    return oSelf.oHeapBlockHeader.fuSizeOf(sFieldName);
+      oField = getattr(oField, sSubFieldName);
+    return oField.fuGetSize();
 
   def fatxMemoryRemarks(oSelf):
     if oSelf.__dsCorruptedByte_by_uAddress is None:
@@ -543,21 +522,21 @@ class cPageHeapManagerData(cHeapManagerData):
     );
     oSelf.__fDetectCorruptionHelper(oSelf.uAllocationHeaderEndAddress, sExpectedBytes, sActualBytes)
     # Check the page heap block header
-    DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION_32, 8: DPH_BLOCK_INFORMATION_64}[oSelf.uPointerSize];
-    LIST_ENTRY = {4: LIST_ENTRY_32, 8: LIST_ENTRY_64}[oSelf.uPointerSize];
+    DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION32, 8: DPH_BLOCK_INFORMATION64}[oSelf.uPointerSize];
+    LIST_ENTRY = {4: LIST_ENTRY32, 8: LIST_ENTRY64}[oSelf.uPointerSize];
     oExpectedHeapBlockHeader = DPH_BLOCK_INFORMATION(**dict([tx for tx in [
       ("StartStamp", oSelf.bAllocated and uPaddingStartAllocated or uPaddingStartFreed),
       hasattr(oSelf.oHeapBlockHeader, "PaddingStart") and ("PaddingStart", 0),
       ("Heap", oSelf.uHeapRootAddress or oSelf.oHeapBlockHeader.Heap), # We do not always know the correct value
-      ("RequestedSize", oSelf.oAllocationInformation.nUserRequestedSize),
+      ("RequestedSize", oSelf.oAllocationInformation.nUserRequestedSize.value),
       ("ActualSize", oSelf.oVirtualAllocation.uSize),
       ("FreeQueue", oSelf.oHeapBlockHeader.FreeQueue), # We do not know the correct value.
       ("StackTrace", oSelf.oAllocationInformation.StackTrace),
       hasattr(oSelf.oHeapBlockHeader, "PaddingEnd") and ("PaddingEnd", 0),
       ("EndStamp", oSelf.bAllocated and uAllocatedEndStamp or uFreedEndStamp),
     ] if tx]));
-    sExpectedBytes = oExpectedHeapBlockHeader.fsToBytesString();
-    sActualBytes = oSelf.oHeapBlockHeader.fsToBytesString();
+    sExpectedBytes = oExpectedHeapBlockHeader.fsGetByteString();
+    sActualBytes = oSelf.oHeapBlockHeader.fsGetByteString();
     oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sExpectedBytes, sActualBytes);
     # Check the heap block if it is freed
     if oSelf.bFreed:

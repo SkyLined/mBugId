@@ -1,5 +1,5 @@
 from .dxConfig import dxConfig;
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 axExceptionsHandledByBugId = [ # break on first chance exception before application is notified
   # To be able to track which processes are running at any given time while the application being debugged, cpr and

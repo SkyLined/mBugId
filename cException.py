@@ -2,7 +2,7 @@ import re;
 from .cStack import cStack;
 from .cStowedException import cStowedException;
 from .cWindowsStatusOrError import cWindowsStatusOrError;
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):

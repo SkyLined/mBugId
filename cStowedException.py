@@ -2,15 +2,7 @@ import re;
 #from cException import cException; # moved to end of file to prevent circular reference
 from .fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
 from .cWindowsStatusOrError import cWindowsStatusOrError;
-from mWindowsAPI.mDefines import \
-    STOWED_EXCEPTION_INFORMATION_V1_SIGNATURE, STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE, \
-    STOWED_EXCEPTION_NESTED_TYPE_NONE, STOWED_EXCEPTION_NESTED_TYPE_WIN32, STOWED_EXCEPTION_NESTED_TYPE_STOWED, \
-    STOWED_EXCEPTION_NESTED_TYPE_CLR, STOWED_EXCEPTION_NESTED_TYPE_LEO, STOWED_EXCEPTION_NESTED_TYPE_LMAX;
-from mWindowsAPI.mTypes import \
-    STOWED_EXCEPTION_INFORMATION_HEADER, \
-    STOWED_EXCEPTION_INFORMATION_V1_32, STOWED_EXCEPTION_INFORMATION_V1_64, \
-    STOWED_EXCEPTION_INFORMATION_V2_32, STOWED_EXCEPTION_INFORMATION_V2_64;
-from mWindowsAPI.mFunctions import fuSizeOf, fuPointerValue;
+from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation;
 
 def fsSignature(uSignature):
@@ -86,8 +78,8 @@ class cStowedException(object):
     );
     if oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V1_SIGNATURE:
       cStowedExceptionInformation = {
-        "x86": STOWED_EXCEPTION_INFORMATION_V1_32,
-        "x64": STOWED_EXCEPTION_INFORMATION_V1_64,
+        "x86": STOWED_EXCEPTION_INFORMATION_V132,
+        "x64": STOWED_EXCEPTION_INFORMATION_V164,
       }[oProcess.sISA];
     else:
       assert oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE, \
@@ -95,12 +87,12 @@ class cStowedException(object):
           (oStowedExceptionInformationHeader.Signature, STOWED_EXCEPTION_INFORMATION_V1_SIGNATURE, \
           STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE);
       cStowedExceptionInformation = {
-        "x86": STOWED_EXCEPTION_INFORMATION_V2_32,
-        "x64": STOWED_EXCEPTION_INFORMATION_V2_64,
+        "x86": STOWED_EXCEPTION_INFORMATION_V232,
+        "x64": STOWED_EXCEPTION_INFORMATION_V264,
       }[oProcess.sISA];
-    assert oStowedExceptionInformationHeader.Size == fuSizeOf(cStowedExceptionInformation), \
+    assert oStowedExceptionInformationHeader.Size == cStowedExceptionInformation.fuGetSize(), \
         "STOWED_EXCEPTION_INFORMATION structure is 0x%X bytes, but 0x%X was expected!?" % \
-        (oStowedExceptionInformationHeader.Size, fuSizeOf(cStowedExceptionInformation));
+        (oStowedExceptionInformationHeader.Size, cStowedExceptionInformation.fuGetSize());
     oStowedExceptionInformation = oProcess.foReadStructureForAddress(
       cStructure = cStowedExceptionInformation,
       uAddress = uStowedExceptionInformationAddress,
@@ -115,7 +107,7 @@ class cStowedException(object):
       oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE
       and oStowedExceptionInformation.NestedExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
     ):
-      uNestedExceptionAddress = fuPointerValue(oStowedExceptionInformation.NestedException);
+      uNestedExceptionAddress = oStowedExceptionInformation.NestedException.value;
       if oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
         sNestedExceptionTypeId = "Win32";
         oNestedException = cException.foCreateFromMemory(

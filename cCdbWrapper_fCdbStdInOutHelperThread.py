@@ -7,7 +7,7 @@ from .dxConfig import dxConfig;
 from mWindowsAPI import cJobObject, fbResumeForThreadId, fbTerminateForThreadId, cVirtualAllocation, \
     fStopDebuggingForProcessId;
 
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 def fnGetDebuggerTimeInSeconds(sDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.

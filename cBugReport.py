@@ -19,7 +19,7 @@ import mProductDetails;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 import mFileSystem2;
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 import cBugId;
 

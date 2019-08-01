@@ -1,5 +1,5 @@
 from .dxConfig import dxConfig;
-from mWindowsAPI.mDefines import STATUS_STACK_OVERFLOW;
+from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oThread, oException):

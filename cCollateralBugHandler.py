@@ -1,7 +1,7 @@
 import re;
 from .dxConfig import dxConfig;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
-from mWindowsAPI.mDefines import *;
+from mWindowsSDK import *;
 
 duPoisonValue_by_sISA = {
   "x86": 0x41414141,

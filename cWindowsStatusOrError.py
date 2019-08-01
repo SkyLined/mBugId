@@ -1,4 +1,4 @@
-from mWindowsAPI import mDefines;
+import mWindowsSDK;
 
 gdoStatusOrError_by_uCode = {};
 gdoStatusOrError_by_sName = {};
@@ -17,9 +17,11 @@ class cWindowsStatusOrError(object):
 
 def fAddStatusCodeOrError(sName, sDescription, sTypeId = None, sSecurityImpact = None):
   global gdoStatusOrError_by_uCode, gdoStatusOrError_by_sName;
-  assert hasattr(mDefines, sName), \
-      "Cannot find windows define %s" % repr(sName);
-  uStatusOrErrorCode = getattr(mDefines, sName);
+  assert hasattr(mWindowsSDK, sName), \
+      "Cannot find status code or error %s" % repr(sName);
+  uStatusOrErrorCode = getattr(mWindowsSDK, sName);
+  assert isinstance(uStatusOrErrorCode, (int, long)), \
+      "Cannot find status code or error %s" % repr(sName);
   oExistingStatusCodeOrError = gdoStatusOrError_by_uCode.get(uStatusOrErrorCode);
   if oExistingStatusCodeOrError:
     # Multiple names may exist for the same value, but everything else should match:

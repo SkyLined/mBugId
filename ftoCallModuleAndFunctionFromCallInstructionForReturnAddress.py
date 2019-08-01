@@ -1,10 +1,10 @@
 import re;
-from mWindowsAPI.mTypes import BYTE, fcStructure, INT32;
+from mWindowsSDK import *;
 
-cCallRel32InstructionStructure = fcStructure("CALL_rel32",
+cCallRel32InstructionStructure = fcTypeDefStructure("CALL_rel32",
   (BYTE,        "Opcode"),
   (INT32,       "Displacement"),
-  uAlignmentBytes = 1, # The fields require no alignment.
+  uAlignmentInBits = 8, # Byte aligned.
 );
 
 def ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uReturnAddress):

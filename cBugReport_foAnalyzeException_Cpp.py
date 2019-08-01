@@ -1,36 +1,30 @@
-from mWindowsAPI.mFunctions import STR;
-from mWindowsAPI.mTypes import BYTE, DWORD, fcStructure, PVOID_32, PVOID_64;
+from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation, mDbgHelp;
 
-EXCEPTION_OBJECT_DESCRIPTION_1 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_1",
+EXCEPTION_OBJECT_DESCRIPTION_1 = fcTypeDefStructure32("EXCEPTION_OBJECT_DESCRIPTION_1",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "dwUnknown_2"),
   (DWORD,           "dwUnknown_3"),
   (DWORD,           "uOffsetOfPart2"),
-  uAlignmentBytes = 4,
 );
-EXCEPTION_OBJECT_DESCRIPTION_2 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_2",
+EXCEPTION_OBJECT_DESCRIPTION_2 = fcTypeDefStructure32("EXCEPTION_OBJECT_DESCRIPTION_2",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "uOffsetOfPart3"),
-  uAlignmentBytes = 4,
 );
-EXCEPTION_OBJECT_DESCRIPTION_3 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_3",
+EXCEPTION_OBJECT_DESCRIPTION_3 = fcTypeDefStructure32("EXCEPTION_OBJECT_DESCRIPTION_3",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "uOffsetOfPart4"),
-  uAlignmentBytes = 4,
 );
 guMaxSymbolName = 0x20; # Don't know, but don't care at this point either...
-EXCEPTION_OBJECT_DESCRIPTION_4_32 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_4_32",
-  (PVOID_32,           "pUnknown_1"),
-  (PVOID_32,           "pUnknown_2"),
+EXCEPTION_OBJECT_DESCRIPTION_4_32 = fcTypeDefStructure32("EXCEPTION_OBJECT_DESCRIPTION_4_32",
+  (P32VOID,         "pUnknown_1"),
+  (P32VOID,         "pUnknown_2"),
   (BYTE * guMaxSymbolName, "szDecoratedClassName"),
-  uAlignmentBytes = 4,
 );
-EXCEPTION_OBJECT_DESCRIPTION_4_64 = fcStructure("EXCEPTION_OBJECT_DESCRIPTION_4_64",
-  (PVOID_64,           "pUnknown_1"),
-  (PVOID_64,           "pUnknown_2"),
+EXCEPTION_OBJECT_DESCRIPTION_4_64 = fcTypeDefStructure64("EXCEPTION_OBJECT_DESCRIPTION_4_64",
+  (P64VOID,         "pUnknown_1"),
+  (P64VOID,         "pUnknown_2"),
   (BYTE * guMaxSymbolName, "szDecoratedClassName"),
-  uAlignmentBytes = 8,
 );
 
 
@@ -104,21 +98,21 @@ def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oThread, oException)
     uExceptionObjectDescriptionAddress - oExceptionObjectDescriptionVirtualAllocation.uStartAddress,
   );
   # PART 2
-  uAddressOfPart2 = uBaseAddress + oExceptionObjectDescription.uOffsetOfPart2;
+  uAddressOfPart2 = uBaseAddress + oExceptionObjectDescription.uOffsetOfPart2.value;
   oPart2VirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressOfPart2);
   oPart2 = oPart2VirtualAllocation.foReadStructureForOffset(
     EXCEPTION_OBJECT_DESCRIPTION_2,
     uAddressOfPart2 - oPart2VirtualAllocation.uStartAddress,
   );
   # PART 3
-  uAddressOfPart3 = uBaseAddress + oPart2.uOffsetOfPart3;
+  uAddressOfPart3 = uBaseAddress + oPart2.uOffsetOfPart3.value;
   oPart3VirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressOfPart3);
   oPart3 = oPart3VirtualAllocation.foReadStructureForOffset(
     EXCEPTION_OBJECT_DESCRIPTION_3,
     uAddressOfPart3 - oPart3VirtualAllocation.uStartAddress,
   );
   # PART 4
-  uAddressOfPart4 = uBaseAddress + oPart3.uOffsetOfPart4;
+  uAddressOfPart4 = uBaseAddress + oPart3.uOffsetOfPart4.value;
   oPart4VirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressOfPart4);
   cStructureOfPart4 = {
     "x86": EXCEPTION_OBJECT_DESCRIPTION_4_32,
@@ -129,7 +123,7 @@ def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oThread, oException)
     uAddressOfPart4 - oPart4VirtualAllocation.uStartAddress,
   );
   # Extract decorated symbol name of class from part 4
-  uAddressOfDecoratedClassName = uAddressOfPart4 + oPart4.fuOffsetOf("szDecoratedClassName");
+  uAddressOfDecoratedClassName = uAddressOfPart4 + oPart4.fuGetOffsetOfMember("szDecoratedClassName");
   sDecoratedClassName = oPart4VirtualAllocation.fsReadNullTerminatedStringForOffset(
     uAddressOfDecoratedClassName - oPart4VirtualAllocation.uStartAddress
   );
