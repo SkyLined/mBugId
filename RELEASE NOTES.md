@@ -1,3 +1,15 @@
+2019-08-01
+==========
+This update improves the internal Windows API modules used by cBugId and
+should have no noticeble external effect.
+
+Internal changes
+----------------
+* Simplified and updated ntdll.dll heap bug translations.
+* Use mWindowsSDK for many things previously provided by mWindowsAPI.
+* Renamed variables to adhere to naming convention.
+* Simplify Tests.cmd
+
 2019-03-04
 ==========
 This update introduces new modules; you will need to download a new license
