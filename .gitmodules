@@ -13,3 +13,6 @@
 [submodule "modules/mFileSystem2"]
 	path = modules/mFileSystem2
 	url = https://github.com/SkyLined/mFileSystem2/
+[submodule "modules/mWindowsSDK"]
+	path = modules/mWindowsSDK
+	url = https://github.com/SkyLined/mWindowsSDK/
