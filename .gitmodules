@@ -16,3 +16,6 @@
 [submodule "modules/mWindowsSDK"]
 	path = modules/mWindowsSDK
 	url = https://github.com/SkyLined/mWindowsSDK/
+[submodule "modules/mDateTime"]
+	path = modules/mDateTime
+	url = https://github.com/SkyLined/mDateTime/
