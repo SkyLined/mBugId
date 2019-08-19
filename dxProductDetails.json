@@ -4,11 +4,11 @@
     "mFileSystem2", 
     "mMultiThreading", 
     "mProductDetails", 
-    "mWindowsAPI",
-    "mWindowsSDK",
+    "mWindowsAPI", 
+    "mWindowsSDK", 
     "mDateTime"
   ], 
-  "oProductVersion": "2019-08-01 19:52", 
+  "oProductVersion": "2019-08-19 07:37", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
