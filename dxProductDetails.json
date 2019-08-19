@@ -4,7 +4,9 @@
     "mFileSystem2", 
     "mMultiThreading", 
     "mProductDetails", 
-    "mWindowsAPI"
+    "mWindowsAPI",
+    "mWindowsSDK",
+    "mDateTime"
   ], 
   "oProductVersion": "2019-08-01 19:52", 
   "oRepository": {
