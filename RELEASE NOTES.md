@@ -1,14 +1,21 @@
-2019-08-01
+2019-08-20
 ==========
-This update improves the internal Windows API modules used by cBugId and
-should have no noticeble external effect.
+This update have many internal improvements but has no functional changes other
+than some minor bug fixes and improved bug translation.
+
+Externally noticeable changes
+-----------------------------
+* Fix bug in reloading symbol files.
+* Simplified and updated ntdll.dll heap bug translations.
 
 Internal changes
 ----------------
-* Simplified and updated ntdll.dll heap bug translations.
+* Use improved mWindowsAPI/mWindowsSDK modules.
 * Use mWindowsSDK for many things previously provided by mWindowsAPI.
 * Renamed variables to adhere to naming convention.
 * Simplify Tests.cmd
+* Added missing submodules to git.
+* Added missing dependencies to dxProductDetails.json.
 
 2019-03-04
 ==========
