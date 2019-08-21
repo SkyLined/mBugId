@@ -4,6 +4,7 @@
     "mFileSystem2", 
     "mMultiThreading", 
     "mProductDetails", 
+    "mRegistry", 
     "mWindowsAPI", 
     "mWindowsSDK", 
     "mDateTime"
