@@ -218,20 +218,20 @@ class cCdbWrapper(object):
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
     # If we are starting a UWP application, make sure it exists:
-    oUWPApplication = oCdbWrapper.oUWPApplication;
-    if not oUWPApplication.bPackageExists:
-      sMessage = "UWP Application package \"%s\" does not exist." % oUWPApplication.sPackageName;
-      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
-          sMessage;
-      return False;
-    elif not oUWPApplication.bIdExists:
-      sMessage = "UWP Application id \"%s\" does not exist in package \"%s\" (valid applications: %s)." % \
-          (oUWPApplication.sApplicationId, oUWPApplication.sPackageName, ", ".join([
-            "\"%s\"" % sApplicationId for sApplicationId in oUWPApplication.asApplicationIds
-          ]));
-      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
-          sMessage;
-      return False;
+    if oCdbWrapper.oUWPApplication:
+      if not oCdbWrapper.oUWPApplication.bPackageExists:
+        sMessage = "UWP Application package \"%s\" does not exist." % oCdbWrapper.oUWPApplication.sPackageName;
+        assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+            sMessage;
+        return False;
+      elif not oCdbWrapper.oUWPApplication.bIdExists:
+        sMessage = "UWP Application id \"%s\" does not exist in package \"%s\" (valid applications: %s)." % \
+            (oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.oUWPApplication.sPackageName, ", ".join([
+              "\"%s\"" % sApplicationId for sApplicationId in oCdbWrapper.oUWPApplication.asApplicationIds
+            ]));
+        assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+            sMessage;
+        return False;
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe stdin/out thread", oCdbWrapper.fCdbStdInOutHelperThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
