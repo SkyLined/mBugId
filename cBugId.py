@@ -119,9 +119,7 @@ class cBugId(object):
     
   def fStart(oBugId):
     oBugId.__bStarted = True;
-    if not oBugId.__oCdbWrapper.fbStart():
-      oBugId.__oRunningLock.fRelease();
-      
+    oBugId.__oCdbWrapper.fStart();
   
   def fStop(oBugId):
     assert oBugId.__bStarted is True, \

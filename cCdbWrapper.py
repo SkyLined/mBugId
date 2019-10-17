@@ -206,7 +206,7 @@ class cCdbWrapper(object):
   def bUsingSymbolServers(oCdbWrapper):
     return len(oCdbWrapper.asSymbolServerURLs) > 0;
   
-  def fbStart(oCdbWrapper):
+  def fStart(oCdbWrapper):
     global guSymbolOptions;
     oLicenseCollection = mProductDetails.foGetLicenseCollectionForAllLoadedProducts();
     (asLicenseErrors, asLicenseWarnings) = oLicenseCollection.ftasGetLicenseErrorsAndWarnings();
@@ -214,6 +214,7 @@ class cCdbWrapper(object):
       if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
         print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
         os._exit(5);
+      oCdbWrapper.fStop();
       return False;
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
@@ -223,7 +224,8 @@ class cCdbWrapper(object):
         sMessage = "UWP Application package \"%s\" does not exist." % oCdbWrapper.oUWPApplication.sPackageName;
         assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
             sMessage;
-        return False;
+        oCdbWrapper.fStop();
+        return;
       elif not oCdbWrapper.oUWPApplication.bIdExists:
         sMessage = "UWP Application id \"%s\" does not exist in package \"%s\" (valid applications: %s)." % \
             (oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.oUWPApplication.sPackageName, ", ".join([
@@ -231,7 +233,8 @@ class cCdbWrapper(object):
             ]));
         assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
             sMessage;
-        return False;
+        oCdbWrapper.fStop();
+        return;
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe stdin/out thread", oCdbWrapper.fCdbStdInOutHelperThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
@@ -300,7 +303,7 @@ class cCdbWrapper(object):
       # We assume all application processes have been suspended. This makes sense because otherwise they might crash
       # before BugId has a chance to attach.
       oCdbWrapper.fAttachForProcessId(uProcessId, bMustBeResumed = True);
-    return True;
+    return;
   
   def fTerminate(oCdbWrapper):
     # Call `fTerminate` when you need to stop cBugId asap, e.g. when an internal error is detected. This function does
