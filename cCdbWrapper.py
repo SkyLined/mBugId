@@ -28,7 +28,6 @@ from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister
 from .cCollateralBugHandler import cCollateralBugHandler;
 from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from .cHelperThread import cHelperThread;
-from .cUWPApplication import cUWPApplication;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
 import mProductDetails;
@@ -64,8 +63,7 @@ class cCdbWrapper(object):
     sCdbISA, # Which version of cdb should be used to debug this application? ("x86" or "x64")
     sApplicationBinaryPath,
     auApplicationProcessIds,
-    sUWPApplicationPackageName,
-    sUWPApplicationId,
+    oUWPApplication,
     asApplicationArguments,
     asLocalSymbolPaths,
     asSymbolCachePaths, 
@@ -82,12 +80,12 @@ class cCdbWrapper(object):
       oCdbWrapper.sCdbISA = sCdbISA;
     else:
       oCdbWrapper.sCdbISA = fsGetPythonISA();
-    assert sApplicationBinaryPath or auApplicationProcessIds or sUWPApplicationPackageName, \
+    assert sApplicationBinaryPath or auApplicationProcessIds or oUWPApplication, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
-    oCdbWrapper.oUWPApplication = sUWPApplicationPackageName and cUWPApplication(sUWPApplicationPackageName, sUWPApplicationId) or None;
     oCdbWrapper.auApplicationProcessIds = auApplicationProcessIds or [];
     oCdbWrapper.auMainProcessIds = oCdbWrapper.auApplicationProcessIds[:];
+    oCdbWrapper.oUWPApplication = oUWPApplication;
     oCdbWrapper.bApplicationStarted = False;
     oCdbWrapper.bUWPApplicationStarted = False;
     oCdbWrapper.bStopping = False;
@@ -208,7 +206,7 @@ class cCdbWrapper(object):
   def bUsingSymbolServers(oCdbWrapper):
     return len(oCdbWrapper.asSymbolServerURLs) > 0;
   
-  def fStart(oCdbWrapper):
+  def fbStart(oCdbWrapper):
     global guSymbolOptions;
     oLicenseCollection = mProductDetails.foGetLicenseCollectionForAllLoadedProducts();
     (asLicenseErrors, asLicenseWarnings) = oLicenseCollection.ftasGetLicenseErrorsAndWarnings();
@@ -216,9 +214,24 @@ class cCdbWrapper(object):
       if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
         print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
         os._exit(5);
-      return;
+      return False;
     if asLicenseWarnings:
       oCdbWrapper.fbFireEvent("License warnings", asLicenseWarnings);
+    # If we are starting a UWP application, make sure it exists:
+    oUWPApplication = oCdbWrapper.oUWPApplication;
+    if not oUWPApplication.bPackageExists:
+      sMessage = "UWP Application package \"%s\" does not exist." % oUWPApplication.sPackageName;
+      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+          sMessage;
+      return False;
+    elif not oUWPApplication.bIdExists:
+      sMessage = "UWP Application id \"%s\" does not exist in package \"%s\" (valid applications: %s)." % \
+          (oUWPApplication.sApplicationId, oUWPApplication.sPackageName, ", ".join([
+            "\"%s\"" % sApplicationId for sApplicationId in oUWPApplication.asApplicationIds
+          ]));
+      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+          sMessage;
+      return False;
     # Create a thread that interacts with the debugger to debug the application
     oCdbWrapper.oCdbStdInOutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe stdin/out thread", oCdbWrapper.fCdbStdInOutHelperThread, bVital = True);
     # Create a thread that reads stderr output and shows it in the console
@@ -287,6 +300,7 @@ class cCdbWrapper(object):
       # We assume all application processes have been suspended. This makes sense because otherwise they might crash
       # before BugId has a chance to attach.
       oCdbWrapper.fAttachForProcessId(uProcessId, bMustBeResumed = True);
+    return True;
   
   def fTerminate(oCdbWrapper):
     # Call `fTerminate` when you need to stop cBugId asap, e.g. when an internal error is detected. This function does

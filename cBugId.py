@@ -79,8 +79,7 @@ class cBugId(object):
     sCdbISA = None, # Which version of cdb should be used to debug this application? Try not to use; could lead to bad bug reports!
     sApplicationBinaryPath = None,
     auApplicationProcessIds = None,
-    sUWPApplicationPackageName = None,
-    sUWPApplicationId = None,
+    oUWPApplication = None,
     asApplicationArguments = None,
     asLocalSymbolPaths = None,
     asSymbolCachePaths = None, 
@@ -93,6 +92,7 @@ class cBugId(object):
   ):
     oBugId.__oRunningLock = cLock(bLocked = True);
     oBugId.__bStarted = False;
+    oBugId.oUWPApplication = oUWPApplication;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
     # attempting to read the report.
@@ -101,8 +101,7 @@ class cBugId(object):
       sCdbISA = sCdbISA,
       sApplicationBinaryPath = sApplicationBinaryPath,
       auApplicationProcessIds = auApplicationProcessIds,
-      sUWPApplicationPackageName = sUWPApplicationPackageName,
-      sUWPApplicationId = sUWPApplicationId,
+      oUWPApplication = oBugId.oUWPApplication,
       asApplicationArguments = asApplicationArguments,
       asLocalSymbolPaths = asLocalSymbolPaths,
       asSymbolCachePaths = asSymbolCachePaths,
@@ -120,7 +119,9 @@ class cBugId(object):
     
   def fStart(oBugId):
     oBugId.__bStarted = True;
-    oBugId.__oCdbWrapper.fStart();
+    if not oBugId.__oCdbWrapper.fbStart():
+      oBugId.__oRunningLock.fRelease();
+      
   
   def fStop(oBugId):
     assert oBugId.__bStarted is True, \
