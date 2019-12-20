@@ -346,11 +346,12 @@ class cASanErrorDetector(object):
         sLine = asOutput[uStartIndex];
         # Check for OOM report:
         oAllocatorFailMatch = re.match(
-          r"^(%s)$" % "|".join([
-            r"==(\d+)==AddressSanitizer's allocator is terminating the process instead of returning 0",
-            r"==(\d+)==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes " \
-                "(at 0x[0-9`a-f]+|of( \w+)+) \(error code: 1455\)",
-          ]),
+          r"^("
+            r"==(\d+)==AddressSanitizer's allocator is terminating the process instead of returning 0"
+          r"|"
+            r"==(\d+)==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes "
+                "(at 0x[0-9`a-f]+|of( \w+)+) \(error code: 1455\)"
+          r")\s*$",
           sLine,
           re.I,
         );
@@ -362,19 +363,21 @@ class cASanErrorDetector(object):
           return;
         # Check for memory corruption report:
         oSummaryMatch = re.match(
-          r"^(?:%s)$" % "".join([
-            r"==%d==ERROR: AddressSanitizer: " % oProcess.uId,
-            r"(.*) on(?: unknown)? address 0x([0-9`a-f]+) (?:at |\()",
-              r"pc 0x([0-9`a-f]+)",
-              r" bp 0x([0-9`a-f]+)",
-              r" sp 0x([0-9`a-f]+)",
-              r"(?: T(\d+))?",
-            r"\)?",
-          ]),
+          r"^"
+          r"==(\d+)==ERROR: AddressSanitizer: "
+          r"(.*) on(?: unknown)? address 0x([0-9`a-f]+) (?:at |\()"
+            r"pc 0x([0-9`a-f]+)"
+            r" bp 0x([0-9`a-f]+)"
+            r" sp 0x([0-9`a-f]+)"
+            r"(?: T(\d+))?"
+          r"\)?"
+          r"\s*$",
           sLine,
           re.I,
         );
         if oSummaryMatch:
+          assert long(oSummaryMatch.group(1)) == oProcess.uId, \
+              "Expected process id %s, got %s" % (oProcess.uId, oSummaryMatch.group(1));
           break;
       else:
         continue; # Not found: try stderr of next process.
