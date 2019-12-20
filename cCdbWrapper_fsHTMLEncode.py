@@ -27,5 +27,4 @@ def cCdbWrapper_fsHTMLEncode(oCdbWrapper, sLine, uTabStop = None):
       sAfter = sLine[oMatch.end():];
       return '%s<a target="_blank" href="%s">%s</a>%s' % (fsHTMLEncodeLine(sBefore, uTabStop), sURL, \
           fsHTMLEncodeLine(sPath, uTabStop), fsHTMLEncodeLine(sAfter, uTabStop));
-  else:
-    return fsHTMLEncodeLine(sLine, uTabStop);
+  return fsHTMLEncodeLine(sLine, uTabStop);
