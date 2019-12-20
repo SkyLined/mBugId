@@ -27,7 +27,7 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
   ) = oMatch.groups();
   uAddress = None;
   oModule = None;
-  uModuleOffset = None;
+  uModuleOffset = long(sModuleOffset.replace("`", ""), 16) if sModuleOffset else None;
   oFunction = None;
   iFunctionOffset = None;
   if sAddress:
@@ -40,16 +40,11 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
     # Any value referencing it will be converted to an address:
     uAddress = oProcess.fuGetAddressForSymbol("%s!%s" % (sModuleCdbId, sFunctionName));
     if uModuleOffset: uAddress += uModuleOffset;
-    if uSymbolOffset: uAddress += uSymbolOffset;
   else:
     oModule = oProcess.foGetOrCreateModuleForCdbId(sModuleCdbId);
     if sFunctionName:
       oFunction = oModule.foGetOrCreateFunctionForName(sFunctionName);
       iFunctionOffset = sOffsetInFunction and long(sOffsetInFunction.replace("`", ""), 16) or 0;
-    elif sModuleOffset:
-      uModuleOffset = long(sModuleOffset.replace("`", ""), 16);
-    else:
-      uModuleOffset = 0;
   return (
     uAddress,
     sUnloadedModuleFileName, oModule, uModuleOffset,
