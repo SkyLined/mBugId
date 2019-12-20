@@ -62,7 +62,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         r"(?:",                     # either{
           r"([^\[,]+,.+)",          #   (destination operand that does not reference memory "," source operand )
         r"|",                       # }or{
-          ".*"                      #   any other combination of operands
+          ".*",                     #   any other combination of operands
         r")",                       # }
         r"(?:",                     # either{
           r"\ws:",                  #   segment register ":"
