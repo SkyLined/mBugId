@@ -91,7 +91,7 @@ class cStack(object):
       ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
       uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
       uReturnAddress = sReturnAddress and long(sReturnAddress.replace("`", ""), 16);
-      oStackFrame = oStack.foCreateAndAddStackFrame(
+      oStack.foCreateAndAddStackFrame(
         uIndex = uFrameIndex,
         sCdbSymbolOrAddress = sCdbSymbolOrAddress, 
         uInstructionPointer = uInstructionPointer,
@@ -149,7 +149,6 @@ class cStack(object):
       oStack = cStack();
       uFrameInstructionPointer = uInstructionPointer;
       uFrameIndex = 0;
-      oStackFrame = None;
       for sLine in asStackOutput[uStackStartIndex:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
           continue;
@@ -175,6 +174,7 @@ class cStack(object):
           sUnloadedModuleFileName, oModule, uModuleOffset,
           oFunction, iOffsetFromStartOfFunction
         ) = oProcess.ftxSplitSymbolOrAddress(sCdbSymbolOrAddress);
+        uSourceFileLineNumber = long(sSourceFileLineNumber) if sSourceFileLineNumber else None;
         # There are bugs in cdb's stack unwinding; it can produce an incorrect frame followed by a bogus frames. The
         # incorrect frame will have a return address that points to the stack (obviously incorrect) and the bogus
         # frame will have a function address that is the same as this return address. The bogus frame will have the
@@ -196,9 +196,12 @@ class cStack(object):
           # uReturnAddress = oIncorrectFrame.uReturnAddress; # this is the only thing valid in the bogus frame.
           uAddress = oIncorrectFrame.uAddress;
           sUnloadedModuleFileName = oIncorrectFrame.sUnloadedModuleFileName;
-          oModule = oIncorrectFrame.oModule; uModuleOffset = oIncorrectFrame.uModuleOffset;
-          oFunction = oIncorrectFrame.oFunction; iOffsetFromStartOfFunction = oIncorrectFrame.iFunctionOffset;
-          sSourceFilePath = oIncorrectFrame.sSourceFilePath; uSourceFileLineNumber = oIncorrectFrame.uSourceFileLineNumber;
+          oModule = oIncorrectFrame.oModule;
+          uModuleOffset = oIncorrectFrame.uModuleOffset;
+          oFunction = oIncorrectFrame.oFunction;
+          iOffsetFromStartOfFunction = oIncorrectFrame.iFunctionOffset;
+          sSourceFilePath = oIncorrectFrame.sSourceFilePath;
+          uSourceFileLineNumber = oIncorrectFrame.uSourceFileLineNumber;
         elif oModule and not oModule.bSymbolsAvailable and uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
           # We will retry this to see if any symbol problems have been resolved:
           break;
@@ -242,8 +245,7 @@ class cStack(object):
               uModuleOffset = uFunctionAddress + iOffsetFromStartOfFunction - oModule.uStartAddress;
             oFunction = None;
             iOffsetFromStartOfFunction = None;
-        uSourceFileLineNumber = sSourceFileLineNumber and long(sSourceFileLineNumber);
-        oStackFrame = oStack.foCreateAndAddStackFrame(
+        oStack.foCreateAndAddStackFrame(
           uIndex = uFrameIndex,
           sCdbSymbolOrAddress = sCdbSymbolOrAddress,
           uInstructionPointer = uFrameInstructionPointer,
