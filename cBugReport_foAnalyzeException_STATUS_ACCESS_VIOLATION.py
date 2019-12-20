@@ -9,6 +9,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       "Unexpected number of access violation exception parameters (%d vs 2)" % len(oException.auParameters);
   # Access violation: add the type of operation and the location to the exception id.
   sViolationTypeId = {0:"R", 1:"W", 8:"E"}.get(oException.auParameters[0], "?");
+  sViolationTypeNotes = None;
   uAccessViolationAddress = oException.auParameters[1];
   if uAccessViolationAddress == 0xFFFFFFFFFFFFFFFF and sViolationTypeId == "R":
     # In x64 mode, current processors will thrown an exception when you use an address larger than 0x7FFFFFFFFFFF and
@@ -111,7 +112,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
     oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress
   );
 
-  if sViolationTypeId == "?":
-    oBugReport.sBugDescription += " (the type-of-accesss code was 0x%X)" % oException.auParameters[0];
+  if sViolationTypeNotes:
+    oBugReport.sBugDescription += sViolationTypeNotes;
   return oBugReport;
 
