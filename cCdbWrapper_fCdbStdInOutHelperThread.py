@@ -193,7 +193,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       "^(?:%s)$" % "".join([
         r"Last event: (?:",
           r"<no event>",  # This means the application send debug output
-        r"|"
+        r"|",
           r"([0-9a-f]+)\.([0-9a-f]+): ",
           r"(?:",
             r"(Create|Exit) process [0-9a-f]+\:([0-9a-f]+)(?:, code [0-9a-f]+)?",
