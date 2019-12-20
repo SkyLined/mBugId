@@ -50,22 +50,34 @@ def ftoCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uRetur
   #   >ntdll!DbgBreakPoint (77ec1250)
   assert len(asSymbolOutput) == 1, \
       "Unexpected get symbol output:\r\n%s" % "\r\n".join(asSymbolOutput);
-  if re.match(r"\A(?:%s)\s*\Z" % "|".join([
-    "".join([
-      r"[^!\+]+",                     #   sModuleCdbId
-      r"\+0x" r"[0-9`a-f]+",          #   "+0x" sOffset
-      r" \(" r"[0-9`a-f]+" r"\)",     #   " (" sAddress ")"
-    ]),                               # - or -
-    r"[0-9`a-f]+",                    #   sAddress
-  ]),asSymbolOutput[0], re.I):
+  if re.match(
+    r"\A"                             # {
+    r"(?:"                            #   either {
+      r"[^!\+]+"                      #     sModuleCdbId
+      r"\+0x" r"[0-9`a-f]+"           #     "+0x" sOffset
+      r" \(" r"[0-9`a-f]+" r"\)"      #     " (" sAddress ")"
+    r"|"                              #   } or {
+      r"[0-9`a-f]+"                   #     sAddress
+    r")" r"\s*"                       #   } [whitespace]
+    r"\Z",                            # }
+    asSymbolOutput[0],
+    re.I
+  ):
     return None; # There is no symbol for the call target address.
-  oSymbolOutput = re.match(r"\A(?:%s\s*)\Z" % "".join([
-    r"([^!]+)",                         # @sModuleCdbId
-    r"!",                               # "!"
-    r"(.+?)",                           # @sFunctionSymbolName
-    r"(?:" r"\+0x" r"[0-9`a-f]+" r")?", # <optional> "+0x" sOffset </optional>
-    r" \(" r"[0-9`a-f]+" r"\)",         # " (" sAddress ")"
-  ]), asSymbolOutput[0], re.I);
+  oSymbolOutput = re.match(
+    r"\A"                             # {
+    r"([^!]+)"                        #   (sModuleCdbId)
+    r"!"                              #   "!"
+    r"(.+?)"                          #   (sFunctionSymbolName)
+    r"(?:"                            #   optional {
+      r"\+0x" r"[0-9`a-f]+"           #     "+0x" sOffset
+    r")?"                             #   }
+    r" \(" r"[0-9`a-f]+" r"\)"        #   " (" sAddress ")"
+    r"\s*"                            #   [whitespace]
+    r"\Z",                            # }
+    asSymbolOutput[0],
+    re.I
+  );
   assert oSymbolOutput, \
       "Unexpected symbol result:\r\n%s" % "\r\n".join(asSymbolOutput);
   sModuleCdbId, sFunctionSymbolName = oSymbolOutput.groups();
