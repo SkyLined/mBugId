@@ -144,33 +144,39 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
   else:
     assert sType in ["page heap", "unknown"], \
         "Expected heap allocator to be %s, but found page heap allocator" % sType;
-    oDPHHeapBlockTypeMatch = re.match( # line #3
-      "^\s+%s\s*$" % "\s+".join([                 # starts with spaces, separated by spaces and optionally end with spaces too
-        r"in",                                        # "in"
-        r"(free-ed|busy)",                            # (sState)
-        r"allocation",                                # "allocation"
-        r"\(" r"\s*" r"DPH_HEAP_BLOCK" r":",          # "(" [space] DPH_HEAP_BLOCK ":"
-        r"(?:UserAddr",                               # optional{ "UserAddr" 
-          r"UserSize",                                #           "UserSize"
-          r"\-", ")?"                                 #           "-" }
-        r"VirtAddr",                                  # "VirtAddr"
-        r"VirtSize" r"\)",                            # "VirtSize" ")"
-      ]),
+    oDPHHeapBlockTypeMatch = re.match(  # line #3
+      r"^"                  r"\s*"      # {                         [whitespace]
+      r"in"                 r"\s+"      #   "in"                     whitespace
+      r"(free-ed|busy)"     r"\s+"      #   (sState)                 whitespace
+      r"allocation"         r"\s+"      #   "allocation"             whitespace
+      r"\("                 r"\s*"      #   "("                     [whitespace]
+        r"DPH_HEAP_BLOCK:"  r"\s+"      #     "DPH_HEAP_BLOCK:"      whitespace
+        r"(?:"                          #     optional{
+          r"UserAddr"       r"\s+"      #       "UserAddr"           whitespace
+          r"UserSize"       r"\s+"      #       "UserSize"           whitespace
+          r"\-"             r"\s+"      #       "-"                  whitespace
+        r")?"                           #     }
+        r"VirtAddr"         r"\s+"      #     "VirtAddr"             whitespace
+        r"VirtSize"         r"\s*"      #     "VirtSize"            [whitespace]
+      r"\)"                 r"\s*"      #   ")"                     [whitespace]
+      r"$",                             # }
       asCdbHeapOutput[2],
     );
     assert oDPHHeapBlockTypeMatch, \
         "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
     sState = oDPHHeapBlockTypeMatch.group(1);
     bAllocated = sState == "busy";
-    oBlockInformationMatch = re.match( # line #4
-      "^\s+%s\s*$" % "\s+".join([                 # starts with spaces, separated by spaces and optionally end with spaces too
-        r"([0-9`a-f]+)" r":",                         # heap_header_address ":"
-        r"(?:([0-9`a-f]+)",                           # optional{ (sBlockStartAddress)
-          r"([0-9`a-f]+)",                            #           (sBlockSize)
-          r"\-", r")?"                                #            "-" }
-        r"([0-9`a-f]+)",                              # (sAllocationStartAddress)
-        r"([0-9`a-f]+)",                              # sAllocationSize
-      ]),
+    oBlockInformationMatch = re.match(  # line #4
+      r"^"                  r"\s*"      # {                         [whitespace]
+      r"([0-9`a-f]+)" r":"  r"\s+"      #   heap_header_address ":"  whitespace
+      r"(?:"                            #   optional {
+        r"([0-9`a-f]+)"     r"\s+"      #     (sBlockStartAddress)   whitespace
+        r"([0-9`a-f]+)"     r"\s+"      #     (sBlockSize)           whitespace
+        r"\-"               r"\s+"      #     "-"                    whitespace
+      r")?"                             #   }
+      r"([0-9`a-f]+)"       r"\s+"      #   (sAllocationStartAddress) whitespace
+      r"([0-9`a-f]+)"       r"\s*"      #   sAllocationSize         [whitespace]
+      r"$",                             # }
       asCdbHeapOutput[3],
     );
     assert oBlockInformationMatch, \
