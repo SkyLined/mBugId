@@ -64,7 +64,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
           )
           for uIndex in xrange(len(asDisassemblyBeforeAddress))
         ];
-  asDisassemblyAfterAddressHTML = [];
+  asDisassemblyAtAndAfterAddressHTML = [];
   if dxConfig["uDisassemblyInstructionsAfter"] > 0:
     # Get disassembly after uAddress is easier, as we can just as for oVirtualAllocation.uEndAddress instructions
     asDisassemblyAtAndAfterAddress = oProcess.fasExecuteCdbCommand(
