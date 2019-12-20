@@ -1,6 +1,5 @@
-import re, struct;
+import re;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
-from mWindowsAPI import cVirtualAllocation;
 
 def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oThread, oException):
   oCdbWrapper = oProcess.oCdbWrapper;

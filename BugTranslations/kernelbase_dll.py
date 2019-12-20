@@ -1,4 +1,3 @@
-import re;
 from .cBugTranslation import cBugTranslation;
 from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 

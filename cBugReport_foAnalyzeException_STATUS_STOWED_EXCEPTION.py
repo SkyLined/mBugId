@@ -1,4 +1,3 @@
-import re;
 from .cStowedException import cStowedException;
 #from cStack import cStack;
 

@@ -1,4 +1,4 @@
-import json, re;
+import json;
 from .cStack import cStack;
 from .dxConfig import dxConfig;
 

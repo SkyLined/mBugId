@@ -1,4 +1,4 @@
-import os, sys, threading;
+import os, sys;
 
 """
                           __                     _____________                  
@@ -52,8 +52,6 @@ for (sModuleName, sDownloadURL) in [
 # Actually load the stuff from external modules that we need.
 from mWindowsAPI import oSystemInfo;
 from mMultiThreading import cLock;
-import mFileSystem2;
-import mProductDetails;
 
 # Restore the search path
 sys.path = asOriginalSysPath;
