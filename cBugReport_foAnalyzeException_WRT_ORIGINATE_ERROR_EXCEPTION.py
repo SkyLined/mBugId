@@ -10,9 +10,11 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oPro
   assert len(oException.auParameters) == 3, \
       "Unexpected number of RoOriginateError exception parameters (%d vs 3)" % len(oException.auParameters);
   hResult = oException.auParameters[0];
-  uMessageLength = oException.auParameters[1];
+  # uMessageLength = oException.auParameters[1];
   uMessageAddress = oException.auParameters[2];
-  # The message is '\0' terminated, so no need to use uMessageLength. We could assert if it's incorrect, but I don't see much use in that.
+  # The message is '\0' terminated, so no need to use uMessageLength.
+  # We could assert if it's incorrect, but I don't see much use in that other than to prevent the target from
+  # crashing us.
   if oException.bApplicationCannotHandleException:
     sMessage = oProcess.fsReadNullTerminatedStringForAddress(
       uAddress = uMessageAddress,
