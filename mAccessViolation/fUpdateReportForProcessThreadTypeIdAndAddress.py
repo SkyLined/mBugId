@@ -32,6 +32,5 @@ def fUpdateReportForProcessThreadTypeIdAndAddress(oCdbWrapper, oBugReport, oProc
     ):
       # We handled the pointer as this type, and it can be only one type, so stop trying other types:
       return;
-  else:
-    # This pointer is not of a known type: should never happend
-    raise AssertionError("Could not handle AV%s@0x%08X" % (sViolationTypeId, uAccessViolationAddress));
+  # This pointer is not of a known type: should never happend
+  raise AssertionError("Could not handle AV%s@0x%08X" % (sViolationTypeId, uAccessViolationAddress));
