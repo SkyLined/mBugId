@@ -42,7 +42,7 @@ class cStowedException(object):
     if sNestedExceptionTypeId:
       oStowedException.sTypeId += ":%s" % (sNestedExceptionTypeId,);
       if oStowedException.oNestedException:
-        oStowedException.sTypeId += "(%s)" % (sNestedExceptionTypeId, oStowedException.oNestedException.sTypeId);
+        oStowedException.sTypeId += "(%s)" % (oStowedException.oNestedException.sTypeId,);
         oStowedException.sDescription += " Nested %s exception: %s." % \
             (sNestedExceptionTypeId, oStowedException.oNestedException.sDescription);
         oStowedException.sSecurityImpact = " Nested %s exception: %s." % \
