@@ -34,6 +34,8 @@ import mProductDetails;
 from mWindowsAPI import cConsoleProcess, fsGetPythonISA;
 from mMultiThreading import cLock;
 
+gnDeadlockTimeoutInSeconds = 1;
+
 guSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
   0x00000002, # SYMOPT_UNDNAME
@@ -103,7 +105,7 @@ class cCdbWrapper(object):
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
     oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
-    oCdbWrapper.oEventCallbacksLock = cLock();
+    oCdbWrapper.oEventCallbacksLock = cLock(nzDeadlockTimeoutInSeconds = gnDeadlockTimeoutInSeconds);
     oCdbWrapper.dafEventCallbacks_by_sEventName = {
       # These are the names of all the events that cCdbWrapper can throw. If it's not in the list, you cannot use it in
       # `fAddEventCallback`, `fRemoveEventCallback`, or `fbFireEvent`. The same event names are used by cBugId, but
@@ -182,7 +184,7 @@ class cCdbWrapper(object):
     # we can call time.clock(): this time would incorrectly be added to the time the application has spent running.
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
-    oCdbWrapper.oApplicationTimeLock = cLock();
+    oCdbWrapper.oApplicationTimeLock = cLock(nzDeadlockTimeoutInSeconds = 1);
     oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.clock() at the moment the application was last resumed

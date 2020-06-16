@@ -12,7 +12,7 @@ class cExcessiveCPUUsageDetector(object):
   def __init__(oSelf, oCdbWrapper):
     oSelf.oCdbWrapper = oCdbWrapper;
     oSelf.bStarted = False;
-    oSelf.oLock = cLock();
+    oSelf.oLock = cLock(nzDeadlockTimeoutInSeconds = 1);
     oSelf.oCleanupTimeout = None;
     oSelf.oStartTimeout = None;
     oSelf.oCheckUsageTimeout = None;
