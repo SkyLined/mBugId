@@ -9,14 +9,14 @@
     "mWindowsSDK", 
     "mDateTime"
   ], 
-  "oProductVersion": "2019-12-20 14:08", 
+  "oProductVersion": "2020-06-16 08:48", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
     "sType": "GitHub", 
     "sUserName": "SkyLined"
   }, 
-  "oTrialPeriodDuration": "1m", 
+  "oTrialPeriodDuration": "+1m", 
   "sLicenseServerURL": "https://license.skylined.nl/License_dxCheck.php", 
   "sProductAuthor": "SkyLined", 
   "sProductName": "cBugId", 
