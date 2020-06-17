@@ -17,44 +17,9 @@ import os, sys;
                                                                                 
 """;
 
-# Augment the search path for loading external modules.
-# look in main folder, parent folder or "modules" child folder, in that order.
-sMainFolderPath = os.path.dirname(os.path.abspath(__file__));
-sParentFolderPath = os.path.normpath(os.path.join(sMainFolderPath, ".."));
-sModulesFolderPath = os.path.join(sMainFolderPath, "modules");
-asOriginalSysPath = sys.path[:];
-sys.path = [sMainFolderPath, sParentFolderPath, sModulesFolderPath] + sys.path;
-
-# Try to load external modules to make sure they are available. Show an error
-# message if any one fails to load.
-for (sModuleName, sDownloadURL) in [
-  ("mWindowsAPI", "https://github.com/SkyLined/mWindowsAPI/"),
-  ("mDebugOutput", "https://github.com/SkyLined/mDebugOutput/"),
-  ("mMultiThreading", "https://github.com/SkyLined/mMultiThreading/"),
-  ("mFileSystem2", "https://github.com/SkyLined/mFileSystem2/"),
-  ("mProductDetails", "https://github.com/SkyLined/mProductDetails/"),
-]:
-  try:
-    __import__(sModuleName, globals(), locals(), [], -1);
-  except ImportError as oError:
-    if oError.message == "No module named %s" % sModuleName:
-      print "*" * 80;
-      print "cBugId depends on %s which you can download at:" % sModuleName;
-      print "    %s" % sDownloadURL;
-      print "After downloading, please save the code in this folder:";
-      print "    %s" % os.path.join(sModulesFolderPath, sModuleName);
-      print " - or -";
-      print "    %s" % os.path.join(sParentFolderPath, sModuleName);
-      print "Once you have completed these steps, please try again.";
-      print "*" * 80;
-    raise;
-
 # Actually load the stuff from external modules that we need.
 from mWindowsAPI import oSystemInfo;
 from mMultiThreading import cLock;
-
-# Restore the search path
-sys.path = asOriginalSysPath;
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
