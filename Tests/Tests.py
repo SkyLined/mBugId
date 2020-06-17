@@ -1,68 +1,21 @@
-import json, os, sys;
+from fTestDependencies import fTestDependencies;
+fTestDependencies();
 
-# Augment the search path to make the test subject a package and have access to its modules folder.
-sTestsFolderPath = os.path.dirname(os.path.abspath(__file__));
-sMainFolderPath = os.path.dirname(sTestsFolderPath);
-sParentFolderPath = os.path.dirname(sMainFolderPath);
-sModulesFolderPath = os.path.join(sMainFolderPath, "modules");
-asOriginalSysPath = sys.path[:];
-sys.path = [sParentFolderPath, sModulesFolderPath] + asOriginalSysPath;
-# Load product details
-oProductDetailsFile = open(os.path.join(sMainFolderPath, "dxProductDetails.json"), "rb");
+from mDebugOutput import fEnableDebugOutputForClass, fEnableDebugOutputForModule, fTerminateWithException;
 try:
-  dxProductDetails = json.load(oProductDetailsFile);
-finally:
-  oProductDetailsFile.close();
-# Save the list of names of loaded modules:
-asOriginalModuleNames = sys.modules.keys();
-
-__import__(dxProductDetails["sProductName"], globals(), locals(), [], -1);
-
-# Sub-packages should load all modules relative, or they will end up in the global namespace, which means they may get
-# loaded by the script importing it if it tries to load a differnt module with the same name. Obviously, that script
-# will probably not function when the wrong module is loaded, so we need to check that we did this correctly.
-asUnexpectedModules = list(set([
-  sModuleName.lstrip("_").split(".", 1)[0] for sModuleName in sys.modules.keys()
-  if not (
-    sModuleName in asOriginalModuleNames # This was loaded before
-    or sModuleName.lstrip("_").split(".", 1)[0] in (
-      [dxProductDetails["sProductName"]] +
-      dxProductDetails["asDependentOnProductNames"] +
-      [
-        # This is optional, not required:
-        "oConsole",
-        # These built-in modules are expected:
-        "base64", "binascii", "bz2", "calendar", "collections", "contextlib",
-        "cStringIO", "ctypes", "datetime", "dis", "encodings", "fnmatch", "gc",
-        "hashlib", "heapq", "hmac", "imp", "inspect", "io", "itertools",
-        "json", "keyword", "math", "msvcrt", "nturl2path", "opcode",
-        "platform", "shutil", "socket", "ssl", "string", "strop", "struct",
-        "subprocess", "textwrap", "thread", "threading", "time", "token",
-        "tokenize", "Queue", "urllib", "urlparse", "uuid", "winreg",
-        "zipfile", "zlib",
-      ]
-    )
-  )
-]));
-assert len(asUnexpectedModules) == 0, \
-      "Module(s) %s was/were unexpectedly loaded!" % ", ".join(sorted(asUnexpectedModules));
-for sModuleName in dxProductDetails["asDependentOnProductNames"]:
-  assert sModuleName in sys.modules, \
-      "%s is listed as a dependency but not loaded by the module!" % sModuleName;
-
-from mDebugOutput import fEnableDebugOutputForModule, fTerminateWithException;
-from oConsole import oConsole;
-import os, platform, time;
-nStartTimeInSeconds = time.clock();
-try:
+  import os, platform, sys, time;
   #Import the test subject
   from cBugId import cBugId;
   from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
   import mFileSystem2;
   from mWindowsAPI import fsGetPythonISA;
   from mWindowsSDK import *;
+  from oConsole import oConsole;
+  
   from fRunTest import fRunTest;
   from mGlobals import *;
+  
+  nStartTimeInSeconds = time.clock();
 
   #from mDebugOutput import fShowFileDebugOutputForClass;
   #from mMultiThreading import cLock, cThread, cWithCallbacks;
@@ -358,8 +311,5 @@ try:
                 fRunTest(sISA,    ["SafeInt", sOperation, sSignedness, uBits],     ["%s ed2.531 @ <test-binary>!wmain" % sTypeId]);
   nTestTimeInSeconds = time.clock() - nStartTimeInSeconds;
   oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
-  sys.exit(0);
 except Exception as oException:
-  nTestTimeInSeconds = time.clock() - nStartTimeInSeconds;
-  oConsole.fOutput("- Testing failed after %3.3f seconds" % nTestTimeInSeconds);
   fTerminateWithException(oException);
