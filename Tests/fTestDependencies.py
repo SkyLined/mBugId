@@ -53,7 +53,7 @@ def fTestDependencies():
     sModuleName
     for sModuleName in asAdditionalLoadedModuleNames
     if sModuleName not in (
-      dxProductDetails["asDependentOnProductNames"] +
+      dxProductDetails.get("asDependentOnProductNames", []) +
       dxProductDetails.get("asOptionalProductNames", []) +
       asAlwaysLoadedPythonModules +
       asInternalPythonModuleDepencies
@@ -61,16 +61,16 @@ def fTestDependencies():
   ]));
   assert len(asUnexpectedlyLoadedModules) == 0, \
       "The following modules are NOT listed as a dependency but were loaded:\r\n%s" % \
-      "\r\n".join(sorted(asUnexpectedlyLoadedModules, key = str.lower));
+      "\r\n".join(sorted(asUnexpectedlyLoadedModules, key = lambda s: unicode(s).lower()));
   # Make sure that all dependencies are in fact loaded to detect stale dependencies.
   asSuperflousDependencies = [
     sModuleName
-    for sModuleName in dxProductDetails["asDependentOnProductNames"]
+    for sModuleName in dxProductDetails.get("asDependentOnProductNames", [])
     if sModuleName not in asAdditionalLoadedModuleNames
   ];
   assert len(asSuperflousDependencies) == 0, \
       "The following modules are listed as a dependency but not loaded:\r\n%s" % \
-      "\r\n".join(sorted(asSuperflousDependencies, key = str.lower));
+      "\r\n".join(sorted(asSuperflousDependencies, key = lambda s: unicode(s).lower()));
   # Make sure that all internal python modules dependencies are in fact loaded
   # to detect stale dependencies.
   asSuperflousInternalDependencies = [
@@ -83,4 +83,4 @@ def fTestDependencies():
   ];
   assert len(asSuperflousInternalDependencies) == 0, \
       "The following modules are listed as an internal python module dependency but not loaded:\r\n%s" % \
-      "\r\n".join(sorted(asSuperflousInternalDependencies, key = str.lower));
+      "\r\n".join(sorted(asSuperflousInternalDependencies, key = lambda s: unicode(s).lower()));

@@ -1,8 +1,35 @@
 from fTestDependencies import fTestDependencies;
 fTestDependencies();
 
-from mDebugOutput import fEnableDebugOutputForClass, fEnableDebugOutputForModule, fTerminateWithException;
 try:
+  import mDebugOutput;
+except:
+  mDebugOutput = None;
+try:
+  try:
+    from oConsole import oConsole;
+  except:
+    import sys, threading;
+    oConsoleLock = threading.Lock();
+    class oConsole(object):
+      @staticmethod
+      def fOutput(*txArguments, **dxArguments):
+        sOutput = "";
+        for x in txArguments:
+          if isinstance(x, (str, unicode)):
+            sOutput += x;
+        sPadding = dxArguments.get("sPadding");
+        if sPadding:
+          sOutput.ljust(120, sPadding);
+        oConsoleLock.acquire();
+        print sOutput;
+        sys.stdout.flush();
+        oConsoleLock.release();
+      fPrint = fOutput;
+      @staticmethod
+      def fStatus(*txArguments, **dxArguments):
+        pass;
+  
   import os, platform, sys, time;
   #Import the test subject
   from cBugId import cBugId;
@@ -10,7 +37,6 @@ try:
   import mFileSystem2;
   from mWindowsAPI import fsGetPythonISA;
   from mWindowsSDK import *;
-  from oConsole import oConsole;
   
   from fRunTest import fRunTest;
   from mGlobals import *;
@@ -57,7 +83,9 @@ try:
     elif sArgument == "--show-cdb-io": 
       gbShowCdbIO = True;
     elif sArgument == "--debug": 
-      fEnableDebugOutputForClass(cBugId);
+      assert mDebugOutput, \
+          "mDebugOutput cannot be loaded";
+      mDebugOutput.fEnableDebugOutputForClass(cBugId);
     elif sISA is None:
       sISA = sArgument;
     else:
@@ -312,4 +340,6 @@ try:
   nTestTimeInSeconds = time.clock() - nStartTimeInSeconds;
   oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
 except Exception as oException:
-  fTerminateWithException(oException);
+  if mDebugOutput:
+    mDebugOutput.fTerminateWithException(oException, bShowStacksForAllThread = True);
+  raise;
