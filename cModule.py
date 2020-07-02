@@ -33,7 +33,7 @@ class cModule(object):
         sComment = "Load symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
         bRetryOnTruncatedOutput = True,
       );
-      if asLoadSymbolsOutput != ["Symbol loaded for %s failed" % oModule.sCdbId]:
+      if asLoadSymbolsOutput != ["Symbol load for %s failed" % oModule.sCdbId]:
         assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
             "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
         # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
