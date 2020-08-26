@@ -148,7 +148,8 @@ class cModule(object):
         "Unrecognized \"lmov %s\" output header: %s\r\n%s" % (s_lmov_Arguments, repr(as_lmov_Output[0]), "\r\n".join(as_lmov_Output));
     (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.__ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
-    oModule.__fbProcess_lmov_Output(as_lmov_Output);
+    assert oModule.__fbProcess_lmov_Output(as_lmov_Output), \
+        "'lmov' output cannot be processed: %s" % repr(as_lmov_Output);
     return oModule;
   
   @staticmethod
