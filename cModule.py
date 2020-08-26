@@ -38,7 +38,7 @@ class cModule(object):
             "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
         # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
         # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
-        oModule.__fGetModuleSymbolAndVersionInformation();
+        oModule.__fzGetModuleSymbolAndVersionInformation();
         assert oModule.__sSymbolStatus != "deferred", \
             "Symbols are still reported as deferred after attempting to load them";
       if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
@@ -48,7 +48,7 @@ class cModule(object):
           sComment = "Reload symbols for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
           bRetryOnTruncatedOutput = True,
         );
-        oModule.__fGetModuleSymbolAndVersionInformation();
+        oModule.__fzGetModuleSymbolAndVersionInformation();
         if oModule.__sSymbolStatus in ["deferred", "export symbols", "no symbols"]:
           # We cannot load symbols for this module for some reason.
           oModule.__bSymbolLoadingFailed = True;
@@ -78,16 +78,16 @@ class cModule(object):
       else:
         # Of course, !dlls will sometimes not output anything for unknown reasons.
         # In this case we have to resort to less reliable measures.
-        oModule.__fGetModuleSymbolAndVersionInformation();
+        oModule.__fzGetModuleSymbolAndVersionInformation();
     return oModule.__sBinaryPath;
   
   @property
   def sBinaryName(oModule):
     if oModule.__sBinaryPath is None:
       # "!dlls" may not work yet if the process was recently started, but "__fGetModuleSymbolAndVersionInformation"
-      # uses "lm", which should give us eht name of the binary as well:
+      # uses "lm", which should give us the name of the binary as well:
       if oModule.__sBinaryName is None:
-        oModule.__fGetModuleSymbolAndVersionInformation();
+        oModule.__fzGetModuleSymbolAndVersionInformation();
       return oModule.__sBinaryName;
     return os.path.basename(oModule.sBinaryPath);
   
@@ -95,13 +95,13 @@ class cModule(object):
   @property
   def sFileVersion(oModule):
     if not oModule.__bModuleSymbolAndVersionInformationAvailable:
-      oModule.__fGetModuleSymbolAndVersionInformation();
+      oModule.__fzGetModuleSymbolAndVersionInformation();
     return oModule.__sFileVersion;
   @property
   
   def sTimestamp(oModule):
     if not oModule.__bModuleSymbolAndVersionInformationAvailable:
-      oModule.__fGetModuleSymbolAndVersionInformation();
+      oModule.__fzGetModuleSymbolAndVersionInformation();
     return oModule.__sTimestamp;
   
   @property
@@ -115,7 +115,7 @@ class cModule(object):
   @property
   def sInformationHTML(oModule):
     if not oModule.__bModuleSymbolAndVersionInformationAvailable:
-      oModule.__fGetModuleSymbolAndVersionInformation();
+      oModule.__fzGetModuleSymbolAndVersionInformation();
     fsHTMLEncode = oModule.oProcess.oCdbWrapper.fsHTMLEncode;
     return "".join([
       "<h2 class=\"SubHeader\">%s</h2>" % fsHTMLEncode(oModule.sBinaryName or "<unknown binary>"),
@@ -146,9 +146,9 @@ class cModule(object):
         (s_lmov_Arguments, len(as_lmov_Output), "\r\n".join(as_lmov_Output));
     assert re.match("^start\s+end\s+module name\s*$", as_lmov_Output[0]), \
         "Unrecognized \"lmov %s\" output header: %s\r\n%s" % (s_lmov_Arguments, repr(as_lmov_Output[0]), "\r\n".join(as_lmov_Output));
-    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
+    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.__ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
-    oModule.fProcess_lmov_Output(as_lmov_Output);
+    oModule.__fbProcess_lmov_Output(as_lmov_Output);
     return oModule;
   
   @staticmethod
@@ -166,22 +166,30 @@ class cModule(object):
         "Unrecognized list modules output header: %s\r\n%s" % (repr(as_lmo_Output[0]), "\r\n".join(as_lmo_Output));
     aoModules = [];
     for sLine in as_lmo_Output[1:]:
-      (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sLine);
+      (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.__ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sLine);
       aoModules.append(oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus));
     return aoModules;
   
   def __fGetModuleSymbolAndVersionInformation(oModule):
     # Gather version information and optionally returns output for use in HTML report.
     # Also sets oModule.sFileVersion if possible.
-    oModule.fProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
-      sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
-      sComment = "Get module information for module %s@0x%X" % (oModule.sCdbId, oModule.uStartAddress),
-      bRetryOnTruncatedOutput = True,
-      bOutputIsInformative = True,
-    ));
+    assert (
+      oModule.__fbProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
+        sCommand = "lmov a 0x%X;" % oModule.uStartAddress,
+        sComment = "Get module information for module %s@0x%X using address" % (oModule.sCdbId, oModule.uStartAddress),
+        bRetryOnTruncatedOutput = True,
+        bOutputIsInformative = True,
+      )) or oModule.__fbProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
+        sCommand = "lmov %s;" % oModule.sCdbId,
+        sComment = "Get module information for module %s@0x%X using name" % (oModule.sCdbId, oModule.uStartAddress),
+        bRetryOnTruncatedOutput = True,
+        bOutputIsInformative = True,
+      ))
+    ), \
+        "Cannot get module symbol and version information for module %s@0x%X!" % (oModule.sCdbId, oModule.uStartAddress);
   
   @staticmethod
-  def ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(s_lm_OutputLine):
+  def __ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(s_lm_OutputLine):
     oInformationMatch = re.match(
       r"^\s*%s\s*$" % "\s+".join([
         r"([0-9a-f`]+)",             # (start_address)
@@ -200,9 +208,9 @@ class cModule(object):
     uEndAddress = long(sEndAddress.replace("`", ""), 16);
     return (uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
   
-  def fProcess_lmov_Output(oModule, as_lmov_Output):
+  def __fbProcess_lmov_Output(oModule, as_lmov_Output):
     # Sample output:
-    # |0:004> lmv m firefox
+    # |0:004> lmov a 0x011b0000
     # |start             end                 module name
     # |00000000`011b0000 00000000`0120f000   firefox    (deferred)             
     # |    Image path: firefox.exe
@@ -230,11 +238,13 @@ class cModule(object):
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
     oModule.__atsModuleInformationNameAndValuePairs = [];
+    if len(as_lmov_Output) == 1:
+      return False;
     assert len(as_lmov_Output) > 2, \
         "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(as_lmov_Output), "\r\n".join(as_lmov_Output));
     assert re.match("^start\s+end\s+module name\s*$", as_lmov_Output[0]), \
         "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(as_lmov_Output);
-    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
+    (uStartAddress, uEndAddress, sCdbId, sSymbolStatus) = cModule.__ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(as_lmov_Output[1]);
     assert oModule.uStartAddress == uStartAddress, \
         "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oModule.uStartAddress, uStartAddress);
     assert oModule.uEndAddress == uEndAddress, \
@@ -282,3 +292,4 @@ class cModule(object):
     oModule.__sTimestamp = dsValue_by_sName["Timestamp"];
     
     oModule.__bModuleSymbolAndVersionInformationAvailable = True;
+    return True;
