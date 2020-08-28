@@ -66,20 +66,20 @@ try:
 
   bFailed = False;
   bTestQuick = False;
-  bTestAll = False;
+  bTestFull = False;
   sISA = None;
   asCommandLineArguments = [];
   for sArgument in sys.argv[1:]:
-    if sArgument == "--all": 
+    if sArgument == "--full": 
       bTestQuick = False;
-      bTestAll = True;
+      bTestFull = True;
       gbGenerateReportHTML = True;
     elif sArgument in ["--report", "--reports"]: 
       gbGenerateReportHTML = True;
       gbSaveReportHTML = True;
     elif sArgument == "--quick": 
       bTestQuick = True;
-      bTestAll = False;
+      bTestFull = False;
     elif sArgument == "--show-cdb-io": 
       gbShowCdbIO = True;
     elif sArgument == "--debug": 
@@ -103,7 +103,7 @@ try:
     assert sISA is None, \
         "Unknown argument %s" % sISA;
     oConsole.fOutput("* Starting tests...");
-    if not bTestAll:
+    if not bTestFull:
       # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
       # Disabling symbols should speed things up considerably.
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
@@ -134,7 +134,7 @@ try:
       fRunTest(sISA,    ["PrivilegedInstruction"],                                 ["*PrivilegedInstruction 0fc\.(0fc|ed2) @ <test-binary>!fPrivilegedInstruction"]);
       fRunTest(sISA,    ["StackExhaustion", 0x100],                                ["StackExhaustion ed2.531 @ <test-binary>!wmain"]);
       fRunTest(sISA,    ["RecursiveCall", 2],                                      ["RecursiveCall 950.6d1 @ <test-binary>!fStackRecursionFunction1"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["RecursiveCall", 1],                                      ["RecursiveCall 950 @ <test-binary>!fStackRecursionFunction1"]);
         fRunTest(sISA,  ["RecursiveCall", 3],                                      ["RecursiveCall 950.4e9 @ <test-binary>!fStackRecursionFunction1"]);
         fRunTest(sISA,  ["RecursiveCall", 20],                                     ["RecursiveCall 950.48b @ <test-binary>!fStackRecursionFunction1"]);
@@ -151,7 +151,7 @@ try:
       fRunTest(sISA,    ["WRTLanguage",  0x87654321, "message"],                   ["Stowed[0x87654321:WRTLanguage@cIUnknown] ed2.531 @ <test-binary>!wmain"]);
       # Double free
       fRunTest(sISA,    ["DoubleFree",                1],                          ["DoubleFree[1] ed2.531 @ <test-binary>!wmain"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["DoubleFree",                2],                          ["DoubleFree[2] ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["DoubleFree",                3],                          ["DoubleFree[3] ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["DoubleFree",                4],                          ["DoubleFree[4n] ed2.531 @ <test-binary>!wmain"]);
@@ -163,7 +163,7 @@ try:
         
       # Misaligned free
       fRunTest(sISA,    ["MisalignedFree",            1,  1],                      ["MisalignedFree[1]+0 ed2.531 @ <test-binary>!wmain"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["MisalignedFree",            1,  2],                      ["MisalignedFree[1]+1 ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["MisalignedFree",            2,  4],                      ["MisalignedFree[2]+2 ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["MisalignedFree",            3,  6],                      ["MisalignedFree[3]+3 ed2.531 @ <test-binary>!wmain"]);
@@ -180,14 +180,14 @@ try:
         fRunTest(sISA,  ["MisalignedFree",            1,  -5],                     ["MisalignedFree[1]-4n-1 ed2.531 @ <test-binary>!wmain"]);
       # NULL pointers
       fRunTest(sISA,    ["AccessViolation",   "Read",     1],                      ["AVR:NULL+1 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["AccessViolation",   "Read", 2],                          ["AVR:NULL+2 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["AccessViolation",   "Read", 3],                          ["AVR:NULL+3 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["AccessViolation",   "Read", 4],                          ["AVR:NULL+4n 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["AccessViolation",   "Read", 5],                          ["AVR:NULL+4n+1 30e.ed2 @ <test-binary>!fuReadByte"]);
       uSignPadding = {"x86": 0, "x64": 0xFFFFFFFF00000000}[sISA];
       fRunTest(sISA,    ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFF],    ["AVR:NULL-1 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFE],    ["AVR:NULL-2 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFD],    ["AVR:NULL-3 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["AccessViolation",   "Read", uSignPadding+0xFFFFFFFC],    ["AVR:NULL-4n 30e.ed2 @ <test-binary>!fuReadByte"]);
@@ -199,7 +199,7 @@ try:
       # These are detected by Page Heap / Application Verifier when the memory is freed.
       # This means it is not reported in the `fWriteByte` function that does the writing, but in wmain that does the freeing.
       fRunTest(sISA,    ["OutOfBounds", "Heap", "Write", 1, -1, 1],                ["OOBW[1]{-1~1} ed2.531 @ <test-binary>!wmain"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["OutOfBounds", "Heap", "Write", 2, -2, 2],                ["OOBW[2]{-2~2} ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["OutOfBounds", "Heap", "Write", 3, -3, 3],                ["OOBW[3]{-3~3} ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,  ["OutOfBounds", "Heap", "Write", 4, -4, 4],                ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
@@ -209,7 +209,7 @@ try:
         fRunTest(sISA,  ["OutOfBounds", "Heap", "Write", guLargeHeapBlockSize, -4, 4], ["OOBW[4n]{-4n~4n} ed2.531 @ <test-binary>!wmain"]);
       # Use After Free
       fRunTest(sISA,    ["UseAfterFree", "Read",    1,  0],                        ["RAF[1]@0 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["UseAfterFree", "Write",   2,  1],                        ["WAF[2]@1 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunTest(sISA,  ["UseAfterFree", "Read",    3,  2],                        ["RAF[3]@2 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["WAF[4n]@3 630.ed2 @ <test-binary>!fWriteByte"]);
@@ -218,7 +218,7 @@ try:
         fRunTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["EAF[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
         fRunTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["EAF[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
       fRunTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBRAF[1]+0 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["UseAfterFree", "Write",   2,  3],                        ["OOBWAF[2]+1 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunTest(sISA,  ["UseAfterFree", "Read",    3,  5],                        ["OOBRAF[3]+2 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["UseAfterFree", "Write",   4,  7],                        ["OOBWAF[4n]+3 630.ed2 @ <test-binary>!fWriteByte"]);
@@ -233,7 +233,7 @@ try:
         fRunTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBEAF[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
       fRunTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],             ["OOBR[4n]+4n 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xD, 5],             ["OOBR[4n+1]+3 30e.ed2 @ <test-binary>!fuReadByte", "OOBR[4n+1]+4n 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xE, 5],             ["OOBR[4n+2]+2 30e.ed2 @ <test-binary>!fuReadByte", "OOBR[4n+2]+3 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,  ["BufferOverrun",   "Heap", "Read",   0xF, 5],             ["OOBR[4n+3]+1 30e.ed2 @ <test-binary>!fuReadByte", "OOBR[4n+3]+2 30e.ed2 @ <test-binary>!fuReadByte"]);
@@ -242,7 +242,7 @@ try:
       # This next test causes one AV, which is reported first. Then when collateral continues and the application
       # frees the memory, verifier.dll notices the corruption and reports it as well...
       fRunTest(sISA,    ["BufferOverrun",   "Heap", "Write",  0xC, 5],             ["BOF[4n]+4n{+0~4n} 630.ed2 @ <test-binary>!fWriteByte", "BOF[4n]{+0~4n} ed2.531 @ <test-binary>!wmain"]);
-      if bTestAll:
+      if bTestFull:
         # These tests cause multiple AVs as the buffer overflow continues to write beyond the end of the buffer.
         # The first one is detect as a BOF, as the AV is sequential to the heap corruption in the heap block suffix.
         # The second AV is sequential to the first, but no longer to the heap corruption, so it is not detected as a BOF
@@ -266,19 +266,19 @@ try:
       # fRunTest(sISA,    ["BufferOverrun",  "Stack", "Write", 0x10, 0x100000],     "AVW[Stack]+0 630.ed2 @ <test-binary>!fWriteByte");
       
       fRunTest(sISA,         ["AccessViolation", "Read", "Unallocated"],           ["AVR:Unallocated 30e.ed2 @ <test-binary>!fuReadByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,       ["AccessViolation", "Read", "Reserved"],              ["AVR:Reserved[4n]@0 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,       ["AccessViolation", "Read", "NoAccess"],              ["AVR:NoAccess[4n]@0 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunTest(sISA,       ["AccessViolation", "Read", "Guard"],                 ["AVR:Guard[4n]@0 30e.ed2 @ <test-binary>!fuReadByte"]);
       
       fRunTest(sISA,         ["AccessViolation", "Write", "Reserved"],             ["AVW:Reserved[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,       ["AccessViolation", "Write", "Unallocated"],          ["AVW:Unallocated 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunTest(sISA,       ["AccessViolation", "Write", "NoAccess"],             ["AVW:NoAccess[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunTest(sISA,       ["AccessViolation", "Write", "Guard"],                ["AVW:Guard[4n]@0 630.ed2 @ <test-binary>!fWriteByte"]);
       
       fRunTest(sISA,         ["AccessViolation", "Jump", "NoAccess"],              ["AVE:NoAccess[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,       ["AccessViolation", "Jump", "Unallocated"],           ["AVE:Unallocated 46f.ed2 @ <test-binary>!fJump"]);
         fRunTest(sISA,       ["AccessViolation", "Jump", "Reserved"],              ["AVE:Reserved[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
         if sISA == "x64": # For unknown reasons the stack is truncated. TODO: findout why and fix it.
@@ -287,12 +287,12 @@ try:
           fRunTest(sISA,     ["AccessViolation", "Jump", "Guard"],                 ["AVE:Guard[4n]@0 ed2.531 @ <test-binary>!wmain"]);
       
       fRunTest(sISA,         ["AccessViolation", "Call", "Guard"],                 ["AVE:Guard[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
-      if bTestAll:
+      if bTestFull:
         fRunTest(sISA,       ["AccessViolation", "Call", "Unallocated"],           ["AVE:Unallocated f47.ed2 @ <test-binary>!fCall"]);
         fRunTest(sISA,       ["AccessViolation", "Call", "Reserved"],              ["AVE:Reserved[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
         fRunTest(sISA,       ["AccessViolation", "Call", "NoAccess"],              ["AVE:NoAccess[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
       
-      if bTestAll:
+      if bTestFull:
         if sISA == "x64":
           # On x64, there are some limitations to exceptions occuring at addresses between the userland and kernelland
           # memory address ranges.
@@ -308,18 +308,18 @@ try:
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             fRunTest(sISA,   ["AccessViolation", "Read", uBaseAddress],            ["AVR:%s 30e.ed2 @ <test-binary>!fuReadByte" % sAddressId]);
-            if bTestAll:
+            if bTestFull:
               fRunTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AVW:%s 630.ed2 @ <test-binary>!fWriteByte" % sAddressId]);
               fRunTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["AVE:%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
               fRunTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["AVE:%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
           elif sISA == "x64":
             fRunTest(sISA,   ["AccessViolation", "Read", uBaseAddress],            ["AVR:%s 30e.ed2 @ <test-binary>!fuReadByte" % sAddressId]);
-            if bTestAll:
+            if bTestFull:
               fRunTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AV?:%s 630.ed2 @ <test-binary>!fWriteByte" % sAddressId]);
               fRunTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["AVE:%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
               fRunTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["AVE:%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
       # SafeInt tests
-      if not bTestAll:
+      if not bTestFull:
         fRunTest(sISA,    ["SafeInt", "++", "signed", 64],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,    ["SafeInt", "--", "unsigned", 32],                       ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);
         fRunTest(sISA,    ["SafeInt", "*",  "signed", 16],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);

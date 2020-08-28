@@ -9,8 +9,8 @@ class cModule(object):
     oModule.sCdbId = sCdbId;
     oModule.__sSymbolStatus = sSymbolStatus; # Not exposed; use bSymbolsAvailable
     oModule.__bSymbolLoadingFailed = False;
-    # __fGetModuleSymbolAndVersionInformation needs only be called once:
-    oModule.__bModuleSymbolAndVersionInformationAvailable = False; # set to false when __fGetModuleSymbolAndVersionInformation is called.
+    # __fzGetModuleSymbolAndVersionInformation needs only be called once:
+    oModule.__bModuleSymbolAndVersionInformationAvailable = False; # set to false when __fzGetModuleSymbolAndVersionInformation is called.
     oModule.__sBinaryPath = None;
     oModule.__sBinaryName = None;
     oModule.__sFileVersion = None;
@@ -37,7 +37,7 @@ class cModule(object):
         assert len(asLoadSymbolsOutput) == 1 and re.match(r"Symbols (already )?loaded for %s" % oModule.sCdbId, asLoadSymbolsOutput[0]), \
             "Unexpected load symbols output:\r\n%s" % "\r\n".join(asLoadSymbolsOutput);
         # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
-        # So we will call __fGetModuleSymbolAndVersionInformation again to find out.
+        # So we will call __fzGetModuleSymbolAndVersionInformation again to find out.
         oModule.__fzGetModuleSymbolAndVersionInformation();
         assert oModule.__sSymbolStatus != "deferred", \
             "Symbols are still reported as deferred after attempting to load them";
@@ -84,14 +84,14 @@ class cModule(object):
   @property
   def sBinaryName(oModule):
     if oModule.__sBinaryPath is None:
-      # "!dlls" may not work yet if the process was recently started, but "__fGetModuleSymbolAndVersionInformation"
+      # "!dlls" may not work yet if the process was recently started, but "__fzGetModuleSymbolAndVersionInformation"
       # uses "lm", which should give us the name of the binary as well:
       if oModule.__sBinaryName is None:
         oModule.__fzGetModuleSymbolAndVersionInformation();
       return oModule.__sBinaryName;
     return os.path.basename(oModule.sBinaryPath);
   
-  # The below are never available until __fGetModuleSymbolAndVersionInformation is called:
+  # The below are never available until __fzGetModuleSymbolAndVersionInformation is called:
   @property
   def sFileVersion(oModule):
     if not oModule.__bModuleSymbolAndVersionInformationAvailable:
@@ -171,7 +171,7 @@ class cModule(object):
       aoModules.append(oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sCdbId, sSymbolStatus));
     return aoModules;
   
-  def __fGetModuleSymbolAndVersionInformation(oModule):
+  def __fzGetModuleSymbolAndVersionInformation(oModule):
     # Gather version information and optionally returns output for use in HTML report.
     # Also sets oModule.sFileVersion if possible.
     assert (
