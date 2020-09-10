@@ -54,6 +54,7 @@ class cModule(object):
           oModule.__bSymbolLoadingFailed = True;
     return {
       "export symbols": False,
+      "deferred": False,
       "no symbols": False,
       "pdb symbols": True,
       "private pdb symbols": True,
