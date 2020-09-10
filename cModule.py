@@ -181,7 +181,7 @@ class cModule(object):
         bRetryOnTruncatedOutput = True,
         bOutputIsInformative = True,
       )) or oModule.__fbProcess_lmov_Output(oModule.oProcess.fasExecuteCdbCommand(
-        sCommand = "lmov %s;" % oModule.sCdbId,
+        sCommand = "lmov m %s;" % oModule.sCdbId,
         sComment = "Get module information for module %s@0x%X using name" % (oModule.sCdbId, oModule.uStartAddress),
         bRetryOnTruncatedOutput = True,
         bOutputIsInformative = True,
