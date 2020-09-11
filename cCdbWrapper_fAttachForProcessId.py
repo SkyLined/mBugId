@@ -17,9 +17,18 @@ def cCdbWrapper_fAttachForProcessId(oCdbWrapper, uProcessId, bMustBeResumed = Fa
     if asAttachToProcessOutput == [
       "Cannot debug pid %d, Win32 error 0x87" % uProcessId,
       '    "The parameter is incorrect."',
-      "Unable to initialize target, Win32 error 0n87"
+      "Unable to initialize target, Win32 error 0n87",
     ]:
-      sMessage = "Unable to attach to new process %d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId);
+      sMessage = "Unable to attach to new process %d/0x%X" % (uProcessId, uProcessId);
+      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+          sMessage;
+      oCdbWrapper.fStop();
+    elif asAttachToProcessOutput == [
+      "Cannot debug pid %d, NTSTATUS 0xC000010A"% uProcessId,
+      '    "An attempt was made to access an exiting process."',
+      'Unable to initialize target, NTSTATUS 0xC000010A',
+    ]:
+      sMessage = "Unable to attach to process %d/0x%X because it is terminating." % (uProcessId, uProcessId);
       assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
           sMessage;
       oCdbWrapper.fStop();
