@@ -15,7 +15,8 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     );
     if uExitCode < 0:
       uExitCode += 1 << 32;
-    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uExitCode);
+    uWindowsStatusOrErrorCode = uExitCode & 0xCFFFFFFF;
+    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uWindowsStatusOrErrorCode);
     if oWindowsStatusOrError:
       oBugReport.sBugTypeId = "CdbTerminated:%s" % oWindowsStatusOrError.sTypeId;
       oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code 0x%X (%s: %s)" % \
