@@ -113,9 +113,8 @@ class cStack(object):
   def foCreate(cStack, oProcess, oThread, uStackFramesCount):
     # Get information on all modules in the current process
     # First frame's instruction pointer is exactly that:
-    uInstructionPointer = oThread.fuGetRegister("*ip");
-    uStackPointer = oThread.fuGetRegister("*sp");
-    oStackVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uStackPointer);
+    o0StackVirtualAllocation = oThread.o0StackVirtualAllocation;
+    u0InstructionPointer = oThread.fu0GetRegister("*ip");
     # Cache symbols that are called based on the return address after the call.
     dCache_toCallModuleAndFunction_by_uReturnAddress = {};
     for uTryCount in xrange(dxConfig["uMaxSymbolLoadingRetries"] + 1):
@@ -147,7 +146,7 @@ class cStack(object):
       ], "Unknown stack header: %s\r\n%s" % (repr(asStackOutput[uStackStartIndex]), "\r\n".join(asStackOutput));
       uStackStartIndex += 1;
       oStack = cStack();
-      uFrameInstructionPointer = uInstructionPointer;
+      uFrameInstructionPointer = u0InstructionPointer;
       uFrameIndex = 0;
       for sLine in asStackOutput[uStackStartIndex:]:
         if re.match(srIgnoredWarningsAndErrors, sLine):
@@ -184,7 +183,10 @@ class cStack(object):
         if (
           uAddress # This frame's function does not point to a symbol, but an address (potentially the stack)
           and oStack.aoFrames # This is not the first frame.
-          and oStackVirtualAllocation.fbContainsAddress(uAddress) # This frame's function definitely points to the stack
+          and (
+            o0StackVirtualAllocation is None # If possible check if this frame's function 
+            or o0StackVirtualAllocation.fbContainsAddress(uAddress) # points to the stack
+          )
           and oStack.aoFrames[-1].uReturnAddress == uAddress # The previous frame return address == this frame's function.
         ):
           # Remove the incorrect frame, and undo the update to the frame index.
