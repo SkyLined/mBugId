@@ -217,24 +217,26 @@ class cBugReport(object):
       
       if oBugReport.bRegistersRelevant:
         # Create and add registers block
-        duRegisterValue_by_sName = oWindowsAPIThread.fduGetRegisterValueByName();
-        uPadding = 3 + 3 + ({"x86":8, "x64": 16}[oProcess.sISA]);
-        asRegistersHTML = [];
-        for asRegisterNamesAndPadding in gaasRelevantRegisterNamesAndPadding_by_sISA[oProcess.sISA]:
-          asLine = [];
-          for sRegisterNameAndPadding in asRegisterNamesAndPadding:
-            (sRegisterName, sPadding) = sRegisterNameAndPadding.split(":");
-            uRegisterValue = duRegisterValue_by_sName[sRegisterName];
-            sRegisterValue = "%X" % uRegisterValue;
-            sValuePadding = " " * (long(sPadding) - len(sRegisterValue));
-            asLine.append("<td>%s = %s<span class=\"HexNumberHeader\">0x</span>%s</td>" % \
-                (sRegisterName.ljust(5), sValuePadding, sRegisterValue));
-          asRegistersHTML.append("<tr>%s</tr>" % "".join(asLine));
-        asBlocksHTML.append(sBlockHTMLTemplate % {
-          "sName": "Registers",
-          "sCollapsed": "Collapsed",
-          "sContent": "<table class=\"Registers\">%s</table>" % "\n".join(asRegistersHTML),
-        });
+        d0uRegisterValue_by_sName = oWindowsAPIThread.fd0uGetRegisterValueByName();
+        if d0uRegisterValue_by_sName:
+          duRegisterValue_by_sName = d0uRegisterValue_by_sName;
+          uPadding = 3 + 3 + ({"x86":8, "x64": 16}[oProcess.sISA]);
+          asRegistersHTML = [];
+          for asRegisterNamesAndPadding in gaasRelevantRegisterNamesAndPadding_by_sISA[oProcess.sISA]:
+            asLine = [];
+            for sRegisterNameAndPadding in asRegisterNamesAndPadding:
+              (sRegisterName, sPadding) = sRegisterNameAndPadding.split(":");
+              uRegisterValue = duRegisterValue_by_sName[sRegisterName];
+              sRegisterValue = "%X" % uRegisterValue;
+              sValuePadding = " " * (long(sPadding) - len(sRegisterValue));
+              asLine.append("<td>%s = %s<span class=\"HexNumberHeader\">0x</span>%s</td>" % \
+                  (sRegisterName.ljust(5), sValuePadding, sRegisterValue));
+            asRegistersHTML.append("<tr>%s</tr>" % "".join(asLine));
+          asBlocksHTML.append(sBlockHTMLTemplate % {
+            "sName": "Registers",
+            "sCollapsed": "Collapsed",
+            "sContent": "<table class=\"Registers\">%s</table>" % "\n".join(asRegistersHTML),
+          });
       
       # Add relevant memory blocks in order if needed
       for uStartAddress in sorted(oBugReport.__dtxMemoryDumps.keys()):
