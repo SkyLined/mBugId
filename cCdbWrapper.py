@@ -213,9 +213,8 @@ class cCdbWrapper(object):
     oLicenseCollection = mProductDetails.foGetLicenseCollectionForAllLoadedProducts();
     (asLicenseErrors, asLicenseWarnings) = oLicenseCollection.ftasGetLicenseErrorsAndWarnings();
     if asLicenseErrors:
-      if not oCdbWrapper.fbFireEvent("License errors", asLicenseErrors):
-        print "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
-        os._exit(5);
+      assert oCdbWrapper.fbFireEvent("License errors", asLicenseErrors), \
+          "You do not have a valid, active license for cBugId:\r\n%s" % "\r\n".join(asLicenseErrors);
       oCdbWrapper.fStop();
       return False;
     if asLicenseWarnings:
