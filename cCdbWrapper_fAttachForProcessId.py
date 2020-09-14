@@ -15,7 +15,7 @@ def cCdbWrapper_fAttachForProcessId(oCdbWrapper, uProcessId, bMustBeResumed = Fa
       sComment = "Attach to process %d" % uProcessId,
     );
     if asAttachToProcessOutput == [
-      "Cannot debug pid %d, Win32 error 0x87" % uProcessId,
+      "Cannot debug pid %d, Win32 error 0n87" % uProcessId,
       '    "The parameter is incorrect."',
       "Unable to initialize target, Win32 error 0n87",
     ]:
