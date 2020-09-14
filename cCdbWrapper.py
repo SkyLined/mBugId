@@ -284,6 +284,10 @@ class cCdbWrapper(object):
       sBinaryPath = sCdbBinaryPath,
       asArguments = asArguments,
     );
+    oCdbWrapper.fbFireEvent("Log message", "Started cdb.exe", {
+      "Command line components": [sCdbBinaryPath] + asArguments,
+    });
+
     assert oCdbWrapper.oCdbConsoleProcess, \
         "Cannot find %s!" % sCdbBinaryPath;
     oCdbWrapper.oCdbStdInOutHelperThread.fStart();
