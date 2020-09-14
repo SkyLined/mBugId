@@ -42,6 +42,7 @@ class cBugId(object):
     sCdbISA = None, # Which version of cdb should be used to debug this application? Try not to use; could lead to bad bug reports!
     sApplicationBinaryPath = None,
     auApplicationProcessIds = None,
+    u0JITDebuggerEventId = None,
     oUWPApplication = None,
     asApplicationArguments = None,
     asLocalSymbolPaths = None,
@@ -64,6 +65,7 @@ class cBugId(object):
       sCdbISA = sCdbISA,
       sApplicationBinaryPath = sApplicationBinaryPath,
       auApplicationProcessIds = auApplicationProcessIds,
+      u0JITDebuggerEventId = u0JITDebuggerEventId,
       oUWPApplication = oBugId.oUWPApplication,
       asApplicationArguments = asApplicationArguments,
       asLocalSymbolPaths = asLocalSymbolPaths,

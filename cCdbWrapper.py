@@ -65,6 +65,7 @@ class cCdbWrapper(object):
     sCdbISA, # Which version of cdb should be used to debug this application? ("x86" or "x64")
     sApplicationBinaryPath,
     auApplicationProcessIds,
+    u0JITDebuggerEventId,
     oUWPApplication,
     asApplicationArguments,
     asLocalSymbolPaths,
@@ -87,6 +88,7 @@ class cCdbWrapper(object):
     oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
     oCdbWrapper.auApplicationProcessIds = auApplicationProcessIds or [];
     oCdbWrapper.auMainProcessIds = oCdbWrapper.auApplicationProcessIds[:];
+    oCdbWrapper.u0JITDebuggerEventId = u0JITDebuggerEventId;
     oCdbWrapper.oUWPApplication = oUWPApplication;
     oCdbWrapper.bApplicationStarted = False;
     oCdbWrapper.bUWPApplicationStarted = False;
@@ -264,6 +266,15 @@ class cCdbWrapper(object):
       ["cache*%s" % x for x in oCdbWrapper.asSymbolCachePaths] +
       ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
     );
+    asAttachOrStartApplicationArguments = (
+      # Start a utility process if we're not JIT debugging. Otherwise
+      # attach to the application we are JIT debugging.
+      [
+        os.getenv("ComSpec"), "/K", "ECHO OFF", 
+      ] if oCdbWrapper.u0JITDebuggerEventId is None else [
+        "-p", str(oCdbWrapper.auApplicationProcessIds[0]), "-e", str(oCdbWrapper.u0JITDebuggerEventId),
+      ]
+    );
     asArguments = [
       # Debug any child processes spawned by the main processes as well.
       "-o", 
@@ -274,9 +285,9 @@ class cCdbWrapper(object):
       "-lines",
     ] or []) + (sSymbolsPath and [
       "-y", sSymbolsPath,
-    ] or []) + [
-      os.getenv("ComSpec"), "/K", "ECHO OFF", 
-    ];
+    ] or []) + (
+      asAttachOrStartApplicationArguments
+    );
     sCdbBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe");
     assert os.path.isfile(sCdbBinaryPath), \
         "%s Debugging Tools for Windows cdb.exe file %s not found" % (oCdbWrapper.sCdbISA, sCdbBinaryPath);
@@ -304,10 +315,11 @@ class cCdbWrapper(object):
         return;
       oCdbWrapper.auMainProcessIds.append(oMainConsoleProcess.uId);
     # If we need to attach to existing application processes, do so:
-    for uProcessId in oCdbWrapper.auApplicationProcessIds:
-      # We assume all application processes have been suspended. This makes sense because otherwise they might crash
-      # before BugId has a chance to attach.
-      oCdbWrapper.fAttachForProcessId(uProcessId, bMustBeResumed = True);
+    if oCdbWrapper.u0JITDebuggerEventId is None:
+      for uProcessId in oCdbWrapper.auApplicationProcessIds:
+        # We assume all application processes have been suspended. This makes sense because otherwise they might crash
+        # before BugId has a chance to attach.
+        oCdbWrapper.fAttachForProcessId(uProcessId, bMustBeResumed = True);
     return;
   
   def fTerminate(oCdbWrapper):

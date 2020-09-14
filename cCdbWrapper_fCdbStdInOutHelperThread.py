@@ -335,7 +335,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
         oCdbWrapper.fbFireEvent("Application suspended", "Attached to process");
       oCdbWrapper.fHandleNewApplicationProcess(uProcessId);
       continue;
-    assert oCdbWrapper.bApplicationStarted, \
+    assert oCdbWrapper.bApplicationStarted or oCdbWrapper.u0JITDebuggerEventId, \
         "Unexpected exception before cdb has started the application:\r\n%s" % "\r\n".join(asLastEventOutput);
     if sCreateExitProcess == "Exit":
       oCdbWrapper.fbFireEvent("Application suspended", "Process terminated");

@@ -9,6 +9,7 @@
     "mDateTime"
   ], 
   "asOptionalProductNames": [
+    "cFileSystemItem",
     "mDebugOutput", 
     "oConsole"
   ], 
