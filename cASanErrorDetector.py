@@ -14,15 +14,15 @@ class cASanErrorDetector(object):
   def __init__(oSelf, oCdbWrapper):
     # Hook application stdout output events to detect ASan ERROR messages
     oSelf.oCdbWrapper = oCdbWrapper;
-    oCdbWrapper.fAddEventCallback("Application stderr output", oSelf.__fStdErrOutputCallback);
-    oCdbWrapper.fAddEventCallback("Process terminated", oSelf.__fProcessTerminatedCallback);
+    oCdbWrapper.fAddCallback("Application stderr output", oSelf.__fStdErrOutputCallback);
+    oCdbWrapper.fAddCallback("Process terminated", oSelf.__fProcessTerminatedCallback);
     oSelf.__dasStdErr_by_uProcessId = {};
   
-  def __fProcessTerminatedCallback(oSelf, oProcess):
+  def __fProcessTerminatedCallback(oSelf, oCdbWrapper, oProcess):
     if oProcess.uId in oSelf.__dasStdErr_by_uProcessId:
       del oSelf.__dasStdErr_by_uProcessId[oProcess.uId];
   
-  def __fStdErrOutputCallback(oSelf, oConsoleProcess, sLine):
+  def __fStdErrOutputCallback(oSelf, oCdbWrapper, oConsoleProcess, sLine):
     oSelf.__dasStdErr_by_uProcessId.setdefault(oConsoleProcess.uId, []).append(sLine);
   
   def fAddInformationToBugReport(oSelf, oBugReport, oProcess, oThread):

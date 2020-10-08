@@ -39,15 +39,22 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   if sViolationTypeId == "E":
     # The application is attempting to execute code at an address that does not point to executable memory; this cannot
     # be ignored.
+#    print "@@@ sViolationTypeId == \"E\"";
     return False;
   # See if we can fake execution of the current instruction, so we can continue the application as if it had been
   # executed without actually executing it.
   sInstructionPointerRegister = {"x86": "eip", "x64": "rip"}[oProcess.sISA];
-  uInstructionPointer = oThread.fuGetRegister("*ip");
+  u0InstructionPointer = oThread.fu0GetRegister("*ip");
+  if u0InstructionPointer is None:
+    # We cannot get the instruction pointer for this thread; it must be terminated and cannot be continued.
+#    print "@@@ u0InstructionPointer == None";
+    return False;
+  uInstructionPointer = u0InstructionPointer;
   oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uInstructionPointer);
   if not oVirtualAllocation.bExecutable:
     # This can happen if a call/return sets the instruction pointer to a corrupted value; it may point to a region that
     # is not allocated, or contains non-executable data. (e.g. a poisoned value)
+#    print "@@@ oVirtualAllocation.bExecutable == False";
     return False; # This memory is not executable: we cannot continue execution.
   asDiassemblyOutput = oProcess.fasExecuteCdbCommand(
     sCommand = "u 0x%X L2" % uInstructionPointer, 
@@ -55,7 +62,7 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   );
   if len(asDiassemblyOutput) == 0:
     # The instruction pointer does not point to valid memory.
-    print "Cannot disassemble code at instruction pointer!?";
+#    print "@@@ asDiassemblyOutput == []";
     return False;
   assert len(asDiassemblyOutput) == 3, \
       "Expected 3 lines of disassembly, got %d:\r\n%s" % (len(asDiassemblyOutput), "\r\n".join(asDiassemblyOutput));
@@ -66,7 +73,8 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
       "Unrecognised diassembly output second line:\r\n%s" % "\r\n".join(asDiassemblyOutput);
   (sCurrentInstructionName, sCurrentInstructionArguments) = oCurrentInstructionMatch.groups();
   if sCurrentInstructionName not in ["add", "addsd", "call", "cmp", "jmp", "mov", "movzx", "movsd", "mulsd", "sub", "subsd"]:
-    print "Cannot handle instruction %s:\r\n%s" % (repr(sCurrentInstructionName), "\r\n".join(asDiassemblyOutput));
+#    print "Cannot handle instruction %s:\r\n%s" % (repr(sCurrentInstructionName), "\r\n".join(asDiassemblyOutput));
+#    print "@@@ sCurrentInstructionName == %s" % repr(sCurrentInstructionName);
     return False;
   # Grab info from next instruction (it's starting address):
   oNextInstructionMatch = re.match(r"^([0-9`a-f]+)\s+[0-9`a-f]+\s+\w+(?:\s+.*)?$", sNextInstruction, re.I);
@@ -91,21 +99,24 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
       # This instruction will only affect flags, so we'll read 8 bits to use as flags from the poisoned values.
       # TODO: At some point, we may want to do this for other arithmatic operations as well.
       uPoisonFlagsValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, 8, uPointerSizedValue);
-      {};
       asFlags = ["of", "sf", "zf", "af", "pf", "cf"];
       duRegisterValue_by_sName = dict([
         (asFlags[uIndex], (uPoisonFlagsValue >> uIndex) & 1)
         for uIndex in xrange(len(asFlags))
       ]);
       duRegisterValue_by_sName["*ip"] = uNextInstructionAddress;
-      oThread.fSetRegisters(duRegisterValue_by_sName);
+      if not oThread.fbSetRegisters(duRegisterValue_by_sName):
+#        print "@@@ set %s == False" % repr(duRegisterValue_by_sName);
+        return False;
       return True;
     (sDestinationArgument, sSourceArgument) = asCurrentInstructionArguments;
     oDestinationArgumentPointerMatch = re.match("^(byte|(?:d|q|[xy]?(mm))?word) ptr \[.*\]$", sDestinationArgument);
     if oDestinationArgumentPointerMatch:
       # We fake write AVs by ignoring the write and advancing the instruction pointer to the next instruction.
       # TODO: This does not alter flags like a normal instruction might!!!!
-      oThread.fSetRegister("*ip", uNextInstructionAddress);
+      if not oThread.fbSetRegister("*ip", uNextInstructionAddress):
+#        print "@@@ set %s == False" % repr({"*ip": uNextInstructionAddress});
+        return False;
       return True;
   oSourceArgumentPointerMatch = re.match("^(byte|(?:d|q|[xy]?mm)?word) ptr \[.*\]$", sSourceArgument);
   if oSourceArgumentPointerMatch is None:
@@ -114,6 +125,7 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
         (sSourceArgument, sCurrentInstructionName, "\r\n".join(asDiassemblyOutput));
     # A call to an address taken from a register containing a bogus value would have resulted in an execute access
     # violation, after which we cannot continue.
+#    print "@@@ sSourceArgument == %s" % sSourceArgument;
     return False;
   # We fake read AVs that read memory into a register by setting that register to a poisoned value and advancing
   # the instruction pointer to the next instruction.
@@ -130,6 +142,9 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   duNewRegisterValues_by_sName = {
     sDestinationRegister: uPoisonValue,
     "*ip": uNextInstructionAddress,
-  }
-  oThread.fSetRegisters(duNewRegisterValues_by_sName)
+  };
+  if not oThread.fbSetRegisters(duNewRegisterValues_by_sName):
+#    print "@@@ set %s == False" % repr(duNewRegisterValues_by_sName);
+    return False;
   return True;
+

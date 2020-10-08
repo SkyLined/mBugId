@@ -15,4 +15,4 @@ def cCdbWrapper_fRunTimeoutCallbacks(oCdbWrapper):
     if not aoTimeoutsToFire:
       return;
     for oTimeoutToFire in aoTimeoutsToFire:
-      oTimeoutToFire.fFire();
+      oTimeoutToFire.fFire(oCdbWrapper);

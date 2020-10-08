@@ -4,7 +4,7 @@ def cCdbWrapper_fStartUWPApplication(oCdbWrapper, oUWPApplication, sArgument):
     # make sure the semi-colon is not interpreted as part of the application id!
     sStartUWPApplicationCommand = ".createpackageapp %s %s ;" % \
         (oUWPApplication.sPackageFullName, oUWPApplication.sApplicationId);
-    oCdbWrapper.fbFireEvent("Log message", "Starting UWP application", {
+    oCdbWrapper.fbFireCallbacks("Log message", "Starting UWP application", {
       "Application Id": oUWPApplication.sApplicationId, 
       "Package name": oUWPApplication.sPackageName, 
       "Package full name": oUWPApplication.sPackageFullName, 
@@ -14,7 +14,7 @@ def cCdbWrapper_fStartUWPApplication(oCdbWrapper, oUWPApplication, sArgument):
     # sure the semi-colon is not passed to the UWP app as part of the argument!
     sStartUWPApplicationCommand = ".createpackageapp %s %s %s ;" % \
         (oUWPApplication.sPackageFullName, oUWPApplication.sApplicationId, sArgument);
-    oCdbWrapper.fbFireEvent("Log message", "Starting UWP application", {
+    oCdbWrapper.fbFireCallbacks("Log message", "Starting UWP application", {
       "Application Id": oUWPApplication.sApplicationId, 
       "Package name": oUWPApplication.sPackageName, 
       "Package full name": oUWPApplication.sPackageFullName, 

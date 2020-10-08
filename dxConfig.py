@@ -101,11 +101,6 @@ dxConfig = {
   ### Source code settings
   "bEnableSourceCodeSupport": True,     # Tell cdb to load source line symbols or not.
   "dsURLTemplate_by_srSourceFilePath": {}, # Used to translate source file paths to links to online code repository.
-  ### Dump file settings
-  "bSaveDump": False,                   # Save a dump file.
-  "bOverwriteDump": False,              # Overwrite any existing dump file.
-  "sDumpFilePath": None,                # Path where you want cBugId to save dump file. None = current folder.
-  "bFullDump": False,                   # Create a full (True) or small memory dump (False).
   ### Excessive CPU usage detection
   "nExcessiveCPUUsageCheckIntervalInSeconds": 10.0, # How many seconds to gather thread CPU usage data.
   "nExcessiveCPUUsagePercent": 90,      # How long do all threads in all processes for the application need to use the

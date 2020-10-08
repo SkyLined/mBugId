@@ -1,64 +1,122 @@
+
+from mWindowsSDK.mWindowsDefines import \
+    FAST_FAIL_LEGACY_GS_VIOLATION, \
+    FAST_FAIL_VTGUARD_CHECK_FAILURE, \
+    FAST_FAIL_STACK_COOKIE_CHECK_FAILURE, \
+    FAST_FAIL_CORRUPT_LIST_ENTRY, \
+    FAST_FAIL_INCORRECT_STACK, \
+    FAST_FAIL_INVALID_ARG, \
+    FAST_FAIL_GS_COOKIE_INIT, \
+    FAST_FAIL_FATAL_APP_EXIT, \
+    FAST_FAIL_RANGE_CHECK_FAILURE, \
+    FAST_FAIL_UNSAFE_REGISTRY_ACCESS, \
+    FAST_FAIL_GUARD_ICALL_CHECK_FAILURE, \
+    FAST_FAIL_GUARD_WRITE_CHECK_FAILURE, \
+    FAST_FAIL_INVALID_FIBER_SWITCH, \
+    FAST_FAIL_INVALID_SET_OF_CONTEXT, \
+    FAST_FAIL_INVALID_REFERENCE_COUNT, \
+    FAST_FAIL_INVALID_JUMP_BUFFER, \
+    FAST_FAIL_MRDATA_MODIFIED, \
+    FAST_FAIL_CERTIFICATION_FAILURE, \
+    FAST_FAIL_INVALID_EXCEPTION_CHAIN, \
+    FAST_FAIL_CRYPTO_LIBRARY, \
+    FAST_FAIL_INVALID_CALL_IN_DLL_CALLOUT, \
+    FAST_FAIL_INVALID_IMAGE_BASE, \
+    FAST_FAIL_DLOAD_PROTECTION_FAILURE, \
+    FAST_FAIL_UNSAFE_EXTENSION_CALL, \
+    FAST_FAIL_DEPRECATED_SERVICE_INVOKED, \
+    FAST_FAIL_INVALID_BUFFER_ACCESS, \
+    FAST_FAIL_INVALID_BALANCED_TREE, \
+    FAST_FAIL_INVALID_NEXT_THREAD, \
+    FAST_FAIL_GUARD_ICALL_CHECK_SUPPRESSED, \
+    FAST_FAIL_APCS_DISABLED, \
+    FAST_FAIL_INVALID_IDLE_STATE, \
+    FAST_FAIL_MRDATA_PROTECTION_FAILURE, \
+    FAST_FAIL_UNEXPECTED_HEAP_EXCEPTION, \
+    FAST_FAIL_INVALID_LOCK_STATE, \
+    FAST_FAIL_GUARD_JUMPTABLE, \
+    FAST_FAIL_INVALID_LONGJUMP_TARGET, \
+    FAST_FAIL_INVALID_DISPATCH_CONTEXT, \
+    FAST_FAIL_INVALID_THREAD, \
+    FAST_FAIL_INVALID_SYSCALL_NUMBER, \
+    FAST_FAIL_INVALID_FILE_OPERATION, \
+    FAST_FAIL_LPAC_ACCESS_DENIED, \
+    FAST_FAIL_GUARD_SS_FAILURE, \
+    FAST_FAIL_LOADER_CONTINUITY_FAILURE, \
+    FAST_FAIL_GUARD_EXPORT_SUPPRESSION_FAILURE, \
+    FAST_FAIL_INVALID_CONTROL_STACK, \
+    FAST_FAIL_SET_CONTEXT_DENIED, \
+    FAST_FAIL_INVALID_IAT, \
+    FAST_FAIL_HEAP_METADATA_CORRUPTION, \
+    FAST_FAIL_PAYLOAD_RESTRICTION_VIOLATION, \
+    FAST_FAIL_LOW_LABEL_ACCESS_DENIED, \
+    FAST_FAIL_ENCLAVE_CALL_FAILURE, \
+    FAST_FAIL_UNHANDLED_LSS_EXCEPTON, \
+    FAST_FAIL_ADMINLESS_ACCESS_DENIED, \
+    FAST_FAIL_UNEXPECTED_CALL, \
+    FAST_FAIL_CONTROL_INVALID_RETURN_ADDRESS, \
+    FAST_FAIL_UNEXPECTED_HOST_BEHAVIOR, \
+    FAST_FAIL_FLAGS_CORRUPTION;
+
 from .dxConfig import dxConfig;
 
-# Source: winnt.h (codemachine.com/downloads/win81/winnt.h)
-# I couldn't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
+def fs0GetFastFailDefineName(uFastFailCode):
+  for (sPotentialFastFailDefineName, xPotentialFastFailDefineValue) in globals().items():
+    if (
+      isinstance(xPotentialFastFailDefineValue, (int, long))
+      and sPotentialFastFailDefineName.startswith("FAST_FAIL_")
+      and xPotentialFastFailDefineValue == uFastFailCode
+    ):
+      return sPotentialFastFailDefineName;
+  return None;
+
+# I can't find much information on most of these exceptions, so this may be incorrect or at least incomplete.
+sPotentiallyExploitable = "Potentially exploitable security issue";
 dtsFastFailErrorInformation_by_uCode = {
-  0:  ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
-  1:  ("VTGuard",       "VTGuard detected an invalid virtual function table cookie",  "Potentially exploitable security issue"),
-  2:  ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              "Potentially exploitable security issue"),
-  3:  ("CorruptList",   "Safe unlinking detected a corrupted LIST_ENTRY",             "Potentially exploitable security issue"),
-  4:  ("BadStack",      "FAST_FAIL_INCORRECT_STACK",                                  "Potentially exploitable security issue"),
-  5:  ("InvalidArg",    "FAST_FAIL_INVALID_ARG",                                      "Potentially exploitable security issue"),
-  6:  ("GSCookie",      "FAST_FAIL_GS_COOKIE_INIT",                                   "Potentially exploitable security issue"),
-  # TODO: It may be possible to check if an AppExit is an R6025: this only happens on x86, the first frame should be
-  # "application!abort" and the second frame should be a non-static call (e.g. CALL EAX) from the application.
-  # However, I'm worried about false positives and this does not appear to happen often enough to warrant the expense
-  # of creating code for it at the moment.
-  7:  ("AppExit",       "Fatal application error, possibly a pure virtual function call (R6025)",
-                                                                                      "Potentially exploitable security issue"),
-  8:  ("RangeCheck",    "FAST_FAIL_RANGE_CHECK_FAILURE",                              "Potentially exploitable security issue"),
-  9:  ("Registry",      "FAST_FAIL_UNSAFE_REGISTRY_ACCESS",                           "Potentially exploitable security issue"),
-  10: ("CFG",           "Control Flow Guard detected a call to an invalid address",   "Potentially exploitable security issue"),
-  11: ("GuardWrite",    "FAST_FAIL_GUARD_WRITE_CHECK_FAILURE",                        "Potentially exploitable security issue"),
-  12: ("FiberSwitch",   "FAST_FAIL_INVALID_FIBER_SWITCH",                             "Potentially exploitable security issue"),
-  13: ("SetContext",    "FAST_FAIL_INVALID_SET_OF_CONTEXT",                           "Potentially exploitable security issue"),
-  14: ("RefCount",      "A reference counter was incremented beyond its maximum",     "Potentially exploitable security issue"),
-  18: ("JumpBuffer",    "FAST_FAIL_INVALID_JUMP_BUFFER",                              "Potentially exploitable security issue"),
-  19: ("MrData",        "FAST_FAIL_MRDATA_MODIFIED",                                  "Potentially exploitable security issue"),
-  20: ("Cert",          "FAST_FAIL_CERTIFICATION_FAILURE",                            "Potentially exploitable security issue"),
-  21: ("ExceptChain",   "FAST_FAIL_INVALID_EXCEPTION_CHAIN",                          "Potentially exploitable security issue"),
-  22: ("Crypto",        "FAST_FAIL_CRYPTO_LIBRARY",                                   "Potentially exploitable security issue"),
-  23: ("DllCallout",    "FAST_FAIL_INVALID_CALL_IN_DLL_CALLOUT"                       "Potentially exploitable security issue"),
-  24: ("ImageBase",     "FAST_FAIL_INVALID_IMAGE_BASE",                               "Potentially exploitable security issue"),
-  25: ("DLoadProt",     "FAST_FAIL_DLOAD_PROTECTION_FAILURE",                         "Potentially exploitable security issue"),
-  26: ("ExtCall",       "FAST_FAIL_UNSAFE_EXTENSION_CALL",                            "Potentially exploitable security issue"),
+  FAST_FAIL_LEGACY_GS_VIOLATION:               ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              sPotentiallyExploitable),
+  FAST_FAIL_VTGUARD_CHECK_FAILURE:             ("VTGuard",       "VTGuard detected an invalid virtual function table cookie",  sPotentiallyExploitable),
+  FAST_FAIL_STACK_COOKIE_CHECK_FAILURE:        ("OOBW:Stack",    "/GS detected that a stack cookie was modified",              sPotentiallyExploitable),
+  FAST_FAIL_CORRUPT_LIST_ENTRY:                ("CorruptList",   "Safe unlinking detected a corrupted LIST_ENTRY",             sPotentiallyExploitable),
+  FAST_FAIL_FATAL_APP_EXIT:                    ("AppExit",       "Unspecified fatal application error.",                       sPotentiallyExploitable),
+  FAST_FAIL_GUARD_ICALL_CHECK_FAILURE:         ("CFG",           "Control Flow Guard detected a call to an invalid address",   sPotentiallyExploitable),
 };
-auErrorCodesForWhichAStackDumpIsUseful = [
-  0, #LegacyGS
-  2, #StackCookie
-  4, #BadStack
+auErrorCodesForWhichAStackDumpCouldBeUseful = [
+  FAST_FAIL_LEGACY_GS_VIOLATION,
+  FAST_FAIL_STACK_COOKIE_CHECK_FAILURE,
+  FAST_FAIL_INCORRECT_STACK,
+  FAST_FAIL_INVALID_CONTROL_STACK,
 ];
 
 def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oThread, oException):
   # Parameter[0] = fail fast code
-  assert len(oException.auParameters) == 1, \
-      "Unexpected number of fail fast exception parameters (%d vs 1)" % len(oException.auParameters);
+  assert len(oException.auParameters) > 0, \
+      "Missing fail fast code in parameters!";
   uFastFailCode = oException.auParameters[0];
-  sFastFailCodeId, sFastFailCodeDescription, sSecurityImpact = dtsFastFailErrorInformation_by_uCode.get( \
-      uFastFailCode, ("Unknown", "unknown code", "May be a security issue"));
-  oBugReport.sBugTypeId = sFastFailCodeId;
-  if sFastFailCodeDescription.startswith("FAST_FAIL_"):
-    oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)" % \
-        (oException.uCode, uFastFailCode, sFastFailCodeDescription);
+  if uFastFailCode in dtsFastFailErrorInformation_by_uCode:
+    (
+      oBugReport.sBugTypeId,
+      oBugReport.sBugDescription,
+      oBugReport.sSecurityImpact,
+    ) = dtsFastFailErrorInformation_by_uCode[uFastFailCode];
   else:
-    oBugReport.sBugDescription = sFastFailCodeDescription;
-  oBugReport.sSecurityImpact = sSecurityImpact;
-  if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpIsUseful:
-    uStackPointer = oThread.fuGetRegister("*sp");
-    # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
-    uSize = dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize;
-    if uSize > dxConfig["uMaxMemoryDumpSize"]:
-      uSize = dxConfig["uMaxMemoryDumpSize"];
-    oBugReport.fAddMemoryDump(uStackPointer, uStackPointer + uSize, "Stack");
-    oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oProcess.uPointerSize));
+    oBugReport.sBugTypeId = fs0GetFastFailDefineName(uFastFailCode) or ("FailFast#%d" % uFastFailCode);
+    oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)." % \
+        (oException.uCode, uFastFailCode, sFastFailCodeDescription);
+    oBugReport.sSecurityImpact = "Unknown";
+  # Add any additional parameters (I have yet to find out what these mean)
+  if len(oException.auParameters) == 2:
+    oBugReport.sBugDescription += "Additional parameter: %d/0x%X" % (oException.auParameters[1], oException.auParameters[1]);
+  elif len(oException.auParameters) > 2:
+    oBugReport.sBugDescription += "Additional parameters: [ %s ]." % " | ".join(["%d/0x%X" % (u, u) for u in oException.auParameters[1:]]);
+  
+  if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpCouldBeUseful:
+    u0StackPointer = oThread.fu0GetRegister("*sp");
+    if u0StackPointer is not None:
+      uStackPointer = u0StackPointer;
+      # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
+      uSize = dxConfig["uStackDumpSizeInPointers"] * oProcess.uPointerSize;
+      if uSize > dxConfig["uMaxMemoryDumpSize"]:
+        uSize = dxConfig["uMaxMemoryDumpSize"];
+      oBugReport.fAddMemoryDump(uStackPointer, uStackPointer + uSize, "Stack");
+      oBugReport.atxMemoryRemarks.append(("Stack pointer", uStackPointer, oProcess.uPointerSize));
   return oBugReport;

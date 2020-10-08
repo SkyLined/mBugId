@@ -1,5 +1,5 @@
 def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
-  oCdbWrapper.fbFireEvent("Log message", "Terminating UWP application", {
+  oCdbWrapper.fbFireCallbacks("Log message", "Terminating UWP application", {
     "Application Id": oUWPApplication.sApplicationId, 
     "Package name": oUWPApplication.sPackageName, 
     "Package full name": oUWPApplication.sPackageFullName, 

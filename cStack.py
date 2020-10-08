@@ -243,7 +243,7 @@ class cStack(object):
               uModuleOffset = uFrameInstructionPointer - oModule.uStartAddress;
             else:
               # Calculate the offset the harder way.
-              uFunctionAddress = oProcess.fuGetAddressForSymbol(oFunction.sName);
+              uFunctionAddress = oProcess.fuGetAddressForSymbol(oFunction.sCdbId);
               uModuleOffset = uFunctionAddress + iOffsetFromStartOfFunction - oModule.uStartAddress;
             oFunction = None;
             iOffsetFromStartOfFunction = None;

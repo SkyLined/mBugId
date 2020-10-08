@@ -1,6 +1,6 @@
 def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
   uProcessId = oCdbWrapper.duProcessId_by_uBreakpointId[uBreakpointId];
-  oCdbWrapper.fSelectProcess(uProcessId);
+  oCdbWrapper.fSelectProcessId(uProcessId);
   # There can be any number of breakpoints according to the docs, so no need to reuse them. There is a bug in cdb:
   # using "bc" to clear a breakpoint can still lead to a STATUS_BREAKPOINT exception at the original address later.
 # The following is not true:
@@ -18,7 +18,7 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
     sCommand = 'bc%d;' % uBreakpointId,
     sComment = 'Remove breakpoint',
   );
-  oCdbWrapper.fbFireEvent("Log message", "Removed breakpoint", {
+  oCdbWrapper.fbFireCallbacks("Log message", "Removed breakpoint", {
     "Breakpoint id": "%d" % uBreakpointId,
     "Process id": "%d/0x%X" % (uProcessId, uProcessId),
   });

@@ -11,8 +11,7 @@ class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
     oProcess.oCdbWrapper = oCdbWrapper;
     oProcess.uId = uId;
-    oProcess.bNew = True; # Will be set to False by `fCdbStdInOutThread` once running.
-    oProcess.bTerminated = False; # Will be set to True by `foSetCurrentProcessAfterApplicationRan` once terminated
+    oProcess.bTerminated = False; # Will be set to True by `cCdbWrapper_fHandleCurrentApplicationProcessTermination` once terminated
     
     # Modules will be cached here. They are discarded whenever the application is resumed.
     oProcess.__doModules_by_sCdbId = {};
@@ -88,7 +87,7 @@ class cProcess(object):
     oProcess.__bAllModulesEnumerated = False;
   
   def fSelectInCdb(oProcess):
-    oProcess.oCdbWrapper.fSelectProcess(oProcess.uId);
+    oProcess.oCdbWrapper.fSelectProcessId(oProcess.uId);
   
   def __str__(oProcess):
     return 'Process(%s %s #%d)' % (oProcess.sBinaryName, oProcess.sISA, oProcess.uProcessId);

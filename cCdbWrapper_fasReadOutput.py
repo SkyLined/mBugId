@@ -84,7 +84,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       elif sChar in ("\n", ""):
         if gbDebugIO: print "\r<stdout<%s" % sLine;
         if sChar == "\n" or sLine:
-          oCdbWrapper.fbFireEvent("Cdb stdout output", sLine);
+          oCdbWrapper.fbFireCallbacks("Cdb stdout output", sLine);
           # Failure to debug application must be special cased, for example:
           # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
           # |WaitForEvent failed, NTSTATUS 0xC000000D
@@ -94,7 +94,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
             sErrorMessage = "Failed to debug process: %s failed with %s" % (sEventName, sErrorCode);
             if sErrorCode in dsTips_by_sErrorCode:
               sErrorMessage += "\r\n" + dsTips_by_sErrorCode[sErrorCode];
-            assert oCdbWrapper.fbFireEvent("Failed to debug application", sErrorMessage), \
+            assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sErrorMessage), \
                 sErrorMessage;
             oCdbWrapper.fStop();
           bConcatinateReturnedLineToNext = False;
@@ -121,7 +121,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                 if bApplicationWillBeRun:
-                  oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
+                  oCdbWrapper.fbFireCallbacks("Log message", "StdOut output", {
                     "Line": sIgnoredLine,
                   });
               if bStartOfCommandOutput:
@@ -152,7 +152,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
                     # Add the line to the current block of I/O
                     oCdbWrapper.sCdbIOHTML += sLineHTML;
                   if bApplicationWillBeRun:
-                    oCdbWrapper.fbFireEvent("Log message", "StdOut output", {
+                    oCdbWrapper.fbFireCallbacks("Log message", "StdOut output", {
                       "Line": sReturnedLine,
                     });
                   asReturnedLines.append(sReturnedLine);
@@ -163,7 +163,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         if sChar == "":
           oCdbWrapper.bCdbRunning = False;
           if gbDebugIO: print "<stdout:EOF<";
-          oCdbWrapper.fbFireEvent("Log message", "Failed to read from cdb.exe stdout");
+          oCdbWrapper.fbFireCallbacks("Log message", "Failed to read from cdb.exe stdout");
           raise cCdbStoppedException();
         sLine = "";
         if sIgnoredLine is not None:
@@ -183,7 +183,7 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
         oPromptMatch = re.match("^(?:\d+|\?):(?:\d+|\?\?\?)(:x86)?> $", sLine);
         if oPromptMatch:
           oCdbWrapper.sCdbCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-          oCdbWrapper.fbFireEvent("Cdb stdout output", sLine);
+          oCdbWrapper.fbFireCallbacks("Cdb stdout output", sLine);
           if not bIgnoreOutput:
             assert not sStartOfCommandOutputMarker, \
                 "No start of output marker found in command output:\r\n%s" % "\r\n".join(asLines);

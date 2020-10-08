@@ -10,12 +10,11 @@ from mWindowsAPI import *;
 class cVerifierStopDetector(object):
   def __init__(oSelf, oCdbWrapper):
     # Hook application debug output events to detect VERIFIER STOP messages
-    oSelf.oCdbWrapper = oCdbWrapper;
-    oCdbWrapper.fAddEventCallback("Application debug output", oSelf.__fCheckDebugOutputForVerifierStopMessage);
+    oCdbWrapper.fAddCallback("Application debug output", oSelf.__fCheckDebugOutputForVerifierStopMessage);
 
-  def __fCheckDebugOutputForVerifierStopMessage(oSelf, oProcess, asDebugOutput):
+  def __fCheckDebugOutputForVerifierStopMessage(oSelf, oCdbWrapper, oProcess, asDebugOutput):
     # TODO: oThread should be an argument to the event callback
-    oWindowsAPIThread = oProcess.oCdbWrapper.oCdbCurrentWindowsAPIThread;
+    oWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
     # Detect VERIFIER STOP messages, create a cBugReport and report them before stopping cdb.
     if len(asDebugOutput) == 0:
       return;
@@ -170,7 +169,7 @@ class cVerifierStopDetector(object):
           "heap (handle 0x%X)" % (uVerifierStopHeapHandle, sBlockSizeDescription, uVerifierStopHeapBlockHandle);
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
-      if oSelf.oCdbWrapper.bGenerateReportHTML and oPageHeapManagerData:
+      if oCdbWrapper.bGenerateReportHTML and oPageHeapManagerData:
         # Theoretically we could use the virtual allocation data in page heap manager data is missing, but that's a lot
         # of work for a situation that should happen very little.
         uMemoryDumpStartAddress = oPageHeapManagerData.uMemoryDumpStartAddress;
@@ -246,7 +245,7 @@ class cVerifierStopDetector(object):
         else:
           sSecurityImpact = "Potentially exploitable security issue, if the corruption is attacker controlled.";
       sBugTypeId = sBugAccessTypeId +  sBlockSizeId + sCorruptionId;
-      if uExpectedCorruptionStartAddress and oSelf.oCdbWrapper.bGenerateReportHTML:
+      if uExpectedCorruptionStartAddress and oCdbWrapper.bGenerateReportHTML:
         # Expand memory dump size to include all corrupted memory if needed
         if uExpectedCorruptionStartAddress < uMemoryDumpStartAddress:
           uMemoryDumpStartAddress = uExpectedCorruptionStartAddress;
@@ -261,7 +260,7 @@ class cVerifierStopDetector(object):
         );
     
     oBugReport = cBugReport.foCreate(oProcess, oWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact);
-    if oSelf.oCdbWrapper.bGenerateReportHTML:
+    if oCdbWrapper.bGenerateReportHTML:
       if uMemoryDumpStartAddress:
         oBugReport.fAddMemoryDump(
           uMemoryDumpStartAddress,
@@ -274,11 +273,11 @@ class cVerifierStopDetector(object):
         "sName": "VERIFIER STOP message",
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
-          oSelf.oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asDebugOutput
+          oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asDebugOutput
         ])
       };
       oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
     
     oBugReport.bRegistersRelevant = False;
-    oBugReport.fReport(oSelf.oCdbWrapper);
-    oSelf.oCdbWrapper.fStop();
+    oBugReport.fReport(oCdbWrapper);
+    oCdbWrapper.fStop();

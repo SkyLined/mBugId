@@ -1,7 +1,7 @@
 import time;
 from .cTimeout import cTimeout;
 
-def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeoutInSeconds, fCallback, *axCallbackArguments):
+def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeoutInSeconds, f0Callback = None, txCallbackArguments = []):
   assert nTimeoutInSeconds >= 0, "Negative timeout time does not make sense";
   oCdbWrapper.oApplicationTimeLock.fAcquire();
   try:
@@ -11,6 +11,6 @@ def cCdbWrapper_foSetTimeout(oCdbWrapper, sDescription, nTimeoutInSeconds, fCall
       nFireAtOrAfterApplicationRunTimeInSeconds += time.clock() - oCdbWrapper.nApplicationResumeTimeInSeconds;
   finally:
     oCdbWrapper.oApplicationTimeLock.fRelease();
-  oTimeout = cTimeout(sDescription, nFireAtOrAfterApplicationRunTimeInSeconds, fCallback, axCallbackArguments);
+  oTimeout = cTimeout(sDescription, nFireAtOrAfterApplicationRunTimeInSeconds, f0Callback, txCallbackArguments);
   oCdbWrapper.aoTimeouts.append(oTimeout);
   return oTimeout;

@@ -8,7 +8,7 @@ def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uPro
   if not oVirtualAllocation.bExecutable:
     return None; # The memory at the given address is not allocated and/or executable.
   # Select the right process.
-  oCdbWrapper.fSelectProcess(uProcessId);
+  oCdbWrapper.fSelectProcessId(uProcessId);
   # Put breakpoint only on relevant thread if provided.
   if uThreadId is not None:
     sCommand = ".if (@$tid != 0x%X) {gh;}%s;" % (uThreadId, sCommand is not None and " .else {%s};" % sCommand or "");
@@ -34,7 +34,7 @@ def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uPro
     and asBreakpointResult[3] == 'to track module load/unload state you must use BU.'
     and re.match(r'^bp%d at .* failed$' % uBreakpointId, asBreakpointResult[4])
   ):
-    oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+    oCdbWrapper.fbFireCallbacks("Log message", "Cannot add breakpoint", {
       "Breakpoint id": "%d" % uBreakpointId,
       "Address": "0x%X" % uAddress,
       "Process id": "%d/0x%X" % (uProcessId, uProcessId),
@@ -43,7 +43,7 @@ def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uPro
     return None;
   elif len(asBreakpointResult) == 1:
     if asBreakpointResult[0] == "Invalid address":
-      oCdbWrapper.fbFireEvent("Log message", "Cannot add breakpoint", {
+      oCdbWrapper.fbFireCallbacks("Log message", "Cannot add breakpoint", {
         "Breakpoint id": "%d" % uBreakpointId,
         "Address": "0x%X" % uAddress,
         "Process id": "%d/0x%X" % (uProcessId, uProcessId),
@@ -61,7 +61,7 @@ def cCdbWrapper_fuAddBreakpointForAddress(oCdbWrapper, uAddress, fCallback, uPro
   else:
     assert len(asBreakpointResult) == 0, \
         "bad breakpoint result\r\n%s" % "\r\n".join(asBreakpointResult);
-  oCdbWrapper.fbFireEvent("Log message", "Added breakpoint", {
+  oCdbWrapper.fbFireCallbacks("Log message", "Added breakpoint", {
     "Breakpoint id": "%d" % uBreakpointId,
     "Address": uAddress,
     "Process id": "%d/0x%X" % (uProcessId, uProcessId),

@@ -1,4 +1,4 @@
-def cCdbWrapper_fSelectProcessAndThread(oCdbWrapper, uProcessId = None, uThreadId = None):
+def cCdbWrapper_fSelectProcessIdAndThreadId(oCdbWrapper, uProcessId = None, uThreadId = None):
   # Both arguments are optional
   sSelectCommand = "";
   asSelected = [];

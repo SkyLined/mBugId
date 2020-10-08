@@ -5,10 +5,16 @@ from mWindowsAPI import oSystemInfo, cVirtualAllocation;
 def fbUpdateReportForStackPointer(
   oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
-  oStackVirtualAllocation = cVirtualAllocation(oProcess.uId, oThread.uStackTopAddress - 1);
-  assert oStackVirtualAllocation.uEndAddress == oThread.uStackTopAddress, \
+  u0StackTopAddress = oThread.u0StackTopAddress;
+  u0StackBottomAddress = oThread.u0StackBottomAddress;
+  if u0StackTopAddress is None or u0StackBottomAddress is None:
+    return None;
+  uStackTopAddress = u0StackTopAddress;
+  uStackBottomAddress = u0StackBottomAddress;
+  oStackVirtualAllocation = cVirtualAllocation(oProcess.uId, oThread.u0StackTopAddress - 1);
+  assert oStackVirtualAllocation.uEndAddress == uStackTopAddress, \
       "Memory for the stack should be allocated between 0x%X and 0x%X, but the allocation is from 0x%X to 0x%X" % \
-      (oThread.uStackBottomAddress, oThread.uStackTopAddress, oStackVirtualAllocationuStartAddress, oStackVirtualAllocation.uEndAddress);
+      (uStackBottomAddress, uStackTopAddress, oStackVirtualAllocationuStartAddress, oStackVirtualAllocation.uEndAddress);
   # See if the address is near the stack for the current thread:
   uOffsetFromTopOfStack = uAccessViolationAddress - oStackVirtualAllocation.uEndAddress;
   uOffsetFromBottomOfStack = oStackVirtualAllocation.uEndAddress - uAccessViolationAddress;

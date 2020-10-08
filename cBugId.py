@@ -77,10 +77,10 @@ class cBugId(object):
       uTotalMaxMemoryUse = uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
-    
-    def fSetFinishedEvent():
-      oBugId.__oRunningLock.fRelease();
-    oBugId.__oCdbWrapper.fAddEventCallback("Finished", fSetFinishedEvent);
+    # Once we're done, release the "running" lock
+    oBugId.__oCdbWrapper.fAddCallback("Finished", lambda oCdbWrapper:
+      oBugId.__oRunningLock.fRelease()
+    );
     
   def fStart(oBugId):
     oBugId.__bStarted = True;
@@ -104,10 +104,13 @@ class cBugId(object):
   def fCheckForExcessiveCPUUsage(oBugId, fCallback):
     return oBugId.__oCdbWrapper.fCheckForExcessiveCPUUsage(lambda bExcessiveCPUUsageDetected: fCallback(oBugId, bExcessiveCPUUsageDetected));
   
-  def foSetTimeout(oBugId, sDescription, nTimeoutInSeconds, fCallback, *axTimeoutCallbackArguments):
-    # The first argument of any callback on cBugId is the oBugId instance; add it:
-    axTimeoutCallbackArguments = [oBugId] + list(axTimeoutCallbackArguments);
-    return oBugId.__oCdbWrapper.foSetTimeout(sDescription, nTimeoutInSeconds, fCallback, *axTimeoutCallbackArguments);
+  def foSetTimeout(oBugId, sDescription, nTimeoutInSeconds, f0Callback, *txCallbackArguments):
+    return oBugId.__oCdbWrapper.foSetTimeout(
+      sDescription,
+      nTimeoutInSeconds,
+      lambda oCdbWrapper, *txArguments: f0Callback(oBugId, *txArguments) # replace oCdbWrapper with oBugId
+          if f0Callback else None,
+    );
   
   def fClearTimeout(oBugId, oTimeout):
     oBugId.__oCdbWrapper.fClearTimeout(oTimeout);
@@ -118,16 +121,16 @@ class cBugId(object):
     return oBugId.__oCdbWrapper.nApplicationRunTimeInSeconds;
   
   def fAttachForProcessExecutableNames(oBugId, *asBinaryNames):
-    return oBugId.__oCdbWrapper.fAttachForProcessExecutableNames(*asBinaryNames);
+    return oBugId.__oCdbWrapper.fQueueAttachForProcessExecutableNames(*asBinaryNames);
   
   def fbFinished(oBugId):
     assert oBugId.__bStarted is True, \
         "You must call cBugId.fStart() before calling cBugId.fbFinished()";
     return oBugId.__oFinishedEvent.isSet();
   
-  def fAddEventCallback(oBugId, sEventName, fCallback):
-    # Wrapper for cCdbWrapper.fAddEventCallback that modifies some of the arguments passed to the callback, as we do
-    # not want to expose interal objects. A lot of this should actually be done in the relevant `fbFireEvent` calls, 
+  def fAddCallback(oBugId, sEventName, fCallback):
+    # Wrapper for cCdbWrapper.fAddCallback that modifies some of the arguments passed to the callback, as we do
+    # not want to expose interal objects. A lot of this should actually be done in the relevant `fbFireCallbacks` calls, 
     # but this was not possible before.
     if sEventName in [
       "Application debug output", # (cProcess oProcess, str[] asOutput)
@@ -142,11 +145,11 @@ class cBugId(object):
       # do not want to expose. We'll retreive the associated mWindowsAPI.cProcess object and pass that as the second
       # argument to the callback instead. We'll also insert a boolean that indicates if the process is a main process.
       fOriginalCallback = fCallback;
-      fCallback = lambda oBugId, oProcess, *axArguments: fOriginalCallback(
+      fCallback = lambda oCdbWrapper, oProcess, *txArguments: fOriginalCallback(
         oBugId, 
         oProcess.oWindowsAPIProcess,
         oProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
-        *axArguments
+        *txArguments
       );
     if sEventName in [
       "Application stderr output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
@@ -157,14 +160,17 @@ class cBugId(object):
       # if the process is a main process and insert that as a boolean as the third argument:
       # to the callback instead.
       fOriginalCallback = fCallback;
-      fCallback = lambda oBugId, oConsoleProcess, *axArguments: fOriginalCallback(
+      fCallback = lambda oCdbWrapper, oConsoleProcess, *txArguments: fOriginalCallback(
         oBugId, 
         oConsoleProcess,
         oConsoleProcess.uId in oBugId.__oCdbWrapper.auMainProcessIds, # bIsMainProcess
-        *axArguments
+        *txArguments
       );
-    return oBugId.__oCdbWrapper.fAddEventCallback(
+    return oBugId.__oCdbWrapper.fAddCallback(
       sEventName,
-      lambda *axArguments: fCallback(oBugId, *axArguments),
+      lambda oCdbWrapper, *txArguments: fCallback(oBugId, *txArguments), # replace oCdbWrapper with oBugId
     );
   
+  def fSaveDumpToFile(oBugId, sFilePath, bOverwrite, bFull):
+    return oBugId.__oCdbWrapper.fSaveDumpToFile(sFilePath, bOverwrite, bFull);
+

@@ -1,12 +1,13 @@
 class cTimeout(object):
-  def __init__(oTimeout, sDescription, nFireAtOrAfterApplicationRunTimeInSeconds, fCallback, axCallbackArguments):
+  def __init__(oTimeout, sDescription, nFireAtOrAfterApplicationRunTimeInSeconds, f0Callback = None, txCallbackArguments = tuple()):
     oTimeout.sDescription = sDescription;
     oTimeout.__nFireAtOrAfterApplicationRunTimeInSeconds = nFireAtOrAfterApplicationRunTimeInSeconds;
-    oTimeout.__fCallback = fCallback;
-    oTimeout.__axCallbackArguments = axCallbackArguments;
+    oTimeout.__f0Callback = f0Callback;
+    oTimeout.__txCallbackArguments = txCallbackArguments;
   
   def fbShouldFire(oTimeout, nApplicationRunTimeInSeconds):
     return nApplicationRunTimeInSeconds >= oTimeout.__nFireAtOrAfterApplicationRunTimeInSeconds;
   
-  def fFire(oTimeout):
-    oTimeout.__fCallback(*oTimeout.__axCallbackArguments);
+  def fFire(oTimeout, oCdbWrapper):
+    if oTimeout.__f0Callback:
+      oTimeout.__f0Callback(oCdbWrapper, *oTimeout.__txCallbackArguments);

@@ -2,6 +2,7 @@ class cFunction(object):
   def __init__(oSelf, oModule, sSymbol):
     oSelf.oModule = oModule;
     oSelf.sSymbol = sSymbol;
+    oSelf.sCdbId = "%s!%s" % (oModule.sCdbId, oSelf.sSymbol);
     oSelf.sName = "%s!%s" % (oModule.sBinaryName, oSelf.sSymbol);
     # Replace complex template stuff with "<...>" to make a symbol easier to read.
     asComponents = [""];

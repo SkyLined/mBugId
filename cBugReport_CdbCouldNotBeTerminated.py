@@ -67,5 +67,5 @@ class cBugReport_CdbCouldNotBeTerminated(object):
       oBugReport.sReportHTML = None;
   
   def fReport(oBugReport, oCdbWrapper):
-    assert oCdbWrapper.fbFireEvent("Bug report", oBugReport), \
+    assert oCdbWrapper.fbFireCallbacks("Bug report", oBugReport), \
         "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";

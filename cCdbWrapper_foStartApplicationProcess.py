@@ -1,8 +1,21 @@
 from mWindowsAPI import cConsoleProcess, fsGetISAForProcessId;
 from .cHelperThread import cHelperThread;
 
+__gauProcessesThatShouldBeResumedAfterAttaching = [];
+def __gfResumeProcessAfterAttach(oCdbWrapper, oAttachedToProcess):
+  if oAttachedToProcess.uId in __gauProcessesThatShouldBeResumedAfterAttaching:
+    __gauProcessesThatShouldBeResumedAfterAttaching.remove(oAttachedToProcess.uId);
+    oCdbWrapper.fasExecuteCdbCommand(
+      sCommand = "~*m",
+      sComment = "Resume threads for process 0x%X" % (oAttachedToProcess.uId),
+    ); # TODO: check output
+    if len(__gauProcessesThatShouldBeResumedAfterAttaching) == 0:
+      # There are no processes that need to be resumed: we no longer need to
+      # handle this event.
+      oCdbWrapper.fbRemoveCallback("Process attached", __gfResumeProcessAfterAttach);
+
 def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
-  oCdbWrapper.fbFireEvent("Log message", "Starting application", {
+  oCdbWrapper.fbFireCallbacks("Log message", "Starting application", {
     "Binary path": sBinaryPath, 
     "Arguments": " ".join([
       " " in sArgument and '"%s"' % sArgument.replace('"', r'\"') or sArgument
@@ -17,7 +30,7 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
   );
   if oConsoleProcess is None:
     sMessage = "Unable to start a new process for binary \"%s\"." % sBinaryPath;
-    assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+    assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
         sMessage;
     return None;
   # a 32-bit debugger cannot debug 64-bit processes. Report this.
@@ -27,15 +40,15 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
           "Failed to terminate process %d/0x%X within 5 seconds" % \
           (oConsoleProcess.uId, oConsoleProcess.uId);
       sMessage = "Unable to debug a 64-bit process using 32-bit cdb.";
-      assert oCdbWrapper.fbFireEvent("Failed to debug application", sMessage), \
+      assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
           sMessage;
       return None;
-  oCdbWrapper.fbFireEvent("Log message", "Started process", {
+  oCdbWrapper.fbFireCallbacks("Log message", "Started process", {
     "Process id": "%d/0x%X" % (oConsoleProcess.uId, oConsoleProcess.uId),
     "Binary name": oConsoleProcess.sBinaryName,
     "Command line": oConsoleProcess.sCommandLine,
   });
-  oCdbWrapper.fbFireEvent("Process started", oConsoleProcess);
+  oCdbWrapper.fbFireCallbacks("Process started", oConsoleProcess);
 
   # Create helper threads that read the application's output to stdout and stderr. No references to these
   # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
@@ -48,6 +61,15 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
     oHelperThread = cHelperThread(oCdbWrapper, sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe);
     oHelperThread.fStart();
-  oCdbWrapper.doConsoleProcess_by_uId[oConsoleProcess.uId] = oConsoleProcess;
-  oCdbWrapper.fAttachForProcessId(oConsoleProcess.uId, bMustBeResumed = True);
+  
+  # We need cdb to attach to the process and we need to resume the process once
+  # it has attached. We'll create an event handler that detects when cdb has
+  # attached to a process to resume the process and then queue an "attach to
+  # process".
+  if len(__gauProcessesThatShouldBeResumedAfterAttaching) == 0:
+    oCdbWrapper.fAddCallback("Process attached", __gfResumeProcessAfterAttach);
+  __gauProcessesThatShouldBeResumedAfterAttaching.append(oConsoleProcess.uId);
+
+  oCdbWrapper.fQueueAttachForProcessId(oConsoleProcess.uId);
+
   return oConsoleProcess;

@@ -13,11 +13,11 @@ def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess
       sLine = oStdOutOrErrPipe.fsReadLine();
     except IOError:
       break;
-    if gbDebugIO: print "\r<app:%d/0x%X:%s<%s" % (oConsoleProcess.uId, oConsoleProcess.uId, oStdOutOrErrPipe.sDescription, sLine);
-    oCdbWrapper.fbFireEvent(sEventName, oConsoleProcess, sLine);
+    if gbDebugIO: print "\r<app:0x%X:%s<%s" % (oConsoleProcess.uId, oStdOutOrErrPipe.sDescription, sLine);
+    oCdbWrapper.fbFireCallbacks(sEventName, oConsoleProcess, sLine);
     
     if oCdbWrapper.bGenerateReportHTML:
       oCdbWrapper.sCdbIOHTML += "<span class=\"Application%s\">%s</span><br/>\n" % \
           (oStdOutOrErrPipe.sDescription, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
-  if gbDebugIO: print "\r<app:%d/0x%X:%s:EOF" % (oConsoleProcess.uId, oConsoleProcess.uId, oStdOutOrErrPipe.sDescription);
+  if gbDebugIO: print "\r<app:0x%X:%s:EOF" % (oConsoleProcess.uId, oStdOutOrErrPipe.sDescription);
   

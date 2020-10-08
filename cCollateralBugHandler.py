@@ -15,10 +15,10 @@ class cCollateralBugHandler(object):
     oSelf.__uBugCount = 0;
     oSelf.__fbIgnoreException = None;
     oSelf.uValueIndex = 0;
-    oCdbWrapper.fAddEventCallback("Process attached", oSelf.fHandleNewProcess);
-    oCdbWrapper.fAddEventCallback("Process terminated", oSelf.fHandleProcessTerminated);
+    oCdbWrapper.fAddCallback("Process attached", oSelf.fHandleNewProcess);
+    oCdbWrapper.fAddCallback("Process terminated", oSelf.fHandleProcessTerminated);
   
-  def fHandleNewProcess(oSelf, oProcess):
+  def fHandleNewProcess(oSelf, oCdbWrapper, oProcess):
     uPoisonAddress = duPoisonValue_by_sISA[oProcess.sISA];
     if uPoisonAddress >= oSystemInfo.uMinimumApplicationAddress and uPoisonAddress < oSystemInfo.uMaximumApplicationAddress:
       # A poisoned pointer can point to allocatable memory, so no need to reserve a region around it to prevent that.
@@ -57,7 +57,7 @@ class cCollateralBugHandler(object):
     # The exception was not considered a bug and the application should handle it; if a handler was set, discard it.
     oSelf.__fbIgnoreException = None;
   
-  def fHandleProcessTerminated(oSelf, oProcess):
+  def fHandleProcessTerminated(oSelf, oCdbWrapper, oProcess):
     del oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
   
   def fiGetOffsetForPoisonedAddress(oSelf, oProcess, uAddress):

@@ -30,6 +30,10 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
+  assert isinstance(sCommand, str), \
+      "sCommand must be a str, not %s" % repr(sCommand);
+  assert sComment is None or isinstance(sComment, str), \
+      "sComment must be a str, not %s" % repr(sComment);
   assert oCdbWrapper.oCdbStdInOutHelperThread.fbIsCurrentThread(), \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutHelperThread call.";
   if oCdbWrapper.bGenerateReportHTML:
@@ -59,7 +63,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
   while uTries:
-    oCdbWrapper.fbFireEvent("Cdb stdin input", sCommand);
+    oCdbWrapper.fbFireCallbacks("Cdb stdin input", sCommand);
     try:
       oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes("%s\r\n" % sCommand);
     except IOError:
@@ -67,7 +71,7 @@ def cCdbWrapper_fasExecuteCdbCommand(oCdbWrapper,
       if gbDebugIO: print "\r>stdin:EOF>";
       assert oCdbWrapper.oCdbConsoleProcess.fbWait(), \
           "Could not wait for cdb.exe to terminate";
-      oCdbWrapper.fbFireEvent("Log message", "Failed to write to cdb.exe stdin");
+      oCdbWrapper.fbFireCallbacks("Log message", "Failed to write to cdb.exe stdin");
       raise cCdbStoppedException();
     try:
       if gbDebugIO: print ">stdin>%s" % sCommand;

@@ -43,21 +43,20 @@ class cExcessiveCPUUsageDetector(object):
         oSelf.oCleanupTimeout = oCdbWrapper.foSetTimeout(
           sDescription = "Cleanup for excessive CPU Usage detector",
           nTimeoutInSeconds = 0,
-          fCallback = oSelf.fCleanup,
+          f0Callback = oSelf.fCleanup,
         );
       if nTimeoutInSeconds is not None:
         oSelf.oStartTimeout = oCdbWrapper.foSetTimeout(
           sDescription = "Start excessive CPU Usage detector",
           nTimeoutInSeconds = nTimeoutInSeconds, 
-          fCallback = oSelf.fStart,
+          f0Callback = oSelf.fStart,
         );
     finally:
       oSelf.oLock.fRelease();
   
-  def fCleanup(oSelf):
+  def fCleanup(oSelf, oCdbWrapper):
     # Remove old breakpoints; this is done in a timeout because we cannot execute any command while the application
     # is still running.
-    oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.oLock.fAcquire();
     try:
       if oSelf.oCleanupTimeout:
@@ -76,21 +75,20 @@ class cExcessiveCPUUsageDetector(object):
     finally:
       oSelf.oLock.fRelease();
   
-  def fStart(oSelf):
+  def fStart(oSelf, oCdbWrapper):
     # A timeout to execute the cleanup function was set, but there is no guarantee the timeout has been fired yet; the
     # timeout to start this function may have been fired first. By calling the cleanup function now, we make sure that
     # cleanup happens if it has not already, and cancel the cleanup timeout if it has not yet fired.
     oSelf.bStarted = True;
     oSelf.fCleanup();
     if bDebugOutput: print "@@@ Start excessive CPU usage checks...";
-    oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.fGetUsageData();
     oSelf.oLock.fAcquire();
     try:
       oSelf.oCheckUsageTimeout = oCdbWrapper.foSetTimeout(
         sDescription = "Check CPU usage for excessive CPU Usage detector",
         nTimeoutInSeconds = dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"],
-        fCallback = oSelf.fCheckUsage,
+        f0Callback = oSelf.fCheckUsage,
       );
     finally:
       oSelf.oLock.fRelease();
@@ -166,7 +164,7 @@ class cExcessiveCPUUsageDetector(object):
     # We need to gather CPU Usage data now, wait nIntervalInSeconds and get it again to see if any thread is
     # currently using a lot of CPU:
     oSelf.fGetUsageData();
-    def fExcessiveCPUUsageCheckIntervalTimeoutHandler(): # Called after the nIntervalInSeconds timeout fires.
+    def fExcessiveCPUUsageCheckIntervalTimeoutHandler(oCdbWrapper): # Called after the nIntervalInSeconds timeout fires.
       oSelf.oLock.fAcquire();
       try:
         uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTimeInSeconds, nTotalCPUUsagePercent = oSelf.fxMaxCPUUsage();
@@ -184,12 +182,11 @@ class cExcessiveCPUUsageDetector(object):
     oSelf.oCdbWrapper.foSetTimeout(
       sDescription = "Check CPU usage for excessive CPU Usage detector",
       nTimeoutInSeconds = dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"],
-      fCallback = fExcessiveCPUUsageCheckIntervalTimeoutHandler,
+      f0Callback = fExcessiveCPUUsageCheckIntervalTimeoutHandler,
     );
   
-  def fCheckUsage(oSelf):
+  def fCheckUsage(oSelf, oCdbWrapper):
     if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
-    oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.oLock.fAcquire();
     try:
       if oSelf.oCheckUsageTimeout is None:
@@ -207,7 +204,7 @@ class cExcessiveCPUUsageDetector(object):
         oSelf.oCheckUsageTimeout = oCdbWrapper.foSetTimeout(
           sDescription = "Check CPU usage for excessive CPU Usage detector",
           nTimeoutInSeconds = dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"],
-          fCallback = oSelf.fCheckUsage,
+          f0Callback = oSelf.fCheckUsage,
         );
     finally:
       oSelf.oLock.fRelease();
@@ -247,14 +244,19 @@ class cExcessiveCPUUsageDetector(object):
     # function most likely to be the cause of the excessive CPU usage.
     
     # Select the relevant process and thread
-    oCdbWrapper.fSelectProcessAndThread(uProcessId, uThreadId);
+    oCdbWrapper.fSelectProcessIdAndThreadId(uProcessId, uThreadId);
     oWormProcess = oCdbWrapper.oCdbCurrentProcess;
     oWormWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
     oSelf.uProcessId = uProcessId;
     oSelf.uThreadId = uThreadId;
     oSelf.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
-    uInstructionPointer = oWormWindowsAPIThread.fuGetRegister("*ip");
-    uStackPointer = oWormWindowsAPIThread.fuGetRegister("*sp");
+    u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
+    u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+    # Perhaps some graceful handling may be in order if this happens often but I do not expect it to
+    assert u0InstructionPointer is not None and u0StackPointer is not None, \
+        "Cannot get Instruction and/or Stack Pointer";
+    uInstructionPointer = u0InstructionPointer;
+    uStackPointer = u0StackPointer;
 # Ideally, we'de use the return address here but for some unknown reason cdb may not give a valid value at this point.
 # However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return addres will be
 # correct... sigh.
@@ -278,18 +280,23 @@ class cExcessiveCPUUsageDetector(object):
     oSelf.oWormRunTimeout = oCdbWrapper.foSetTimeout(
         sDescription = "Start worm for excessive CPU Usage detector",
         nTimeoutInSeconds = dxConfig["nExcessiveCPUUsageWormRunTimeInSeconds"],
-        fCallback = oSelf.fSetBugBreakpointAfterTimeout,
+        f0Callback = oSelf.fSetBugBreakpointAfterTimeout,
     );
   
   def fMoveWormBreakpointUpTheStack(oSelf):
     oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.oLock.fAcquire();
     try:
-      oCdbWrapper.fSelectProcessAndThread(oSelf.uProcessId, oSelf.uThreadId);
+      oCdbWrapper.fSelectProcessIdAndThreadId(oSelf.uProcessId, oSelf.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       oWormWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
-      uInstructionPointer = oWormWindowsAPIThread.fuGetRegister("*ip");
-      uStackPointer = oWormWindowsAPIThread.fuGetRegister("*sp");
+      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
+      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+      # Perhaps some graceful handling may be in order if this happens often but I do not expect it to.
+      assert u0InstructionPointer is not None and u0StackPointer is not None, \
+          "Cannot get Instruction and/or Stack Pointer";
+      uInstructionPointer = u0InstructionPointer;
+      uStackPointer = u0StackPointer;
       # This is a sanity check: the instruction pointer should point to the instruction (or after the int3 instruction
       # inserted by cdb) where the breakpoint was set.
       assert uInstructionPointer in [oSelf.uNextBreakpointAddress, oSelf.uNextBreakpointAddress + 1], \
@@ -348,12 +355,12 @@ class cExcessiveCPUUsageDetector(object):
       oSelf.oWormRunTimeout = oCdbWrapper.foSetTimeout(
         sDescription = "End worm for excessive CPU Usage detector",
         nTimeoutInSeconds = dxConfig["nExcessiveCPUUsageWormRunTimeInSeconds"],
-        fCallback = oSelf.fSetBugBreakpointAfterTimeout,
+        f0Callback = oSelf.fSetBugBreakpointAfterTimeout,
       );
     finally:
       oSelf.oLock.fRelease();
 
-  def fSetBugBreakpointAfterTimeout(oSelf):
+  def fSetBugBreakpointAfterTimeout(oSelf, oCdbWrapper):
     # Ideally, we'd check here to make sure the application has actually been using CPU for
     # dxConfig["nExcessiveCPUUsageWormRunTimeInSeconds"] seconds since the last breakpoint was hit: if there were many
     # breakpoints, this will not be the case. Doing so should improve the reliability of the result.
@@ -395,11 +402,16 @@ class cExcessiveCPUUsageDetector(object):
     oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.oLock.fAcquire();
     try:
-      oCdbWrapper.fSelectProcessAndThread(oSelf.uProcessId, oSelf.uThreadId);
+      oCdbWrapper.fSelectProcessIdAndThreadId(oSelf.uProcessId, oSelf.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       oWormWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
-      uStackPointer = oWormWindowsAPIThread.fuGetRegister("*sp");
-      uInstructionPointer = oWormWindowsAPIThread.fuGetRegister("*ip");
+      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
+      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+      # Perhaps some graceful handling may be in order if this happens often but I do not expect it to.
+      assert u0InstructionPointer is not None and u0StackPointer is not None, \
+          "Cannot get Instruction and/or Stack Pointer";
+      uInstructionPointer = u0InstructionPointer;
+      uStackPointer = u0StackPointer;
       # This is a sanity check: the instruction pointer should point to the instruction (or after the int3 instruction
       # inserted by cdb) where the breakpoint was set.
       assert uInstructionPointer in [oSelf.uNextBreakpointAddress, oSelf.uNextBreakpointAddress + 1], \
@@ -444,7 +456,7 @@ class cExcessiveCPUUsageDetector(object):
       if bDebugOutputGetUsageData:
         print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
         print "| %4s  %6s  %s" % ("tid", "time", "source line");
-      oCdbWrapper.fSelectProcess(uProcessId);
+      oCdbWrapper.fSelectProcessId(uProcessId);
       asThreadTimes = oCdbWrapper.fasExecuteCdbCommand(
         sCommand = "!runaway 7;",
         sComment = "Get CPU usage information",

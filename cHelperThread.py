@@ -59,7 +59,7 @@ class cHelperThread(object):
   
   def __fRun(oSelf):
     oSelf.__oStartedLock.fRelease();
-    oSelf.__oCdbWrapper.fbFireEvent("Log message", "helper thread started", {
+    oSelf.__oCdbWrapper.fbFireCallbacks("Log message", "helper thread started", {
       "Thread": str(oSelf),
     });
     try:
@@ -72,12 +72,12 @@ class cHelperThread(object):
         pass;
       except Exception, oException:
         cException, oException, oTraceBack = sys.exc_info();
-        if not oSelf.__oCdbWrapper.fbFireEvent("Internal exception", oException, oTraceBack):
+        if not oSelf.__oCdbWrapper.fbFireCallbacks("Internal exception", oSelf.__oThread, oException, oTraceBack):
           oSelf.__oCdbWrapper.fTerminate();
           raise;
     finally:
       oSelf.__oCdbWrapper.aoActiveHelperThreads.remove(oSelf);
-      oSelf.__oCdbWrapper.fbFireEvent("Log message", "helper thread terminated", {
+      oSelf.__oCdbWrapper.fbFireCallbacks("Log message", "helper thread terminated", {
         "Thread": str(oSelf),
       });
       if oSelf.__bVital and oSelf.__oCdbWrapper.bCdbRunning:

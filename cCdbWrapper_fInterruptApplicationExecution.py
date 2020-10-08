@@ -4,7 +4,7 @@ from mWindowsAPI import fuCreateThreadForProcessIdAndAddress;
 
 def cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper):
   if oCdbWrapper.uUtilityInterruptThreadId is not None:
-    print "Interrupt ignored: already interrupting...";
+#    print "Interrupt ignored: already interrupting...";
     return; # We already interrupted the application; there is no need to do this again.
   # Asking cdb to interrupt the application can cause it to inject a thread that triggers an int 3. Unfortunately,
   # we have no reliable way of determining if this is the case or if the application itself has triggered an int 3.
@@ -14,9 +14,9 @@ def cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper):
   # will interrupt the application and cause cdb to report it. We can easily distinguish this exception from any other
   # exception caused by the target application because it will be reported to have happened in the utility process.
   if not oCdbWrapper.bCdbRunning:
-    print "Interrupt ignored: cdb not running...";
+#    print "Interrupt ignored: cdb not running...";
     return;
   if not oCdbWrapper.bApplicationIsRunning:
-    print "Interrupt ignored: application not running...";
+#    print "Interrupt ignored: application not running...";
     return;
-  oCdbWrapper.uUtilityInterruptThreadId = fuCreateThreadForProcessIdAndAddress(oCdbWrapper.uUtilityProcessId, 0x0);
+  oCdbWrapper.uUtilityInterruptThreadId = fuCreateThreadForProcessIdAndAddress(oCdbWrapper.oUtilityProcess.uId, 0x0);

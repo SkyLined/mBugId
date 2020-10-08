@@ -9,7 +9,7 @@ def cCdbWrapper_fCdbInterruptOnTimeoutHelperThread(oCdbWrapper):
     for oTimeout in oCdbWrapper.aoTimeouts[:]:
       if oTimeout.fbShouldFire(oCdbWrapper.nApplicationRunTimeInSeconds):
         # Yes, interrupt the application so the timeouts can be fired and then stop looking through the list.
-        oCdbWrapper.fbFireEvent("Log message", "Interrupting application to fire timeout", {
+        oCdbWrapper.fbFireCallbacks("Log message", "Interrupting application to fire timeout", {
           "Timeout": oTimeout.sDescription
         });
         oCdbWrapper.fInterruptApplicationExecution();

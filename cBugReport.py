@@ -104,7 +104,7 @@ class cBugReport(object):
     oBugReport.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
   
   @classmethod
-  def foCreateForException(cBugReport, oProcess, oWindowsAPIThread, oException):
+  def fo0CreateForException(cBugReport, oProcess, oWindowsAPIThread, oException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
     if oException.uCode == STATUS_STACK_OVERFLOW:
       # In order to detect a recursion loop, we need more stack frames:
@@ -362,26 +362,7 @@ class cBugReport(object):
         oBugReport.sReportHTML = "The report was <b>NOT</b> created because there was not enough memory available to add any information.";
     oBugReport.sProcessBinaryName = oProcess.sBinaryName;
     
-    # See if a dump should be saved
-    if dxConfig["bSaveDump"]:
-      # We'd like a dump file name base on the BugId, but the later may contain characters that are not valid in a file name
-      sDesiredDumpFileName = "%s @ %s.dmp" % (oBugReport.sId, oBugReport.sBugLocation);
-      # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId. 
-      # Unfortunately, we cannot use Unicode as the communication channel with cdb is ASCII.
-      sDumpFileName = str(mFileSystem2.fsGetValidName(sDesiredDumpFileName, bUnicode = False));
-      if dxConfig["sDumpFilePath"]:
-        sDumpFilePath = os.path.join(dxConfig["sDumpFilePath"], sDumpFileName);
-      else:
-        sDumpFilePath = sDumpFileName;
-      asFlags = [s for s in [
-        "/o" if dxConfig["bOverwriteDump"] else None,
-        "/f" if dxConfig["bFullDump"] else "/ma",
-      ] if s];
-      oCdbWrapper.fasExecuteCdbCommand( \
-        sCommand = ".dump %s \"%s\";" % (" ".join(asFlags), sDumpFilePath),
-        sComment = "Save dump to file",
-      );
-    assert oCdbWrapper.fbFireEvent("Bug report", oBugReport), \
+    assert oCdbWrapper.fbFireCallbacks("Bug report", oBugReport), \
         "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";
   
   def fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
