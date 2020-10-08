@@ -7,6 +7,8 @@ aoBugTranslations = [
   cBugTranslation(
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
+        "ntdll.dll!_C_specific_handler",
+      ], [
         "ntdll.dll!DbgBreakPoint",
       ], [
         "ntdll.dll!KiRaiseUserExceptionDispatcher",
@@ -16,6 +18,10 @@ aoBugTranslations = [
         "ntdll.dll!RtlDispatchException",
       ], [
         "ntdll.dll!RtlpExecuteHandlerForException",
+      ], [
+        "ntdll.dll!RtlRaiseException",
+      ], [
+        "ntdll.dll!RtlUserThreadStart$filt$0",
       ],
     ],
   ),

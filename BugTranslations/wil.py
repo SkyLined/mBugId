@@ -1,12 +1,17 @@
+import re;
+
 from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # Breakpoint -> hide irrelevant frames
+  # * -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = "Breakpoint",
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
         "*!wil::details::DebugBreak",
+      ], [
+        "*!wil::details::ThrowResultExceptionInternal",
+      ], [
+        "*!wil::details::in1diag3::Throw_Hr",
       ],
     ],
   ),
@@ -42,13 +47,6 @@ aoBugTranslations = [
         "*!wil::details::in1diag3::_FailFast_Win32",
       ],
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!wil::details::in1diag3::FailFast_Win32",
-      ], [
-        "*!wil::details::in1diag3::_FailFast_Win32",
-      ],
-    ],
     sTranslatedBugTypeId = "Assert:Win32",
   ),
   # Assert -> Assert:HRESULT
@@ -58,13 +56,6 @@ aoBugTranslations = [
       [
         "*!wil::details::ReportFailure_Hr",
       ], [
-        "*!wil::details::in1diag3::FailFast_Hr",
-      ], [
-        "*!wil::details::in1diag3::_FailFast_Hr",
-      ],
-    ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
         "*!wil::details::in1diag3::FailFast_Hr",
       ], [
         "*!wil::details::in1diag3::_FailFast_Hr",
@@ -84,13 +75,6 @@ aoBugTranslations = [
         "*!wil::details::in1diag3::_FailFast_Unexpected",
       ],
     ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!wil::details::in1diag3::FailFast_Unexpected",
-      ], [
-        "*!wil::details::in1diag3::_FailFast_Unexpected",
-      ],
-    ],
     sTranslatedBugTypeId = "Assert:Unexpected",
   ),
   # Assert -> OOM
@@ -98,11 +82,6 @@ aoBugTranslations = [
     sOriginalBugTypeId = "Assert",
     asOriginalTopStackFrameSymbols = [
       "*!wil::details::in1diag3::_FailFast_NullAlloc",
-    ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!wil::details::in1diag3::FailFast_IfNullAlloc",
-      ],
     ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application was unable to allocate enough memory.",
@@ -112,11 +91,6 @@ aoBugTranslations = [
     sOriginalBugTypeId = "Assert:HRESULT",
     asOriginalTopStackFrameSymbols = [
       "*!wil::details::in1diag3::_FailFast_NullAlloc",
-    ],
-    aasAdditionalIrrelevantStackFrameSymbols = [
-      [
-        "*!wil::details::in1diag3::FailFast_IfNullAlloc",
-      ],
     ],
     sTranslatedBugTypeId = "OOM",
     sTranslatedBugDescription = "The application was unable to allocate enough memory.",

@@ -11,6 +11,8 @@ aoBugTranslations = [
         "kernelbase.dll!RaiseException",
       ], [
         "kernelbase.dll!RaiseFailFastException",
+      ], [
+        "kernelbase.dll!UnhandledExceptionFilter",
       ],
     ],
   ),

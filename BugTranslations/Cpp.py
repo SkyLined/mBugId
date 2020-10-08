@@ -3,13 +3,10 @@ from .cBugTranslation import cBugTranslation;
 from .rHeapRelatedBugIds import rHeapRelatedBugIds;
 
 aoBugTranslations = [
-  # C++ -> hide irrelevant frames
+  # * -> hide irrelevant frames
   cBugTranslation(
-    sOriginalBugTypeId = re.compile(r"C\+\+(\:.+)?"),
     aasAdditionalIrrelevantStackFrameSymbols = [
       [
-        "kernelbase.dll!RaiseException",
-      ], [
         re.compile(r".*!_?CxxThrowException"),
       ],
     ],
