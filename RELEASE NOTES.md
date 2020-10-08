@@ -1,3 +1,45 @@
+TBD
+==========
+* `cBugId` can now be used as a JIT debugger.
+
+Dumps
+-----
+* Make dump creation on-demand, rather than automatic:
+  * Do not automatically make a dump based on `dxConfig["bSaveDump"]`
+  * Add `cBugId.fSaveDumpToFile` to make a dump on demand.
+  * Depricate `dxConfig` settings `bSaveDump`, `bOverwriteDump`, `sDumpFilePath` and `bFullDump`
+
+Timeouts
+--------
+* Callbacks for timeouts added through `cCdbWrapper.foSetTimeout` now get the `cCdbWrapper` instance as an argument.
+* Timeouts do not require a callback; they will simply break into the debugger without one.
+
+General code cleanup
+--------------------
+* Use `cWithCallbacks` for event handling
+* `cCdbWrapper.fAttachForProcessExecutableNames` -> `cCdbWrapper.fQueueAttachForProcessExecutableNames` for clarity
+* `cCdbWrapper.fAttachForProcessId`-> `cCdbWrapper.fAttachCdbToProcessForId` for clarity
+* `cCdbWrapper.fSelect[Process|Thread|ProcessAndThread]` -> `ProcessId` and `ThreadId` for clarity
+* Comment out debug prints
+* Improve handling of `STATUS_STACK_BUFFER_OVERRUN` exceptions.
+* Utility process is now a copy of `cdb.exe` that is started suspended. The cdb.exe process that will debug the target will attach to it on start up, unless BugId is used as a JIT debugger.
+* Update external modules and adjust code where needed if external function names or arguments changed.
+* Add `cFunction.sCdbId` for use in `cStack` to get a function's address.
+  * Move `fnGetDebuggerTimeInSeconds` to its own file.
+
+CDB I/O handling loop
+---------------------
+* Move a lot of the code in `cCdbWrapper.fCdbStdInOutHelperThread` into separate functions to cleanup the code.
+  * Add `cCdbWrapper.fAllocateReserveMemoryIfNeeded` to simplify code that handles allocation of "reserve memory" in general.
+  * Add `cCdbWrapper.fbHandleLastCdbEvent` to simplify code that handles the events that cause cdb.exe to pause execution of the application.
+  * Add `cCdbWrapper.fHandleDebugOutputFromApplication` to handle debug output from application.
+  * Add `cCdbWrapper.fHandleExceptionInUtilityProcess` to handle exceptions in the utility process.
+  * Add `cCdbWrapper.fUpdateCdbISA` to select the cdb ISA for the current process.
+* `cCdbWrapper.foStartApplicationProcess` now registers an event handler to resume the process after cdb has attached to them.
+* `cCdbWrapper.fHandleNewApplicationProcess` -> `cCdbWrapper.fHandleAttachedToApplicationProcess` to handle cdb attaching to application processes.
+* `cCdbWrapper.fHandleNewUtilityProcess` -> `cCdbWrapper.fHandleAttachedToUtilityProcess` to handle attaching to the utility processes.
+* `cCdbWrapper.fHandleApplicationProcessTermination` -> `cCdbWrapper.fHandleCurrentApplicationProcessTermination`
+
 2019-08-20
 ==========
 This update have many internal improvements but has no functional changes other
@@ -395,7 +437,7 @@ New features
 New or changed features
 -----------------------
 + Callback functions are no longer provided as arguments to the constructor,
-  but can be registered by calling the `fAddEventCallback` of a `cBugId`
+  but can be registered by calling the `fAddCallback` of a `cBugId`
   instance. This means you can add more than one function for a specific event.
   A list of possible events you can add callbacks for can be found in 
   `cCdbWrapper.py`, specifically `cCdbWrapper.dafEventCallbacks_by_sEventName`
