@@ -97,4 +97,14 @@ aoBugTranslations = [
       ],
     ],
   ),
+  # AVE:NULL 33f.e28 @ cmd.exe!ntdll.dll!NtWow64IsProcessorFeaturePresent -> ignore
+  cBugTranslation(
+    sOriginalBugTypeId = "AVE:NULL",
+    aasOriginalTopStackFrameSymbols = [
+      [
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+      ],
+    ],
+    sTranslatedBugTypeId = None,
+  ),
 ];
