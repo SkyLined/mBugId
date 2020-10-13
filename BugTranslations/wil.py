@@ -9,9 +9,15 @@ aoBugTranslations = [
       [
         "*!wil::details::DebugBreak",
       ], [
+        "*!wil::details::in1diag3::Throw_Hr",
+      ], [
         "*!wil::details::ThrowResultExceptionInternal",
       ], [
-        "*!wil::details::in1diag3::Throw_Hr",
+        "*!wil::details::WilDynamicLoadRaiseFailFastException",
+      ], [
+        "*!wil::details::WilFailFast",
+      ], [
+        "*!wil::details::WilRaiseFailFastException",
       ],
     ],
   ),
