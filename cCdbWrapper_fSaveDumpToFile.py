@@ -3,7 +3,7 @@ def cCdbWrapper_fSaveDumpToFile(oCdbWrapper, sFilePath, bOverwrite, bFull):
       "sFilePath must be a string, not %s" % repr(sFilePath);
   asFlags = [s for s in [
     "/o" if bOverwrite else None,
-    "/f" if bFull else "/ma",
+    "/mAfFhuty" if bFull else "/miR",
   ] if s];
   oCdbWrapper.fasExecuteCdbCommand( \
     sCommand = ".dump %s \"%s\";" % (" ".join(asFlags), sFilePath),
