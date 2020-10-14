@@ -260,13 +260,10 @@ class cCdbWrapper(cWithCallbacks):
     # alreadyknow the path to the binary. We do not need to provide any arguments since the application will be
     # suspended and not do anything after initialization.
     oCdbWrapper.fbFireCallbacks("Log message", "Starting utility process...");
-    oCdbWrapper.oUtilityProcess = cConsoleProcess.foCreateForBinaryPath(
+    oCdbWrapper.oUtilityProcess = cProcess.foCreateForBinaryPath(
       sBinaryPath = sCdbBinaryPath,
       bHidden = True,
       bSuspended = True,
-      bRedirectStdIn = False,
-      bRedirectStdOut = False,
-      bRedirectStdErr = False,
     );
     oCdbWrapper.fbFireCallbacks("Log message", "Started utility process (0x%X)." % oCdbWrapper.oUtilityProcess.uId);
     if oCdbWrapper.sApplicationBinaryPath is not None:
