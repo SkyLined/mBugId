@@ -29,6 +29,27 @@ def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
     # Wait for cdb.exe to terminate
     oCdbWrapper.oCdbConsoleProcess.fbWait();
     oCdbWrapper.fbFireCallbacks("Log message", "cdb.exe terminated");
+  
+  # Make sure all application processes we started are terminated:
+  for oApplicationProcess in oCdbWrapper.aoApplicationProcesses:
+    oCdbWrapper.fbFireCallbacks("Log message", "Terminating application process %s..." % oApplicationProcess);
+    try:
+      oApplicationProcess.fTerminate();
+    except Exception as oException:
+      oCdbWrapper.fbFireCallbacks("Log message", "Application process %s could not be terminated: %s" % (oApplicationProcess, oException));
+    else:
+      oCdbWrapper.fbFireCallbacks("Log message", "Application process %s terminated." % oApplicationProcess);
+  
+  # Make sure all application processes' pipes are closed:
+  for oPipe in oCdbWrapper.aoApplicationStdOutAndStdErrPipes:
+    oCdbWrapper.fbFireCallbacks("Log message", "Closing application pipe %s..." % oPipe);
+    try:
+      oPipe.fClose();
+    except Exception as oException:
+      oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s could not be closed: %s" % (oPipe, oException));
+    else:
+      oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s closed." % oPipe);
+  
   # Wait for all other threads to terminate
   while len(oCdbWrapper.aoActiveHelperThreads) > 1:
     for oHelperThread in oCdbWrapper.aoActiveHelperThreads:

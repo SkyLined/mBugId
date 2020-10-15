@@ -33,6 +33,7 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
         sMessage;
     return None;
+  oCdbWrapper.aoApplicationProcesses.append(oConsoleProcess);
   # a 32-bit debugger cannot debug 64-bit processes. Report this.
   if oCdbWrapper.sCdbISA == "x86":
     if fsGetISAForProcessId(oConsoleProcess.uId) == "x64":
@@ -58,8 +59,9 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     "stdout": oConsoleProcess.oStdOutPipe,
     "stderr": oConsoleProcess.oStdErrPipe,
   }.items():
+    oCdbWrapper.aoApplicationStdOutAndStdErrPipes.append(oPipe);
     sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
-    oHelperThread = cHelperThread(oCdbWrapper, sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe);
+    oHelperThread = cHelperThread(oCdbWrapper, sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe, sPipeName);
     oHelperThread.fStart();
   
   # We need cdb to attach to the process and we need to resume the process once

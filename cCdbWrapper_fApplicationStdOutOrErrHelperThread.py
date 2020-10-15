@@ -2,22 +2,20 @@ from .dxConfig import dxConfig;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
-def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess, oStdOutOrErrPipe):
+def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess, oPipe, sPipeName):
+  # sPipeName should be stdout or stderr
   uProcessId = oConsoleProcess.uId;
-  sEventName = {
-    "StdOut": "Application stdout output",
-    "StdErr": "Application stderr output",
-  }[oStdOutOrErrPipe.sDescription];
   while 1:
     try:
-      sLine = oStdOutOrErrPipe.fsReadLine();
+      sLine = oPipe.fsReadLine();
     except IOError:
       break;
-    if gbDebugIO: print "\r<app:0x%X:%s<%s" % (oConsoleProcess.uId, oStdOutOrErrPipe.sDescription, sLine);
-    oCdbWrapper.fbFireCallbacks(sEventName, oConsoleProcess, sLine);
-    
+    if gbDebugIO: print "\r<app:0x%X:%s<%s" % (oConsoleProcess.uId, sPipeName, sLine);
+    oCdbWrapper.fbFireCallbacks("Application %s output" % sPipeName, oConsoleProcess, sLine);
     if oCdbWrapper.bGenerateReportHTML:
-      oCdbWrapper.sCdbIOHTML += "<span class=\"Application%s\">%s</span><br/>\n" % \
-          (oStdOutOrErrPipe.sDescription, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
-  if gbDebugIO: print "\r<app:0x%X:%s:EOF" % (oConsoleProcess.uId, oStdOutOrErrPipe.sDescription);
+      sClassName = "Application%s" % {"stdout": "StdOut", "stderr": "StdErr"}[sPipeName];
+      oCdbWrapper.sCdbIOHTML += "<span class=\"%s\">%s</span><br/>\n" % \
+          (sClassName, oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
+  if gbDebugIO: print "\r<app:0x%X:%s:EOF" % (oConsoleProcess.uId, sPipeName);
+  oCdbWrapper.aoApplicationStdOutAndStdErrPipes.remove(oPipe);
   

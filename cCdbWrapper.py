@@ -99,6 +99,11 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.u0JITDebuggerEventId = u0JITDebuggerEventId;
     oCdbWrapper.oUWPApplication = oUWPApplication;
     oCdbWrapper.bApplicationStarted = False;
+    # Keep track of all application processes we start and their stdout/stderr pipes
+    # so we can make sure they are all terminated and closed respectively when cBugId
+    # is terminated.
+    oCdbWrapper.aoApplicationProcesses = [];
+    oCdbWrapper.aoApplicationStdOutAndStdErrPipes = [];
     oCdbWrapper.bUWPApplicationStarted = False;
     oCdbWrapper.bStopping = False;
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
