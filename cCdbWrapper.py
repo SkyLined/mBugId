@@ -6,7 +6,6 @@ from .cCdbWrapper_fApplicationStdOutOrErrHelperThread import cCdbWrapper_fApplic
 from .cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
 from .cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
 from .cCdbWrapper_fAttachCdbToProcessForId import cCdbWrapper_fAttachCdbToProcessForId;
-from .cCdbWrapper_fbHandleLastCdbEvent import cCdbWrapper_fbHandleLastCdbEvent;
 from .cCdbWrapper_fCdbInterruptOnTimeoutHelperThread import cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
 from .cCdbWrapper_fCdbStdErrHelperThread import cCdbWrapper_fCdbStdErrHelperThread;
 from .cCdbWrapper_fCdbStdInOutHelperThread import cCdbWrapper_fCdbStdInOutHelperThread;
@@ -29,6 +28,7 @@ from .cCdbWrapper_fSaveDumpToFile import cCdbWrapper_fSaveDumpToFile;
 from .cCdbWrapper_fSelectProcessIdAndThreadId import cCdbWrapper_fSelectProcessIdAndThreadId;
 from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from .cCdbWrapper_fStartUWPApplication import cCdbWrapper_fStartUWPApplication;
+from .cCdbWrapper_ftbHandleLastCdbEvent import cCdbWrapper_ftbHandleLastCdbEvent;
 from .cCdbWrapper_fTerminateUWPApplication import cCdbWrapper_fTerminateUWPApplication;
 from .cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointForAddress;
 from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
@@ -402,7 +402,6 @@ class cCdbWrapper(cWithCallbacks):
   fApplicationStdOutOrErrHelperThread = cCdbWrapper_fApplicationStdOutOrErrHelperThread;
   fasExecuteCdbCommand = cCdbWrapper_fasExecuteCdbCommand;
   fAttachCdbToProcessForId = cCdbWrapper_fAttachCdbToProcessForId;
-  fbHandleLastCdbEvent = cCdbWrapper_fbHandleLastCdbEvent;
   fCdbInterruptOnTimeoutHelperThread = cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
   fCdbStdInOutHelperThread = cCdbWrapper_fCdbStdInOutHelperThread;
   fCdbStdErrHelperThread = cCdbWrapper_fCdbStdErrHelperThread;
@@ -423,6 +422,7 @@ class cCdbWrapper(cWithCallbacks):
   fSaveDumpToFile = cCdbWrapper_fSaveDumpToFile;
   fsHTMLEncode = cCdbWrapper_fsHTMLEncode;
   fStartUWPApplication = cCdbWrapper_fStartUWPApplication;
+  ftbHandleLastCdbEvent = cCdbWrapper_ftbHandleLastCdbEvent;
   fTerminateUWPApplication = cCdbWrapper_fTerminateUWPApplication;
   fuAddBreakpointForAddress = cCdbWrapper_fuAddBreakpointForAddress;
   fuGetValueForRegister = cCdbWrapper_fuGetValueForRegister;

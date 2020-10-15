@@ -45,8 +45,12 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
   while 1:
     uMainLoopCounter += 1;
     oCdbWrapper.fbFireCallbacks("Log message", "Main loop #%d" % uMainLoopCounter);
-    if not oCdbWrapper.fbHandleLastCdbEvent(asOutputWhileRunningApplication):
+    (bEventIsFatal, bEventHasBeenHandled) = oCdbWrapper.ftbHandleLastCdbEvent(asOutputWhileRunningApplication);
+    if bEventIsFatal: # This indicates we need to stop.
       break;
+    # (Re-)allocate reserve memory
+    oCdbWrapper.fAllocateReserveMemoryIfNeeded();
+    # bEventHasBeenHandled indicates the application should handle the event, not us.
     for (uProcessId, oProcess) in oCdbWrapper.doProcess_by_uId.items():
       if oProcess.bTerminated:
         del oCdbWrapper.doProcess_by_uId[uProcessId];
@@ -101,16 +105,12 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     ### Resume application ###########################################################################################
     if oCdbWrapper.bStopping: break; # Unless we have been requested to stop.
     asOutputWhileRunningApplication = oCdbWrapper.fasExecuteCdbCommand(
-      sCommand = "g%s;" % (bHideLastExceptionFromApplication and "h" or "n"),
+      sCommand = "g%s;" % (bEventHasBeenHandled and "h" or "n"), # If the event has not been handled, pass it to the application.
       sComment = "Running application",
       bOutputIsInformative = True,
       bApplicationWillBeRun = True, # This command will cause the application to run.
       bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
     );
-    # We will assume this exception will be handled by BugId and set bHideLastExceptionFromApplication to True to
-    # hide it from the application. If the application should see and handle this exception, we will set
-    # bHideLastExceptionFromApplication to False later
-    bHideLastExceptionFromApplication = True;
     ### The debugger suspended the application #######################################################################
     # Send a nop command to cdb in case the application being debugged is reading stdin as well: in that case it may
     # eat the first char we try to send to cdb, which would otherwise cause a problem when cdb see only the part of

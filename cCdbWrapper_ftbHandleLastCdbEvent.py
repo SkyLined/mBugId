@@ -7,7 +7,11 @@ from .cException import cException;
 from .cProcess import cProcess;
 from .fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 
-def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplication):
+# Return (bEventIsFatal, bEventHasBeenHandled)
+HIDE_EVENT_FROM_APPLICATION = (False, True);
+REPORT_EVENT_TO_APPLICATION = (False, False);
+STOP_DEBUGGING = (True, False);
+def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplication):
   ### Get information about the last event that caused cdb to pause execution ########################################
   # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
   # appears to be caused by an error while executing the command (without an error message) as subsequent commands
@@ -79,7 +83,7 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
     oCdbWrapper.oApplicationTimeLock.fRelease();
   
   if sIgnoredUnloadModule:              # Unload module event: we never requested this; ignore.
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   
   ### Parse information about the process and thread or get it if not provided #######################################
   # If the event provides a process and thread id, use those. Otherwise ask cdb about the current process and thread.
@@ -113,16 +117,16 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
   if not s0ProcessIdHex:                # Application debug output events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Application debug output");
     oCdbWrapper.fHandleDebugOutputFromApplication(asOutputWhileRunningApplication);
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   if s0BreakpointId is not None:        # Application hit a breakpoint events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Breakpoint hit");
     oCdbWrapper.fHandleBreakpoint(long(s0BreakpointId));
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   if s0CreateExitProcess == "Create":   # Create process events: already handled.
     oCdbWrapper.fbFireCallbacks("Application suspended", "New process created");
     assert s0CreateExitProcessIdHex == s0ProcessIdHex, \
       "s0CreateExitProcessIdHex (%s) is expected to be s0ProcessIdHex (%s)" % (s0CreateExitProcessIdHex, s0ProcessIdHex);
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   if s0CreateExitProcess == "Exit":     # Exit process events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Process terminated");
     assert s0CreateExitProcessIdHex == s0ProcessIdHex, \
@@ -130,7 +134,7 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
     assert uProcessId != oCdbWrapper.oUtilityProcess.uId, \
         "The utility process has terminated unexpectedly!";
     oCdbWrapper.fHandleCurrentApplicationProcessTermination();
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   
   ### Handle exceptions ##############################################################################################
   uExceptionCode = long(s0ExceptionCode, 16);
@@ -141,13 +145,13 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
   if uExceptionCode == DBG_CONTROL_C:  # User pressed CTRL+C event: terminate.
     oCdbWrapper.fbFireCallbacks("Application suspended", "User pressed CTRL+C");
     oCdbWrapper.fbFireCallbacks("Log message", "User pressed CTRL+C");
-    return False;
+    return HIDE_EVENT_FROM_APPLICATION;
   # Handle exceptions in utility process.
   if uProcessId == oCdbWrapper.oUtilityProcess.uId: # Exception in utility process: handle.
     if uExceptionCode != STATUS_BREAKPOINT or not bAttachedToProcess:
       # This is not a breakpoint triggered because we attached to the utilityprocess.
       oCdbWrapper.fHandleExceptionInUtilityProcess(uExceptionCode, sRelatedErrorDefineName);
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   
   bApplicationCannotHandleException = sChance == "second";
   oException = cException.foCreate(
@@ -158,7 +162,7 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
   );
   if uExceptionCode == STATUS_BREAKPOINT and oException.uAddress in oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId.get(uProcessId, []):
     # cdb appears to trigger int3s after the breakpoints have been removed, which we ignore.
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   if (
     uExceptionCode == STATUS_BREAKPOINT
     and not bApplicationCannotHandleException
@@ -169,7 +173,7 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
     # what I understand, using "sxi ibp" should do the trick but it does not appear to have any effect. I'll try to
     # detect these exceptions from the function in which they are triggered; there is a chance of false positives,
     # but I have not seen any. If we detect one, we ignore it:
-    return True;
+    return HIDE_EVENT_FROM_APPLICATION;
   
   ### Analyze potential bugs #########################################################################################
   # Free reserve memory before exception analysis
@@ -187,12 +191,13 @@ def cCdbWrapper_fbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicatio
     # exception handler. This exception handler must be removed, as it would otherwise lead to an internal exception
     # if the code later tries to set another exception handler.
     oCdbWrapper.oCollateralBugHandler.fDiscardIgnoreExceptionFunction();
-  else:
-    ### Report bug and see if the collateral bug handler can ignore it #################################################
-    o0BugReport.fReport(oCdbWrapper);
-    # If we cannot ignore this bug, stop execution:
-    if not oCdbWrapper.oCollateralBugHandler.fbTryToIgnoreException():
-      return False;
-  # Execution should continue, so re-allocate reserve memory
-  oCdbWrapper.fAllocateReserveMemoryIfNeeded();
-  return True;
+    return REPORT_EVENT_TO_APPLICATION;
+
+  ### Report bug and see if the collateral bug handler can ignore it #################################################
+  o0BugReport.fReport(oCdbWrapper);
+  # If we cannot ignore this bug, stop execution:
+  if not oCdbWrapper.oCollateralBugHandler.fbTryToIgnoreException():
+    return STOP_DEBUGGING;
+  # Collateral bug handler has handled this event; hide it from the application.
+  return HIDE_EVENT_FROM_APPLICATION;
+
