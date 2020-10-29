@@ -80,7 +80,7 @@ class cExcessiveCPUUsageDetector(object):
     # timeout to start this function may have been fired first. By calling the cleanup function now, we make sure that
     # cleanup happens if it has not already, and cancel the cleanup timeout if it has not yet fired.
     oSelf.bStarted = True;
-    oSelf.fCleanup();
+    oSelf.fCleanup(oCdbWrapper);
     if bDebugOutput: print "@@@ Start excessive CPU usage checks...";
     oSelf.fGetUsageData();
     oSelf.oLock.fAcquire();
