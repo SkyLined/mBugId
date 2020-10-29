@@ -1,6 +1,7 @@
 from .ASan import aoBugTranslations as aoBugTranslations_ASan;
 from .chakra_dll import aoBugTranslations as aoBugTranslations_chakra_dll;
 from .Chrome import aoBugTranslations as aoBugTranslations_Chrome;
+from .clr_dll import aoBugTranslations as aoBugTranslations_clr_dll;
 from .combase_dll import aoBugTranslations as aoBugTranslations_combase_dll;
 from .conhost_exe import aoBugTranslations as aoBugTranslations_conhost_exe;
 from .corpol_dll import aoBugTranslations as aoBugTranslations_corpol_dll;
@@ -26,6 +27,7 @@ for aoBugTranslations_X in [
   aoBugTranslations_ASan,
   aoBugTranslations_chakra_dll,
   aoBugTranslations_Chrome,
+  aoBugTranslations_clr_dll,
   aoBugTranslations_combase_dll,
   aoBugTranslations_conhost_exe,
   aoBugTranslations_corpol_dll,
