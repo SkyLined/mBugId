@@ -95,7 +95,9 @@ class cException(object):
           else:
             oException.uCode = uValue;
           if sCodeDescription:
-            assert sDetails is None or sDetails == sCodeDescription, \
+            # Normally the "details" matches the code description but sometimes it is followed by some
+            # additional information, e.g. "In-page I/O error" v.s. "In-page I/O error <hex code>"
+            assert sDetails is None or sCodeDescription.startswith(sDetails), \
                 "Exception record has an unexpected ExceptionCode description (%s vs %s)\r\n%s" % \
                 (repr(sDetails), repr(sCodeDescription), "\r\n".join(asExceptionRecord));
           else:
