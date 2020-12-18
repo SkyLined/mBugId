@@ -196,7 +196,7 @@ class cCdbWrapper(cWithCallbacks):
     # we can call time.clock(): this time would incorrectly be added to the time the application has spent running.
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
     # rely on time.clock(). Hence, both values are tracked.
-    oCdbWrapper.oApplicationTimeLock = cLock(nzDeadlockTimeoutInSeconds = 1);
+    oCdbWrapper.oApplicationTimeLock = cLock(n0DeadlockTimeoutInSeconds = 1);
     oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.clock() at the moment the application was last resumed

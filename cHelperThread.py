@@ -15,7 +15,7 @@ class cHelperThread(object):
     oSelf.__bVital = dxFlags.get("bVital", False); # Vital in this respect means kill cdb.exe if the thread terminates.
     
     oSelf.__oThread = None;
-    oSelf.__oStartedLock = cLock(nzDeadlockTimeoutInSeconds = 1);
+    oSelf.__oStartedLock = cLock(n0DeadlockTimeoutInSeconds = 1);
     
   def __str__(oSelf):
     uThreadId = oSelf.uId;
