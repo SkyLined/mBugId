@@ -1,5 +1,1 @@
-from cBugId import cBugId;
-
-__all__ = [
-  "cBugId"
-];
+from .cBugId import cBugId;
