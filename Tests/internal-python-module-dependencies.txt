@@ -28,7 +28,6 @@ socket
 ssl
 string
 strop
-struct
 subprocess
 textwrap
 thread
@@ -39,6 +38,5 @@ tokenize
 urllib
 urlparse
 uuid
-winreg
 zipfile
 zlib

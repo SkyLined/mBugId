@@ -34,7 +34,6 @@ try:
   #Import the test subject
   from cBugId import cBugId;
   from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
-  import mFileSystem2;
   from mWindowsAPI import fsGetPythonISA;
   from mWindowsSDK import *;
   
