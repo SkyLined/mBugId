@@ -1,4 +1,6 @@
 {
+  "asProductTypes": ["Python module"],
+  "sPythonModuleName": "cBugId",
   "asDependentOnProductNames": [
     "mMultiThreading", 
     "mProductDetails", 
