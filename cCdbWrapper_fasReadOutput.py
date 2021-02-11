@@ -4,7 +4,7 @@ from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarker
 from .cHelperThread import cHelperThread;
 from .dxConfig import dxConfig;
 
-import mFileSystem2;
+import cFileSystemItem;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
@@ -237,10 +237,11 @@ def cCdbWrapper_fasReadOutput(oCdbWrapper,
       if dxConfig["bDeleteCorruptSymbols"] and oCdbWrapper.bUsingSymbolServers:
         sPDBFilePath = oBadPDBFileError.groups(1);
         # Try to delete the file.
-        oPDBFile = mFileSystem2.fo0GetFile(sPDBFilePath);
-        assert oPDBFile, \
+        oPDBFile = cFileSystemItem(sPDBFilePath);
+        assert oPDBFile.fbIsFile(), \
             "Cannot find PDB file %s from error %s" % (sPDBFilePath, repr(sLine));
-        oPDBFile.fDelete();
+        assert oPDBFile.fbDelete(), \
+            "Cannot delete PDB file %s from error %s" % (sPDBFilePath, repr(sLine));
       asReturnedLines.pop(uIndex);
       continue;
     oFailedToLoadSymbolsError = re.match(r"^\*\*\* ERROR: Module load completed but symbols could not be loaded for (?:.*\\)*([^\\]+)", sLine);
