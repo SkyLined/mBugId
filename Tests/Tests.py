@@ -121,10 +121,10 @@ try:
     # This will try to debug a non-existing application and check that the error thrown matches the expected value.
     fRunASingleTest("x86",     None,                                                      [], \
         sApplicationBinaryPath = "<invalid>", \
-        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary \"<invalid>\".");
+        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary path \"<invalid>\": Win32 error 0x7B (ERROR_INVALID_NAME).");
     fRunASingleTest("x86",     None,                                                      [], \
         sApplicationBinaryPath = "does not exist", \
-        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary \"does not exist\".");
+        sExpectedFailedToDebugApplicationErrorMessage = "Unable to start a new process for binary path \"does not exist\": Win32 error 0x2 (ERROR_FILE_NOT_FOUND).");
     for sISA in asTestISAs:
       fRunASingleTest(sISA,    ["Nop"],                                                   []); # No exceptions, just a clean program exit.
       fRunASingleTest(sISA,    ["Breakpoint"],                                            ["Breakpoint ed2.531 @ <test-binary>!wmain"]);

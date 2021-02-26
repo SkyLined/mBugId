@@ -1,8 +1,10 @@
 import re;
+
+from mWindowsSDK import *;
+
 from .cStack import cStack;
 from .cStowedException import cStowedException;
-from .cWindowsStatusOrError import cWindowsStatusOrError;
-from mWindowsSDK import *;
+from .cErrorDetails import cErrorDetails;
 
 class cException(object):
   def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
@@ -129,11 +131,11 @@ class cException(object):
         "Unexpected number of parameters (%d vs %d)" % (len(oException.auParameters), uParameterCount);
     # Now get a preliminary exception id that identifies the type of exception based on the exception code, as well as
     # preliminary security impact.
-    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uCode);
-    if oWindowsStatusOrError:
-      oException.sTypeId = oWindowsStatusOrError.sTypeId;
-      oException.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
-      oException.sDescription = oWindowsStatusOrError.sDescription;
+    o0ErrorDetails = cErrorDetails.fo0GetForCode(uCode);
+    if o0ErrorDetails:
+      oException.sTypeId = o0ErrorDetails.sTypeId;
+      oException.sSecurityImpact = o0ErrorDetails.s0SecurityImpact;
+      oException.sDescription = o0ErrorDetails.sDescription;
     else:
       oException.sTypeId = "0x%08X" % uCode;
       oException.sSecurityImpact = "Unknown";

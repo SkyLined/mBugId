@@ -2,7 +2,7 @@ import os, re;
 from .cModule import cModule;
 from .cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
-from .cProcess_foGetHeapManagerDataForAddress import cProcess_foGetHeapManagerDataForAddress;
+from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
 from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
@@ -122,8 +122,8 @@ class cProcess(object):
     return oProcess.oCdbWrapper.fuGetValueForRegister(sRegister, sComment);
   def fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment):
     return cProcess_fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment);
-  def foGetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
-    return cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType);
+  def fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
+    return cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType);
 
   # Proxy properties and methods to oWindowsAPIProcess
   @property
@@ -146,22 +146,22 @@ class cProcess(object):
     return oProcess.oWindowsAPIProcess.uIntegrityLevel;
   def foGetVirtualAllocationForAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.foGetVirtualAllocationForAddress(uAddress);  
-  def fsReadStringForAddressAndSize(oSelf, uAddress, uSize, bUnicode = False):
-    return oSelf.oWindowsAPIProcess.fsReadStringForAddressAndSize(uAddress, uSize, bUnicode);  
-  def fsReadNullTerminatedStringForAddress(oSelf, uAddress, bUnicode = False):
-    return oSelf.oWindowsAPIProcess.fsReadNullTerminatedStringForAddress(uAddress, bUnicode);  
-  def fauReadBytesForAddressAndSize(oSelf, uAddress, uSize):
-    return oSelf.oWindowsAPIProcess.fauReadBytesForAddressAndSize(uAddress, uSize);  
-  def fuReadValueForAddressAndSize(oSelf, uAddress, uSize):
-    return oSelf.oWindowsAPIProcess.fuReadValueForAddressAndSize(uAddress, uSize);  
-  def fauReadValuesForAddressSizeAndCount(oSelf, uAddress, uSize, uCount):
-    return oSelf.oWindowsAPIProcess.fauReadValuesForAddressSizeAndCount(uAddress, uSize, uCount);  
-  def fuReadPointerForAddress(oSelf, uAddress):
-    return oSelf.oWindowsAPIProcess.fuReadPointerForAddress(uAddress);  
-  def fauReadPointersForAddressAndCount(oSelf, uAddress, uCount):
-    return oSelf.oWindowsAPIProcess.fauReadPointersForAddressAndCount(uAddress, uCount);  
-  def foReadStructureForAddress(oSelf, cStructure, uAddress):
-    return oSelf.oWindowsAPIProcess.foReadStructureForAddress(cStructure, uAddress);  
+  def fs0ReadStringForAddressAndLength(oSelf, uAddress, uSize, bUnicode = False):
+    return oSelf.oWindowsAPIProcess.fs0ReadStringForAddressAndLength(uAddress, uSize, bUnicode);  
+  def fs0ReadNullTerminatedStringForAddress(oSelf, uAddress, bUnicode = False):
+    return oSelf.oWindowsAPIProcess.fs0ReadNullTerminatedStringForAddress(uAddress, bUnicode);  
+  def fa0uReadBytesForAddressAndSize(oSelf, uAddress, uSize):
+    return oSelf.oWindowsAPIProcess.fa0uReadBytesForAddressAndSize(uAddress, uSize);  
+  def fu0ReadValueForAddressAndSize(oSelf, uAddress, uSize):
+    return oSelf.oWindowsAPIProcess.fu0ReadValueForAddressAndSize(uAddress, uSize);  
+  def fa0uReadValuesForAddressSizeAndCount(oSelf, uAddress, uSize, uCount):
+    return oSelf.oWindowsAPIProcess.fa0uReadValuesForAddressSizeAndCount(uAddress, uSize, uCount);  
+  def fu0ReadPointerForAddress(oSelf, uAddress):
+    return oSelf.oWindowsAPIProcess.fu0ReadPointerForAddress(uAddress);  
+  def fa0uReadPointersForAddressAndCount(oSelf, uAddress, uCount):
+    return oSelf.oWindowsAPIProcess.fa0uReadPointersForAddressAndCount(uAddress, uCount);  
+  def fo0ReadStructureForAddress(oSelf, cStructure, uAddress):
+    return oSelf.oWindowsAPIProcess.fo0ReadStructureForAddress(cStructure, uAddress);  
   def fWriteBytesForAddress(oSelf, sData, uAddress):
     return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress, bUnicode);
   def fWriteStringForAddress(oSelf, sData, uAddress, bUnicode = False):

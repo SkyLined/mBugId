@@ -2,7 +2,7 @@ import re;
 from mWindowsAPI import *;
 from .cPageHeapManagerData import cPageHeapManagerData;
 
-def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
+def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
   sType = sType or "unknown";
   asCdbHeapOutput = oProcess.fasExecuteCdbCommand(
     sCommand = "!heap -p -a 0x%X;" % uAddress,
@@ -79,7 +79,7 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
     oProcess.fEnsurePageHeapIsEnabled();
     # Try to manually figure things out.
     try:
-      return cPageHeapManagerData.foGetForProcessAndAddress(oProcess, uAddress);
+      return cPageHeapManagerData.fo0GetForProcessAndAddress(oProcess, uAddress);
     except AssertionError:
       # That didn't work; we have no information about a heap block at this address.
       return None;
@@ -193,11 +193,13 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
     uVirtualAllocationSize = long(sVirtualAllocationSize.replace("`", ""), 16);
     uHeapBlockStartAddress = sHeapBlockStartAddress and long(sHeapBlockStartAddress.replace("`", ""), 16);
     uHeapBlockSize = sHeapBlockSize and long(sHeapBlockSize.replace("`", ""), 16);
-    #oHeapManagerData = cPageHeapManagerData.foGetForProcessAndAddress(oProcess, uAllocationStartAddress);
-    oHeapManagerData = cPageHeapManagerData.foGetForProcessAndAllocationInformationStartAddress(
+    o0HeapManagerData = cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress(
       oProcess,
       uAllocationInformationStartAddress,
     );
+    if not o0HeapManagerData:
+      return None;
+    oHeapManagerData = o0HeapManagerData;
     oHeapManagerData.uHeapRootAddress = uHeapRootAddress;
     assert bAllocated == oHeapManagerData.bAllocated, \
         "cdb says block is %s, but page heap allocation information says %s" % \
@@ -217,11 +219,11 @@ def cProcess_foGetHeapManagerDataForAddress(oProcess, uAddress, sType):
     assert uAllocationInformationStartAddress == oHeapManagerData.uAllocationInformationStartAddress, \
         "Page heap allocation header points to different information (@ 0x%X) than reported by cdb (@ 0x%X)" % \
         (oHeapManagerData.uAllocationInformationStartAddress, uAllocationInformationStartAddress);
-    if uHeapBlockStartAddress is not None:
-      assert uHeapBlockStartAddress == oHeapManagerData.uHeapBlockStartAddress, \
-          "Page heap block start address (@ 0x%X) is different than reported by cdb (@ 0x%X)" % \
-          (oHeapManagerData.uHeapBlockStartAddress, uHeapBlockStartAddress);
-      assert uHeapBlockSize == oHeapManagerData.uHeapBlockSize, \
-          "Page heap block size (0x%X) is different than reported by cdb (@ 0x%X)" % \
-          (oHeapManagerData.uHeapBlockSize, uHeapBlockSize);
+  if uHeapBlockStartAddress is not None:
+    assert uHeapBlockStartAddress == oHeapManagerData.uHeapBlockStartAddress, \
+        "Page heap block start address (@ 0x%X) is different than reported by cdb (@ 0x%X)" % \
+        (oHeapManagerData.uHeapBlockStartAddress, uHeapBlockStartAddress);
+    assert uHeapBlockSize == oHeapManagerData.uHeapBlockSize, \
+        "Page heap block size (0x%X) is different than reported by cdb (@ 0x%X)" % \
+        (oHeapManagerData.uHeapBlockSize, uHeapBlockSize);
   return oHeapManagerData;

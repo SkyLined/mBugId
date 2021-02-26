@@ -1,5 +1,5 @@
 
-from mWindowsSDK.mWindowsDefines import \
+from mWindowsSDK import \
     FAST_FAIL_LEGACY_GS_VIOLATION, \
     FAST_FAIL_VTGUARD_CHECK_FAILURE, \
     FAST_FAIL_STACK_COOKIE_CHECK_FAILURE, \

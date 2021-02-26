@@ -7,9 +7,9 @@ def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, 
   assert len(oException.auParameters) == 2, \
       "Unexpected number of WinRT language exception parameters (%d vs 2)" % len(oException.auParameters);
   # Get the stowed exceptions and replace information in the bug report:
-  aoStowedExceptions = cStowedException.faoCreate(oProcess,
-    uauStowedExceptionInformationAddressesAddress = oException.auParameters[0],
-    uStowedExceptionInformationAddressesCount = oException.auParameters[1],
+  aoStowedExceptions = cStowedException.faoCreateForListAddressAndCount(oProcess,
+    oException.auParameters[0],
+    oException.auParameters[1],
   );
   oBugReport.sBugTypeId = "Stowed[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
   oBugReport.sBugDescription = ", ".join([oStowedException.sDescription for oStowedException in aoStowedExceptions]);

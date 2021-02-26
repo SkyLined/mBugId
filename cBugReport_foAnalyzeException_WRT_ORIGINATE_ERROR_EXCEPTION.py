@@ -16,14 +16,14 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oPro
   # We could assert if it's incorrect, but I don't see much use in that other than to prevent the target from
   # crashing us.
   if oException.bApplicationCannotHandleException:
-    sMessage = oProcess.fsReadNullTerminatedStringForAddress(
+    s0Message = oProcess.fs0ReadNullTerminatedStringForAddress(
       uAddress = uMessageAddress,
       bUnicode = True,
     );
     # Get the stowed exceptions and replace information in the bug report:
     oBugReport.sBugTypeId = "WRTOriginate[0x%X]" % hResult;
     oBugReport.sBugDescription = "A Windows Run-Time Originate error was thrown with error code %X and message %s." % \
-        (hResult, json.dumps(sMessage));
+        (hResult, json.dumps(s0Message) if s0Message else "<unknown>");
     oBugReport.sSecurityImpact = "The security impact of this type of vulnerability is unknown";
   else:
     # This is not a bug:

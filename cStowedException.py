@@ -1,44 +1,46 @@
 import re;
-#from cException import cException; # moved to end of file to prevent circular reference
-from .fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
-from .cWindowsStatusOrError import cWindowsStatusOrError;
+
 from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation;
+
+#from cException import cException; # moved to end of file to prevent circular reference
+from .fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
+from .cErrorDetails import cErrorDetails;
 
 def fsSignature(uSignature):
   return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in xrange(3,-1,-1)]);
 
 class cStowedException(object):
   def __init__(oStowedException, \
-      iCode,
-      uAddress = None,
-      pStackTrace = None, uStackTraceSize = 0,
-      sErrorText = None,
-      sNestedExceptionTypeId = None,
-      oNestedException = None,
-      sWRTLanguageExceptionIUnkownClassName = None,
-    ):
+    iCode,
+    uAddress = None,
+    pStackTrace = None, uStackTraceSize = 0,
+    s0ErrorText = None,
+    sNestedExceptionTypeId = None,
+    oNestedException = None,
+    sWRTLanguageExceptionIUnkownClassName = None,
+  ):
     oStowedException.iCode = iCode; # HRESULT, signed 32-bit integer (negative == error).
     uCode = iCode + (iCode < 0 and (1 << 32) or 0); # Convert to unsigned 32-bit integer.
     oStowedException.uAddress = uAddress;
     oStowedException.pStackTrace = pStackTrace; # dpS {pStackTrace} L{uStackTraceSize}
     oStowedException.uStackTraceSize = uStackTraceSize;
-    oStowedException.sErrorText = sErrorText;
+    oStowedException.s0ErrorText = s0ErrorText;
     oStowedException.sNestedExceptionTypeId = sNestedExceptionTypeId;
     oStowedException.oNestedException = oNestedException;
     oStowedException.sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName;
     # Create an exception id that uniquely identifies the exception and a description of the exception.
-    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uCode);
-    if oWindowsStatusOrError:
-      oStowedException.sTypeId = oWindowsStatusOrError.sTypeId;
-      oStowedException.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
-      oStowedException.sDescription = oWindowsStatusOrError.sDescription;
+    o0ErrorDetails = cErrorDetails.fo0GetForCode(uCode);
+    if o0ErrorDetails:
+      oStowedException.sTypeId = o0ErrorDetails.sTypeId;
+      oStowedException.sSecurityImpact = o0ErrorDetails.s0SecurityImpact;
+      oStowedException.sDescription = o0ErrorDetails.sDescription;
     else:
       oStowedException.sTypeId = "0x%08X" % uCode;
       oStowedException.sSecurityImpact = "Unknown";
       oStowedException.sDescription = "Unknown exception code 0x%08X." % uCode;
-    if oStowedException.sErrorText:
-      oStowedException.sDescription += " Error: %s" % oStowedException.sErrorText;
+    if oStowedException.s0ErrorText:
+      oStowedException.sDescription += " Error: %s" % oStowedException.s0ErrorText;
     if sNestedExceptionTypeId:
       oStowedException.sTypeId += ":%s" % (sNestedExceptionTypeId,);
       if oStowedException.oNestedException:
@@ -52,16 +54,16 @@ class cStowedException(object):
       oStowedException.sDescription += " WRT Language exception class name: %s." % oStowedException.sWRTLanguageExceptionIUnkownClassName;
   
   @staticmethod
-  def faoCreate(oProcess, uauStowedExceptionInformationAddressesAddress, uStowedExceptionInformationAddressesCount):
-    auStowedExceptionInformationAddresses = oProcess.fauReadPointersForAddressAndCount(
-      uAddress = uauStowedExceptionInformationAddressesAddress,
-      uCount = uStowedExceptionInformationAddressesCount,
-    );
+  def faoCreateForListAddressAndCount(oProcess, uListAddress, uCount):
+    a0uStowedExceptionInformationAddresses = oProcess.fa0uReadPointersForAddressAndCount(uListAddress, uCount);
+    assert a0uStowedExceptionInformationAddresses, \
+        "Cannot read %d stowed exception information pointers from process %d / 0x%X at address 0x%X" % \
+        (uCount, oProcess.uId, oProcess.uId, uAddress);
     return [
       cStowedException.foCreate(oProcess, uStowedExceptionInformationAddress)
-      for uStowedExceptionInformationAddress in auStowedExceptionInformationAddresses
+      for uStowedExceptionInformationAddress in a0uStowedExceptionInformationAddresses
     ];
-
+  
   @staticmethod
   def foCreate(oProcess, uStowedExceptionInformationAddress):
     # Read STOWED_EXCEPTION_INFORMATION_V1 or STOWED_EXCEPTION_INFORMATION_V2 structure.
@@ -72,10 +74,14 @@ class cStowedException(object):
     #   ULONG     Size
     #   ULONG     Signature      // "SE01" (0x53453031), "SE02" (0x53453032)
     # }
-    oStowedExceptionInformationHeader = oProcess.foReadStructureForAddress(
+    o0StowedExceptionInformationHeader = oProcess.fo0ReadStructureForAddress(
       cStructure = STOWED_EXCEPTION_INFORMATION_HEADER,
       uAddress = uStowedExceptionInformationAddress,
     );
+    assert o0StowedExceptionInformationHeader, \
+        "Cannot read stowed exception information header from process %d / 0x%X at address 0x%X!" % \
+        (oProcess.uId, oProcess.uId, uStowedExceptionInformationAddress);
+    oStowedExceptionInformationHeader = o0StowedExceptionInformationHeader;
     if oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V1_SIGNATURE:
       cStowedExceptionInformation = {
         "x86": STOWED_EXCEPTION_INFORMATION_V132,
@@ -93,10 +99,14 @@ class cStowedException(object):
     assert oStowedExceptionInformationHeader.Size == cStowedExceptionInformation.fuGetSize(), \
         "STOWED_EXCEPTION_INFORMATION structure is 0x%X bytes, but 0x%X was expected!?" % \
         (oStowedExceptionInformationHeader.Size, cStowedExceptionInformation.fuGetSize());
-    oStowedExceptionInformation = oProcess.foReadStructureForAddress(
+    o0StowedExceptionInformation = oProcess.fo0ReadStructureForAddress(
       cStructure = cStowedExceptionInformation,
       uAddress = uStowedExceptionInformationAddress,
     );
+    assert o0StowedExceptionInformation, \
+        "Cannot read stowed exception information from process %d / 0x%X at address 0x%X!" % \
+        (oProcess.uId, oProcess.uId, uStowedExceptionInformationAddress);
+    oStowedExceptionInformation = o0StowedExceptionInformation;
     uExceptionForm = oStowedExceptionInformation.ExceptionForm_ThreadId & 3;
     uThreadId = (oStowedExceptionInformation.ExceptionForm_ThreadId & 0xfffffffc) << 2;
     # Handle structure
@@ -138,10 +148,11 @@ class cStowedException(object):
         oDataVirtualAllocation = cVirtualAllocation(oProcess.uId, uNestedExceptionAddress);
         uDataOffset = uNestedExceptionAddress - oDataVirtualAllocation.uStartAddress;
         uDataSize = min(0x80, oDataVirtualAllocation.uSize - uDataOffset);
-        sData = ",".join([
-          "%02X" % uByte
-          for uByte in oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize)
-        ]);
+        assert oDataVirtualAllocation.bAllocated, \
+            "Cannot read %d bytes stowed exception information from process %d / 0x%X at address 0x%X!" % \
+            (uDataSize, oProcess.uId, oProcess.uId, uNestedExceptionAddress);
+        auBytes = oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize);
+        sData = ",".join(["%02X" % uByte for uByte in auBytes]);
         sNestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
             (oStowedExceptionInformation.NestedExceptionType, uNestedExceptionAddress, sData);
     # Handle the two different forms:
@@ -158,13 +169,13 @@ class cStowedException(object):
     else:
       assert uExceptionForm == 2, \
           "Unexpected exception form %d" % uExceptionForm;
-      sErrorText = oProcess.fsReadNullTerminatedStringForAddress(
+      s0ErrorText = oProcess.fs0ReadNullTerminatedStringForAddress(
         uAddress = oStowedExceptionInformation.ErrorText,
         bUnicode = True,
       );
       oStowedException = cStowedException(
         iCode = oStowedExceptionInformation.ResultCode,
-        sErrorText = sErrorText,
+        s0ErrorText = s0ErrorText,
         sNestedExceptionTypeId = sNestedExceptionTypeId,
         oNestedException = oNestedException,
         sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName,

@@ -1,4 +1,6 @@
+from mWindowsSDK import ERROR_INVALID_NAME, fsGetWin32ErrorCodeDescription;
 from mWindowsAPI import cConsoleProcess, fsGetISAForProcessId;
+
 from .cHelperThread import cHelperThread;
 
 __gauProcessesThatShouldBeResumedAfterAttaching = [];
@@ -22,14 +24,16 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
       for sArgument in asArguments
     ]),
   });
-  oConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
-    sBinaryPath = sBinaryPath,
-    asArguments = asArguments,
-    bRedirectStdIn = False,
-    bSuspended = True,
-  );
-  if oConsoleProcess is None:
-    sMessage = "Unable to start a new process for binary \"%s\"." % sBinaryPath;
+  try:
+    oConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
+      sBinaryPath = sBinaryPath,
+      asArguments = asArguments,
+      bRedirectStdIn = False,
+      bSuspended = True,
+    );
+  except WindowsError, oWindowsError:
+    sMessage = "Unable to start a new process for binary path \"%s\": %s." % \
+        (sBinaryPath, fsGetWin32ErrorCodeDescription(oWindowsError.winerror));
     assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
         sMessage;
     return None;

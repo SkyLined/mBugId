@@ -1,11 +1,10 @@
-from cWindowsStatusOrError import cWindowsStatusOrError;
+import cBugId, mProductDetails;
+
+from .cErrorDetails import cErrorDetails;
 from .dxConfig import dxConfig;
-from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
-import mProductDetails;
+from .ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
-
-import cBugId;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
   def __init__(oBugReport, oCdbWrapper, uExitCode):
@@ -16,12 +15,11 @@ class cBugReport_CdbTerminatedUnexpectedly(object):
     if uExitCode < 0:
       uExitCode += 1 << 32;
     uWindowsStatusOrErrorCode = uExitCode & 0xCFFFFFFF;
-    oWindowsStatusOrError = cWindowsStatusOrError.foGetForCode(uWindowsStatusOrErrorCode);
-    if oWindowsStatusOrError:
-      oBugReport.sBugTypeId = "CdbTerminated:%s" % oWindowsStatusOrError.sTypeId;
-      oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code 0x%X (%s: %s)" % \
-          (uExitCode, oWindowsStatusOrError.sName, oWindowsStatusOrError.sDescription);
-      oBugReport.sSecurityImpact = oWindowsStatusOrError.sSecurityImpact;
+    o0ErrorDetails = cErrorDetails.fo0GetForCode(uWindowsStatusOrErrorCode);
+    if o0ErrorDetails:
+      oBugReport.sBugTypeId = "CdbTerminated:%s" % (o0ErrorDetails.s0TypeId or o0ErrorDetails.sDefineName);
+      oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code %s" % o0ErrorDetails.sDescription;
+      oBugReport.sSecurityImpact = o0ErrorDetails.s0SecurityImpact;
     else:
       oBugReport.sBugTypeId = "CdbTerminated:0x%X" % uExitCode;
       oBugReport.sBugDescription = "Cdb terminated unexpectedly with exit code 0x%X." % uExitCode;

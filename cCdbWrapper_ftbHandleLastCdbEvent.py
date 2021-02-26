@@ -1,8 +1,9 @@
 import re;
 
-from mWindowsSDK import fs0GetErrorDefineName, DBG_CONTROL_C, STATUS_BREAKPOINT;
+from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT;
 
 from .cBugReport import cBugReport;
+from .cErrorDetails import cErrorDetails;
 from .cException import cException;
 from .cProcess import cProcess;
 from .fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
@@ -138,7 +139,8 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
   
   ### Handle exceptions ##############################################################################################
   uExceptionCode = long(s0ExceptionCode, 16);
-  sRelatedErrorDefineName = fs0GetErrorDefineName(uExceptionCode) or "unknown exception";
+  o0ErrorDetails = cErrorDetails.fo0GetForCode(uExceptionCode);
+  sRelatedErrorDefineName = o0ErrorDetails.sDefineName if o0ErrorDetails else "unknown";
   oCdbWrapper.fbFireCallbacks("Application suspended", "%s chance exception 0x%08X (%s)" % (sChance.capitalize(), uExceptionCode, sRelatedErrorDefineName));
 
   # Handle user pressing CTRL+C

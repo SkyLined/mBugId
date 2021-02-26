@@ -7,9 +7,10 @@ def fbUpdateReportForHeapManagerPointer(
 ):
   # This is not a special marker or NULL, so it must be some corrupt pointer
   # Get information about the memory region:
-  oHeapManagerData = oProcess.foGetHeapManagerDataForAddress(uAccessViolationAddress);
-  if not oHeapManagerData:
+  o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(uAccessViolationAddress);
+  if not o0HeapManagerData:
     return False;
+  oHeapManagerData = o0HeapManagerData;
   oBugReport.atxMemoryRemarks.extend(oHeapManagerData.fatxMemoryRemarks());
   if oProcess.oCdbWrapper.bGenerateReportHTML and oHeapManagerData.uMemoryDumpStartAddress:
     uMemoryDumpStartAddress = oHeapManagerData.uMemoryDumpStartAddress;
