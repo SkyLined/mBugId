@@ -1,6 +1,4 @@
 {
-  "asProductTypes": ["Python module"],
-  "sPythonModuleName": "cBugId",
   "asDependentOnProductNames": [
     "mMultiThreading", 
     "mProductDetails", 
@@ -9,12 +7,18 @@
     "mWindowsSDK", 
     "mDateTime"
   ], 
+  "asJavaScriptModuleNames": [], 
   "asOptionalProductNames": [
-    "cFileSystemItem",
+    "cFileSystemItem", 
     "mDebugOutput", 
     "oConsole"
   ], 
-  "oProductVersion": "2020-08-28 09:02", 
+  "asPHPModuleNames": [], 
+  "asProductTypes": [
+    "Python module"
+  ], 
+  "asPythonApplicationNames": [], 
+  "oProductVersion": "2021-03-01 10:10", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
@@ -25,5 +29,6 @@
   "sLicenseServerURL": "https://license.skylined.nl/License_dxCheck.php", 
   "sProductAuthor": "SkyLined", 
   "sProductName": "cBugId", 
-  "sProductURL": "https://github.com/SkyLined/cBugId"
+  "sProductURL": "https://github.com/SkyLined/cBugId", 
+  "sPythonModuleName": "cBugId"
 }
