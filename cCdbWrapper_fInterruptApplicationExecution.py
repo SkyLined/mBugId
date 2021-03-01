@@ -19,4 +19,4 @@ def cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper):
   if not oCdbWrapper.bApplicationIsRunning:
 #    print "Interrupt ignored: application not running...";
     return;
-  oCdbWrapper.uUtilityInterruptThreadId = fuCreateThreadForProcessIdAndAddress(oCdbWrapper.oUtilityProcess.uId, 0x0);
+  oCdbWrapper.uUtilityInterruptThreadId = fuCreateThreadForProcessIdAndAddress(oCdbWrapper.oUtilityProcess.uId, 0xB1D); # B1D -> BugId
