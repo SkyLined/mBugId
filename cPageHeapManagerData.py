@@ -182,8 +182,6 @@ def fo0GetAllocationInformationForProcessAndAddress(oProcess, uAllocationInforma
 
 def foGetVirtualAllocationForProcessAndAddress(oProcess, uAddressInVirtualAllocation):
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInVirtualAllocation);
-  assert oVirtualAllocation.bAllocated, \
-      "Cannot find virtual allocation for page heap block allocation at 0x%X" % uAddressInVirtualAllocation;
   if gbDebugOutput:
     print (",- oVirtualAllocation ").ljust(80, "-");
     for sLine in oVirtualAllocation.fasDump():
@@ -263,6 +261,8 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess,
       oAllocationInformation.pVirtualBlock.value,
     );
+    if not oVirtualAllocation.bAllocated:
+      return None;
     # This virtual allocation starts with a DPH_ALLOCATION_HEADER structure
     o0AllocationHeader = fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(
       oVirtualAllocation,
