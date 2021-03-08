@@ -1,6 +1,7 @@
 import os, re, traceback;
 from cBugId import cBugId;
 from oConsole import oConsole;
+from cFileSystemItem import cFileSystemItem;
 import mGlobals;
 
 try:
@@ -300,11 +301,15 @@ def fRunASingleTest(
     if mGlobals.bSaveReportHTML:
       for oBugReport in aoBugReports:
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
-        sDesiredReportFileName = "%s %s @ %s.html" % (sPythonISA, oBugReport.sId, oBugReport.sBugLocation);
+        sDesiredReportFileName = "%s %s @ %s.html" % (sISA, oBugReport.sId, oBugReport.sBugLocation);
         # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
-        sValidReportFileName = mFileSystem2.fsGetValidName(sDesiredReportFileName, bUnicode = False);
+        sValidReportFileName = cFileSystemItem.fsGetValidName(sDesiredReportFileName, bUseUnicodeHomographs = False);
         sReportsFilePath = os.path.join(mGlobals.sReportsFolderPath, sValidReportFileName);
-        mFileSystem2.foCreateFile(sReportsFilePath, oBugReport.sReportHTML);
+        oReportFile = cFileSystemItem(sReportsFilePath);
+        if oReportFile.fbIsFile(bParseZipFiles = True):
+          oReportFile.fbWrite(oBugReport.sReportHTML, bKeepOpen = False, bParseZipFiles = True, bThrowErrors = True);
+        else:
+          oReportFile.fbCreateAsFile(oBugReport.sReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False, bThrowErrors = True);
         oConsole.fOutput("  Wrote report: %s" % sReportsFilePath);
   except Exception, oException:
     if bBugIdStarted and not bBugIdStopped:
