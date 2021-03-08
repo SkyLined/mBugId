@@ -172,9 +172,9 @@ try:
         fRunASingleTest(sISA,  ["DoubleFree",                4],                          ["DoubleFree[4n] ed2.531 @ <test-binary>!wmain"]);
         # Extra tests to check if the code deals correctly with memory areas too large to dump completely:
         uMax = cBugId.dxConfig["uMaxMemoryDumpSize"];
-        fRunASingleTest(sISA,  ["DoubleFree",             uMax],                          ["DoubleFree[4n] ed2.531 @ <test-binary>!wmain"]);
-        fRunASingleTest(sISA,  ["DoubleFree",         uMax + 1],                          ["DoubleFree[4n+1] ed2.531 @ <test-binary>!wmain"]);
-        fRunASingleTest(sISA,  ["DoubleFree",         uMax + 4],                          ["DoubleFree[4n] ed2.531 @ <test-binary>!wmain"]);
+        fRunASingleTest(sISA,  ["DoubleFree",             uMax],                          ["*DoubleFree\[(4n|\?)\] ed2\.531 @ <test-binary>!wmain"]);
+        fRunASingleTest(sISA,  ["DoubleFree",         uMax + 1],                          ["*DoubleFree\[(4n\+1|\?)\] ed2\.531 @ <test-binary>!wmain"]);
+        fRunASingleTest(sISA,  ["DoubleFree",         uMax + 4],                          ["*DoubleFree\[(4n|\?)\] ed2\.531 @ <test-binary>!wmain"]);
         
       # Misaligned free
       fRunASingleTest(sISA,    ["MisalignedFree",            1,  1],                      ["MisalignedFree[1]+0 ed2.531 @ <test-binary>!wmain"]);
@@ -230,7 +230,7 @@ try:
         fRunASingleTest(sISA,  ["UseAfterFree", "Write",   4,  3],                        ["WAF[4n]@3 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Read",    5,  4],                        ["RAF[4n+1]@4n 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Write",   6,  5],                        ["WAF[4n+2]@4n+1 630.ed2 @ <test-binary>!fWriteByte"]);
-        fRunASingleTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["EAF[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fRunASingleTest(sISA,  ["UseAfterFree", "Call",    8,  0],                        ["*EAF\[4n\]@0 f47\.(f47|ed2) @ <test-binary>!fCall"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Jump",    8,  0],                        ["EAF[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
       fRunASingleTest(sISA,    ["UseAfterFree", "Read",    1,  1],                        ["OOBRAF[1]+0 30e.ed2 @ <test-binary>!fuReadByte"]);
       if bTestFull:
@@ -244,7 +244,7 @@ try:
         fRunASingleTest(sISA,  ["UseAfterFree", "Read",    1, -3],                        ["OOBRAF[1]-3 30e.ed2 @ <test-binary>!fuReadByte"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Write",   1, -4],                        ["OOBWAF[1]-4n 630.ed2 @ <test-binary>!fWriteByte"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Read",    1, -5],                        ["OOBRAF[1]-4n-1 30e.ed2 @ <test-binary>!fuReadByte"]);
-        fRunASingleTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["OOBEAF[4n]+0 f47.ed2 @ <test-binary>!fCall"]);
+        fRunASingleTest(sISA,  ["UseAfterFree", "Call",    8,  8],                        ["*OOBEAF\[4n\]\+0 f47\.(ed2|f47) @ <test-binary>!fCall"]);
         fRunASingleTest(sISA,  ["UseAfterFree", "Jump",    8,  8],                        ["OOBEAF[4n]+0 46f.ed2 @ <test-binary>!fJump"]);
       # These issues are not detected until they cause an access violation. Heap blocks may be aligned up to 0x10 bytes.
       fRunASingleTest(sISA,    ["BufferOverrun",   "Heap", "Read",   0xC, 5],             ["OOBR[4n]+4n 30e.ed2 @ <test-binary>!fuReadByte"]);
@@ -296,16 +296,14 @@ try:
       if bTestFull:
         fRunASingleTest(sISA,       ["AccessViolation", "Jump", "Unallocated"],           ["AVE:Unallocated 46f.ed2 @ <test-binary>!fJump"]);
         fRunASingleTest(sISA,       ["AccessViolation", "Jump", "Reserved"],              ["AVE:Reserved[4n]@0 46f.ed2 @ <test-binary>!fJump"]);
-        if sISA == "x64": # For unknown reasons the stack is truncated. TODO: findout why and fix it.
-          fRunASingleTest(sISA,     ["AccessViolation", "Jump", "Guard"],                 ["AVE:Guard[4n]@0 ed2 @ <test-binary>!wmain"]);
-        else:
-          fRunASingleTest(sISA,     ["AccessViolation", "Jump", "Guard"],                 ["AVE:Guard[4n]@0 ed2.531 @ <test-binary>!wmain"]);
+        # For unknown reasons the stack differs between x86 and x64 and can even be truncated. TODO: findout why and fix it.
+        fRunASingleTest(sISA,     ["AccessViolation", "Jump", "Guard"],                   ["*AVE:Guard\[4n\]@0 (46f\.)?ed2(\.531)? @ <test-binary>!(fJump|wmain)"]);
       
-      fRunASingleTest(sISA,         ["AccessViolation", "Call", "Guard"],                 ["AVE:Guard[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+      fRunASingleTest(sISA,         ["AccessViolation", "Call", "Guard"],                 ["*AVE:Guard\[4n\]@0 f47\.(ed2|f47) @ <test-binary>!fCall"]);
       if bTestFull:
-        fRunASingleTest(sISA,       ["AccessViolation", "Call", "Unallocated"],           ["AVE:Unallocated f47.ed2 @ <test-binary>!fCall"]);
-        fRunASingleTest(sISA,       ["AccessViolation", "Call", "Reserved"],              ["AVE:Reserved[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
-        fRunASingleTest(sISA,       ["AccessViolation", "Call", "NoAccess"],              ["AVE:NoAccess[4n]@0 f47.ed2 @ <test-binary>!fCall"]);
+        fRunASingleTest(sISA,       ["AccessViolation", "Call", "Unallocated"],           ["*AVE:Unallocated f47\.(ed2|f47) @ <test-binary>!fCall"]);
+        fRunASingleTest(sISA,       ["AccessViolation", "Call", "Reserved"],              ["*AVE:Reserved\[4n\]@0 f47\.(ed2|f47) @ <test-binary>!fCall"]);
+        fRunASingleTest(sISA,       ["AccessViolation", "Call", "NoAccess"],              ["*AVE:NoAccess\[4n\]@0 f47\.(ed2|f47) @ <test-binary>!fCall"]);
       
       if bTestFull:
         if sISA == "x64":
@@ -317,22 +315,22 @@ try:
               fRunASingleTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AV?:Invalid 630.ed2 @ <test-binary>!fWriteByte"]);
             else:
               fRunASingleTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AVW:Invalid 630.ed2 @ <test-binary>!fWriteByte"]);
-            fRunASingleTest(sISA,   ["AccessViolation", "Jump", uBaseAddress],            ["AVE:Invalid 46f.ed2 @ <test-binary>!fJump"]);
-            fRunASingleTest(sISA,   ["AccessViolation", "Call", uBaseAddress],            ["AVE:Invalid f47.ed2 @ <test-binary>!fCall"]);
+            fRunASingleTest(sISA,   ["AccessViolation", "Jump", uBaseAddress],            ["*AVE:Invalid 46f\.(ed2|46f) @ <test-binary>!fJump"]);
+            fRunASingleTest(sISA,   ["AccessViolation", "Call", uBaseAddress],            ["*AVE:Invalid f47\.(ed2|f47) @ <test-binary>!fCall"]);
         
         for (uBaseAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in gddtsDetails_uSpecialAddress_sISA[sISA].items():
           if uBaseAddress < (1 << 32) or (sISA == "x64" and uBaseAddress < (1 << 47)):
             fRunASingleTest(sISA,   ["AccessViolation", "Read", uBaseAddress],            ["AVR:%s 30e.ed2 @ <test-binary>!fuReadByte" % sAddressId]);
             if bTestFull:
               fRunASingleTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AVW:%s 630.ed2 @ <test-binary>!fWriteByte" % sAddressId]);
-              fRunASingleTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["AVE:%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
-              fRunASingleTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["AVE:%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
+              fRunASingleTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["*AVE:%s f47\.(ed2|f47) @ <test-binary>!fCall" % sAddressId]);
+              fRunASingleTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["*AVE:%s 46f\.(ed2|46f) @ <test-binary>!fJump" % sAddressId]);
           elif sISA == "x64":
             fRunASingleTest(sISA,   ["AccessViolation", "Read", uBaseAddress],            ["AVR:%s 30e.ed2 @ <test-binary>!fuReadByte" % sAddressId]);
             if bTestFull:
               fRunASingleTest(sISA, ["AccessViolation", "Write", uBaseAddress],           ["AV?:%s 630.ed2 @ <test-binary>!fWriteByte" % sAddressId]);
-              fRunASingleTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["AVE:%s f47.ed2 @ <test-binary>!fCall" % sAddressId]);
-              fRunASingleTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["AVE:%s 46f.ed2 @ <test-binary>!fJump" % sAddressId]);
+              fRunASingleTest(sISA, ["AccessViolation", "Call", uBaseAddress],            ["*AVE:%s f47\.(ed2|f47) @ <test-binary>!fCall" % sAddressId]);
+              fRunASingleTest(sISA, ["AccessViolation", "Jump", uBaseAddress],            ["*AVE:%s 46f\.(ed2|46f) @ <test-binary>!fJump" % sAddressId]);
       # SafeInt tests
       if not bTestFull:
         fRunASingleTest(sISA,    ["SafeInt", "++", "signed", 64],                         ["IntegerOverflow ed2.531 @ <test-binary>!wmain"]);

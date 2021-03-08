@@ -320,3 +320,5 @@ def fRunASingleTest(
   finally:
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput("* Finished %s" % sTestDescription);
+    else:
+      oConsole.fOutput("+ %s" % sTestDescription);
