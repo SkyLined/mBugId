@@ -1,10 +1,11 @@
 {
   "asDependentOnProductNames": [
-    "mMultiThreading", 
-    "mProductDetails", 
-    "mRegistry", 
-    "mWindowsAPI", 
-    "mWindowsSDK", 
+    "mMultiThreading",
+    "mProductDetails",
+    "mHumanReadable",
+    "mRegistry",
+    "mWindowsAPI",
+    "mWindowsSDK",
     "mDateTime"
   ], 
   "asJavaScriptModuleNames": [], 
