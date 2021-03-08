@@ -94,8 +94,9 @@ class cVerifierStopDetector(object):
         oProcess,
         uVerifierStopHeapBlockAddress,
       );
-      # Adjust the address accordingly.
-      uVerifierStopHeapBlockAddress = o0PageHeapManagerData.uHeapBlockStartAddress;
+      if o0PageHeapManagerData:
+        # Adjust the address accordingly.
+        uVerifierStopHeapBlockAddress = o0PageHeapManagerData.uHeapBlockStartAddress;
     
     uMemoryDumpStartAddress = None;
     atxMemoryRemarks = [];
@@ -105,9 +106,11 @@ class cVerifierStopDetector(object):
       sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
       sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
     else:
-      sBlockSizeAndOffsetId = "[?]";
+      sBlockSizeId = "[?]";
+      sBlockSizeAndOffsetId = "[?]@?";
       sBlockOffsetAndSizeDescription = "at an unknown offset from a heap block of unknown size at an unknown address " \
           "somewhere around 0x%08X" % (uVerifierStopHeapBlockAddress);
+      sBlockSizeDescription = "a heap block of unknown size";
     if (
       sMessage == "corrupted start stamp" \
       and uCorruptedStamp == 0xABCDBBBA \
