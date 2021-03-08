@@ -36,6 +36,7 @@ try:
   from cBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
   from mWindowsAPI import fsGetPythonISA;
   from mWindowsSDK import *;
+  from fShowHelp import fShowHelp;
   
   from fRunASingleTest import fRunASingleTest;
   import mGlobals;
@@ -84,6 +85,9 @@ try:
       assert mDebugOutput, \
           "mDebugOutput cannot be loaded";
       bEnableDebugOutput = True;
+    elif sArgument in ["-?", "/?", "/h", "-h", "--help"]: 
+      fShowHelp(oConsole);
+      sys.exit(0);
     elif sISA is None:
       sISA = sArgument;
     else:
