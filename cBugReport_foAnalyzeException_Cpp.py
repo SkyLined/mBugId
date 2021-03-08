@@ -1,27 +1,27 @@
 from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation, mDbgHelp;
 
-EXCEPTION_OBJECT_DESCRIPTION_1 = iStructureBaseType32.fcCreateType("EXCEPTION_OBJECT_DESCRIPTION_1",
+EXCEPTION_OBJECT_DESCRIPTION_1 = iStructureType32.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_1",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "dwUnknown_2"),
   (DWORD,           "dwUnknown_3"),
   (DWORD,           "uOffsetOfPart2"),
 );
-EXCEPTION_OBJECT_DESCRIPTION_2 = iStructureBaseType32.fcCreateType("EXCEPTION_OBJECT_DESCRIPTION_2",
+EXCEPTION_OBJECT_DESCRIPTION_2 = iStructureType32.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_2",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "uOffsetOfPart3"),
 );
-EXCEPTION_OBJECT_DESCRIPTION_3 = iStructureBaseType32.fcCreateType("EXCEPTION_OBJECT_DESCRIPTION_3",
+EXCEPTION_OBJECT_DESCRIPTION_3 = iStructureType32.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_3",
   (DWORD,           "dwUnknown_1"),
   (DWORD,           "uOffsetOfPart4"),
 );
 guMaxSymbolName = 0x20; # Don't know, but don't care at this point either...
-EXCEPTION_OBJECT_DESCRIPTION_4_32 = iStructureBaseType32.fcCreateType("EXCEPTION_OBJECT_DESCRIPTION_4_32",
+EXCEPTION_OBJECT_DESCRIPTION_4_32 = iStructureType32.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_4_32",
   (P32VOID,         "pUnknown_1"),
   (P32VOID,         "pUnknown_2"),
   (CHAR[guMaxSymbolName], "szDecoratedClassName"),
 );
-EXCEPTION_OBJECT_DESCRIPTION_4_64 = iStructureBaseType64.fcCreateType("EXCEPTION_OBJECT_DESCRIPTION_4_64",
+EXCEPTION_OBJECT_DESCRIPTION_4_64 = iStructureType64.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_4_64",
   (P64VOID,         "pUnknown_1"),
   (P64VOID,         "pUnknown_2"),
   (CHAR[guMaxSymbolName], "szDecoratedClassName"),

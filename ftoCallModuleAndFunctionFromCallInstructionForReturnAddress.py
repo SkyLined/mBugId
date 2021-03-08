@@ -1,7 +1,7 @@
 import re;
 from mWindowsSDK import *;
 
-cCallRel32InstructionStructure = iStructureBaseType8.fcCreateType("CALL_rel32",
+cCallRel32InstructionStructure = iStructureType8.fcCreateClass("CALL_rel32",
   (BYTE,        "Opcode"),
   (INT32,       "Displacement"),
 );

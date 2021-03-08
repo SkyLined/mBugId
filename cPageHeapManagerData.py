@@ -8,30 +8,30 @@ from mWindowsSDK import *;
 gbDebugOutput = False;
 
 # SINGLE_LIST_ENTRY
-SINGLE_LIST_ENTRY32 = iStructureBaseType32.fcCreateType("SINGLE_LIST_ENTRY32",
+SINGLE_LIST_ENTRY32 = iStructureType32.fcCreateClass("SINGLE_LIST_ENTRY32",
   (P32VOID,         "Next"),                          # PSINGLE_LIST_ENTRY
 );
-SINGLE_LIST_ENTRY64 = iStructureBaseType64.fcCreateType("SINGLE_LIST_ENTRY64",
+SINGLE_LIST_ENTRY64 = iStructureType64.fcCreateClass("SINGLE_LIST_ENTRY64",
   (P64VOID,         "Next"),                          # PSINGLE_LIST_ENTRY
 );
 # LIST_ENTRY
-LIST_ENTRY32 = iStructureBaseType32.fcCreateType("LIST_ENTRY32",
+LIST_ENTRY32 = iStructureType32.fcCreateClass("LIST_ENTRY32",
   (P32VOID,         "pBLink"),                        # PLIST_ENTRY32
   (P32VOID,         "pFLink"),                        # PLIST_ENTRY32
 );
-LIST_ENTRY64 = iStructureBaseType64.fcCreateType("LIST_ENTRY64",
+LIST_ENTRY64 = iStructureType64.fcCreateClass("LIST_ENTRY64",
   (P64VOID,         "pBLink"),                        # PLIST_ENTRY64
   (P64VOID,         "pFLink"),                        # PLIST_ENTRY64
 );
 # RTL_BALANCED_LINKS
-RTL_BALANCED_LINKS32 = iStructureBaseType32.fcCreateType("RTL_BALANCED_LINKS32",
+RTL_BALANCED_LINKS32 = iStructureType32.fcCreateClass("RTL_BALANCED_LINKS32",
   (P32VOID,         "Parent"),                        # PRTL_BALANCED_LINKS
   (P32VOID,         "LeftChild"),                     # PRTL_BALANCED_LINKS
   (P32VOID,         "RightChild"),                    # PRTL_BALANCED_LINKS
   (CHAR,            "Balance"),
   (UCHAR[3],        "Reserved"),
 );
-RTL_BALANCED_LINKS64 = iStructureBaseType64.fcCreateType("RTL_BALANCED_LINKS64",
+RTL_BALANCED_LINKS64 = iStructureType64.fcCreateClass("RTL_BALANCED_LINKS64",
   (P64VOID,         "Parent"),                        # PRTL_BALANCED_LINKS
   (P64VOID,         "LeftChild"),                     # PRTL_BALANCED_LINKS
   (P64VOID,         "RightChild"),                    # PRTL_BALANCED_LINKS
@@ -39,29 +39,29 @@ RTL_BALANCED_LINKS64 = iStructureBaseType64.fcCreateType("RTL_BALANCED_LINKS64",
   (UCHAR[3],        "Reserved"),
 );
 # DPH_DELAY_FREE_FLAGS
-DPH_DELAY_FREE_FLAGS32 = iStructureBaseType32.fcCreateType("DPH_DELAY_FREE_FLAGS32",
+DPH_DELAY_FREE_FLAGS32 = iStructureType32.fcCreateClass("DPH_DELAY_FREE_FLAGS32",
   (UINT32,          "All"),
 );
-DPH_DELAY_FREE_FLAGS64 = iStructureBaseType64.fcCreateType("DPH_DELAY_FREE_FLAGS64",
+DPH_DELAY_FREE_FLAGS64 = iStructureType64.fcCreateClass("DPH_DELAY_FREE_FLAGS64",
   (UINT32,          "All"),
 );
 DPH_DELAY_FREE_FLAGS_PageHeapBlock    = 1 << 0;
 DPH_DELAY_FREE_FLAGS_NormalHeapBlock  = 1 << 1;
 DPH_DELAY_FREE_FLAGS_Lookaside        = 1 << 2;
 # DPH_DELAY_FREE_QUEUE_ENTRY
-DPH_DELAY_FREE_QUEUE_ENTRY32 = iStructureBaseType32.fcCreateType("DPH_DELAY_FREE_QUEUE_ENTRY32",
+DPH_DELAY_FREE_QUEUE_ENTRY32 = iStructureType32.fcCreateClass("DPH_DELAY_FREE_QUEUE_ENTRY32",
   (DPH_DELAY_FREE_FLAGS32, "Flags"),
   (P32VOID,         "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
 );
-DPH_DELAY_FREE_QUEUE_ENTRY64 = iStructureBaseType64.fcCreateType("DPH_DELAY_FREE_QUEUE_ENTRY64",
+DPH_DELAY_FREE_QUEUE_ENTRY64 = iStructureType64.fcCreateClass("DPH_DELAY_FREE_QUEUE_ENTRY64",
   (DPH_DELAY_FREE_FLAGS64, "Flags"),
   (P64VOID,         "NextEntry"),                     # DPH_DELAY_FREE_QUEUE_ENTRY
 );
 # DPH_HEAP_BLOCK_FLAGS
-DPH_HEAP_BLOCK_FLAGS32 = iStructureBaseType32.fcCreateType("DPH_HEAP_BLOCK_FLAGS32",
+DPH_HEAP_BLOCK_FLAGS32 = iStructureType32.fcCreateClass("DPH_HEAP_BLOCK_FLAGS32",
   (UINT32,          "All"),
 );
-DPH_HEAP_BLOCK_FLAGS64 = iStructureBaseType64.fcCreateType("DPH_HEAP_BLOCK_FLAGS64",
+DPH_HEAP_BLOCK_FLAGS64 = iStructureType64.fcCreateClass("DPH_HEAP_BLOCK_FLAGS64",
   (UINT32,          "All"),
 );
 DPH_HEAP_BLOCK_FLAGS_UnusedNode       = 1 << 1;
@@ -70,7 +70,7 @@ DPH_HEAP_BLOCK_FLAGS_Lookaside        = 1 << 3;
 DPH_HEAP_BLOCK_FLAGS_Free             = 1 << 4;
 DPH_HEAP_BLOCK_FLAGS_Busy             = 1 << 5;
 # DPH_HEAP_BLOCK
-DPH_HEAP_BLOCK32 = iStructureBaseType32.fcCreateType("DPH_HEAP_BLOCK32",
+DPH_HEAP_BLOCK32 = iStructureType32.fcCreateClass("DPH_HEAP_BLOCK32",
   UNION (
     (P32VOID,       "pNextAlloc"),                      # PDPH_HEAP_BLOCK
     (LIST_ENTRY32,  "AvailableEntry"),
@@ -85,7 +85,7 @@ DPH_HEAP_BLOCK32 = iStructureBaseType32.fcCreateType("DPH_HEAP_BLOCK32",
   (UINT32,          "uUnknown1"),                     # 
   (P32VOID,         "StackTrace"),                    # PRTL_TRACE_BLOCK
 );
-DPH_HEAP_BLOCK64 = iStructureBaseType64.fcCreateType("DPH_HEAP_BLOCK64",
+DPH_HEAP_BLOCK64 = iStructureType64.fcCreateClass("DPH_HEAP_BLOCK64",
   UNION (
     (P64VOID,       "pNextAlloc"),                      # PDPH_HEAP_BLOCK
     (LIST_ENTRY64,  "AvailableEntry"),
@@ -104,13 +104,13 @@ DPH_STATE_ALLOCATED = 0x20;
 DPH_STATE_FREED = 0x4;
 
 # Page heap stores a DPH_ALLOCATION_HEADER structure at the start of the virtual allocation for a heap block.
-DPH_ALLOCATION_HEADER32 = iStructureBaseType32.fcCreateType("DPH_ALLOCATION_HEADER32",
+DPH_ALLOCATION_HEADER32 = iStructureType32.fcCreateClass("DPH_ALLOCATION_HEADER32",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
   (P32VOID,         "poAllocationInformation"),       # PDPH_HEAP_BLOCK
 );
 auValidPageHeapAllocationHeaderMarkers = [0xEEEEEEED, 0xEEEEEEEE];
 
-DPH_ALLOCATION_HEADER64 = iStructureBaseType64.fcCreateType("DPH_ALLOCATION_HEADER64",
+DPH_ALLOCATION_HEADER64 = iStructureType64.fcCreateClass("DPH_ALLOCATION_HEADER64",
   (ULONG,           "uMarker"),                       # 0xEEEEEEED or 0xEEEEEEEE
   (ULONG,           "uPadding"),                      # 0xEEEEEEEE or (apparently) 0x00000000
   (P64VOID,         "poAllocationInformation"),       # PDPH_HEAP_BLOCK
@@ -121,7 +121,7 @@ auValidPageHeapAllocationHeaderPaddings = [0x0, 0xEEEEEEEE];
 # Some information on DPH_BLOCK_INFORMATION can be found here:
 # https://msdn.microsoft.com/en-us/library/ms220938(v=vs.90).aspx
 # http://www.nirsoft.net/kernel_struct/vista/DPH_BLOCK_INFORMATION.html
-DPH_BLOCK_INFORMATION32 = iStructureBaseType32.fcCreateType("DPH_BLOCK_INFORMATION32",
+DPH_BLOCK_INFORMATION32 = iStructureType32.fcCreateClass("DPH_BLOCK_INFORMATION32",
   (ULONG,           "StartStamp"),
   (P32VOID,         "Heap"),
   (SIZE_T32,        "RequestedSize"),
@@ -134,7 +134,7 @@ DPH_BLOCK_INFORMATION32 = iStructureBaseType32.fcCreateType("DPH_BLOCK_INFORMATI
   (P32VOID,         "StackTrace"),
   (ULONG,           "EndStamp"),
 );
-DPH_BLOCK_INFORMATION64 = iStructureBaseType64.fcCreateType("DPH_BLOCK_INFORMATION64",
+DPH_BLOCK_INFORMATION64 = iStructureType64.fcCreateClass("DPH_BLOCK_INFORMATION64",
   (ULONG,           "StartStamp"),
   (ULONG,           "PaddingStart"),
   (P64VOID,         "Heap"),
