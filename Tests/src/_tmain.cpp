@@ -174,7 +174,14 @@ UINT _tmain(UINT uArgumentsCount, _TCHAR* asArguments[]) {
   setvbuf(stderr, NULL, _IONBF, 0);
   HANDLE hHeap = GetProcessHeap();
   _set_abort_behavior( 0, _WRITE_ABORT_MSG);
-  if (uArgumentsCount < 2) {
+  if (
+    uArgumentsCount < 2
+    || _tcsicmp(asArguments[1], _T("-h")) == 0
+    || _tcsicmp(asArguments[1], _T("-?")) == 0
+    || _tcsicmp(asArguments[1], _T("/h")) == 0
+    || _tcsicmp(asArguments[1], _T("/?")) == 0
+    || _tcsicmp(asArguments[1], _T("--help")) == 0
+  ) {
     _tprintf(_T("Usage:\r\n"));
     _tprintf(_T("  %s exception [arguments]\r\n"), asArguments[0]);
     _tprintf(_T("Exceptions and arguments:\r\n"));
