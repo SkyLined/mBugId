@@ -22,3 +22,6 @@
 [submodule "modules/mRegistry"]
 	path = modules/mRegistry
 	url = https://github.com/SkyLined/mRegistry/
+[submodule "modules/mHumanReadable"]
+	path = modules/mHumanReadable
+	url = https://github.com/SkyLined/mHumanReadable/
