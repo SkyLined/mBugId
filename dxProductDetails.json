@@ -1,11 +1,11 @@
 {
   "asDependentOnProductNames": [
-    "mMultiThreading",
-    "mProductDetails",
-    "mHumanReadable",
-    "mRegistry",
-    "mWindowsAPI",
-    "mWindowsSDK",
+    "mMultiThreading", 
+    "mProductDetails", 
+    "mHumanReadable", 
+    "mRegistry", 
+    "mWindowsAPI", 
+    "mWindowsSDK", 
     "mDateTime"
   ], 
   "asJavaScriptModuleNames": [], 
@@ -19,7 +19,7 @@
     "Python module"
   ], 
   "asPythonApplicationNames": [], 
-  "oProductVersion": "2021-03-01 18:46", 
+  "oProductVersion": "2021-04-15 11:38", 
   "oRepository": {
     "sBranch": "master", 
     "sRepositoryName": "cBugId", 
