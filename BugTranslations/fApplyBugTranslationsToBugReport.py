@@ -1,3 +1,4 @@
+from .Abandonment import aoBugTranslations as aoBugTranslations_Abandonment;
 from .ASan import aoBugTranslations as aoBugTranslations_ASan;
 from .chakra_dll import aoBugTranslations as aoBugTranslations_chakra_dll;
 from .Chrome import aoBugTranslations as aoBugTranslations_Chrome;
@@ -24,6 +25,7 @@ from .wil import aoBugTranslations as aoBugTranslations_wil;
 
 aoBugTranslations = [];
 for aoBugTranslations_X in [
+  aoBugTranslations_Abandonment,
   aoBugTranslations_ASan,
   aoBugTranslations_chakra_dll,
   aoBugTranslations_Chrome,
