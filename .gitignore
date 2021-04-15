@@ -5,6 +5,6 @@
 *.user
 *.filters
 *.pyc
-
+*.vs
 Tests/tmp/
 Tests/Reports/
