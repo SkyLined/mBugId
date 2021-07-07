@@ -1,20 +1,23 @@
-def cCdbWrapper_fuGetValueForRegister(oCdbWrapper, sRegister, sComment):
+
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+
+def cCdbWrapper_fuGetValueForRegister(oCdbWrapper, sbRegister, sb0Comment):
   # This is a register or pseudo-register: it's much faster to get these using the "r" command than printing them
   # as is done for other values:
-  asCommandOutput = oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = "r @%s;" % sRegister,
-    sComment = sComment,
+  asbCommandOutput = oCdbWrapper.fasbExecuteCdbCommand(
+    sbCommand = b"r @%s;" % sbRegister,
+    sb0Comment = sb0Comment,
   );
-  assert len(asCommandOutput) == 1, \
-      "Expected exactly one line in \"r\" command output:\r\n%s" % "\r\n".join(asCommandOutput);
-  asRegisterAndValueResult = asCommandOutput[0].split("=", 1);
-  assert len(asRegisterAndValueResult) == 2, \
-      "Missing \"=\" in result:\r\n%s" % "\r\n".join(asCommandOutput);
-  sRegisterResult, sValue = asRegisterAndValueResult;
-  assert sRegisterResult.lower() == sRegister.lower(), \
+  assert len(asbCommandOutput) == 1, \
+      "Expected exactly one line in \"r\" command output:\r\n%s" % b"\r\n".join(asbCommandOutput);
+  asbRegisterAndValueResult = asbCommandOutput[0].split(b"=", 1);
+  assert len(asbRegisterAndValueResult) == 2, \
+      "Missing \"=\" in result:\r\n%s" % b"\r\n".join(asbCommandOutput);
+  sbRegisterResult, sbValue = asbRegisterAndValueResult;
+  assert sbRegisterResult.lower() == sbRegister.lower(), \
       "Expected result to start with %s, not %s\r\n%s" % \
-      (repr(sRegister.lower() + "="), repr(sRegisterResult + "="), "\r\n".join(asCommandOutput));
+      (repr(sbRegister.lower() + "="), repr(sbRegisterResult + "="), b"\r\n".join(asbCommandOutput));
   try:
-    return long(sValue, 16);
+    return fu0ValueFromCdbHexOutput(sbValue);
   except:
-    raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sValue), sRegister, "\r\n".join(asCommandOutput)));
+    raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sbValue), sbRegister, b"\r\n".join(asbCommandOutput)));

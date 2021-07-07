@@ -5,28 +5,32 @@ def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
     "Package full name": oUWPApplication.sPackageFullName, 
   });
   # Kill it so we are sure to run a fresh copy.
-  asTerminateUWPApplicationOutput = oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = ".terminatepackageapp %s;" % oUWPApplication.sPackageFullName,
-    sComment = "Terminate UWP application %s" % oUWPApplication.sPackageName,
+  sbPackageName = bytes(oUWPApplication.sPackageName, 'latin1');
+  sbPackageFullName = bytes(oUWPApplication.sPackageFullName, 'latin1');
+  asbTerminateUWPApplicationOutput = oCdbWrapper.fasbExecuteCdbCommand(
+    sbCommand = b".terminatepackageapp %s;" % sbPackageFullName,
+    sb0Comment = b"Terminate UWP application %s" % sbPackageName,
   );
-  if asTerminateUWPApplicationOutput == [
-    "Failed - error: HRESULT 0x80010108",
-    "    \"The object invoked has disconnected from its clients.\"",
+  if asbTerminateUWPApplicationOutput == [
+    b"Failed - error: HRESULT 0x80010108",
+    b"    \"The object invoked has disconnected from its clients.\"",
   ]:
     # This suggest that the command was not executed successfully because an RPC channel broke. I'm trying to find out
     # if this can be solved by executing the command again (assuming a new RPC channel will get set up and this second
     # call will succeed). In order to find out, I will throw an assertion error either way and have the error message
     # report whether retrying is useful or not. If it is, this code should probably be in a loop that retries N times
     # until success, or reports an error if it still fails after that many tries.
-    asTerminateUWPApplicationOutput2 = oCdbWrapper.fasExecuteCdbCommand(
-      sCommand = ".terminatepackageapp %s;" % oUWPApplication.sPackageFullName,
-      sComment = "Terminate UWP application %s" % oUWPApplication.sPackageName,
+    asbTerminateUWPApplicationOutput2 = oCdbWrapper.fasbExecuteCdbCommand(
+      sbCommand = b".terminatepackageapp %s;" % sbPackageFullName,
+      sb0Comment = b"Terminate UWP application %s" % sbPackageName,
     );
-    assert asTerminateUWPApplicationOutput == asTerminateUWPApplicationOutput2, \
-        "Repeating the .terminatepackageapp command does not appear to be useful";
+    assert asbTerminateUWPApplicationOutput == asbTerminateUWPApplicationOutput2, \
+        "Cannot terminate UWP App and repeating the .terminatepackageapp command does not appear to be useful: %s" % \
+        b"\r\n".join(asbTerminateUWPApplicationOutput2);
     assert False, \
-        "Repeating the .terminatepackageapp command resulted in:\r\n%s" % "\r\n".join(asTerminateUWPApplicationOutput2);
-  if asTerminateUWPApplicationOutput:
-    assert asTerminateUWPApplicationOutput == ['The "terminatePackageApp" action will be completed on next execution.'], \
-        "Unexpected .terminatepackageapp output:\r\n%s" % "\r\n".join(asTerminateUWPApplicationOutput);
+        "Cannot terminate UWP App and repeating the .terminatepackageapp command gives an unknown error: %s" % \
+        b"\r\n".join(asbTerminateUWPApplicationOutput2);
+  if asbTerminateUWPApplicationOutput:
+    assert asbTerminateUWPApplicationOutput == [b'The "terminatePackageApp" action will be completed on next execution.'], \
+        "Unexpected .terminatepackageapp output:\r\n%s" % b"\r\n".join(asbTerminateUWPApplicationOutput);
 

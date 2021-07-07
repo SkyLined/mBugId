@@ -13,7 +13,7 @@ def cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper):
   # create a new thread and have it attempt to execute code at address 0. This will cause an access violation, which
   # will interrupt the application and cause cdb to report it. We can easily distinguish this exception from any other
   # exception caused by the target application because it will be reported to have happened in the utility process.
-  if not oCdbWrapper.bCdbRunning:
+  if not oCdbWrapper.bCdbIsRunning:
 #    print "Interrupt ignored: cdb not running...";
     return;
   if not oCdbWrapper.bApplicationIsRunning:

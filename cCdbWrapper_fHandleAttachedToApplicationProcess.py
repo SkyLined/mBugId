@@ -5,7 +5,7 @@ def cCdbWrapper_fHandleAttachedToApplicationProcess(oCdbWrapper):
   if dxConfig["bEnsurePageHeap"]:
     oCdbWrapper.oCdbCurrentProcess.fEnsurePageHeapIsEnabled();
   # This first application process we attach to for an UWP application is the main process.
-  if oCdbWrapper.oUWPApplication and not oCdbWrapper.bUWPApplicationStarted:
+  if oCdbWrapper.o0UWPApplication and not oCdbWrapper.bUWPApplicationStarted:
     oCdbWrapper.bUWPApplicationStarted = True;
     oCdbWrapper.auMainProcessIds.append(oCdbWrapper.oCdbCurrentProcess.uId);
     bIsMainProcess = True;
@@ -34,14 +34,14 @@ def cCdbWrapper_fHandleAttachedToApplicationProcess(oCdbWrapper):
   oCdbWrapper.fbFireCallbacks("Log message", "Process attached", {
     "Is main process": (bIsMainProcess and "yes" or "no",),
     "Process id": "0x%X" % (oCdbWrapper.oCdbCurrentProcess.uId,),
-    "Binary name": (oCdbWrapper.oCdbCurrentProcess.sBinaryName,),
-    "Command line": (oCdbWrapper.oCdbCurrentProcess.sCommandLine,),
+    "Binary name": oCdbWrapper.oCdbCurrentProcess.sBinaryName,
+    "Command line":oCdbWrapper.oCdbCurrentProcess.sCommandLine,
   });
   oCdbWrapper.fbFireCallbacks("Process attached", oCdbWrapper.oCdbCurrentProcess);
   
   # Make sure child processes of the new process are debugged as well.
-  oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = ".childdbg 1;",
-    sComment = "Debug child processes",
+  oCdbWrapper.fasbExecuteCdbCommand(
+    sbCommand = b".childdbg 1;",
+    sb0Comment = b"Debug child processes",
     bRetryOnTruncatedOutput = True,
   ); # TODO: check output

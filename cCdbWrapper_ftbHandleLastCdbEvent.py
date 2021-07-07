@@ -7,23 +7,54 @@ from .cErrorDetails import cErrorDetails;
 from .cException import cException;
 from .cProcess import cProcess;
 from .fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 
 # Return (bEventIsFatal, bEventHasBeenHandled)
 HIDE_EVENT_FROM_APPLICATION = (False, True);
 REPORT_EVENT_TO_APPLICATION = (False, False);
 STOP_DEBUGGING = (True, False);
-def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplication):
+
+grbLastEvent = re.compile(
+  rb"^"
+  rb"Last event: "
+  rb"(?:"
+    rb"<no event>"  # This means the application send debug output
+  rb"|"
+    rb"([0-9a-f]+)\.([0-9a-f]+): " # <process-id>.<thread-id>
+    rb"(?:"
+      rb"(Create|Exit) process [0-9a-f]+\:([0-9a-f]+)(?:, code [0-9a-f]+)?"
+    rb"|"
+      # After a VERIFIER STOP cdb sometimes reports this event instead of the expected
+      # debug breakpoint. The reason for this is unknown.
+      rb"(Ignored unload module at [0-9`a-f]+)" 
+    rb"|"
+      rb"(.*?) \- code ([0-9a-f]+) \(!*\s*(first|second) chance\s*!*\)"
+    rb"|"
+      rb"Hit breakpoint (\d+)"
+    rb")"
+  rb")"
+  rb"$",
+  re.I
+);
+
+grbDebuggerTime = re.compile(
+  rb"^\s*"
+  rb"debugger time: (.*?)"
+  rb"\s*$"
+);
+
+def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplication):
   ### Get information about the last event that caused cdb to pause execution ########################################
   # I have been experiencing a bug where the next command I want to execute (".lastevent") returns nothing. This
   # appears to be caused by an error while executing the command (without an error message) as subsequent commands
   # are not getting executed. As a result, the .printf that outputs the "end marker" is never executed and
-  # `fasReadOutput` detects this as an error in the command and throws an exception. This mostly just affects the
+  # `fasbReadOutput` detects this as an error in the command and throws an exception. This mostly just affects the
   # next command executed at this point, but I've also seen it affect the second, so I'm going to try and work
-  # around it by providing a `bRetryOnTruncatedOutput` argument that informs `fasExecuteCdbCommand` to
+  # around it by providing a `bRetryOnTruncatedOutput` argument that informs `fasbExecuteCdbCommand` to
   # detect this truncated output and try the command again for any command that we can safely execute twice.
-  asLastEventOutput = oCdbWrapper.fasExecuteCdbCommand(
-    sCommand = ".lastevent;",
-    sComment = "Get information about last event",
+  asbLastEventOutput = oCdbWrapper.fasbExecuteCdbCommand(
+    sbCommand = b".lastevent;",
+    sb0Comment = b"Get information about last event",
     bOutputIsInformative = True,
     bRetryOnTruncatedOutput = True,
   );
@@ -33,67 +64,47 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
   # - or -
   # |Last event: c74.10e8: Exit process 4:c74, code 0          
   # |  debugger time: Tue Aug 25 00:06:07.311 2015 (UTC + 2:00)
-  asCleanedLastEventOutput = [s for s in asLastEventOutput if s]; # Remove empty lines
-  assert len(asCleanedLastEventOutput) == 2, \
-    "Invalid .lastevent output:\r\n%s" % "\r\n".join(asLastEventOutput);
-  oEventMatch = re.match(
-    "^(?:%s)$" % "".join([
-      r"Last event: (?:",
-        r"<no event>",  # This means the application send debug output
-      r"|",
-        r"([0-9a-f]+)\.([0-9a-f]+): ",
-        r"(?:",
-          r"(Create|Exit) process [0-9a-f]+\:([0-9a-f]+)(?:, code [0-9a-f]+)?",
-        r"|",
-          r"(Ignored unload module at [0-9`a-f]+)", # Don't ask why cdb decides to report this, but I've seen it happen after a VERIFIER STOP.
-                                                   # and yes; it should just report a breakpoint instead... sigh.
-        r"|",
-          r"(.*?) \- code ([0-9a-f]+) \(!*\s*(first|second) chance\s*!*\)",
-        r"|",
-          r"Hit breakpoint (\d+)",
-        r")",
-      r")",
-    ]),
-    asCleanedLastEventOutput[0],
-    re.I
-  );
-  assert oEventMatch, \
-    "Invalid .lastevent output on line #1:\r\n%s" % "\r\n".join(asLastEventOutput);
+  asbCleanedLastEventOutput = [sbLine for sbLine in asbLastEventOutput if len(sbLine) != 0]; # Remove empty lines
+  assert len(asbCleanedLastEventOutput) == 2, \
+    "Invalid .lastevent output:\r\n%s" % b"\r\n".join(asbLastEventOutput);
+  obEventMatch = grbLastEvent.match(asbCleanedLastEventOutput[0]);
+  assert obEventMatch, \
+      "Invalid .lastevent output on line #1:\r\n%s" % b"\r\n".join(asbLastEventOutput);
   (
-    s0ProcessIdHex, s0ThreadIdHex,
-    s0CreateExitProcess, s0CreateExitProcessIdHex,
-    sIgnoredUnloadModule,
-    s0ExceptionCodeDescription, s0ExceptionCode, sChance,
-    s0BreakpointId,
-  ) = oEventMatch.groups();
+    sb0ProcessIdHex, sb0ThreadIdHex,
+    sb0CreateExitProcess, sb0CreateExitProcessIdHex,
+    sbIgnoredUnloadModule,
+    sb0ExceptionCodeDescription_Unused, sb0ExceptionCode, sbExceptionChance,
+    sb0BreakpointId,
+  ) = obEventMatch.groups();
   
   ### Parse information about application execution time #############################################################
-  oEventTimeMatch = re.match(r"^\s*debugger time: (.*?)\s*$", asCleanedLastEventOutput[1]);
-  assert oEventTimeMatch, \
-    "Invalid .lastevent output on line #2:\r\n%s" % "\r\n".join(asLastEventOutput);
+  obEventTimeMatch = grbDebuggerTime.match(asbCleanedLastEventOutput[1]);
+  assert obEventTimeMatch, \
+    "Invalid .lastevent output on line #2:\r\n%s" % b"\r\n".join(asbLastEventOutput);
   oCdbWrapper.oApplicationTimeLock.fAcquire();
   try:
     if oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds:
       # Add the time between when the application was resumed and when the event happened to the total application
       # run time.
-      oCdbWrapper.nConfirmedApplicationRunTimeInSeconds += fnGetDebuggerTimeInSeconds(oEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds;
+      oCdbWrapper.nConfirmedApplicationRunTimeInSeconds += fnGetDebuggerTimeInSeconds(obEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds;
     # Mark the application as suspended by setting nApplicationResumeDebuggerTimeInSeconds to None.
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;
     oCdbWrapper.nApplicationResumeTimeInSeconds = None;
   finally:
     oCdbWrapper.oApplicationTimeLock.fRelease();
   
-  if sIgnoredUnloadModule:              # Unload module event: we never requested this; ignore.
+  if sbIgnoredUnloadModule:              # Unload module event: we never requested this; ignore.
     return HIDE_EVENT_FROM_APPLICATION;
   
   ### Parse information about the process and thread or get it if not provided #######################################
   # If the event provides a process and thread id, use those. Otherwise ask cdb about the current process and thread.
-  if s0ProcessIdHex:
-    uProcessId = long(s0ProcessIdHex, 16);
-    uThreadId = long(s0ThreadIdHex, 16);
+  if sb0ProcessIdHex:
+    uProcessId = fu0ValueFromCdbHexOutput(sb0ProcessIdHex);
+    uThreadId = fu0ValueFromCdbHexOutput(sb0ThreadIdHex);
   else:
-    uProcessId = oCdbWrapper.fuGetValueForRegister("$tpid", "Get current process id");
-    uThreadId = oCdbWrapper.fuGetValueForRegister("$tid", "Get current thread id");
+    uProcessId = oCdbWrapper.fuGetValueForRegister(b"$tpid", b"Get current process id");
+    uThreadId = oCdbWrapper.fuGetValueForRegister(b"$tid", b"Get current thread id");
   
   ### Select the right process and thread and detect new processes #################################################
   # Sets `oCdbCurrentProcess`, `oCdbCurrentWindowsAPIThread`, and `sCdbCurrentISA`
@@ -115,33 +126,33 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
       oCdbWrapper.fHandleAttachedToApplicationProcess();
   
   ### Handle non-exception events ####################################################################################
-  if not s0ProcessIdHex:                # Application debug output events: handle.
+  if not sb0ProcessIdHex:                # Application debug output events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Application debug output");
-    oCdbWrapper.fHandleDebugOutputFromApplication(asOutputWhileRunningApplication);
+    oCdbWrapper.fHandleDebugOutputFromApplication(asbOutputWhileRunningApplication);
     return HIDE_EVENT_FROM_APPLICATION;
-  if s0BreakpointId is not None:        # Application hit a breakpoint events: handle.
+  if sb0BreakpointId is not None:        # Application hit a breakpoint events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Breakpoint hit");
-    oCdbWrapper.fHandleBreakpoint(long(s0BreakpointId));
+    oCdbWrapper.fHandleBreakpoint(int(sb0BreakpointId));
     return HIDE_EVENT_FROM_APPLICATION;
-  if s0CreateExitProcess == "Create":   # Create process events: already handled.
+  if sb0CreateExitProcess == b"Create":   # Create process events: already handled.
     oCdbWrapper.fbFireCallbacks("Application suspended", "New process created");
-    assert s0CreateExitProcessIdHex == s0ProcessIdHex, \
-      "s0CreateExitProcessIdHex (%s) is expected to be s0ProcessIdHex (%s)" % (s0CreateExitProcessIdHex, s0ProcessIdHex);
+    assert sb0CreateExitProcessIdHex == sb0ProcessIdHex, \
+      "sb0CreateExitProcessIdHex (%s) is expected to be sb0ProcessIdHex (%s)" % (sb0CreateExitProcessIdHex, sb0ProcessIdHex);
     return HIDE_EVENT_FROM_APPLICATION;
-  if s0CreateExitProcess == "Exit":     # Exit process events: handle.
+  if sb0CreateExitProcess == b"Exit":     # Exit process events: handle.
     oCdbWrapper.fbFireCallbacks("Application suspended", "Process terminated");
-    assert s0CreateExitProcessIdHex == s0ProcessIdHex, \
-      "s0CreateExitProcessIdHex (%s) is expected to be s0ProcessIdHex (%s)" % (s0CreateExitProcessIdHex, s0ProcessIdHex);
+    assert sb0CreateExitProcessIdHex == sb0ProcessIdHex, \
+      "sb0CreateExitProcessIdHex (%s) is expected to be sb0ProcessIdHex (%s)" % (sb0CreateExitProcessIdHex, sb0ProcessIdHex);
     assert uProcessId != oCdbWrapper.oUtilityProcess.uId, \
         "The utility process has terminated unexpectedly!";
     oCdbWrapper.fHandleCurrentApplicationProcessTermination();
     return HIDE_EVENT_FROM_APPLICATION;
   
   ### Handle exceptions ##############################################################################################
-  uExceptionCode = long(s0ExceptionCode, 16);
+  uExceptionCode = fu0ValueFromCdbHexOutput(sb0ExceptionCode);
   o0ErrorDetails = cErrorDetails.fo0GetForCode(uExceptionCode);
   sRelatedErrorDefineName = o0ErrorDetails.sDefineName if o0ErrorDetails else "unknown";
-  oCdbWrapper.fbFireCallbacks("Application suspended", "%s chance exception 0x%08X (%s)" % (sChance.capitalize(), uExceptionCode, sRelatedErrorDefineName));
+  oCdbWrapper.fbFireCallbacks("Application suspended", "%s chance exception 0x%08X (%s)" % (sbExceptionChance.capitalize(), uExceptionCode, sRelatedErrorDefineName));
 
   # Handle user pressing CTRL+C
   if uExceptionCode == DBG_CONTROL_C:  # User pressed CTRL+C event: terminate.
@@ -151,25 +162,24 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
   # Handle exceptions in utility process.
   if uProcessId == oCdbWrapper.oUtilityProcess.uId: # Exception in utility process: handle.
     if uExceptionCode != STATUS_BREAKPOINT or not bAttachedToProcess:
-      # This is not a breakpoint triggered because we attached to the utilityprocess.
+      # This is not a breakpoint triggered because we attached to the utility process.
       oCdbWrapper.fHandleExceptionInUtilityProcess(uExceptionCode, sRelatedErrorDefineName);
     return HIDE_EVENT_FROM_APPLICATION;
   
-  bApplicationCannotHandleException = sChance == "second";
-  oException = cException.foCreate(
+  bApplicationCannotHandleException = sbExceptionChance == b"second";
+  oException = cException.foCreateForLastExceptionInProcess(
     oProcess = oCdbWrapper.oCdbCurrentProcess,
-    uCode = uExceptionCode,
-    sCodeDescription = s0ExceptionCodeDescription,
+    uExpectedCode = uExceptionCode,
     bApplicationCannotHandleException = bApplicationCannotHandleException,
   );
-  if uExceptionCode == STATUS_BREAKPOINT and oException.uAddress in oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId.get(uProcessId, []):
+  if uExceptionCode == STATUS_BREAKPOINT and oException.u0Address in oCdbWrapper.dauOldBreakpointAddresses_by_uProcessId.get(uProcessId, []):
     # cdb appears to trigger int3s after the breakpoints have been removed, which we ignore.
     return HIDE_EVENT_FROM_APPLICATION;
   if (
     uExceptionCode == STATUS_BREAKPOINT
     and not bApplicationCannotHandleException
-    and oException.oFunction
-    and oException.oFunction.sName == "ntdll.dll!DbgBreakPoint"
+    and oException.o0Module and oException.o0Module.sb0BinaryName == b"ntdll.dll"
+    and oException.o0Function and oException.o0Function.sbSymbol == b"DbgBreakPoint"
   ):
     # I cannot seem to figure out how to stop cdb from triggering a ntdll!DbgUiRemoteBreakin in new processes. From
     # what I understand, using "sxi ibp" should do the trick but it does not appear to have any effect. I'll try to
@@ -183,6 +193,7 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
     oCdbWrapper.oReservedMemoryVirtualAllocation.fFree();
     oCdbWrapper.oReservedMemoryVirtualAllocation = None;
   o0BugReport = cBugReport.fo0CreateForException(
+    oCdbWrapper,
     oCdbWrapper.oCdbCurrentProcess,
     oCdbWrapper.oCdbCurrentWindowsAPIThread,
     oException,
@@ -196,7 +207,7 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asOutputWhileRunningApplicati
     return REPORT_EVENT_TO_APPLICATION;
 
   ### Report bug and see if the collateral bug handler can ignore it #################################################
-  o0BugReport.fReport(oCdbWrapper);
+  o0BugReport.fReport();
   # If we cannot ignore this bug, stop execution:
   if not oCdbWrapper.oCollateralBugHandler.fbTryToIgnoreException():
     return STOP_DEBUGGING;

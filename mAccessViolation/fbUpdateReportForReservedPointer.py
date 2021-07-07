@@ -14,11 +14,11 @@ def fbUpdateReportForReservedPointer(
         sBlockType = "reserved memory",
         uAddress = uAccessViolationAddress,
       );
-  oBugReport.sBugTypeId = "AV%s:Reserved%s%s" % (sViolationTypeId, sBlockSizeId, sBlockOffsetId);
-  oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
+  oBugReport.s0BugTypeId = "AV%s:Reserved%s%s" % (sViolationTypeId, sBlockSizeId, sBlockOffsetId);
+  oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while %s reserved but unallocated memory at 0x%X-0x%X." % \
       (uAccessViolationAddress, sViolationVerb, oVirtualAllocation.uStartAddress, \
       oVirtualAllocation.uStartAddress + oVirtualAllocation.uSize);
-  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
+  oBugReport.s0SecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
       "memory be allocated at the address rather than reserved.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
     fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)

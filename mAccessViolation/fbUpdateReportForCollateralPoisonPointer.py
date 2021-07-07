@@ -10,10 +10,10 @@ def fbUpdateReportForCollateralPoisonPointer(
     return False;
   sSign = iOffset < 0 and "-" or "+";
   sOffset = "%s%s" % (sSign, fsGetNumberDescription(abs(iOffset), sSign));
-  oBugReport.sBugTypeId = "AV%s:Poison%s" % (sViolationTypeId, sOffset);
-  oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using a poisoned value provided by cBugId." % \
+  oBugReport.s0BugTypeId = "AV%s:Poison%s" % (sViolationTypeId, sOffset);
+  oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using a poisoned value provided by cBugId." % \
     (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress);
-  oBugReport.sSecurityImpact = "Highly likely to be an exploitable security issue if your exploit can poison this value.";
+  oBugReport.s0SecurityImpact = "Highly likely to be an exploitable security issue if your exploit can poison this value.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
     fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
   );

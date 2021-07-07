@@ -1,19 +1,33 @@
 import os, re, traceback;
-from cBugId import cBugId;
-from oConsole import oConsole;
-from cFileSystemItem import cFileSystemItem;
+from mBugId import cBugId;
+from mConsole import oConsole;
+from mFileSystemItem import cFileSystemItem;
 import mGlobals;
 
-try:
-  import mDebugOutput;
-except:
-  mDebugOutput = None;
+try: # mDebugOutput use is Optional
+  import mDebugOutput as m0DebugOutput;
+except ModuleNotFoundError as oException:
+  if oException.args[0] != "No module named 'mDebugOutput'":
+    raise;
+  m0DebugOutput = None;
 
+NORMAL = 0x0F07;
+HILITE = 0x0F0F;
 ERROR = 0x0F0C;
-WARN = 0x0F0E;
+WARN = 0x0F06;
+WARN_INFO = 0x0F0E;
 
 mGlobals.bLicenseWarningsShown = False;
 
+def fOutputStack(oStack):
+  oConsole.fOutput(HILITE, "  Stack:");
+  for oStackFrame in oStack.aoFrames:
+    oConsole.fOutput(
+      NORMAL, "  \u2022 ",
+      NORMAL if oStackFrame.bHidden else HILITE, str(oStackFrame.sb0UniqueAddress or b"---", 'ascii'),
+      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else HILITE, str(oStackFrame.sbCdbSymbolOrAddress, 'ascii'), NORMAL, ")",
+      [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
+    );
 
 def fRunASingleTest(
   sISA,
@@ -21,7 +35,8 @@ def fRunASingleTest(
   asExpectedBugIdAndLocations,
   sExpectedFailedToDebugApplicationErrorMessage = None,
   bRunInShell = False,
-  sApplicationBinaryPath = None,
+  s0ApplicationBinaryPath = None,
+  bASan = False,
   uMaximumNumberOfBugs = 2,
   bExcessiveCPUUsageChecks = False
 ):
@@ -31,8 +46,13 @@ def fRunASingleTest(
                         or ("0x%X" % x)
     for x in axCommandLineArguments
   ] or [];
-  if sApplicationBinaryPath is None:
-    sApplicationBinaryPath = mGlobals.dsTestsBinaries_by_sISA[sISA];
+  assert s0ApplicationBinaryPath is None or not bASan, \
+      "Setting bASan when supplying an application binary path makes no sense";
+  sApplicationBinaryPath = (
+    s0ApplicationBinaryPath if s0ApplicationBinaryPath is not None else 
+    mGlobals.dsASanTestsBinaries_by_sISA[sISA] if bASan else
+    mGlobals.dsTestsBinaries_by_sISA[sISA]
+  );
   asCommandLine = [sApplicationBinaryPath] + asApplicationArguments;
   sFailedToDebugApplicationErrorMessage = None;
   if sExpectedFailedToDebugApplicationErrorMessage:
@@ -41,8 +61,9 @@ def fRunASingleTest(
       repr(sExpectedFailedToDebugApplicationErrorMessage)
     );
   else:
-    sTestDescription = "%s %s%s => %s" % (
+    sTestDescription = "%s%s %s%s => %s" % (
       sISA,
+      " ASan" if bASan else "",
       " ".join(asApplicationArguments), \
       bRunInShell and " (in child process)" or "",
       asExpectedBugIdAndLocations and " => ".join(asExpectedBugIdAndLocations) or "no bugs"
@@ -61,13 +82,16 @@ def fRunASingleTest(
     oConsole.fStatus("* %s" % sTestDescription);
   
   asLog = [];
-  def fCdbStdInInputCallback(oBugId, sInput):
+  def fCdbStdInInputCallback(oBugId, sbInput):
+    sInput = str(sbInput, 'latin1');
     if mGlobals.bShowCdbIO: oConsole.fOutput("stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
-  def fCdbStdOutOutputCallback(oBugId, sOutput):
+  def fCdbStdOutOutputCallback(oBugId, sbOutput):
+    sOutput = str(sbOutput, 'latin1');
     if mGlobals.bShowCdbIO: oConsole.fOutput("stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
-  def fCdbStdErrOutputCallback(oBugId, sOutput):
+  def fCdbStdErrOutputCallback(oBugId, sbOutput):
+    sOutput = str(sbOutput, 'latin1');
     if mGlobals.bShowCdbIO: oConsole.fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
@@ -140,16 +164,16 @@ def fRunASingleTest(
     asLog.append("Finished");
   def fLicenseWarningsCallback(oBugId, asLicenseWarnings):
     if not mGlobals.bLicenseWarningsShown:
-      oConsole.fOutput(WARN, "@" * 80);
+      oConsole.fOutput(WARN, "\u2554\u2550\u2550[ ", WARN_INFO, "License warning", WARN, " ]", sPadding = "\u2550");
       for sLicenseWarning in asLicenseWarnings:
-        oConsole.fOutput(WARN, "@ %s" % sLicenseWarning);
-      oConsole.fOutput(WARN, "@" * 80);
+        oConsole.fOutput(WARN, "\u2551 ", WARN_INFO, sLicenseWarning);
+      oConsole.fOutput(WARN, "\u255A", sPadding = "\u2550");
       mGlobals.bLicenseWarningsShown = True;
   def fLicenseErrorsCallback(oBugId, asLicenseErrors):
-    oConsole.fOutput(ERROR, "@" * 80);
+    oConsole.fOutput(ERROR, "\u2554\u2550\u2550[ ", ERROR_INFO, "License warning", ERROR, " ]", sPadding = "\u2550");
     for sLicenseError in asLicenseErrors:
-      oConsole.fOutput(ERROR, "@ %s" % sLicenseError);
-    oConsole.fOutput(ERROR, "@" * 80);
+      oConsole.fOutput(ERROR, "\u2551 ", ERROR_INFO, sLicenseError);
+    oConsole.fOutput(ERROR, "\u255A", sPadding = "\u2550");
     os._exit(1);
   
   def fInternalExceptionCallback(oBugId, oThread, oException, oTraceBack):
@@ -157,8 +181,9 @@ def fRunASingleTest(
       for sLine in asLog:
         oConsole.fOutput(sLine);
     oBugId.fStop();
-    if mDebugOutput:
-      mDebugOutput.fTerminateWithException(oException, oTraceBack, bShowStacksForAllThread = True);
+    if m0DebugOutput:
+      m0DebugOutput.fTerminateWithException(oException, oTraceBack, bShowStacksForAllThread = True);
+    raise oException;
   def fPageHeapNotEnabledCallback(oBugId, oProcess, bIsMainProcess, bPreventable):
     assert oProcess.sBinaryName == "cmd.exe", \
         "It appears you have not enabled page heap for %s, which is required to run tests." % oProcess.sBinaryName;
@@ -204,11 +229,11 @@ def fRunASingleTest(
   try:
     oBugId = cBugId(
       sCdbISA = sISA, # Debug with a cdb.exe for an ISA that matches the target process.
-      sApplicationBinaryPath = sApplicationBinaryPath,
+      s0ApplicationBinaryPath = sApplicationBinaryPath,
       asApplicationArguments = asApplicationArguments,
-      asSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
+      a0sSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
       bGenerateReportHTML = mGlobals.bGenerateReportHTML,
-      uTotalMaxMemoryUse = mGlobals.uTotalMaxMemoryUse,
+      u0TotalMaxMemoryUse = mGlobals.uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
     oBugId.fAddCallback("Application resumed", fApplicationResumedCallback);
@@ -255,19 +280,21 @@ def fRunASingleTest(
         if not sExpectedBugIdAndLocation and not oBugReport:
           break;
         uCounter += 1;
-        oConsole.fOutput("  Expected #%d: %s" % (uCounter, sExpectedBugIdAndLocation));
-        oConsole.fOutput("  Reported   : %s" % (oBugReport and "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation)));
+        oConsole.fOutput("  Expected #%d: %s" % (uCounter, repr(sExpectedBugIdAndLocation)));
+        oConsole.fOutput("  Reported   : %s" % repr(oBugReport and "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation)));
         if oBugReport:
-          oConsole.fOutput("               %s" % oBugReport.sBugDescription);
+          oConsole.fOutput("               %s" % repr(oBugReport.s0BugDescription));
     if sExpectedFailedToDebugApplicationErrorMessage:
       pass;
     elif asExpectedBugIdAndLocations is None:
       uCounter = 0;
+      oConsole.fOutput("* Test results for: %s" % sTestDescription);
       for oBugReport in aoBugReports:
         uCounter += 1;
         sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
-        oConsole.fOutput("* Test result for: %s" % sTestDescription);
-        oConsole.fOutput("  Test bug #%d: %s." % (uCounter, sBugIdAndLocation));
+        oConsole.fOutput("  Test bug #%d: %s." % (uCounter, repr(sBugIdAndLocation)));
+        if oBugReport.o0Stack:
+          fOutputStack(oBugReport.o0Stack);
     elif asExpectedBugIdAndLocations:
       if len(aoBugReports) != len(asExpectedBugIdAndLocations):
         if not mGlobals.bShowCdbIO: 
@@ -283,20 +310,17 @@ def fRunASingleTest(
           sExpectedBugIdAndLocation = asExpectedBugIdAndLocations[uCounter];
           uCounter += 1;
           sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
-          if sExpectedBugIdAndLocation[0] == "*": # string contains a regular expression
-            # Remove "*" and insert (escaped) test binary name in location
-            sExpectedBugIdAndLocation = "^(%s)$" % sExpectedBugIdAndLocation[1:].replace("<test-binary>", re.escape(sTestBinaryName));
-            bSuccess = re.match(sExpectedBugIdAndLocation, sBugIdAndLocation);
-          else:
-            sExpectedBugIdAndLocation = sExpectedBugIdAndLocation.replace("<test-binary>", sTestBinaryName);
-            bSuccess = sBugIdAndLocation == sExpectedBugIdAndLocation;
+          rExpectedBugIdAndLocation = re.compile("^(%s)$" % sExpectedBugIdAndLocation.replace("<binary>", re.escape(sTestBinaryName)));
+          bSuccess = rExpectedBugIdAndLocation.match(sBugIdAndLocation);
           if not bSuccess:
             if not mGlobals.bShowCdbIO: 
               for sLine in asLog:
                 oConsole.fOutput(ERROR, sLine);
             oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
-            oConsole.fOutput(ERROR, "  Test bug #%d does not match %s." % (uCounter, sExpectedBugIdAndLocation));
+            oConsole.fOutput(ERROR, "  Test bug #%d does not match %s." % (uCounter, repr(sExpectedBugIdAndLocation)));
             fDumpExpectedAndReported()
+            if oBugReport.o0Stack:
+              fOutputStack(oBugReport.o0Stack);
             raise AssertionError("Test reported unexpected Bug Id and/or Location.");
     if mGlobals.bSaveReportHTML:
       for oBugReport in aoBugReports:
@@ -306,12 +330,13 @@ def fRunASingleTest(
         sValidReportFileName = cFileSystemItem.fsGetValidName(sDesiredReportFileName, bUseUnicodeHomographs = False);
         sReportsFilePath = os.path.join(mGlobals.sReportsFolderPath, sValidReportFileName);
         oReportFile = cFileSystemItem(sReportsFilePath);
+        sbReportHTML = bytes(oBugReport.sReportHTML, "utf-8");
         if oReportFile.fbIsFile(bParseZipFiles = True):
-          oReportFile.fbWrite(oBugReport.sReportHTML, bKeepOpen = False, bParseZipFiles = True, bThrowErrors = True);
+          oReportFile.fbWrite(sbReportHTML, bKeepOpen = False, bParseZipFiles = True, bThrowErrors = True);
         else:
-          oReportFile.fbCreateAsFile(oBugReport.sReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False, bThrowErrors = True);
+          oReportFile.fbCreateAsFile(sbReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False, bThrowErrors = True);
         oConsole.fOutput("  Wrote report: %s" % sReportsFilePath);
-  except Exception, oException:
+  except Exception as oException:
     if bBugIdStarted and not bBugIdStopped:
       oBugId.fTerminate();
     oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
@@ -320,5 +345,5 @@ def fRunASingleTest(
   finally:
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput("* Finished %s" % sTestDescription);
-    else:
+    elif asExpectedBugIdAndLocations is not None:
       oConsole.fOutput("+ %s" % sTestDescription);

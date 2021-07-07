@@ -1,0 +1,60 @@
+from .cBugTranslation import cBugTranslation;
+
+aoBugTranslations = [
+  # IntegerOverflow -> hide irrelevant frames
+  cBugTranslation(
+    asrbAdditionalIrrelevantStackFrameSymbols = [
+      rb".*!SafeIntExceptionHandler<.+>::SafeIntOnOverflow",
+      rb".*!msl::utilities::SafeIntErrorPolicy_SafeIntException::SafeIntOnOverflow",
+    ],
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"C\+\+:msl::utilities::SafeIntException",
+    s0zTranslatedBugTypeId = "SafeInt",
+    s0zTranslatedBugDescription = "The application attempted to store an integer value in an integer type that cannot contain this value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"SafeInt",
+    azsrbAppliesOnlyToTopStackFrame = [
+      rb".*!msl::utilities::SafeInt<.+>::operator\+\+",
+    ],
+    s0zTranslatedBugTypeId = "IntegerOverflow",
+    s0zTranslatedBugDescription = "The application attempted to increase an integer above its maxium value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"SafeInt",
+    azsrbAppliesOnlyToTopStackFrame = [
+      rb".*!msl::utilities::SafeInt<.+>::operator\-\-",
+    ],
+    s0zTranslatedBugTypeId = "IntegerUnderflow",
+    s0zTranslatedBugDescription = "The application attempted to decrease an integer below its minimum value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"SafeInt",
+    azsrbAppliesOnlyToTopStackFrame = [
+      rb".*!msl::utilities::details::MultiplicationHelper<.+>::Multiply",
+    ],
+    asrbAdditionalIrrelevantStackFrameSymbols = [
+      rb".*!msl::utilities::SafeInt<...>::operator\*=<.+>",
+    ],
+    s0zTranslatedBugTypeId = "IntegerTruncation",
+    s0zTranslatedBugDescription = "The application attempted to store the result of a multiplication in an integer that cannot contain this value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"SafeInt",
+    azsrbAppliesOnlyToTopStackFrame = [
+      rb".*!msl::utilities::details::SafeCastHelper<.+>::Cast",
+    ],
+    asrbAdditionalIrrelevantStackFrameSymbols = [
+      rb".*!msl::utilities::SafeInt<.+>::SafeInt<.+><.+>",
+      rb".*!msl::utilities::SafeInt<.+>::operator=<.+>",
+    ],
+    s0zTranslatedBugTypeId = "IntegerTruncation",
+    s0zTranslatedBugDescription = "The application attempted to store a value in an integer that cannot contain this value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+];

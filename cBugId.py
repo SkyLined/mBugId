@@ -40,41 +40,41 @@ class cBugId(object):
   
   def __init__(oBugId,
     sCdbISA = None, # Which version of cdb should be used to debug this application? Try not to use; could lead to bad bug reports!
-    sApplicationBinaryPath = None,
-    auApplicationProcessIds = None,
+    s0ApplicationBinaryPath = None,
+    a0uApplicationProcessIds = None,
     u0JITDebuggerEventId = None,
-    oUWPApplication = None,
-    asApplicationArguments = None,
-    asLocalSymbolPaths = None,
-    asSymbolCachePaths = None, 
-    asSymbolServerURLs = None,
-    dsURLTemplate_by_srSourceFilePath = None,
+    o0UWPApplication = None,
+    asApplicationArguments = [],
+    asLocalSymbolPaths = [],
+    a0sSymbolCachePaths = None, 
+    a0sSymbolServerURLs = None,
+    d0sURLTemplate_by_srSourceFilePath = None,
     bGenerateReportHTML = False,
-    uProcessMaxMemoryUse = None,
-    uTotalMaxMemoryUse = None,
+    u0ProcessMaxMemoryUse = None,
+    u0TotalMaxMemoryUse = None,
     uMaximumNumberOfBugs = 1,
   ):
     oBugId.__oRunningLock = cLock(bLocked = True);
     oBugId.__bStarted = False;
-    oBugId.oUWPApplication = oUWPApplication;
+    oBugId.o0UWPApplication = o0UWPApplication;
     # If a bug was found, this is set to the bug report, if no bug was found, it is set to None.
     # It is not set here in order to detect when code does not properly wait for cBugId to terminate before
     # attempting to read the report.
     # Run the application in a debugger and catch exceptions.
     oBugId.__oCdbWrapper = cCdbWrapper(
       sCdbISA = sCdbISA,
-      sApplicationBinaryPath = sApplicationBinaryPath,
-      auApplicationProcessIds = auApplicationProcessIds,
+      s0ApplicationBinaryPath = s0ApplicationBinaryPath,
+      a0uApplicationProcessIds = a0uApplicationProcessIds,
       u0JITDebuggerEventId = u0JITDebuggerEventId,
-      oUWPApplication = oBugId.oUWPApplication,
+      o0UWPApplication = oBugId.o0UWPApplication,
       asApplicationArguments = asApplicationArguments,
       asLocalSymbolPaths = asLocalSymbolPaths,
-      asSymbolCachePaths = asSymbolCachePaths,
-      asSymbolServerURLs = asSymbolServerURLs,
-      dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath,
+      a0sSymbolCachePaths = a0sSymbolCachePaths,
+      a0sSymbolServerURLs = a0sSymbolServerURLs,
+      d0sURLTemplate_by_srSourceFilePath = d0sURLTemplate_by_srSourceFilePath,
       bGenerateReportHTML = bGenerateReportHTML,
-      uProcessMaxMemoryUse = uProcessMaxMemoryUse,
-      uTotalMaxMemoryUse = uTotalMaxMemoryUse,
+      u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse,
+      u0TotalMaxMemoryUse = u0TotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
     # Once we're done, release the "running" lock
@@ -134,6 +134,7 @@ class cBugId(object):
     # but this was not possible before.
     if sEventName in [
       "Application debug output", # (cProcess oProcess, str[] asOutput)
+      "ASan detected", # (cProcess oProcess)
       "Failed to apply application memory limits", # (cProcess oProcess)
       "Failed to apply process memory limits", # (cProcess oProcess)
       "Page heap not enabled", # (cProcess oProcess, bool bPreventable)

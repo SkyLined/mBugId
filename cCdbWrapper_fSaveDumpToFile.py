@@ -1,11 +1,12 @@
+from mNotProvided import *;
+
 def cCdbWrapper_fSaveDumpToFile(oCdbWrapper, sFilePath, bOverwrite, bFull):
-  assert isinstance(sFilePath, str), \
-      "sFilePath must be a string, not %s" % repr(sFilePath);
-  asFlags = [s for s in [
-    "/o" if bOverwrite else None,
-    "/mAfFhuty" if bFull else "/miR",
+  fAssertType("sFilePath", sFilePath, str);
+  asbFlags = [s for s in [
+    b"/o" if bOverwrite else None,
+    b"/mAfFhuty" if bFull else b"/miR",
   ] if s];
-  oCdbWrapper.fasExecuteCdbCommand( \
-    sCommand = ".dump %s \"%s\";" % (" ".join(asFlags), sFilePath),
-    sComment = "Save dump to file",
+  oCdbWrapper.fasbExecuteCdbCommand( \
+    sbCommand = b".dump %s \"%s\";" % (b" ".join(asbFlags), bytes(sFilePath, 'latin1')),
+    sb0Comment = b"Save dump to file",
   );

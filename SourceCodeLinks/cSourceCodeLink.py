@@ -1,20 +1,17 @@
 import re;
 
 class cSourceCodeLink(object):
-  def __init__(oSourceCodeLink, srPathHeader, sFileOnlyURLTemplate, sFileAndLineNumberURLTemplate = None):
-    oSourceCodeLink.rPathHeader = re.compile(srPathHeader, re.I);
-    oSourceCodeLink.sFileOnlyURLTemplate = sFileOnlyURLTemplate;
-    oSourceCodeLink.sFileAndLineNumberURLTemplate = sFileAndLineNumberURLTemplate or sFileOnlyURLTemplate;
+  def __init__(oSelf, srbPathHeader, sbFileOnlyURLTemplate, sbFileAndLineNumberURLTemplate = None):
+    oSelf.rbPathHeader = re.compile(srbPathHeader, re.I);
+    oSelf.sbFileOnlyURLTemplate = sbFileOnlyURLTemplate;
+    oSelf.sbFileAndLineNumberURLTemplate = sbFileAndLineNumberURLTemplate or sbFileOnlyURLTemplate;
   
-  def fsGetURL(oSourceCodeLink, sPath, uLineNumber):
-    oMatch = oSourceCodeLink.rPathHeader.match(sPath);
+  def fsbGetURL(oSelf, sbPath, u0LineNumber):
+    oMatch = oSelf.rbPathHeader.match(sbPath);
     if not oMatch:
       return;
-    return (
-      uLineNumber is None
-          and oSourceCodeLink.sFileOnlyURLTemplate
-          or oSourceCodeLink.sFileAndLineNumberURLTemplate
-    ) % {
-      "path": sPath[oMatch.end():].replace("\\", "/"),
-      "line_number": uLineNumber,
+    sbURLTemplate = oSelf.sbFileOnlyURLTemplate if u0LineNumber is None else oSelf.sbFileAndLineNumberURLTemplate;
+    return sbURLTemplate % {
+      b"path": sbPath[oMatch.end():].replace(b"\\", b"/"),
+      b"line_number": None if u0LineNumber is None else b"%d" % u0LineNumber,
     };

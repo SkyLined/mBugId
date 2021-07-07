@@ -1,25 +1,28 @@
 import re;
 
-gsrIgnoredErrors = r"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$";
-def cProcess_fuGetAddressForSymbol(oProcess, sSymbol):
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+
+grbIgnoredErrors = re.compile(rb"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$");
+
+def cProcess_fuGetAddressForSymbol(oProcess, sbSymbol):
   # Get the address of the symbol without the offset:
-  asCommandOutput = oProcess.fasExecuteCdbCommand(
-    sCommand = '.printf "%%p\\n", @!"%s";' % sSymbol,
-    sComment = "Get address for symbol",
-    srIgnoredErrors = gsrIgnoredErrors,
+  asbCommandOutput = oProcess.fasbExecuteCdbCommand(
+    sbCommand = b'.printf "%%p\\n", @!"%s";' % sbSymbol,
+    sb0Comment = b"Get address for symbol",
+    rb0IgnoredErrors = grbIgnoredErrors,
   );
   uValueAtIndex = 0;
-  if len(asCommandOutput) == 2 and asCommandOutput[0].startswith("Unable to read dynamic function table entry at "):
+  if len(asbCommandOutput) == 2 and asbCommandOutput[0].startswith(b"Unable to read dynamic function table entry at "):
     # It looks like we can safely ignore this error: the next line should contain the value.
     uValueAtIndex = 1;
   else:
-    assert len(asCommandOutput) == 1, \
-        "Expected only one line in value result:\r\n%s" % "\r\n".join(asCommandOutput);
-  if re.match(gsrIgnoredErrors, asCommandOutput[uValueAtIndex]):
+    assert len(asbCommandOutput) == 1, \
+        "Expected only one line in value result:\r\n%s" % "\r\n".join(asbCommandOutput);
+  if grbIgnoredErrors.match(asbCommandOutput[uValueAtIndex]):
     return None;
   try:
-    return long(asCommandOutput[uValueAtIndex], 16);
+    return fu0ValueFromCdbHexOutput(asbCommandOutput[uValueAtIndex]);
   except:
     raise AssertionError("Cannot parse value %s for %s on line %s: %s\r\n%s" % \
-        (repr(asCommandOutput[uValueAtIndex]), repr(sSymbol), uValueAtIndex + 1, asCommandOutput[uValueAtIndex], \
-        "\r\n".join(asCommandOutput)));
+        (repr(asbCommandOutput[uValueAtIndex]), repr(sbSymbol), uValueAtIndex + 1, asbCommandOutput[uValueAtIndex], \
+        b"\r\n".join(asbCommandOutput)));

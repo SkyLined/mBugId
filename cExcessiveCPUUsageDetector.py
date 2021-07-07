@@ -1,12 +1,33 @@
 import re, threading;
-from .cBugReport import cBugReport;
-from .dxConfig import dxConfig;
+
 from mMultiThreading import cLock;
 
-bDebugOutput = False;
-bDebugOutputCalculation = False;
-bDebugOutputGetUsageData = False;
-bDebugOutputWorm = False;
+from .cBugReport import cBugReport;
+from .dxConfig import dxConfig;
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+
+gbDebugOutput = False;
+gbDebugOutputCalculation = False;
+gbDebugOutputGetUsageData = False;
+gbDebugOutputWorm = False;
+
+grbThreadTimeHeader = re.compile(rb"^\s*Thread\s+Time\s*$");
+grbTimeTypesHeader = re.compile(rb"^\s*(User Mode Time|Kernel Mode Time|Elapsed Time)\s*$");
+grbThreadTime = re.compile(
+  rb"^\s*"            #
+  rb"\d+"             # index
+  rb":"               # ":"
+  rb"(\w+)"           # **thread-id**
+  rb"\s+"             # whitespace
+  rb"(\d+)"           # **days**
+  rb"\s+days\s+"      # whitespace "days" whitespace
+  rb"(\d\d?)"         # **hours**
+  rb":"               # ":"
+  rb"(\d\d)"          # **minutes**
+  rb":"               # ":"
+  rb"(\d\d\.\d\d\d)"  # **seconds "." milliseconds**
+  rb"\s*$"            #
+);
 
 class cExcessiveCPUUsageDetector(object):
   def __init__(oSelf, oCdbWrapper):
@@ -21,7 +42,7 @@ class cExcessiveCPUUsageDetector(object):
     oSelf.uBugBreakpointId = None;
   
   def fStartTimeout(oSelf, nTimeoutInSeconds):
-    if bDebugOutput: print "@@@ Starting excessive CPU usage checks in %d seconds..." % nTimeoutInSeconds;
+    if gbDebugOutput: print("@@@ Starting excessive CPU usage checks in %d seconds..." % nTimeoutInSeconds);
     oCdbWrapper = oSelf.oCdbWrapper;
     oSelf.oLock.fAcquire();
     try:
@@ -62,7 +83,7 @@ class cExcessiveCPUUsageDetector(object):
       if oSelf.oCleanupTimeout:
         oCdbWrapper.fClearTimeout(oSelf.oCleanupTimeout);
         oSelf.oCleanupTimeout = None;
-        if bDebugOutput: print "@@@ Cleaning up excessive CPU usage breakpoints...";
+        if gbDebugOutput: print("@@@ Cleaning up excessive CPU usage breakpoints...");
         if oSelf.oWormRunTimeout:
           oCdbWrapper.fClearTimeout(oSelf.oWormRunTimeout);
           oSelf.oWormRunTimeout = None;
@@ -81,7 +102,7 @@ class cExcessiveCPUUsageDetector(object):
     # cleanup happens if it has not already, and cancel the cleanup timeout if it has not yet fired.
     oSelf.bStarted = True;
     oSelf.fCleanup(oCdbWrapper);
-    if bDebugOutput: print "@@@ Start excessive CPU usage checks...";
+    if gbDebugOutput: print("@@@ Start excessive CPU usage checks...");
     oSelf.fGetUsageData();
     oSelf.oLock.fAcquire();
     try:
@@ -107,14 +128,14 @@ class cExcessiveCPUUsageDetector(object):
     nMaxCPUTimeInSeconds = 0;
     nMaxCPUUsagePercent = -1;
     nTotalCPUUsagePercent = 0;
-    if bDebugOutputCalculation:
-      print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
-      print "| Application run time: %.3f->%.3f=%.3f" % (nPreviousRunTimeInSeconds, nCurrentRunTimeInSeconds, nRunTimeInSeconds);
+    if gbDebugOutputCalculation:
+      print(",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-"));
+      print("| Application run time: %.3f->%.3f=%.3f" % (nPreviousRunTimeInSeconds, nCurrentRunTimeInSeconds, nRunTimeInSeconds));
     uMaxCPUProcessId = None;
     for (uProcessId, dnCurrentCPUTimeInSeconds_by_uThreadId) in ddnCurrentCPUTimeInSeconds_by_uThreadId_by_uProcessId.items():
-      if bDebugOutputCalculation:
-        print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
-        print "| %3s  %21s  %7s" % ("tid", "CPU time", "% Usage");
+      if gbDebugOutputCalculation:
+        print(("|--- Process 0x%X" % uProcessId).ljust(120, "-"));
+        print("| %3s  %21s  %7s" % ("tid", "CPU time", "% Usage"));
       dnPreviousCPUTimeInSeconds_by_uThreadId = ddnPreviousCPUTimeInSeconds_by_uThreadId_by_uProcessId.get(uProcessId, {});
       for (uThreadId, nCurrentCPUTimeInSeconds) in dnCurrentCPUTimeInSeconds_by_uThreadId.items():
         # nRunTimeInSeconds can be None due to a bug in cdb. In such cases, usage percentage cannot be calculated
@@ -133,34 +154,34 @@ class cExcessiveCPUUsageDetector(object):
             uMaxCPUThreadId = uThreadId;
         else:
           nCPUUsagePercent = None;
-        if bDebugOutputCalculation:
+        if gbDebugOutputCalculation:
           fsFormat = lambda nNumber: nNumber is None and " - " or ("%.3f" % nNumber);
-          print "| %4X  %6s->%6s=%6s  %6s%%" % (
+          print("| %4X  %6s->%6s=%6s  %6s%%" % (
             uThreadId,
             fsFormat(nPreviousCPUTimeInSeconds), fsFormat(nCurrentCPUTimeInSeconds), fsFormat(nCPUTimeInSeconds),
             fsFormat(nCPUUsagePercent),
-          );
+          ));
     if uMaxCPUProcessId is None:
-      if bDebugOutputCalculation:
-        print "|".ljust(120, "-");
-        print "| Insufficient data";
-        print "'".ljust(120, "-");
+      if gbDebugOutputCalculation:
+        print("|".ljust(120, "-"));
+        print("| Insufficient data");
+        print("'".ljust(120, "-"));
       return None, None, None, None;
-    if bDebugOutputCalculation:
-      print "|".ljust(120, "-");
-      print "| Total CPU usage: %d%%, max: %d%% for pid 0x%X, tid 0x%X" % \
-         (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId);
-      print "'".ljust(120, "-");
-    elif bDebugOutput:
-      print "*** Total CPU usage: %d%%, max: %d%% for pid %d, tid %d" % \
-          (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId);
+    if gbDebugOutputCalculation:
+      print("|".ljust(120, "-"));
+      print("| Total CPU usage: %d%%, max: %d%% for pid 0x%X, tid 0x%X" % \
+         (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId));
+      print("'".ljust(120, "-"));
+    elif gbDebugOutput:
+      print("*** Total CPU usage: %d%%, max: %d%% for pid %d, tid %d" % \
+          (nTotalCPUUsagePercent, nMaxCPUUsagePercent, uMaxCPUProcessId, uMaxCPUThreadId));
     # Rounding errors can give results > 100%. Fix that.
     if nTotalCPUUsagePercent > 100:
       nTotalCPUUsagePercent = 100.0;
     return uMaxCPUProcessId, uMaxCPUThreadId, nMaxCPUTimeInSeconds, nTotalCPUUsagePercent;
   
   def fCheckForExcessiveCPUUsage(oSelf, fCallback):
-    if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
+    if gbDebugOutput: print("@@@ Checking for excessive CPU usage...");
     # We need to gather CPU Usage data now, wait nIntervalInSeconds and get it again to see if any thread is
     # currently using a lot of CPU:
     oSelf.fGetUsageData();
@@ -186,7 +207,7 @@ class cExcessiveCPUUsageDetector(object):
     );
   
   def fCheckUsage(oSelf, oCdbWrapper):
-    if bDebugOutput: print "@@@ Checking for excessive CPU usage...";
+    if gbDebugOutput: print("@@@ Checking for excessive CPU usage...");
     oSelf.oLock.fAcquire();
     try:
       if oSelf.oCheckUsageTimeout is None:
@@ -209,21 +230,21 @@ class cExcessiveCPUUsageDetector(object):
     finally:
       oSelf.oLock.fRelease();
   
-  def fWormDebugOutput(oSelf, sMessage, *auArguments):
+  def fWormDebugOutput(oSelf, sbMessage, *auArguments):
     oCdbWrapper = oSelf.oCdbWrapper;
-    asDebugOutput = oCdbWrapper.fasExecuteCdbCommand(
-      sCommand = '.printf "CPUUsage worm: %s\\r\\n"%s;' % \
-          (sMessage, "".join([", 0x%X" % uArgument for uArgument in auArguments])),
-      sComment = None,
+    asbDebugOutput = oCdbWrapper.fasbExecuteCdbCommand(
+      sbCommand = b'.printf "CPUUsage worm: %s\\r\\n"%s;' % \
+          (sbMessage, b"".join([b", 0x%X" % uArgument for uArgument in auArguments])),
+      sb0Comment = None,
       bShowOutputButNotCommandInHTMLReport = True,
     );
-    assert len(asDebugOutput) == 1, "Unexpected output: %s" % repr(asDebugOutput);
-    if bDebugOutputWorm: print "@@@ %3.3f %s" % (oCdbWrapper.nApplicationRunTimeInSeconds, asDebugOutput[0]);
+    assert len(asbDebugOutput) == 1, "Unexpected output: %s" % repr(asbDebugOutput);
+    if gbDebugOutputWorm: print("@@@ %3.3f %s" % (oCdbWrapper.nApplicationRunTimeInSeconds, asbDebugOutput[0]));
   
   def fInstallWorm(oSelf, uProcessId, uThreadId, nTotalCPUUsagePercent):
     assert oSelf.oLock.bLocked, \
         "This method can only be called when the lock is acquired";
-    if bDebugOutput: print "@@@ Installing excessive CPU usage worm...";
+    if gbDebugOutput: print("@@@ Installing excessive CPU usage worm...");
     oCdbWrapper = oSelf.oCdbWrapper;
     
     # Excessive CPU usage is assumed to be caused by code running in a loop for too long, causing the function that
@@ -250,8 +271,8 @@ class cExcessiveCPUUsageDetector(object):
     oSelf.uProcessId = uProcessId;
     oSelf.uThreadId = uThreadId;
     oSelf.nTotalCPUUsagePercent = nTotalCPUUsagePercent;
-    u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
-    u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+    u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister(b"*ip");
+    u0StackPointer = oWormWindowsAPIThread.fu0GetRegister(b"*sp");
     # Perhaps some graceful handling may be in order if this happens often but I do not expect it to
     assert u0InstructionPointer is not None and u0StackPointer is not None, \
         "Cannot get Instruction and/or Stack Pointer";
@@ -260,20 +281,20 @@ class cExcessiveCPUUsageDetector(object):
 # Ideally, we'de use the return address here but for some unknown reason cdb may not give a valid value at this point.
 # However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return addres will be
 # correct... sigh.
-#    uReturnAddress = oSelf.oWormProcess.fuGetValueForRegister("$ra", "Get return address");
+#    uReturnAddress = oSelf.oWormProcess.fuGetValueForRegister(b"$ra", b"Get return address");
     uBreakpointAddress = uInstructionPointer; # uReturnAddress would be preferred.
     oSelf.fWormDebugOutput(
-      "Starting at IP=%p by creating a breakpoint at IP=%p, SP=%p...",
+      b"Starting at IP=%p by creating a breakpoint at IP=%p, SP=%p...",
       uInstructionPointer, uBreakpointAddress, uStackPointer
     );
     oSelf.uLastInstructionPointer = uInstructionPointer;
     oSelf.uLastStackPointer = uStackPointer;
     oSelf.uNextBreakpointAddress = uBreakpointAddress;
-    oSelf.uWormBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
+    oSelf.uWormBreakpointId = oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
+      uProcessId = oSelf.uProcessId,
       uAddress = uBreakpointAddress,
       fCallback = lambda uBreakpointId: oSelf.fMoveWormBreakpointUpTheStack(),
-      uProcessId = oSelf.uProcessId,
-      uThreadId = oSelf.uThreadId,
+      u0ThreadId = oSelf.uThreadId,
     );
     assert oSelf.uWormBreakpointId is not None, \
         "Could not create breakpoint at 0x%X" % oSelf.uLastInstructionPointer;
@@ -290,8 +311,8 @@ class cExcessiveCPUUsageDetector(object):
       oCdbWrapper.fSelectProcessIdAndThreadId(oSelf.uProcessId, oSelf.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       oWormWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
-      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
-      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister(b"*ip");
+      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister(b"*sp");
       # Perhaps some graceful handling may be in order if this happens often but I do not expect it to.
       assert u0InstructionPointer is not None and u0StackPointer is not None, \
           "Cannot get Instruction and/or Stack Pointer";
@@ -306,41 +327,41 @@ class cExcessiveCPUUsageDetector(object):
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer <= oSelf.uLastStackPointer:
         oSelf.fWormDebugOutput(
-          "Ignored breakpoint at IP=%p, SP=%p: SP but must be >%p",
+          b"Ignored breakpoint at IP=%p, SP=%p: SP but must be >%p",
           uInstructionPointer, uStackPointer, oSelf.uLastStackPointer
         );
         return;
-      uReturnAddress = oWormProcess.fuGetValueForRegister("$ra", "Get return address");
+      uReturnAddress = oWormProcess.fuGetValueForRegister(b"$ra", b"Get return address");
       if oSelf.uNextBreakpointAddress == uReturnAddress:
         oSelf.fWormDebugOutput(
-          "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by leaving breakpoint in place and adjusting expected SP...",
+          b"Moving from IP=%p, SP=%p to IP=%p, SP=%p, by leaving breakpoint in place and adjusting expected SP...",
           uInstructionPointer, oSelf.uLastStackPointer, uReturnAddress, uStackPointer
         );
         # This is a recursive call, the breakpoint does not need to be moved.
         oSelf.uLastStackPointer = uStackPointer;
       else:
         oSelf.fWormDebugOutput(
-          "Moving from IP=%p, SP=%p to IP=%p, SP=%p, by creating a new breakpoint...",
+          b"Moving from IP=%p, SP=%p to IP=%p, SP=%p, by creating a new breakpoint...",
           uInstructionPointer, oSelf.uLastStackPointer, uReturnAddress, uStackPointer,
         );
         # Try to move the breakpoint to the return addess:
-        uNewWormBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
+        uNewWormBreakpointId = oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
+          uProcessId = oSelf.uProcessId,
           uAddress = uReturnAddress,
           fCallback = lambda uBreakpointId: oSelf.fMoveWormBreakpointUpTheStack(),
-          uProcessId = oSelf.uProcessId,
-          uThreadId = oSelf.uThreadId,
+          u0ThreadId = oSelf.uThreadId,
         );
         if uNewWormBreakpointId is None:
           # Could not move breakpoint: the return address may be invalid.
           # Ignore this and continue to run; the unchanged breakpoint may get hit again and we get another try, or
           # the timeout fires and we get a stack.
           oSelf.fWormDebugOutput(
-            "Unable to create breakpoint at IP=%p: worm breakpoint remains at IP=%p, SP=%p...",
+            b"Unable to create breakpoint at IP=%p: worm breakpoint remains at IP=%p, SP=%p...",
             uReturnAddress, uInstructionPointer, oSelf.uLastStackPointer,
           );
         else:
           oSelf.fWormDebugOutput(
-            "Removing old breakpoint at IP=%p, SP=%p...",
+            b"Removing old breakpoint at IP=%p, SP=%p...",
             uInstructionPointer, oSelf.uLastStackPointer,
           );
           # Remove the old breakpoint.
@@ -365,32 +386,32 @@ class cExcessiveCPUUsageDetector(object):
     # dxConfig["nExcessiveCPUUsageWormRunTimeInSeconds"] seconds since the last breakpoint was hit: if there were many
     # breakpoints, this will not be the case. Doing so should improve the reliability of the result.
     oCdbWrapper = oSelf.oCdbWrapper;
-    if bDebugOutput: print "@@@ Worm run timeout: setting excessive CPU usage bug breakpoint...";
+    if gbDebugOutput: print("@@@ Worm run timeout: setting excessive CPU usage bug breakpoint...");
     oSelf.oLock.fAcquire();
     try:
       if oSelf.oWormRunTimeout is None:
         return; # Analysis was stopped because a new timeout was set.
       oSelf.oWormRunTimeout = None;
       oSelf.fWormDebugOutput(
-        "Run timeout; stopping worm and creating bug breakpoint...",
+        b"Run timeout; stopping worm and creating bug breakpoint...",
       );
       # Remove worm breakpoint
       oSelf.fWormDebugOutput(
-        "Removing old worm breakpoint at IP=%p, SP=%p...",
+        b"Removing old worm breakpoint at IP=%p, SP=%p...",
         oSelf.uLastInstructionPointer, oSelf.uLastStackPointer,
       );
       oCdbWrapper.fRemoveBreakpoint(oSelf.uWormBreakpointId);
       oSelf.uWormBreakpointId = None;
       # Set bug breakpoint
       oSelf.fWormDebugOutput(
-        "Creating bug breakpoint at IP=%p, SP=%p...",
+        b"Creating bug breakpoint at IP=%p, SP=%p...",
         oSelf.uLastInstructionPointer, oSelf.uLastStackPointer
       );
-      oSelf.uBugBreakpointId = oCdbWrapper.fuAddBreakpointForAddress(
+      oSelf.uBugBreakpointId = oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
+        uProcessId = oSelf.uProcessId,
         uAddress = oSelf.uLastInstructionPointer,
         fCallback = lambda uBreakpointId: oSelf.fReportCPUUsageBug(),
-        uProcessId = oSelf.uProcessId,
-        uThreadId = oSelf.uThreadId,
+        u0ThreadId = oSelf.uThreadId,
       );
       oSelf.uNextBreakpointAddress = oSelf.uLastInstructionPointer;
       assert oSelf.uBugBreakpointId is not None, \
@@ -405,8 +426,8 @@ class cExcessiveCPUUsageDetector(object):
       oCdbWrapper.fSelectProcessIdAndThreadId(oSelf.uProcessId, oSelf.uThreadId);
       oWormProcess = oCdbWrapper.oCdbCurrentProcess;
       oWormWindowsAPIThread = oCdbWrapper.oCdbCurrentWindowsAPIThread;
-      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister("*ip");
-      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister("*sp");
+      u0InstructionPointer = oWormWindowsAPIThread.fu0GetRegister(b"*ip");
+      u0StackPointer = oWormWindowsAPIThread.fu0GetRegister(b"*sp");
       # Perhaps some graceful handling may be in order if this happens often but I do not expect it to.
       assert u0InstructionPointer is not None and u0StackPointer is not None, \
           "Cannot get Instruction and/or Stack Pointer";
@@ -421,13 +442,13 @@ class cExcessiveCPUUsageDetector(object):
       # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer < oSelf.uLastStackPointer:
         oSelf.fWormDebugOutput(
-          "Ignored bug breakpoint at IP=%p, SP=%p: SP but must be >=%p",
+          b"Ignored bug breakpoint at IP=%p, SP=%p: SP but must be >=%p",
           uInstructionPointer, uStackPointer, oSelf.uLastStackPointer
         );
         return;
-      if bDebugOutput: print "@@@ Reporting excessive CPU usage bug...";
+      if gbDebugOutput: print("@@@ Reporting excessive CPU usage bug...");
       oSelf.fWormDebugOutput(
-        "Bug breakpoint at IP=%p, SP=%p is hit, removing breakpoint and reporting bug...",
+        b"Bug breakpoint at IP=%p, SP=%p is hit, removing breakpoint and reporting bug...",
         uInstructionPointer, uStackPointer,
       );
       # Remove the breakpoint
@@ -437,10 +458,10 @@ class cExcessiveCPUUsageDetector(object):
       sBugTypeId = "CPUUsage";
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
           (oSelf.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"]);
-      sSecurityImpact = None;
-      oBugReport = cBugReport.foCreate(oWormProcess, oWormWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact);
+      s0SecurityImpact = None;
+      oBugReport = cBugReport.foCreate(oCdbWrapper, oWormProcess, oWormWindowsAPIThread, sBugTypeId, sBugDescription, s0SecurityImpact);
       oBugReport.bRegistersRelevant = False;
-      oBugReport.fReport(oCdbWrapper);
+      oBugReport.fReport();
       oCdbWrapper.fStop();
     finally:
       oSelf.oLock.fRelease();
@@ -449,47 +470,47 @@ class cExcessiveCPUUsageDetector(object):
     oCdbWrapper = oSelf.oCdbWrapper;
     # Get the amount of CPU time each thread in each process has consumed
     ddnCPUTimeInSeconds_by_uThreadId_by_uProcessId = {};
-    sTimeType = None;
-    if bDebugOutputGetUsageData:
-      print ",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-");
+    sb0TimeType = None;
+    if gbDebugOutputGetUsageData:
+      print(",--- cExcessiveCPUUsageDetector.fGetUsageData ".ljust(120, "-"));
     for uProcessId in oCdbWrapper.doProcess_by_uId.keys():
-      if bDebugOutputGetUsageData:
-        print ("|--- Process 0x%X" % uProcessId).ljust(120, "-");
-        print "| %4s  %6s  %s" % ("tid", "time", "source line");
+      if gbDebugOutputGetUsageData:
+        print(("|--- Process 0x%X" % uProcessId).ljust(120, "-"));
+        print("| %4s  %6s  %s" % ("tid", "time", "source line"));
       oCdbWrapper.fSelectProcessId(uProcessId);
-      asThreadTimes = oCdbWrapper.fasExecuteCdbCommand(
-        sCommand = "!runaway 7;",
-        sComment = "Get CPU usage information",
+      asbThreadTimes = oCdbWrapper.fasbExecuteCdbCommand(
+        sbCommand = b"!runaway 7;",
+        sb0Comment = b"Get CPU usage information",
       );
       dnCPUTimeInSeconds_by_uThreadId = {};
       dnCPUTimeInSeconds_by_uThreadId = ddnCPUTimeInSeconds_by_uThreadId_by_uProcessId[uProcessId] = {};
-      for sLine in asThreadTimes:
-        if re.match(r"^\s*(Thread\s+Time)\s*$", sLine):
+      for sbLine in asbThreadTimes:
+        if grbThreadTimeHeader.match(sbLine):
           pass; # Header, ignored.
-        elif re.match(r"^\s*(User Mode Time|Kernel Mode Time|Elapsed Time)\s*$", sLine):
-          sTimeType = sLine.strip(); # Keep track of what type of type of times are being reported.
+        elif grbTimeTypesHeader.match(sbLine):
+          sb0TimeType = sbLine.strip(); # Keep track of what type of type of times are being reported.
         else:
-          assert sTimeType is not None, \
-              "Expected a header before values in %s.\r\n%s" % (sLine, "\r\n".join(asThreadTimes));
-          oThreadTime = re.match(r"^\s*\d+:(\w+)\s+ (\d+) days (\d\d?):(\d\d):(\d\d.\d\d\d)\s*$", sLine);
-          assert oThreadTime, \
-              "Unrecognized \"!runaway3\" output: %s\r\n%s" % (sLine, "\r\n".join(asThreadTimes));
-          sThreadId, sDays, sHours, sMinutes, sSecondsMilliseconds = oThreadTime.groups();
-          uThreadId = int(sThreadId, 16);
-          nTimeInSeconds = ((long(sDays) * 24 + long(sHours)) * 60 + long(sMinutes)) * 60 + float(sSecondsMilliseconds);
+          assert sb0TimeType is not None, \
+              "Expected a header before values in %s.\r\n%s" % (sbLine, b"\r\n".join(asbThreadTimes));
+          obThreadTimeMatch = grbThreadTime.match(sbLine);
+          assert obThreadTimeMatch, \
+              "Unrecognized \"!runaway3\" output: %s\r\n%s" % (sbLine, b"\r\n".join(asbThreadTimes));
+          (sbThreadId, sbDays, sbHours, sbMinutes, sbSecondsMilliseconds) = \
+            obThreadTimeMatch.groups();
+          uThreadId = fu0ValueFromCdbHexOutput(sbThreadId);
+          nTimeInSeconds = ((int(sbDays) * 24 + int(sbHours)) * 60 + int(sbMinutes)) * 60 + float(sbSecondsMilliseconds);
           if nTimeInSeconds >= 2000000000:
             # Due to a bug in !runaway, elapsed time sometimes gets reported as a very, very large number.
-            assert sTimeType == "Elapsed Time", \
-                "Unexpected large value for %s: %s\r\n%s" % (sTimeType, nTimeInSeconds, "\r\n".join(asThreadTimes));
+            assert sb0TimeType == b"Elapsed Time", \
+                "Unexpected large value for %s: %s\r\n%s" % (sb0TimeType, nTimeInSeconds, b"\r\n".join(asbThreadTimes));
             # In such cases, do not return a value for elapsed time.
             nTimeInSeconds = None;
-  # Use for debugging
-          if sTimeType == "User Mode Time":
+          if sb0TimeType == b"User Mode Time":
             dnCPUTimeInSeconds_by_uThreadId[uThreadId] = nTimeInSeconds;
-            if bDebugOutputGetUsageData: print "| %4X  %6s %s" % (uThreadId, nTimeInSeconds is None and "?" or ("%.3f" % nTimeInSeconds), repr(sLine));
-          elif sTimeType == "Kernel Mode Time":
+            if gbDebugOutputGetUsageData: print("| %4X  %6s %s" % (uThreadId, nTimeInSeconds is None and "?" or ("%.3f" % nTimeInSeconds), repr(sbLine)));
+          elif sb0TimeType == b"Kernel Mode Time":
             dnCPUTimeInSeconds_by_uThreadId[uThreadId] += nTimeInSeconds;
-            if bDebugOutputGetUsageData: print "| %4X  %6s %s" % (uThreadId, nTimeInSeconds is None and "?" or ("+%.3f" % nTimeInSeconds), repr(sLine));
-    if bDebugOutputGetUsageData: print "'".ljust(120, "-");
+            if gbDebugOutputGetUsageData: print("| %4X  %6s %s" % (uThreadId, nTimeInSeconds is None and "?" or ("+%.3f" % nTimeInSeconds), repr(sbLine)));
+    if gbDebugOutputGetUsageData: print("'".ljust(120, "-"));
     oSelf.ddnLastCPUTimeInSeconds_by_uThreadId_by_ProcessId = ddnCPUTimeInSeconds_by_uThreadId_by_uProcessId;
     oSelf.nLastRunTimeInSeconds = oCdbWrapper.nApplicationRunTimeInSeconds;

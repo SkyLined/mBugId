@@ -5,19 +5,18 @@ gbDebugIO = False; # Used for debugging cdb I/O issues
 def cCdbWrapper_fCdbStdErrHelperThread(oCdbWrapper):
   sLine = "";
   while 1:
-    try:
-      sLine = oCdbWrapper.oCdbConsoleProcess.oStdErrPipe.fsReadLine();
-    except IOError:
-      if gbDebugIO: print "\r<stderr:EOF<";
+    s0Line = oCdbWrapper.oCdbConsoleProcess.oStdErrPipe.fs0ReadLine();
+    if s0Line is None:
+      if gbDebugIO: print("\r<stderr:EOF<");
       oCdbWrapper.fbFireCallbacks("Log message", "Failed to read from cdb.exe stderr");
       break;
-    if gbDebugIO: print "\r<stderr<%s" % sLine;
+    if gbDebugIO: print("\r<stderr<%s" % s0Line);
     if oCdbWrapper.bGenerateReportHTML:
-      sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>\n" % oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8);
+      sLineHTML = "<span class=\"CDBStdErr\">%s</span><br/>\n" % oCdbWrapper.fsHTMLEncode(s0Line, uTabStop = 8);
       oCdbWrapper.sCdbIOHTML += sLineHTML;
     oCdbWrapper.fbFireCallbacks("Log message", "StdErr output", {
-      "Line": sLine,
+      "Line": s0Line,
     });
-    oCdbWrapper.fbFireCallbacks("Cdb stderr output", sLine);
-  oCdbWrapper.bCdbRunning = False;
+    oCdbWrapper.fbFireCallbacks("Cdb stderr output", s0Line);
+  oCdbWrapper.bCdbIsRunning = False;
 

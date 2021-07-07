@@ -21,11 +21,12 @@ def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oPro
       bUnicode = True,
     );
     # Get the stowed exceptions and replace information in the bug report:
-    oBugReport.sBugTypeId = "WRTOriginate[0x%X]" % hResult;
-    oBugReport.sBugDescription = "A Windows Run-Time Originate error was thrown with error code %X and message %s." % \
+    oBugReport.s0BugTypeId = "WRTOriginate[0x%X]" % hResult;
+    oBugReport.s0BugDescription = "A Windows Run-Time Originate error was thrown with error code %X and message %s." % \
         (hResult, json.dumps(s0Message) if s0Message else "<unknown>");
-    oBugReport.sSecurityImpact = "The security impact of this type of vulnerability is unknown";
+    oBugReport.s0SecurityImpact = "Unknown";
   else:
     # This is not a bug:
-    oBugReport.sBugTypeId = None;
+    oBugReport.s0BugTypeId = None;
+    oBugReport.s0BugDescription = None;
   return oBugReport;

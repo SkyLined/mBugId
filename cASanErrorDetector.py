@@ -1,5 +1,5 @@
 import re;
-from .cBugReport import cBugReport;
+
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
@@ -342,7 +342,7 @@ class cASanErrorDetector(object):
     # The ASan error message may be shown from the main process, rather than the process that triggered it. So, we will
     # scan all output for an error reported in oProcess
     for asOutput in oSelf.__dasStdErr_by_uProcessId.values():
-      for uStartIndex in xrange(len(asOutput) - 1):
+      for uStartIndex in range(len(asOutput) - 1):
         sLine = asOutput[uStartIndex];
         # Check for OOM report:
         oAllocatorFailMatch = re.match(
@@ -357,9 +357,9 @@ class cASanErrorDetector(object):
         );
         if oAllocatorFailMatch:
           # The process in which the OOM crash happened may not be the process in which it is reported.
-          oBugReport.sBugTypeId = "OOM";
-          oBugReport.sBugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.";
-          oBugReport.sSecurityImpact = None;
+          oBugReport.s0BugTypeId = "OOM";
+          oBugReport.s0BugDescription = "ASan triggered a breakpoint to indicate it was unable to allocate enough memory.";
+          oBugReport.s00SecurityImpact = None;
           return;
         # Check for memory corruption report:
         oSummaryMatch = re.match(
@@ -376,7 +376,7 @@ class cASanErrorDetector(object):
           re.I,
         );
         if oSummaryMatch:
-          assert long(oSummaryMatch.group(1)) == oProcess.uId, \
+          assert int(oSummaryMatch.group(1)) == oProcess.uId, \
               "Expected process id %s, got %s" % (oProcess.uId, oSummaryMatch.group(1));
           break;
       else:
@@ -394,8 +394,8 @@ class cASanErrorDetector(object):
       sSPHex,
       sThreadIndex, # "Tnnn" - not much use to us.
     ) = oSummaryMatch.groups();
-    uThreadId = sThreadId and long(sThreadId) or None;
-    uProblemAddress = long(sAddressHex, 16);
+    uThreadId = sThreadId and int(sThreadId) or None;
+    uProblemAddress = int(sAddressHex, 16);
     
     # Check if the end of the ERROR message is in the output:
     sErrorMessageHeader = uThreadId and ("==%d:%d==" % (oProcess.uId, uThreadId)) or ("==%d==" % oProcess.uId);
@@ -433,12 +433,12 @@ class cASanErrorDetector(object):
           sBlockSize, sBlockStartAddressHex, sBlockEndAddressHex,
           sVariableName, sVariableStartAddressHex, sVariableSize,
         ) = oAddressInfoMatch.groups();
-        assert uProblemAddress == long(sAddressHex, 16), \
+        assert uProblemAddress == int(sAddressHex, 16), \
             "Problem reported at address 0x%X, but information provided for address 0x%s" % (uProblemAddress, sAddressHex);
         if sBlockSize:
-          uBlockSize = long(sBlockSize);
-          uBlockStartAddress = long(sBlockStartAddressHex, 16);
-          uBlockEndAddress = long(sBlockEndAddressHex, 16);
+          uBlockSize = int(sBlockSize);
+          uBlockStartAddress = int(sBlockStartAddressHex, 16);
+          uBlockEndAddress = int(sBlockEndAddressHex, 16);
           assert uBlockEndAddress - uBlockStartAddress == uBlockSize, \
               "The memory block start (0x%X) and end (0x%X) address suggest a size (0x%X) that do not agree with the reported size (0x%X)" % \
               (uBlockStartAddress, uBlockEndAddress, uBlockEndAddress - uBlockStartAddress, uBlockSize);
@@ -450,8 +450,8 @@ class cASanErrorDetector(object):
             ("Memory block according to ASan", uBlockStartAddress, uBlockSize),
           );
         else:
-          uVariableStartAddress = long(sVariableStartAddressHex, 16);
-          uVariableSize = long(sVariableSize);
+          uVariableStartAddress = int(sVariableStartAddressHex, 16);
+          uVariableSize = int(sVariableSize);
           if uMemoryDumpStartAddress is None or uVariableStartAddress < uMemoryDumpStartAddress:
             uMemoryDumpStartAddress = uVariableStartAddress;
           if uMemoryDumpEndAddress is None or uVariableStartAddress + uVariableSize > uMemoryDumpEndAddress:
@@ -463,8 +463,8 @@ class cASanErrorDetector(object):
       oActionInfoMatch = re.match(r"^(READ|WRITE) of size (\d+) at 0x([0-9a-f]+) thread T\d+", sLine);
       if oActionInfoMatch:
         sAction, sSize, sAddressHex = oHeapInfoMatch.groups();
-        uSize = long(sSize);
-        uAddress = long(sAddressHex, 16);
+        uSize = int(sSize);
+        uAddress = int(sAddressHex, 16);
         atxMemoryRemarks.append(
           ("Attempt to %s %d bytes from 0x%X" % (sAction.lower(), uSize, uAddress), uAddress, uSize),
         );
@@ -486,9 +486,9 @@ class cASanErrorDetector(object):
           oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress);
       
     else:
-      oBugReport.sBugTypeId = "ASan:%s" % sASanBugType;
-      oBugReport.sSecurityImpact = dsSecurityImpact_by_sASanBugType.get(sASanBugType, "Unknown: this type of bug has not been analyzed before");
-    oBugReport.sBugDescription = "AddressSanitizer reported a %s on address 0x%X." % (sASanBugType, uProblemAddress);
+      oBugReport.s0BugTypeId = "ASan:%s" % sASanBugType;
+      oBugReport.s0SecurityImpact = dsSecurityImpact_by_sASanBugType.get(sASanBugType, "Unknown: this type of bug has not been analyzed before");
+    oBugReport.s0BugDescription = "AddressSanitizer reported a %s on address 0x%X." % (sASanBugType, uProblemAddress);
     
     if oSelf.oCdbWrapper.bGenerateReportHTML:
       if uMemoryDumpStartAddress is None:

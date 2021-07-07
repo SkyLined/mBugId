@@ -1,6 +1,6 @@
 ﻿import sys;
 
-from cCdbStoppedException import cCdbStoppedException;
+from .cCdbStoppedException import cCdbStoppedException;
 from mMultiThreading import cLock, cThread;
 
 class cHelperThread(object):
@@ -23,7 +23,7 @@ class cHelperThread(object):
     return "Thread %s [%s] %s(%s)" % (sThreadId, oSelf.sName, repr(oSelf.__fActivity), ", ".join([repr(xArgument) for xArgument in oSelf.__axActivityArguments]));
   
   @property
-  def bRunning(oSelf):
+  def bIsRunning(oSelf):
     # Consider it running between the moment it was started to the moment it terminated. This includes the brief moment
     # where the thread is started but not yet running.
     return (oSelf.__oThread.bStarted and not oSelf.__oThread.bTerminated) if oSelf.__oThread else False;
@@ -36,18 +36,18 @@ class cHelperThread(object):
     return oSelf.__oThread == cThread.foGetCurrent();
   
   def fStart(oSelf):
-    assert not oSelf.bRunning, \
+    assert not oSelf.bIsRunning, \
         "Cannot run twice in parallel.";
     try:
       oSelf.__oThread = cThread(oSelf.__fRun);
     except thread.error as oException:
       # We cannot create another thread. The most obvious reason for this error is that there are too many threads
-      # already. This might be cause by our threads not terminating as expected. To debug this, we will dump the
+      # already. This might be caused by our threads not terminating as expected. To debug this, we will dump the
       # running threads, so we might detect any threads that should have terminated but haven't.
-      print "Threads:";
+      print("Threads:");
       for oHelperThread in oSelf.__oCdbWrapper.aoActiveHelperThreads:
-        print " + %s" % oHelperThread;
-    assert not oSelf.bRunning, \
+        print(" + %s" % oHelperThread);
+    assert not oSelf.bIsRunning, \
         "Cannot start a thread while it is running";
     oSelf.__oCdbWrapper.aoActiveHelperThreads.append(oSelf);
     oSelf.__oStartedLock.fAcquire();
@@ -70,7 +70,7 @@ class cHelperThread(object):
         # terminated. This exception is only used to terminate that thread and should be caught and handled here, to
         # prevent it from being reported as an (unexpected) internal exception.
         pass;
-      except Exception, oException:
+      except Exception as oException:
         cException, oException, oTraceBack = sys.exc_info();
         if not oSelf.__oCdbWrapper.fbFireCallbacks("Internal exception", oSelf.__oThread, oException, oTraceBack):
           oSelf.__oCdbWrapper.fTerminate();
@@ -80,10 +80,10 @@ class cHelperThread(object):
       oSelf.__oCdbWrapper.fbFireCallbacks("Log message", "helper thread terminated", {
         "Thread": str(oSelf),
       });
-      if oSelf.__bVital and oSelf.__oCdbWrapper.bCdbRunning:
+      if oSelf.__bVital and oSelf.__oCdbWrapper.bCdbIsRunning:
         if oSelf.__oCdbWrapper.oCdbConsoleProcess and oSelf.__oCdbWrapper.oCdbConsoleProcess.bIsRunning:
           # A vital thread terminated and cdb is still running: terminate cdb
           oSelf.__oCdbWrapper.oCdbConsoleProcess.fbTerminate()
           assert not oSelf.__oCdbWrapper.oCdbConsoleProcess.bIsRunning, \
               "Could not terminate cdb";
-        oSelf.__oCdbWrapper.bCdbRunning = False;
+        oSelf.__oCdbWrapper.bCdbIsRunning = False;

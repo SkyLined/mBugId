@@ -1,23 +1,23 @@
-from .dxConfig import dxConfig;
-from ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 import mProductDetails;
+
+from .dxConfig import dxConfig;
+from .ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
+from .ftsReportProductHeaderAndFooterHTML import ftsReportProductHeaderAndFooterHTML;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
-import cBugId;
-
 class cBugReport_CdbCouldNotBeTerminated(object):
   def __init__(oBugReport, oCdbWrapper):
-    oProductDetails = (
-      mProductDetails.foGetProductDetailsForMainModule()
-      or mProductDetails.foGetProductDetailsForModule(cBugId)
+    import cBugId;
+    o0ProductDetails = (
+      mProductDetails.fo0GetProductDetailsForMainModule()
+      or mProductDetails.fo0GetProductDetailsForModule(mBugId)
     );
-    oBugReport.sBugTypeId = "CdbNotTerminated";
-    oBugReport.sBugDescription = "Cdb could not be terminated";
+    oBugReport.s0BugTypeId = "CdbNotTerminated";
+    oBugReport.s0BugDescription = "Cdb could not be terminated";
     oBugReport.sBugLocation = None;
-    oBugReport.sSecurityImpact = None;
-    oBugReport.oException = None;
-    oBugReport.oStack = None;
+    oBugReport.s0SecurityImpact = None;
+    oBugReport.o0Stack = None;
     
     asBlocksHTML = [];
     
@@ -29,10 +29,12 @@ class cBugReport_CdbCouldNotBeTerminated(object):
       });
     oBugReport.sProcessBinaryName = "cdb.exe";
     
-    oBugReport.sId = oBugReport.sBugTypeId;
-    oBugReport.sStackId = None;
+    oBugReport.sId = oBugReport.s0BugTypeId; # Isn't None
+    oBugReport.s0StackId = None;
+    oBugReport.s0UniqueStackId = None;
     oBugReport.sBugSourceLocation = None;
-    oBugReport.asVersionInformation = ["%s: %s" % (oProductDetails.sProductName, oProductDetails.oProductVersion)];
+    oBugReport.asVersionInformation = \
+        ["%s: %s" % (o0ProductDetails.sProductName, o0ProductDetails.oProductVersion)] if o0ProductDetails else [];
     if oCdbWrapper.bGenerateReportHTML:
       # Add Cdb IO to HTML report
       asBlocksHTML.append(sBlockHTMLTemplate % {
@@ -41,25 +43,29 @@ class cBugReport_CdbCouldNotBeTerminated(object):
         "sContent": oCdbWrapper.sCdbIOHTML
       });
       # Create HTML details
-      (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(oProductDetails);
+      if o0ProductDetails:
+        (sProductHeaderHTML, sProductFooterHTML) = ftsReportProductHeaderAndFooterHTML(o0ProductDetails);
+        (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(o0ProductDetails);
+      else:
+        sProductHeaderHTML = sProductFooter = sLicenseHeaderHTML = sLicenseFooterHTML = "";
       oBugReport.sReportHTML = sReportHTMLTemplate % {
         "sId": oCdbWrapper.fsHTMLEncode(oBugReport.sId),
         "sOptionalUniqueStackId": "",
         "sBugLocation": oCdbWrapper.fsHTMLEncode(oBugReport.sBugLocation or "Unknown"),
         "sOptionalSource": "",
-        "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.sBugDescription),
+        "sBugDescription": oCdbWrapper.fsHTMLEncode(oBugReport.s0BugDescription), # Isn't None
         "sBinaryVersion": "Not available",
-        "sSecurityImpact": oBugReport.sSecurityImpact and \
-              '<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.sSecurityImpact) or "None",
+        "sSecurityImpact": (
+            "None" if oBugReport.s0SecurityImpact is None
+            else ('<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oBugReport.s0SecurityImpact))
+        ),
         "sOptionalIntegrityLevel": "",
         "sOptionalMemoryUsage": "",
         "sOptionalApplicationArguments": "",
         "sBlocks": "\r\n".join(asBlocksHTML),
         "sCdbStdIO": oCdbWrapper.sCdbIOHTML,
-        "sProductName": oProductDetails.sProductName,
-        "sProductVersion": oProductDetails.oProductVersion,
-        "sProductAuthor": oProductDetails.sProductAuthor,
-        "sProductURL": oProductDetails.sProductURL,
+        "sProductHeader": sProductHeaderHTML,
+        "sProductFooter": sProductFooterHTML,
         "sLicenseHeader": sLicenseHeaderHTML,
         "sLicenseFooter": sLicenseFooterHTML,
       };

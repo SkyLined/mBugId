@@ -40,10 +40,10 @@ def fbUpdateReportForAllocatedPointer(
   elif sViolationTypeId == "E":
     assert not oVirtualAllocation.bExecutable or oVirtualAllocation.bGuard, \
         "A read access violation in readble memory should not be possible";
-  oBugReport.sBugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
-  oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to %s %s %s." % \
+  oBugReport.s0BugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
+  oBugReport.s0BugDescription = "An Access Violation exception happend at 0x%X while attempting to %s %s %s." % \
       (uAccessViolationAddress, sViolationVerb, sBlockOffsetDescription, sBlockSizeDescription);
-  oBugReport.sSecurityImpact = "Unlikely to be an exploitable security issue unless the address can be controlled.";
+  oBugReport.s0SecurityImpact = "Unlikely to be an exploitable security issue unless the address can be controlled.";
   # Add a memory dump
   if oCdbWrapper.bGenerateReportHTML:
     # Clamp size, potentially update start if size needs to shrink but end is not changed.

@@ -1,6 +1,6 @@
 import hashlib;
 from .dxConfig import dxConfig;
-from .SourceCodeLinks import fsGetSourceCodeLinkURLForPath;
+from .SourceCodeLinks import fsb0GetSourceCodeLinkURLForPath;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
@@ -13,7 +13,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # part of the id, so will need to find out which it is:
   bIdFramesHaveAlreadyBeenMarked = False;
   for oStackFrame in oStack.aoFrames:
-    if oStackFrame.sIsHiddenBecause is not None:
+    if oStackFrame.s0IsHiddenBecause is not None:
       assert not oStackFrame.bIsPartOfId, \
           "Cannot have a hidden frame that is part of the id";
     bIdFramesHaveAlreadyBeenMarked |= oStackFrame.bIsPartOfId;
@@ -25,7 +25,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     for oStackFrame in oStack.aoFrames:
       if uFramesToBeMarkedCount == 0:
         break;
-      if oStackFrame.sIsHiddenBecause is None and oStackFrame.sId:
+      if oStackFrame.s0IsHiddenBecause is None and oStackFrame.sId:
         oStackFrame.bIsPartOfId = True;
         uFramesToBeMarkedCount -= 1;
   
@@ -34,15 +34,15 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       asFrameHTMLClasses = ["StackFrame"];
       asFrameNotesHTML = [];
       sOptionalSourceHTML = None;
-      if oStackFrame.sSourceFilePath:
+      if oStackFrame.sb0SourceFilePath:
         sSourceReference = (
-          oStackFrame.sSourceFilePath
-          + (oStackFrame.uSourceFileLineNumber is not None and (" @ %d" % oStackFrame.uSourceFileLineNumber) or "")
+          str(oStackFrame.sb0SourceFilePath, 'latin1')
+          + (oStackFrame.u0SourceFileLineNumber is not None and (" @ %d" % oStackFrame.u0SourceFileLineNumber) or "")
         );
-        sSourceReferenceURL = fsGetSourceCodeLinkURLForPath(oStackFrame.sSourceFilePath, oStackFrame.uSourceFileLineNumber);
-        if sSourceReferenceURL:
+        sb0SourceReferenceURL = fsb0GetSourceCodeLinkURLForPath(oStackFrame.sb0SourceFilePath, oStackFrame.u0SourceFileLineNumber);
+        if sb0SourceReferenceURL:
           sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % \
-              (oCdbWrapper.fsHTMLEncode(sSourceReferenceURL), oCdbWrapper.fsHTMLEncode(sSourceReference));
+              (oCdbWrapper.fsHTMLEncode(sb0SourceReferenceURL), oCdbWrapper.fsHTMLEncode(sSourceReference));
         else:
           sOptionalSourceHTML = "[%s]" % \
               oCdbWrapper.fsHTMLEncode(sSourceReference);
@@ -51,49 +51,49 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
         # This frame is hidden (because it is irrelevant to the crash)
           asFrameHTMLClasses.append("StackFrameInline");
           asFrameNotesHTML.append("inlined function");
-      if oStackFrame.sIsHiddenBecause is not None:
+      if oStackFrame.s0IsHiddenBecause is not None:
         # This frame is hidden (because it is irrelevant to the crash)
           asFrameHTMLClasses.append("StackFrameHidden");
-          asFrameNotesHTML.append(oCdbWrapper.fsHTMLEncode(oStackFrame.sIsHiddenBecause));
+          asFrameNotesHTML.append(oCdbWrapper.fsHTMLEncode(oStackFrame.s0IsHiddenBecause));
       if oStackFrame.bIsPartOfId:
           asFrameHTMLClasses.append("StackFramePartOfId");
           asFrameNotesHTML.append("id: %s" % oCdbWrapper.fsHTMLEncode(oStackFrame.sId));
-      if not oStackFrame.oFunction:
+      if not oStackFrame.o0Function:
         asFrameHTMLClasses.append("StackFrameWithoutSymbol");
         asFrameNotesHTML.append("no function symbol available");
     if oStackFrame.bIsPartOfId:
       aoStackFramesPartOfId.append(oStackFrame);
     if oCdbWrapper.bGenerateReportHTML:
       asHTML.append(" ".join([s for s in [
-        "<span class=\"%s\">%s</span>" % (" ".join(asFrameHTMLClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sAddress)),
+        "<span class=\"%s\">%s</span>" % (" ".join(asFrameHTMLClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sbAddress)),
         asFrameNotesHTML and "<span class=\"StackFrameNotes\">(%s)</span>" % ", ".join(asFrameNotesHTML),
         sOptionalSourceHTML and "<span class=\"StackFrameSource\">[%s]</span>" % sOptionalSourceHTML,
       ] if s]));
   # Get the stack ids: one that contains all the ids for all stack frames, and one that merges stack ids to fit the
   # requested uStackHashFramesCount.
   asStackIds = [oStackFrame.sId for oStackFrame in aoStackFramesPartOfId];
-  oBugReport.sUniqueStackId = ".".join(asStackIds);
+  oBugReport.s0UniqueStackId = ".".join(asStackIds);
   if len(asStackIds) > dxConfig["uStackHashFramesCount"]:
     # There are too many stack hashes: concatinate all excessive hashes togerther with the last non-excessive one and
     # hash them again. This new has replaces them, bringing the number of hashes down to the maximum number. The last
     # hash is effectively a combination of all these hashes, guaranteeing a certain level of uniqueness.
     oHasher = hashlib.md5();
     while len(asStackIds) >= dxConfig["uStackHashFramesCount"]:
-      oHasher.update(asStackIds.pop());
+      oHasher.update(bytes(asStackIds.pop(), "utf-8", "strict"));
     asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
-  oBugReport.sStackId = ".".join(asStackIds);
+  oBugReport.s0StackId = ".".join(asStackIds) or None;
   # Get the bug location.
   oBugReport.sBugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
-    oBugReport.sBugLocation = oTopIdStackFrame.sSimplifiedAddress;
-    if oProcess and oTopIdStackFrame.oModule != oProcess.oMainModule:
+    oBugReport.sBugLocation = str(oTopIdStackFrame.sb0SimplifiedAddress, 'latin1') if oTopIdStackFrame.sb0SimplifiedAddress else "<unknown>";
+    if oProcess and oTopIdStackFrame.o0Module != oProcess.oMainModule:
       # Exception did not happen in the process' binary: add process' binary name to the location:
       oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
-    if oTopIdStackFrame.sSourceFilePath:
+    if oTopIdStackFrame.sb0SourceFilePath:
       oBugReport.sBugSourceLocation = (
-        oTopIdStackFrame.sSourceFilePath
-        + (oTopIdStackFrame.uSourceFileLineNumber is not None and " @ %d" % oTopIdStackFrame.uSourceFileLineNumber or "")
+        str(oTopIdStackFrame.sb0SourceFilePath, 'latin1')
+        + (oTopIdStackFrame.u0SourceFileLineNumber is not None and " @ %d" % oTopIdStackFrame.u0SourceFileLineNumber or "")
       );
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:

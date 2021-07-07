@@ -1,10 +1,16 @@
-import itertools, json, os, re, subprocess, sys, thread, threading, time;
+import itertools, time;
+
+import mProductDetails;
+from mWindowsAPI import cConsoleProcess, cProcess, fsGetPythonISA;
+from mMultiThreading import cLock, cWithCallbacks;
+from mFileSystemItem import cFileSystemItem;
+
 from .cASanErrorDetector import cASanErrorDetector;
 from .cCdbStoppedException import cCdbStoppedException;
 from .cCdbWrapper_fAllocateReserveMemoryIfNeeded import cCdbWrapper_fAllocateReserveMemoryIfNeeded;
 from .cCdbWrapper_fApplicationStdOutOrErrHelperThread import cCdbWrapper_fApplicationStdOutOrErrHelperThread;
-from .cCdbWrapper_fasExecuteCdbCommand import cCdbWrapper_fasExecuteCdbCommand;
-from .cCdbWrapper_fasReadOutput import cCdbWrapper_fasReadOutput;
+from .cCdbWrapper_fasbExecuteCdbCommand import cCdbWrapper_fasbExecuteCdbCommand;
+from .cCdbWrapper_fasbReadOutput import cCdbWrapper_fasbReadOutput;
 from .cCdbWrapper_fAttachCdbToProcessForId import cCdbWrapper_fAttachCdbToProcessForId;
 from .cCdbWrapper_fCdbInterruptOnTimeoutHelperThread import cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
 from .cCdbWrapper_fCdbStdErrHelperThread import cCdbWrapper_fCdbStdErrHelperThread;
@@ -30,7 +36,7 @@ from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from .cCdbWrapper_fStartUWPApplication import cCdbWrapper_fStartUWPApplication;
 from .cCdbWrapper_ftbHandleLastCdbEvent import cCdbWrapper_ftbHandleLastCdbEvent;
 from .cCdbWrapper_fTerminateUWPApplication import cCdbWrapper_fTerminateUWPApplication;
-from .cCdbWrapper_fuAddBreakpointForAddress import cCdbWrapper_fuAddBreakpointForAddress;
+from .cCdbWrapper_fuAddBreakpointForProcessIdAndAddress import cCdbWrapper_fuAddBreakpointForProcessIdAndAddress;
 from .cCdbWrapper_fuGetValueForRegister import cCdbWrapper_fuGetValueForRegister;
 from .cCdbWrapper_fUpdateCdbISA import cCdbWrapper_fUpdateCdbISA;
 from .cCollateralBugHandler import cCollateralBugHandler;
@@ -38,9 +44,8 @@ from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from .cHelperThread import cHelperThread;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
-import mProductDetails;
-from mWindowsAPI import cConsoleProcess, cProcess, fsGetPythonISA;
-from mMultiThreading import cLock, cWithCallbacks;
+
+# Remaining local modules are load JIT to mitigate loops.
 
 gnDeadlockTimeoutInSeconds = 1;
 
@@ -71,18 +76,18 @@ guSymbolOptions = sum([
 class cCdbWrapper(cWithCallbacks):
   def __init__(oCdbWrapper,
     sCdbISA, # Which version of cdb should be used to debug this application? ("x86" or "x64")
-    sApplicationBinaryPath,
-    auApplicationProcessIds,
+    s0ApplicationBinaryPath,
+    a0uApplicationProcessIds,
     u0JITDebuggerEventId,
-    oUWPApplication,
+    o0UWPApplication,
     asApplicationArguments,
     asLocalSymbolPaths,
-    asSymbolCachePaths, 
-    asSymbolServerURLs,
-    dsURLTemplate_by_srSourceFilePath,
+    a0sSymbolCachePaths, 
+    a0sSymbolServerURLs,
+    d0sURLTemplate_by_srSourceFilePath,
     bGenerateReportHTML,        
-    uProcessMaxMemoryUse,
-    uTotalMaxMemoryUse,
+    u0ProcessMaxMemoryUse,
+    u0TotalMaxMemoryUse,
     uMaximumNumberOfBugs,
   ):
     if sCdbISA:
@@ -91,13 +96,13 @@ class cCdbWrapper(cWithCallbacks):
       oCdbWrapper.sCdbISA = sCdbISA;
     else:
       oCdbWrapper.sCdbISA = fsGetPythonISA();
-    assert sApplicationBinaryPath or auApplicationProcessIds or oUWPApplication, \
+    assert s0ApplicationBinaryPath or a0uApplicationProcessIds or o0UWPApplication, \
         "You must provide one of the following: an application command line, a list of process ids or an application package name";
-    oCdbWrapper.sApplicationBinaryPath = sApplicationBinaryPath;
-    oCdbWrapper.auApplicationProcessIds = auApplicationProcessIds or [];
+    oCdbWrapper.s0ApplicationBinaryPath = s0ApplicationBinaryPath;
+    oCdbWrapper.auApplicationProcessIds = a0uApplicationProcessIds or [];
     oCdbWrapper.auMainProcessIds = oCdbWrapper.auApplicationProcessIds[:];
     oCdbWrapper.u0JITDebuggerEventId = u0JITDebuggerEventId;
-    oCdbWrapper.oUWPApplication = oUWPApplication;
+    oCdbWrapper.o0UWPApplication = o0UWPApplication;
     oCdbWrapper.bApplicationStarted = False;
     # Keep track of all application processes we start and their stdout/stderr pipes
     # so we can make sure they are all terminated and closed respectively when cBugId
@@ -107,17 +112,13 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.bUWPApplicationStarted = False;
     oCdbWrapper.bStopping = False;
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
-    oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths or [];
-    oCdbWrapper.asSymbolCachePaths = asSymbolCachePaths;
-    if asSymbolCachePaths is None:
-      oCdbWrapper.asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"];
-    oCdbWrapper.asSymbolServerURLs = asSymbolServerURLs;
-    if asSymbolServerURLs is None:
-      oCdbWrapper.asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"];
-    oCdbWrapper.dsURLTemplate_by_srSourceFilePath = dsURLTemplate_by_srSourceFilePath or {};
+    oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths;
+    oCdbWrapper.asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"] if a0sSymbolCachePaths is None else a0sSymbolCachePaths;
+    oCdbWrapper.asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"] if a0sSymbolServerURLs is None else a0sSymbolServerURLs;
+    oCdbWrapper.dsURLTemplate_by_srSourceFilePath = d0sURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
-    oCdbWrapper.uProcessMaxMemoryUse = uProcessMaxMemoryUse;
-    oCdbWrapper.uTotalMaxMemoryUse = uTotalMaxMemoryUse;
+    oCdbWrapper.u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse;
+    oCdbWrapper.u0TotalMaxMemoryUse = u0TotalMaxMemoryUse;
     oCdbWrapper.oReservedMemoryVirtualAllocation = None;
     oCdbWrapper.fAddEvents(
       # These are the names of all the events that cCdbWrapper can throw. If it's not in the list, you cannot use it in
@@ -129,6 +130,7 @@ class cCdbWrapper(cWithCallbacks):
       "Application stderr output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
       "Application stdout output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
       "Application suspended", # (str sReason)
+      "ASan detected", # ()
       "Bug report", # (cBugReport oBugReport)
       "Cdb stderr output", # (str sOutput)
       "Cdb stdin input", # (str sInput)
@@ -147,15 +149,14 @@ class cCdbWrapper(cWithCallbacks):
       "Process started", # (mWindowsAPI.cConsoleProcess oConsoleProcess)
       "Process terminated", #(cProcess oProcess)
     );
-
-  
+    
     # This is where we keep track of the threads that are executing (for debug purposes):
     oCdbWrapper.aoActiveHelperThreads = [];
     # Get the cdb binary path
     oCdbWrapper.sDebuggingToolsPath = dxConfig["sDebuggingToolsPath_%s" % oCdbWrapper.sCdbISA];
     assert oCdbWrapper.sDebuggingToolsPath, \
         "No %s Debugging Tools for Windows path found" % oCdbWrapper.sCdbISA;
-    assert os.path.isdir(oCdbWrapper.sDebuggingToolsPath), \
+    assert cFileSystemItem(oCdbWrapper.sDebuggingToolsPath).fbIsFolder(), \
         "%s Debugging Tools for Windows path %s not found" % (oCdbWrapper.sCdbISA, oCdbWrapper.sDebuggingToolsPath);
     
     oCdbWrapper.doProcess_by_uId = {};
@@ -168,7 +169,7 @@ class cCdbWrapper(cWithCallbacks):
       oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.
       if dxConfig["bLogInReport"]:
         oCdbWrapper.sLogHTML = ""; # Logs various events that may be relevant
-    oCdbWrapper.bCdbRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
+    oCdbWrapper.bCdbIsRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
     oCdbWrapper.bCdbWasTerminatedOnPurpose = False; # Set to True when cdb is terminated on purpose, used to detect unexpected termination.
     # To make it easier to refer to cdb breakpoints by id, a mechanism must be used to allocate and release them
     # See fuGetBreakpointId and fReleaseBreakpointId for implementation details.
@@ -191,15 +192,15 @@ class cCdbWrapper(cWithCallbacks):
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
     # and fCdbInterruptOnTimeoutThread for details. The debugger can tell is what time it thinks it is before we start
     # and resume the application as well as what time it thinks it was when an exception happened. The difference is
-    # used to calculate how long the application has been running. We cannot simply use time.clock() before start/
+    # used to calculate how long the application has been running. We cannot simply use time.time() before start/
     # resuming and at the time an event is handled as the debugger may take quite some time processing an event before
-    # we can call time.clock(): this time would incorrectly be added to the time the application has spent running.
+    # we can call time.time(): this time would incorrectly be added to the time the application has spent running.
     # However, while the application is running, we cannot ask the debugger what time it thinks it is, so we have to 
-    # rely on time.clock(). Hence, both values are tracked.
+    # rely on time.time(). Hence, both values are tracked.
     oCdbWrapper.oApplicationTimeLock = cLock(n0DeadlockTimeoutInSeconds = 1);
     oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
-    oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.clock() at the moment the application was last resumed
+    oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.time() at the moment the application was last resumed
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
     
@@ -232,17 +233,17 @@ class cCdbWrapper(cWithCallbacks):
     if asLicenseWarnings:
       oCdbWrapper.fbFireCallbacks("License warnings", asLicenseWarnings);
     # If we are starting a UWP application, make sure it exists:
-    if oCdbWrapper.oUWPApplication:
-      if not oCdbWrapper.oUWPApplication.bPackageExists:
-        sMessage = "UWP Application package \"%s\" does not exist." % oCdbWrapper.oUWPApplication.sPackageName;
+    if oCdbWrapper.o0UWPApplication:
+      if not oCdbWrapper.o0UWPApplication.bPackageExists:
+        sMessage = "UWP Application package \"%s\" does not exist." % oCdbWrapper.o0UWPApplication.sPackageName;
         assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
             sMessage;
         oCdbWrapper.fStop();
         return;
-      elif not oCdbWrapper.oUWPApplication.bIdExists:
+      elif not oCdbWrapper.o0UWPApplication.bIdExists:
         sMessage = "UWP Application id \"%s\" does not exist in package \"%s\" (valid applications: %s)." % \
-            (oCdbWrapper.oUWPApplication.sApplicationId, oCdbWrapper.oUWPApplication.sPackageName, ", ".join([
-              "\"%s\"" % sApplicationId for sApplicationId in oCdbWrapper.oUWPApplication.asApplicationIds
+            (oCdbWrapper.o0UWPApplication.sApplicationId, oCdbWrapper.o0UWPApplication.sPackageName, ", ".join([
+              "\"%s\"" % sApplicationId for sApplicationId in oCdbWrapper.o0UWPApplication.asApplicationIds
             ]));
         assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
             sMessage;
@@ -257,25 +258,25 @@ class cCdbWrapper(cWithCallbacks):
     # Create a thread that waits for a certain amount of time while cdb is running and then interrupts it.
     oCdbWrapper.oInterruptOnTimeoutHelperThread = cHelperThread(oCdbWrapper, "cdb.exe interrupt on timeout thread", oCdbWrapper.fCdbInterruptOnTimeoutHelperThread);
     # Find out where cdb.exe is at:
-    sCdbBinaryPath = os.path.join(oCdbWrapper.sDebuggingToolsPath, "cdb.exe");
-    assert os.path.isfile(sCdbBinaryPath), \
-        "%s Debugging Tools for Windows cdb.exe file %s not found" % (oCdbWrapper.sCdbISA, sCdbBinaryPath);
+    oCdbBinaryFile = cFileSystemItem(oCdbWrapper.sDebuggingToolsPath).foGetChild("cdb.exe");
+    assert oCdbBinaryFile.fbIsFile(), \
+        "%s Debugging Tools for Windows cdb.exe file %s not found" % (oCdbWrapper.sCdbISA, oCdbBinaryFile.sPath);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application. For this we'll start a copy of cdb.exe, suspended, since we
     # alreadyknow the path to the binary. We do not need to provide any arguments since the application will be
     # suspended and not do anything after initialization.
     oCdbWrapper.fbFireCallbacks("Log message", "Starting utility process...");
     oCdbWrapper.oUtilityProcess = cProcess.foCreateForBinaryPath(
-      sBinaryPath = sCdbBinaryPath,
+      sBinaryPath = oCdbBinaryFile.sPath,
       bHidden = True,
       bSuspended = True,
     );
     oCdbWrapper.fbFireCallbacks("Log message", "Started utility process (0x%X)." % oCdbWrapper.oUtilityProcess.uId);
-    if oCdbWrapper.sApplicationBinaryPath is not None:
+    if oCdbWrapper.s0ApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
       assert not oCdbWrapper.auApplicationProcessIds, \
           "Cannot start a process and attach to processes at the same time";
-    elif oCdbWrapper.oUWPApplication:
+    elif oCdbWrapper.o0UWPApplication:
       assert len(oCdbWrapper.asApplicationArguments) <= 1, \
           "You cannot specify multiple arguments for a UWP application.";
     else:
@@ -319,26 +320,24 @@ class cCdbWrapper(cWithCallbacks):
       asAttachAndOptionallyHandleExceptionArguments
     );
     oCdbWrapper.oCdbConsoleProcess = cConsoleProcess.foCreateForBinaryPathAndArguments(
-      sBinaryPath = sCdbBinaryPath,
+      sBinaryPath = oCdbBinaryFile.sPath,
       asArguments = asArguments,
     );
     oCdbWrapper.fbFireCallbacks("Log message", "Started cdb.exe", {
-      "Command line components": [sCdbBinaryPath] + asArguments,
+      "Command line components": [oCdbBinaryFile.sPath] + asArguments,
     });
     
-    assert oCdbWrapper.oCdbConsoleProcess, \
-        "Cannot find %s!" % sCdbBinaryPath;
     oCdbWrapper.oCdbStdInOutHelperThread.fStart();
     oCdbWrapper.oCdbStdErrHelperThread.fStart();
     oCdbWrapper.oCleanupHelperThread.fStart();
     # If we need to start a binary for this application, do so:
-    if oCdbWrapper.sApplicationBinaryPath:
+    if oCdbWrapper.s0ApplicationBinaryPath:
       oMainConsoleProcess = oCdbWrapper.foStartApplicationProcess(
-        oCdbWrapper.sApplicationBinaryPath,
+        oCdbWrapper.s0ApplicationBinaryPath,
         oCdbWrapper.asApplicationArguments
       );
       if oMainConsoleProcess is None:
-        oCdbWrapper.fStop();
+        oCdbWrapper.fTerminate();
         return;
       oCdbWrapper.auMainProcessIds.append(oMainConsoleProcess.uId);
     return;
@@ -368,7 +367,7 @@ class cCdbWrapper(cWithCallbacks):
       # The object may already have been deleted.
       pass;
     else:
-      assert not oCdbConsoleProcess or not oCdbConsoleProcess.bRunning, \
+      assert not oCdbConsoleProcess or not oCdbConsoleProcess.bIsRunning, \
           "cCdbWrapper is being destroyed while cdb.exe is still running.";
   
   # Select process/thread
@@ -393,7 +392,7 @@ class cCdbWrapper(cWithCallbacks):
       return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds;
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
-      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds + time.clock() - oCdbWrapper.nApplicationResumeTimeInSeconds;
+      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds + time.time() - oCdbWrapper.nApplicationResumeTimeInSeconds;
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
   
@@ -402,10 +401,10 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.foSetTimeout(sDescription, 0, f0Callback, txCallbackArguments);
   
   fRunTimeoutCallbacks = cCdbWrapper_fRunTimeoutCallbacks;
-  fasReadOutput = cCdbWrapper_fasReadOutput;
+  fasbReadOutput = cCdbWrapper_fasbReadOutput;
   fAllocateReserveMemoryIfNeeded = cCdbWrapper_fAllocateReserveMemoryIfNeeded;
   fApplicationStdOutOrErrHelperThread = cCdbWrapper_fApplicationStdOutOrErrHelperThread;
-  fasExecuteCdbCommand = cCdbWrapper_fasExecuteCdbCommand;
+  fasbExecuteCdbCommand = cCdbWrapper_fasbExecuteCdbCommand;
   fAttachCdbToProcessForId = cCdbWrapper_fAttachCdbToProcessForId;
   fCdbInterruptOnTimeoutHelperThread = cCdbWrapper_fCdbInterruptOnTimeoutHelperThread;
   fCdbStdInOutHelperThread = cCdbWrapper_fCdbStdInOutHelperThread;
@@ -429,7 +428,7 @@ class cCdbWrapper(cWithCallbacks):
   fStartUWPApplication = cCdbWrapper_fStartUWPApplication;
   ftbHandleLastCdbEvent = cCdbWrapper_ftbHandleLastCdbEvent;
   fTerminateUWPApplication = cCdbWrapper_fTerminateUWPApplication;
-  fuAddBreakpointForAddress = cCdbWrapper_fuAddBreakpointForAddress;
+  fuAddBreakpointForProcessIdAndAddress = cCdbWrapper_fuAddBreakpointForProcessIdAndAddress;
   fuGetValueForRegister = cCdbWrapper_fuGetValueForRegister;
   fUpdateCdbISA = cCdbWrapper_fUpdateCdbISA;
 

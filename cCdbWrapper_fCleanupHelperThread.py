@@ -1,8 +1,10 @@
 import time, threading;
-from .cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminated;
-from .cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
+
 from mWindowsAPI import *;
 from mWindowsSDK import *;
+
+from .cBugReport_CdbCouldNotBeTerminated import cBugReport_CdbCouldNotBeTerminated;
+from .cBugReport_CdbTerminatedUnexpectedly import cBugReport_CdbTerminatedUnexpectedly;
 
 def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
   # wait for debugger thread to terminate.
@@ -11,11 +13,11 @@ def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
   if not oCdbWrapper.bCdbWasTerminatedOnPurpose:
     if oCdbWrapper.oCdbConsoleProcess.bIsRunning and not oCdbWrapper.oCdbConsoleProcess.fbTerminate(5):
       oBugReport = cBugReport_CdbCouldNotBeTerminated(oCdbWrapper);
-      oBugReport.fReport(oCdbWrapper);
+      oBugReport.fReport();
     elif oCdbWrapper.oCdbConsoleProcess.uExitCode & 0xCFFFFFFF != STATUS_PROCESS_IS_TERMINATING:
       oCdbWrapper.fbFireCallbacks("Log message", "cdb.exe terminated unexpectedly");
       oBugReport = cBugReport_CdbTerminatedUnexpectedly(oCdbWrapper, oCdbWrapper.oCdbConsoleProcess.uExitCode);
-      oBugReport.fReport(oCdbWrapper);
+      oBugReport.fReport();
     else:
       oCdbWrapper.fbFireCallbacks("Log message", "The process terminated before the debugger could attach.");
   if oCdbWrapper.oUtilityProcess and oCdbWrapper.oUtilityProcess.bIsRunning:

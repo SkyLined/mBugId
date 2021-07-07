@@ -63,7 +63,7 @@ from .dxConfig import dxConfig;
 def fs0GetFastFailDefineName(uFastFailCode):
   for (sPotentialFastFailDefineName, xPotentialFastFailDefineValue) in globals().items():
     if (
-      isinstance(xPotentialFastFailDefineValue, (int, long))
+      isinstance(xPotentialFastFailDefineValue, int)
       and sPotentialFastFailDefineName.startswith("FAST_FAIL_")
       and xPotentialFastFailDefineValue == uFastFailCode
     ):
@@ -94,23 +94,23 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
   uFastFailCode = oException.auParameters[0];
   if uFastFailCode in dtsFastFailErrorInformation_by_uCode:
     (
-      oBugReport.sBugTypeId,
-      oBugReport.sBugDescription,
-      oBugReport.sSecurityImpact,
+      oBugReport.s0BugTypeId,
+      oBugReport.s0BugDescription,
+      oBugReport.s0SecurityImpact,
     ) = dtsFastFailErrorInformation_by_uCode[uFastFailCode];
   else:
-    oBugReport.sBugTypeId = fs0GetFastFailDefineName(uFastFailCode) or ("FailFast#%d" % uFastFailCode);
-    oBugReport.sBugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)." % \
+    oBugReport.s0BugTypeId = fs0GetFastFailDefineName(uFastFailCode) or ("FailFast#%d" % uFastFailCode);
+    oBugReport.s0BugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)." % \
         (oException.uCode, uFastFailCode, sFastFailCodeDescription);
-    oBugReport.sSecurityImpact = "Unknown";
+    oBugReport.s0SecurityImpact = "Unknown";
   # Add any additional parameters (I have yet to find out what these mean)
   if len(oException.auParameters) == 2:
-    oBugReport.sBugDescription += "Additional parameter: %d/0x%X" % (oException.auParameters[1], oException.auParameters[1]);
+    oBugReport.s0BugDescription += "Additional parameter: %d/0x%X" % (oException.auParameters[1], oException.auParameters[1]);
   elif len(oException.auParameters) > 2:
-    oBugReport.sBugDescription += "Additional parameters: [ %s ]." % " | ".join(["%d/0x%X" % (u, u) for u in oException.auParameters[1:]]);
+    oBugReport.s0BugDescription += "Additional parameters: [ %s ]." % " | ".join(["%d/0x%X" % (u, u) for u in oException.auParameters[1:]]);
   
   if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpCouldBeUseful:
-    u0StackPointer = oThread.fu0GetRegister("*sp");
+    u0StackPointer = oThread.fu0GetRegister(b"*sp");
     if u0StackPointer is not None:
       uStackPointer = u0StackPointer;
       # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.

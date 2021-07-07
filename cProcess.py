@@ -1,6 +1,5 @@
 import os, re;
 from .cModule import cModule;
-from .cProcess_fdsSymbol_by_uAddressForPartialSymbol import cProcess_fdsSymbol_by_uAddressForPartialSymbol;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
@@ -14,7 +13,7 @@ class cProcess(object):
     oProcess.bTerminated = False; # Will be set to True by `cCdbWrapper_fHandleCurrentApplicationProcessTermination` once terminated
     
     # Modules will be cached here. They are discarded whenever the application is resumed.
-    oProcess.__doModules_by_sCdbId = {};
+    oProcess.__doModules_by_sbCdbId = {};
     
     # We'll try to determine if page heap is enabled for every process. However, this may not always work. So until
     # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
@@ -29,7 +28,7 @@ class cProcess(object):
     # oProcess.oMainModule is only determined when needed and cached
     oProcess.__oMainModule = None; # .oMainModule is JIT
     
-    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sCdbId for every loaded
+    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sbCdbId for every loaded
     # module and returns all the values in the first dict. Since this dict is cached, this only needs to be done once
     # until the cache is invalidated.
     oProcess.__bAllModulesEnumerated = False;
@@ -58,31 +57,31 @@ class cProcess(object):
     return oProcess.__oMainModule;
   
   def foGetOrCreateModuleForStartAddress(oProcess, uStartAddress):
-    for oModule in oProcess.__doModules_by_sCdbId.values():
+    for oModule in oProcess.__doModules_by_sbCdbId.values():
       if oModule.uStartAddress == uStartAddress:
         return oModule;
     return cModule.foCreateForStartAddress(oProcess, uStartAddress);
   
-  def foGetOrCreateModuleForCdbId(oProcess, sCdbId):
-    if sCdbId not in oProcess.__doModules_by_sCdbId:
-      return cModule.foCreateForCdbId(oProcess, sCdbId);
-    return oProcess.__doModules_by_sCdbId[sCdbId];
+  def foGetOrCreateModuleForCdbId(oProcess, sbCdbId):
+    if sbCdbId not in oProcess.__doModules_by_sbCdbId:
+      return cModule.foCreateForCdbId(oProcess, sbCdbId);
+    return oProcess.__doModules_by_sbCdbId[sbCdbId];
   
-  def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus):
-    if sCdbId not in oProcess.__doModules_by_sCdbId:
-      oProcess.__doModules_by_sCdbId[sCdbId] = cModule(oProcess, uStartAddress, uEndAddress, sCdbId, sSymbolStatus);
-    return oProcess.__doModules_by_sCdbId[sCdbId];
+  def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus):
+    if sbCdbId not in oProcess.__doModules_by_sbCdbId:
+      oProcess.__doModules_by_sbCdbId[sbCdbId] = cModule(oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
+    return oProcess.__doModules_by_sbCdbId[sbCdbId];
   
   @property
   def aoModules(oProcess):
     if not oProcess.__bAllModulesEnumerated:
       oProcess.__bAllModulesEnumerated = True;
       return cModule.faoGetOrCreateAll(oProcess);
-    return oProcess.__doModules_by_sCdbId.values();
+    return list(oProcess.__doModules_by_sbCdbId.values());
   
   def fClearCache(oProcess):
     # Assume that all modules can be unloaded, except the main module.
-    oProcess.__doModules_by_sCdbId = {};
+    oProcess.__doModules_by_sbCdbId = {};
     oProcess.__oMainModule = None;
     oProcess.__bAllModulesEnumerated = False;
   
@@ -98,30 +97,28 @@ class cProcess(object):
   def fEnsurePageHeapIsEnabled(oProcess):
     return cProcess_fEnsurePageHeapIsEnabled(oProcess);
     
-  def fasGetStack(oProcess, sCdbCommand):
-    return cProcess_fasGetStack(oProcess, sCdbCommand);
+  def fasbGetStack(oProcess, sbCdbCommand):
+    return cProcess_fasbGetStack(oProcess, sbCdbCommand);
   
-  def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, uThreadId = None, sCommand = None):
-    return oProcess.oCdbWrapper.fuAddBreakpointForAddress(
+  def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, u0ThreadId = None, sb0Command = None):
+    return oProcess.oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
+      uProcessId = oProcess.uId,
       uAddress = uAddress,
       fCallback = fCallback,
-      uProcessId = oProcess.uId,
-      uThreadId = uThreadId,
-      sCommand = sCommand,
+      u0ThreadId = u0ThreadId,
+      sb0Command = sb0Command,
     );
   
-  def fasExecuteCdbCommand(oProcess, sCommand, sComment, **dxArguments):
+  def fasbExecuteCdbCommand(oProcess, sbCommand, sb0Comment, **dxArguments):
     # Make sure all commands send to cdb are send in the context of this process.
     oProcess.fSelectInCdb();
-    return oProcess.oCdbWrapper.fasExecuteCdbCommand(sCommand, sComment, **dxArguments);
+    return oProcess.oCdbWrapper.fasbExecuteCdbCommand(sbCommand, sb0Comment, **dxArguments);
   
-  def fuGetAddressForSymbol(oProcess, sSymbol):
-    return cProcess_fuGetAddressForSymbol(oProcess, sSymbol);
-  def fuGetValueForRegister(oProcess, sRegister, sComment):
+  def fuGetAddressForSymbol(oProcess, sbSymbol):
+    return cProcess_fuGetAddressForSymbol(oProcess, sbSymbol);
+  def fuGetValueForRegister(oProcess, sbRegister, sb0Comment):
     oProcess.fSelectInCdb();
-    return oProcess.oCdbWrapper.fuGetValueForRegister(sRegister, sComment);
-  def fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment):
-    return cProcess_fdsSymbol_by_uAddressForPartialSymbol(oProcess, sSymbol, sComment);
+    return oProcess.oCdbWrapper.fuGetValueForRegister(sbRegister, sb0Comment);
   def fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
     return cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType);
 

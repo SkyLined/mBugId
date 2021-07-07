@@ -126,5 +126,7 @@ def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oThread, oException)
             s0UndecoratedClassName = mDbgHelp.fs0UndecorateSymbolName(s0DecoratedClassName, bNameOnly = True);
             # If we can undecorate the symbol name of the class, add it to the exception, otherwise add the decorated
             # one (which is most likely already undecorated to begin with):
-            oBugReport.sBugTypeId += ":%s" % (s0UndecoratedClassName or s0DecoratedClassName);
+            assert oBugReport.s0BugTypeId is not None, \
+                "oBugReport.s0BugTypeId shouldn't be None at this point";
+            oBugReport.s0BugTypeId += ":%s" % (s0UndecoratedClassName or s0DecoratedClassName);
   return oBugReport;

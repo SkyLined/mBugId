@@ -13,19 +13,24 @@ bLicenseWarningsShown = False;
 nExcessiveCPUUsageCheckInitialTimeoutInSeconds = 0.5; # CPU usage should normalize after half a second.
 bGenerateReportHTML = False;
 bSaveReportHTML = False;
-uTotalMaxMemoryUse =  0x01234567; # The test application memory use limit: it should be large enough to allow the test
-                                   # to function, but small enough to detect excessive memory use before the entire
-                                   # system runs low on memory.
+uTotalMaxMemoryUse =  0x10000000; # The test application memory use limit: it should be large enough to allow the test
+                                  #   to function (including enough space for ASan's shadow memory!), but small enough
+                                  #   to detect excessive memory use quickly, before it causes the entire system to run
+                                  #   s low on memory. 0x10000000 ~= 256 Mb, which seems to work well.
 uOOMAllocationBlockSize = 0x1234; # The out-of-memory test allocations size. it should be large enough to cause OOM
-                                   # reasonably fast, but small enough so a not to hit the guTotalMaxMemoryUse
-                                   # immediately, as this would not represent a normal OOM scenario.
+                                  #   reasonably fast, but small enough so a not to hit the guTotalMaxMemoryUse
+                                  #   immediately, as this would not represent a normal OOM scenario.
 uLargeHeapBlockSize = 0x00800000; # Should be large to detect potential issues when handling large allocations, but
-                                   # not so large as to cause the application to allocate more memory than it is allowed
-                                   # through the guTotalMaxMemoryUse variable.
+                                  #   not so large as to cause the application to allocate more memory than it is allowed
+                                  #   through the guTotalMaxMemoryUse variable.
 
 dsTestsBinaries_by_sISA = {
   "x86": os.path.join(sTestsFolderPath, "bin", "Tests_x86.exe"),
   "x64": os.path.join(sTestsFolderPath, "bin", "Tests_x64.exe"),
+};
+dsASanTestsBinaries_by_sISA = {
+  "x86": os.path.join(sTestsFolderPath, "bin", "Tests_x86d.exe"),
+  "x64": os.path.join(sTestsFolderPath, "bin", "Tests_x64d.exe"),
 };
 
 dsComSpec_by_sISA = {

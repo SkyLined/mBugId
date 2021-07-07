@@ -11,9 +11,13 @@ def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, 
     oException.auParameters[0],
     oException.auParameters[1],
   );
-  oBugReport.sBugTypeId = "Stowed[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
-  oBugReport.sBugDescription = ", ".join([oStowedException.sDescription for oStowedException in aoStowedExceptions]);
-  oBugReport.sSecurityImpact = ", ".join([oStowedException.sSecurityImpact for oStowedException in aoStowedExceptions if oStowedException.sSecurityImpact]) or None;
+  oBugReport.s0BugTypeId = "Stowed[%s]" % ",".join([oStowedException.sTypeId for oStowedException in aoStowedExceptions]);
+  oBugReport.s0BugDescription = ", ".join([oStowedException.sDescription for oStowedException in aoStowedExceptions]);
+  oBugReport.s0SecurityImpact = ", ".join([
+    oStowedException.s0SecurityImpact
+    for oStowedException in aoStowedExceptions
+    if oStowedException.s0SecurityImpact
+  ]) or None;
 #  for oStowedException in aoStowedExceptions:
 #    oStack = cStack.foCreateFromAddress(oProcess, oStowedExceptions.pStackTrace, oStowedExceptions.uStackTraceSize);
   return oBugReport;

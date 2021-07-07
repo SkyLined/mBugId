@@ -1,14 +1,104 @@
 import re;
+
 from mWindowsAPI import *;
+
 from .cPageHeapManagerData import cPageHeapManagerData;
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+
+grbIgnoredHeapOutputLines = re.compile(
+  rb"^\s*"                                  # optional whitepsace
+  rb"(?:"                                   # either {
+    rb"ReadMemory error for address [0-9`a-f]+"
+  rb"|"                                     # } or {
+    rb"Use `!address [0-9`a-f]+' to check validity of the address."
+  rb"|"                                     # } or {
+    rb"\*\*\*.*\*\*\*"
+  rb"|"                                     # } or {
+    rb"unable to resolve ntdll!RtlpStackTraceDataBase"
+  rb")"                                     # }
+  rb"\s*$"                                  # optional whitespace
+);
+
+grbHeapOutputFirstLine = re.compile(
+  rb"^\s+"                                  # whitespace
+  rb"address [0-9`a-f]+ found in"           # "address " <address> " found in"
+  rb"\s*$"                                  # optional whitepsace
+);
+grHeapOutputTypeAndRootAddressLine = re.compile(
+  rb"^\s+"                                  #   whitespace
+  rb"(_HEAP|_DPH_HEAP_ROOT)"                # * "_HEAP" or "_DPH_HEAP_ROOT"
+  rb" @ "                                   #   " @ "
+  rb"([0-9`a-f]+)"                          # * root-address
+  rb"\s*$"                                  #   optional whitepsace
+);
+grbWindowsHeapInformationHeader = re.compile( # line #3
+  rb"^\s+"                                  # whitespace
+  rb"HEAP_ENTRY"                  rb"\s+"   # "HEAP_ENTRY"      whitespace
+  rb"Size"                        rb"\s+"   # "Size"            whitespace
+  rb"Prev"                        rb"\s+"   # "Prev"            whitespace
+  rb"Flags"                       rb"\s+"   # "Flags"           whitespace
+  rb"UserPtr"                     rb"\s+"   # "UserPtr"         whitespace
+  rb"UserSize"                    rb"\s+"   # "UserSize"        whitespace
+  rb"\-"                          rb"\s+"   # "-"               whitespace
+  rb"state"                                 # "state" 
+  rb"\s*$"                                  # optional whitespace
+);
+
+grbWindowsHeapInformation = re.compile(     # line #4
+  rb"^\s+"                                  #   whitespace
+  rb"([0-9`a-f]+)"                rb"\s+"   # * heap_entry_address whitespace
+  rb"([0-9`a-f]+)"                rb"\s+"   # * heap_entry_size
+  rb"[0-9`a-f]+"                  rb"\s+"   #   prev
+  rb"\[" rb"[0-9`a-f]+" rb"\]"    rb"\s+"   #   "[" flags "]"
+  rb"([0-9`a-f]+)"                rb"\s+"   # * sBlockStartAddress
+  rb"([0-9`a-f]+)"                rb"\s+"   # * sBlockSize
+  rb"\-"                          rb"\s+"   #   "-"
+  rb"\(" rb"(busy|free|DelayedFree)" rb"\)" #* "(" state  ")"
+  rb"\s*$"                                  # optional whitespace
+);
+
+grbDPHHeapInformationHeader = re.compile(   # line #3
+  rb"^\s+"                                  #   whitespace
+  rb"in"                          rb"\s+"   #   "in"                whitespace
+  rb"(free-ed|busy)"              rb"\s+"   # * state               whitespace
+  rb"allocation"                  rb"\s+"   #   "allocation"        whitespace
+  rb"\("                          rb"\s*"   #   "("                 optional whitespace
+  rb"DPH_HEAP_BLOCK:"             rb"\s+"   #   "DPH_HEAP_BLOCK:"   whitespace
+  rb"(?:"                                   #   optional{
+    rb"UserAddr"                  rb"\s+"   #     "UserAddr"        whitespace
+    rb"UserSize"                  rb"\s+"   #     "UserSize"        whitespace
+    rb"\-"                        rb"\s+"   #     "-"               whitespace
+  rb")?"                                    #   }
+  rb"VirtAddr"                    rb"\s+"   #   "VirtAddr"          whitespace
+  rb"VirtSize"                    rb"\s*"   #   "VirtSize"          optional whitespace
+  rb"\)"                                    #   ")"                 
+  rb"\s*$",                                 # optional whitespace
+);
+grbDPHHeapInformation = re.compile(         # line #4
+  rb"^\s+"                                  #   whitespace
+  rb"([0-9`a-f]+)" rb":"  rb"\s+"           # * heap_header_address ":"   whitespace
+  rb"(?:"                                   #   optional {
+    rb"([0-9`a-f]+)"     rb"\s+"            # *   sBlockStartAddress      whitespace
+    rb"([0-9`a-f]+)"     rb"\s+"            # *   sBlockSize              whitespace
+    rb"\-"               rb"\s+"            #     "-"                     whitespace
+  rb")?"                                    #   }
+  rb"([0-9`a-f]+)"       rb"\s+"            # * sAllocationStartAddress   whitespace
+  rb"([0-9`a-f]+)"                          # * sAllocationSize
+  rb"\s*$"                                  # optional whitespace
+);
 
 def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
   sType = sType or "unknown";
-  asCdbHeapOutput = oProcess.fasExecuteCdbCommand(
-    sCommand = "!heap -p -a 0x%X;" % uAddress,
-    sComment = "Get page heap information",
-    bOutputIsInformative = True,
-  );
+  # Strip warnings and errors that we may be able to ignore:
+  asbCdbHeapOutput = [
+    sbLine
+    for sbLine in oProcess.fasbExecuteCdbCommand(
+      sbCommand = b"!heap -p -a 0x%X;" % uAddress,
+      sb0Comment = b"Get page heap information",
+      bOutputIsInformative = True,
+    )
+    if not grbIgnoredHeapOutputLines.match(sbLine)
+  ];
   # Sample output:
   # Allocated memory on "normal" hreap
   # |    address 000001ec4e8cc790 found in
@@ -64,17 +154,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
   # |<<<snip>>>
   # |unable to resolve ntdll!RtlpStackTraceDataBase
   
-  # Strip warnings and errors that we may be able to ignore:
-  asCdbHeapOutput = [
-    x for x in asCdbHeapOutput
-    if not re.match(r"^(%s)\s*$" % "|".join([
-      "ReadMemory error for address [0-9`a-f]+",
-      "Use `!address [0-9`a-f]+' to check validity of the address.",
-      "\*\*\*.*\*\*\*",
-      "unable to resolve ntdll!RtlpStackTraceDataBase",
-    ]), x)
-  ];
-  if len(asCdbHeapOutput) < 4:
+  if len(asbCdbHeapOutput) < 4:
     # No !heap output; make sure it is enabled for this process.
     oProcess.fEnsurePageHeapIsEnabled();
     # Try to manually figure things out.
@@ -83,116 +163,69 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
     except AssertionError:
       # That didn't work; we have no information about a heap block at this address.
       return None;
-  
-  assert re.match(r"^\s+address [0-9`a-f]+ found in\s*$", asCdbHeapOutput[0]), \
-      "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
-  oHeapTypeMatch = re.match(r"^\s+(_HEAP|_DPH_HEAP_ROOT) @ ([0-9`a-f]+)\s*$", asCdbHeapOutput[1]);
-  assert oHeapTypeMatch, \
-      "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
-  sHeapType, sHeapRootAddress = oHeapTypeMatch.groups();
-  uHeapRootAddress = long(sHeapRootAddress.replace("`", ""), 16);
-  if sHeapType == "_HEAP":
+  assert grbHeapOutputFirstLine.match(asbCdbHeapOutput[0]), \
+      "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+  obHeapOutputTypeAndRootAddressMatch = grHeapOutputTypeAndRootAddressLine.match(asbCdbHeapOutput[1]);
+  assert obHeapOutputTypeAndRootAddressMatch, \
+      "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+  sbHeapType, sbHeapRootAddress = obHeapOutputTypeAndRootAddressMatch.groups();
+  uHeapRootAddress = fu0ValueFromCdbHexOutput(sbHeapRootAddress);
+  if sbHeapType == b"_HEAP":
     assert sType in ["windows", "unknown"], \
         "Expected heap allocator to be %s, but found default windows allocator" % sType;
     # Regular Windows heap.
-    assert re.match( # line #3
-      "^\s+%s\s*$" % "\s+".join([               # starts with spaces, separated by spaces and optionally end with spaces too
-        r"HEAP_ENTRY", r"Size", r"Prev", r"Flags", r"UserPtr", r"UserSize", r"\-", r"state",
-      ]),
-      asCdbHeapOutput[2],
-    ), \
-        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
-    oBlockInformationMatch = re.match( # line #4 
-      "^\s+%s\s*$" % "\s+".join([               # starts with spaces, separated by spaces and optionally end with spaces too
-        r"([0-9`a-f]+)",                          # (heap_entry_address)
-        r"([0-9`a-f]+)",                          # (heap_entry_size)
-        r"[0-9`a-f]+",                            # prev
-        r"\[" r"[0-9`a-f]+" r"\]",                # "[" flags "]"
-        r"([0-9`a-f]+)",                          # (sBlockStartAddress)
-        r"([0-9`a-f]+)",                          # (sBlockSize)
-        r"\-",                                    # "-"
-        r"\(" r"(busy|free|DelayedFree)" r"\)",   # "(" (sState)  ")"
-      ]),
-      asCdbHeapOutput[3],
-    );
-    assert oBlockInformationMatch, \
-        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
+    assert grbWindowsHeapInformationHeader.match(asbCdbHeapOutput[2]), \
+        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(absCdbHeapOutput);
+    obBlockInformationMatch = grbWindowsHeapInformation.match(asCdbHeapOutput[3]);
+    assert obBlockInformationMatch, \
+        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
     (
-      sHeapEntryStartAddress,
-      sHeapEntrySizeInPointers,
-      sBlockStartAddress,
-      sBlockSize,
-      sState,
-    ) = oBlockInformationMatch.groups();
-    uHeapEntryStartAddress = long(sHeapEntryStartAddress.replace("`", ""), 16);
-    uHeapEntrySize = long(sHeapEntrySizeInPointers.replace("`", ""), 16) * oProcess.uPointerSize;
-    uHeapBlockStartAddress = long(sBlockStartAddress.replace("`", ""), 16);
-    uHeapBlockSize = long(sBlockSize.replace("`", ""), 16);
-    bAllocated = sState == "busy";
-    oVirtualAllocation = cVirtualAllocation(oProcess.uId, uHeapBlockStartAddress);
+      sbHeapEntryStartAddress,
+      sbHeapEntrySizeInPointers,
+      sbBlockStartAddress,
+      sbBlockSize,
+      sbState,
+    ) = obBlockInformationMatch.groups();
+    uHeapEntryStartAddress = fu0ValueFromCdbHexOutput(sbHeapEntryStartAddress);
+    uHeapEntrySize = fu0ValueFromCdbHexOutput(sbHeapEntrySizeInPointers) * oProcess.uPointerSize;
+    u0HeapBlockStartAddress = fu0ValueFromCdbHexOutput(sbBlockStartAddress);
+    u0HeapBlockSize = fu0ValueFromCdbHexOutput(sbBlockSize);
+    bAllocated = sbState == b"busy";
+    oVirtualAllocation = cVirtualAllocation(oProcess.uId, u0HeapBlockStartAddress);
     assert oVirtualAllocation, \
-      "Cannot find virtual allocation for heap block at 0x%X" % uHeapBlockStartAddress;
-    from cWindowsHeapManagerData import cWindowsHeapManagerData;
+      "Cannot find virtual allocation for heap block at 0x%X" % u0HeapBlockStartAddress;
+    from .cWindowsHeapManagerData import cWindowsHeapManagerData;
     oHeapManagerData = cWindowsHeapManagerData(
       oVirtualAllocation,
       uHeapEntryStartAddress,
       uHeapEntrySize,
-      uHeapBlockStartAddress,
-      uHeapBlockSize,
+      u0HeapBlockStartAddress,
+      u0HeapBlockSize,
       bAllocated,
     );
   else:
     assert sType in ["page heap", "unknown"], \
         "Expected heap allocator to be %s, but found page heap allocator" % sType;
-    oDPHHeapBlockTypeMatch = re.match(  # line #3
-      r"^"                  r"\s*"      # {                         [whitespace]
-      r"in"                 r"\s+"      #   "in"                     whitespace
-      r"(free-ed|busy)"     r"\s+"      #   (sState)                 whitespace
-      r"allocation"         r"\s+"      #   "allocation"             whitespace
-      r"\("                 r"\s*"      #   "("                     [whitespace]
-        r"DPH_HEAP_BLOCK:"  r"\s+"      #     "DPH_HEAP_BLOCK:"      whitespace
-        r"(?:"                          #     optional{
-          r"UserAddr"       r"\s+"      #       "UserAddr"           whitespace
-          r"UserSize"       r"\s+"      #       "UserSize"           whitespace
-          r"\-"             r"\s+"      #       "-"                  whitespace
-        r")?"                           #     }
-        r"VirtAddr"         r"\s+"      #     "VirtAddr"             whitespace
-        r"VirtSize"         r"\s*"      #     "VirtSize"            [whitespace]
-      r"\)"                 r"\s*"      #   ")"                     [whitespace]
-      r"$",                             # }
-      asCdbHeapOutput[2],
-    );
-    assert oDPHHeapBlockTypeMatch, \
-        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
-    sState = oDPHHeapBlockTypeMatch.group(1);
-    bAllocated = sState == "busy";
-    oBlockInformationMatch = re.match(  # line #4
-      r"^"                  r"\s*"      # {                         [whitespace]
-      r"([0-9`a-f]+)" r":"  r"\s+"      #   heap_header_address ":"  whitespace
-      r"(?:"                            #   optional {
-        r"([0-9`a-f]+)"     r"\s+"      #     (sBlockStartAddress)   whitespace
-        r"([0-9`a-f]+)"     r"\s+"      #     (sBlockSize)           whitespace
-        r"\-"               r"\s+"      #     "-"                    whitespace
-      r")?"                             #   }
-      r"([0-9`a-f]+)"       r"\s+"      #   (sAllocationStartAddress) whitespace
-      r"([0-9`a-f]+)"       r"\s*"      #   sAllocationSize         [whitespace]
-      r"$",                             # }
-      asCdbHeapOutput[3],
-    );
-    assert oBlockInformationMatch, \
-        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asCdbHeapOutput);
+    obDPHHeapInformationHeaderMatch = grbDPHHeapInformationHeader.match(asbCdbHeapOutput[2]);
+    assert obDPHHeapInformationHeaderMatch, \
+        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+    sbState = obDPHHeapInformationHeaderMatch.group(1);
+    bAllocated = sbState == b"busy";
+    obBlockInformationMatch = grbDPHHeapInformation.match(asbCdbHeapOutput[3]);
+    assert obBlockInformationMatch, \
+        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
     (
-      sAllocationInformationStartAddress,
-      sHeapBlockStartAddress,
-      sHeapBlockSize,
-      sVirtualAllocationStartAddress,
-      sVirtualAllocationSize,
-    ) = oBlockInformationMatch.groups();
-    uAllocationInformationStartAddress = long(sAllocationInformationStartAddress.replace("`", ""), 16)
-    uVirtualAllocationStartAddress = long(sVirtualAllocationStartAddress.replace("`", ""), 16);
-    uVirtualAllocationSize = long(sVirtualAllocationSize.replace("`", ""), 16);
-    uHeapBlockStartAddress = sHeapBlockStartAddress and long(sHeapBlockStartAddress.replace("`", ""), 16);
-    uHeapBlockSize = sHeapBlockSize and long(sHeapBlockSize.replace("`", ""), 16);
+      sbAllocationInformationStartAddress,
+      sb0HeapBlockStartAddress,
+      sb0HeapBlockSize,
+      sbVirtualAllocationStartAddress,
+      sbVirtualAllocationSize,
+    ) = obBlockInformationMatch.groups();
+    uAllocationInformationStartAddress = fu0ValueFromCdbHexOutput(sbAllocationInformationStartAddress)
+    uVirtualAllocationStartAddress = fu0ValueFromCdbHexOutput(sbVirtualAllocationStartAddress);
+    uVirtualAllocationSize = fu0ValueFromCdbHexOutput(sbVirtualAllocationSize);
+    u0HeapBlockStartAddress = fu0ValueFromCdbHexOutput(sb0HeapBlockStartAddress);
+    u0HeapBlockSize = fu0ValueFromCdbHexOutput(sb0HeapBlockSize);
     o0HeapManagerData = cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress(
       oProcess,
       uAllocationInformationStartAddress,
@@ -203,7 +236,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
     oHeapManagerData.uHeapRootAddress = uHeapRootAddress;
     assert bAllocated == oHeapManagerData.bAllocated, \
         "cdb says block is %s, but page heap allocation information says %s" % \
-        (sState, oHeapManagerData.bAllocated and "allocated" or "free", \
+        (sbState, oHeapManagerData.bAllocated and "allocated" or "free", \
         uExpectedState, "\r\n".join(asCdbHeapOutput));
     assert uVirtualAllocationStartAddress == oHeapManagerData.oVirtualAllocation.uStartAddress, \
         "Page heap allocation found at a different address (@ 0x%X) than reported by cdb (@ 0x%X)" % \
@@ -219,11 +252,11 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
     assert uAllocationInformationStartAddress == oHeapManagerData.uAllocationInformationStartAddress, \
         "Page heap allocation header points to different information (@ 0x%X) than reported by cdb (@ 0x%X)" % \
         (oHeapManagerData.uAllocationInformationStartAddress, uAllocationInformationStartAddress);
-  if uHeapBlockStartAddress is not None:
-    assert uHeapBlockStartAddress == oHeapManagerData.uHeapBlockStartAddress, \
+  if u0HeapBlockStartAddress is not None:
+    assert u0HeapBlockStartAddress == oHeapManagerData.uHeapBlockStartAddress, \
         "Page heap block start address (@ 0x%X) is different than reported by cdb (@ 0x%X)" % \
-        (oHeapManagerData.uHeapBlockStartAddress, uHeapBlockStartAddress);
-    assert uHeapBlockSize == oHeapManagerData.uHeapBlockSize, \
+        (oHeapManagerData.uHeapBlockStartAddress, u0HeapBlockStartAddress);
+    assert u0HeapBlockSize == oHeapManagerData.uHeapBlockSize, \
         "Page heap block size (0x%X) is different than reported by cdb (@ 0x%X)" % \
-        (oHeapManagerData.uHeapBlockSize, uHeapBlockSize);
+        (oHeapManagerData.uHeapBlockSize, u0HeapBlockSize);
   return oHeapManagerData;

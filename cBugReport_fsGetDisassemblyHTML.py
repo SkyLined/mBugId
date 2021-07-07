@@ -1,11 +1,25 @@
 import re;
 from .dxConfig import dxConfig;
 
+grbIgnoredMemoryAccessError = re.compile(
+  rb"^"
+  rb"\s*\^ Memory access error in '.+'"
+  rb"$"
+);
+
+grAddressOpCodeInstruction = re.compile(
+  r"^"
+  r"([0-9a-fA-F`]+\s+)"
+  r"([0-9a-fA-F]+\s+)"
+  r"(.+)"
+  r"$"
+);
+
 def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bHighlightLine, sRemark):
   # If this line starts with an address and opcode, make those semi-transparent.
-  oMatch = re.match(r"^([0-9a-fA-F`]+\s+)([0-9a-fA-F]+\s+)(.+)$", sLine);
-  if oMatch:
-    sAddress, sOpcode, sInstruction = oMatch.groups();
+  oAddressOpCodeInstructionMatch = grAddressOpCodeInstruction.match(sLine);
+  if oAddressOpCodeInstructionMatch:
+    (sAddress, sOpcode, sInstruction) = oAddressOpCodeInstructionMatch.groups();
     return "<tr>%s</tr>" % "".join([
       "<td class=\"DisassemblyAddress%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sAddress)),
       "<td class=\"DisassemblyOpcode%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sOpcode)),
@@ -32,64 +46,63 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
     return None;
   # Get disassembly around code in which exception happened. This may not be possible if the instruction pointer points to unmapped memory.
   asDisassemblyBeforeAddressHTML = [];
-  srIgnoredMemoryAccessError = r"^\s*\^ Memory access error in '.+'$";
   if uDisassemblyBytesBefore > 0:
     # Find out if we can get disassembly before uAddress by determining the start and end address we want and adjusting
     # them to the start and end address of the memory region.
     uStartAddress = max(uAddress - uDisassemblyBytesBefore, oVirtualAllocation.uStartAddress);
     uLastAddress = min(uAddress, oVirtualAllocation.uEndAddress) - 1;
     if (uStartAddress < uLastAddress):
-      asDisassemblyBeforeAddress = oProcess.fasExecuteCdbCommand(
-        sCommand = "u 0x%X 0x%X;" % (uStartAddress, uLastAddress),
-        sComment = "Disassemble up to address 0x%X" % uAddress,
+      asbDisassemblyBeforeAddress = oProcess.fasbExecuteCdbCommand(
+        sbCommand = b"u 0x%X 0x%X;" % (uStartAddress, uLastAddress),
+        sb0Comment = b"Disassemble up to address 0x%X" % uAddress,
         bOutputIsInformative = True,
         bRetryOnTruncatedOutput = True,
-        srIgnoredErrors = srIgnoredMemoryAccessError,
+        rb0IgnoredErrors = grbIgnoredMemoryAccessError,
       );
-      if re.match(srIgnoredMemoryAccessError, asDisassemblyBeforeAddress[-1]):
+      if grbIgnoredMemoryAccessError.match(asbDisassemblyBeforeAddress[-1]):
         # If the virtual memory allocation ends shortly after the address, we could see this error:
-        asDisassemblyBeforeAddress.pop();
-      assert len(asDisassemblyBeforeAddress) >= 2, \
-          "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asDisassemblyBeforeAddress);
+        asbDisassemblyBeforeAddress.pop();
+      assert len(asbDisassemblyBeforeAddress) >= 2, \
+          "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asbDisassemblyBeforeAddress);
       # Limit number of instructions
-      asDisassemblyBeforeAddress = asDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
-      if asDisassemblyBeforeAddress:
+      asbDisassemblyBeforeAddress = asbDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
+      if asbDisassemblyBeforeAddress:
         # Optionally highlight and describe instruction before the address:
         asDisassemblyBeforeAddressHTML = [
           fsHTMLEncodeAndColorDisassemblyLine(
             oCdbWrapper = oCdbWrapper,
-            sLine = asDisassemblyBeforeAddress[uIndex],
+            sLine = str(asbDisassemblyBeforeAddress[uIndex], 'latin1'),
             bHighlightLine = False,
-            sRemark = uIndex == len(asDisassemblyBeforeAddress) - 1 and sDescriptionOfInstructionBeforeAddress or None,
+            sRemark = uIndex == len(asbDisassemblyBeforeAddress) - 1 and sDescriptionOfInstructionBeforeAddress or None,
           )
-          for uIndex in xrange(len(asDisassemblyBeforeAddress))
+          for uIndex in range(len(asbDisassemblyBeforeAddress))
         ];
   asDisassemblyAtAndAfterAddressHTML = [];
   if dxConfig["uDisassemblyInstructionsAfter"] > 0:
     # Get disassembly after uAddress is easier, as we can just as for oVirtualAllocation.uEndAddress instructions
-    asDisassemblyAtAndAfterAddress = oProcess.fasExecuteCdbCommand(
-      sCommand = "u 0x%X L%d;" % (uAddress, dxConfig["uDisassemblyInstructionsAfter"]),
-      sComment = "Disassemble starting at address 0x%X" % uAddress, 
+    asbDisassemblyAtAndAfterAddress = oProcess.fasbExecuteCdbCommand(
+      sbCommand = b"u 0x%X L%d;" % (uAddress, dxConfig["uDisassemblyInstructionsAfter"]),
+      sb0Comment = b"Disassemble starting at address 0x%X" % uAddress, 
       bOutputIsInformative = True,
       bRetryOnTruncatedOutput = True,
-      srIgnoredErrors = srIgnoredMemoryAccessError,
+      rb0IgnoredErrors = grbIgnoredMemoryAccessError,
     );
-    assert len(asDisassemblyAtAndAfterAddress) >= 2, \
-        "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asDisassemblyAtAndAfterAddress);
+    assert len(asbDisassemblyAtAndAfterAddress) >= 2, \
+        "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asbDisassemblyAtAndAfterAddress);
     # The first line copntains the symbol at the address where we started disassembly, which we do not want in the
     # output:
-    asDisassemblyAtAndAfterAddress.pop(0);
-    if re.match(srIgnoredMemoryAccessError, asDisassemblyAtAndAfterAddress[-1]):
+    asbDisassemblyAtAndAfterAddress.pop(0);
+    if grbIgnoredMemoryAccessError.match(asbDisassemblyAtAndAfterAddress[-1]):
       # If the virtual memory allocation ends shortly after the address, we could an error that we want to remove:
-      asDisassemblyAtAndAfterAddress.pop();
+      asbDisassemblyAtAndAfterAddress.pop();
     asDisassemblyAtAndAfterAddressHTML = [
       fsHTMLEncodeAndColorDisassemblyLine(
         oCdbWrapper = oCdbWrapper,
-        sLine = asDisassemblyAtAndAfterAddress[uIndex],
+        sLine = str(asbDisassemblyAtAndAfterAddress[uIndex], 'latin1'),
         bHighlightLine = uIndex == 0,
         sRemark = uIndex == 0 and sDescriptionOfInstructionAtAddress or None,
       )
-      for uIndex in xrange(len(asDisassemblyAtAndAfterAddress))
+      for uIndex in range(len(asbDisassemblyAtAndAfterAddress))
     ];
   if not asDisassemblyBeforeAddressHTML:
     if not asDisassemblyAtAndAfterAddressHTML:

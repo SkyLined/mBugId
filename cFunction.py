@@ -1,22 +1,26 @@
 class cFunction(object):
-  def __init__(oSelf, oModule, sSymbol):
+  def __init__(oSelf, oModule, sbSymbol):
+    assert oModule.sb0BinaryName, \
+        "Cannot have a function in a module without a binary name: %s" % repr(oModule);
+    assert oModule.sb0SimplifiedName, \
+        "Cannot have a function in a module without a simplified binary name: %s" % repr(oModule);
     oSelf.oModule = oModule;
-    oSelf.sSymbol = sSymbol;
-    oSelf.sCdbId = "%s!%s" % (oModule.sCdbId, oSelf.sSymbol);
-    oSelf.sName = "%s!%s" % (oModule.sBinaryName, oSelf.sSymbol);
+    oSelf.sbSymbol = sbSymbol;
+    oSelf.sbCdbId = b"%s!%s" % (oModule.sbCdbId, sbSymbol);
+    oSelf.sbName = b"%s!%s" % (oModule.sb0BinaryName, sbSymbol);
     # Replace complex template stuff with "<...>" to make a symbol easier to read.
-    asComponents = [""];
-    for sChar in sSymbol:
-      if sChar == "<":
-        asComponents.append("");
-      elif sChar == ">":
-        if len(asComponents) == 1:
-          asComponents[-1] += ">"; # this is not closing a "<".
+    asbComponents = [b""];
+    for uChar in sbSymbol:
+      if uChar == ord("<"):
+        asbComponents.append(b"");
+      elif uChar == ord(">"):
+        if len(asbComponents) == 1:
+          asbComponents[-1] += b">"; # this is not closing a "<".
         else:
-          sTemplate = asComponents.pop(); # discard contents of template
-          asComponents[-1] += "<...>";
+          sbTemplate = asbComponents.pop(); # discard contents of template
+          asbComponents[-1] += b"<...>";
       else:
-        asComponents[-1] += sChar;
-    oSelf.sSimpifiedSymbol = "<".join(asComponents);
-    oSelf.sSimplifiedName = "%s!%s" % (oModule.sSimplifiedName, oSelf.sSimpifiedSymbol);
-    oSelf.sUniqueName = sSymbol;
+        asbComponents[-1] += bytes((uChar,));
+    oSelf.sbSimpifiedSymbol = b"<".join(asbComponents);
+    oSelf.sbSimplifiedName = b"%s!%s" % (oModule.sb0SimplifiedName or b"???", oSelf.sbSimpifiedSymbol);
+    oSelf.sbUniqueName = b"%s!%s" % (oModule.sb0UniqueName or b"???", sbSymbol);

@@ -40,11 +40,11 @@ def fsHTMLCP437(sChar):
 
 if __name__ == "__main__":
   sHTML = "<html><head><style>* { font-family: Courier, monospace; }</style></head><body>\n";
-  for uHighNibble in xrange(0, 0x10):
+  for uHighNibble in range(0, 0x10):
     sHTML += "|";
-    for uLowNibble in xrange(0, 0x10):
+    for uLowNibble in range(0, 0x10):
       sChar = chr(uHighNibble * 16 + uLowNibble);
       sHTML += fsHTMLCP437(sChar);
     sHTML += "|<br/>\n";
   sHTML += "</body></html>\n";
-  print sHTML;
+  print(sHTML);

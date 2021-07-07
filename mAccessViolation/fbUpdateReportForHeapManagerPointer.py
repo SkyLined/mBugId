@@ -44,29 +44,29 @@ def fbUpdateReportForHeapManagerPointer(
       oHeapManagerData.ftsGetIdAndDescriptionForAddress(uAccessViolationAddress);
   sBlockSizeAndOffsetId = sBlockSizeId + sBlockOffsetId;
   sBlockOffsetAndSizeDescription = sBlockOffsetDescription + " " + sBlockSizeDescription;
-  oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s %smemory at 0x%X; %s." % \
+  oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while attempting to %s %smemory at 0x%X; %s." % \
       (uAccessViolationAddress, sViolationVerb, oHeapManagerData.bFreed and "freed " or "", uAccessViolationAddress, sBlockOffsetAndSizeDescription);
   sPotentialRisk = {
     "R": "might allow information disclosure and (less likely) arbitrary code execution",
     "W": "indicates arbitrary code execution may be possible",
     "E": "indicates arbitrary code execution is very likely possible",
   }[sViolationTypeId];
-  oBugReport.sSecurityImpact = "Potentially exploitable security issue that %s." % sPotentialRisk;
+  oBugReport.s0SecurityImpact = "Potentially exploitable security issue that %s." % sPotentialRisk;
   if oHeapManagerData.bFreed:
     # --- (OOB)UAF -----------------------------------------------------------
     # We do not expect to see corruption of the page heap struct, as this should have been detected when the memory was
     # freed. The code may have tried to access data outside the bounds of the freed memory (double face-palm!).
     sBugAccessTypeId = (bOutOfBounds and "OOB" or "") + sViolationTypeId + "AF";
-    oBugReport.sBugDescription += " This indicates a Use-After-Free (UAF) bug was triggered.";
+    oBugReport.s0BugDescription += " This indicates a Use-After-Free (UAF) bug was triggered.";
     if bOutOfBounds:
-      oBugReport.sBugDescription += " In addition, the code attempted to access data Out-Of-Bounds (OOB).";
+      oBugReport.s0BugDescription += " In addition, the code attempted to access data Out-Of-Bounds (OOB).";
     sCorruptionId = "";
   else:
     sBugAccessTypeId = (bOutOfBounds and "OOB" or "AV") + sViolationTypeId;
     if bOutOfBounds:
-      oBugReport.sBugDescription += " This indicates an Out-Of-Bounds (OOB) access bug was triggered.";
+      oBugReport.s0BugDescription += " This indicates an Out-Of-Bounds (OOB) access bug was triggered.";
     else:
-      oBugReport.sBugDescription += " suggests an earlier memory corruption has corrupted a pointer, index or offset.";
+      oBugReport.s0BugDescription += " suggests an earlier memory corruption has corrupted a pointer, index or offset.";
     # We may be able to check the heap manager structures for signs of corruption to detect earlier out-of-bounds writes
     # that overwrite them but did not cause an access violation.
     if oHeapManagerData.bCorruptionDetected:
@@ -75,14 +75,14 @@ def fbUpdateReportForHeapManagerPointer(
       if oHeapManagerData.uHeapBlockStartAddress > oHeapManagerData.uCorruptionStartAddress:
         # Corruption before the heap block
         uOffsetBeforeStartOfBlock = oHeapManagerData.uHeapBlockStartAddress - oHeapManagerData.uCorruptionStartAddress;
-        oBugReport.sBugDescription += (
+        oBugReport.s0BugDescription += (
           " An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
           "before that block because it modified the page heap prefix pattern."
         ) % (oHeapManagerData.uCorruptionStartAddress, uOffsetBeforeStartOfBlock, uOffsetBeforeStartOfBlock);
       elif oHeapManagerData.uHeapBlockEndAddress <= oHeapManagerData.uCorruptionStartAddress:
         # Corruption after the heap block
         uOffsetBeyondEndOfBlock = oHeapManagerData.uCorruptionStartAddress - oHeapManagerData.uHeapBlockEndAddress;
-        oBugReport.sBugDescription += (
+        oBugReport.s0BugDescription += (
           " An earlier out-of-bounds write was detected at 0x%X, %d/0x%X bytes " \
           "beyond that block because it modified the page heap suffix pattern."
         ) % (oHeapManagerData.uCorruptionStartAddress, uOffsetBeyondEndOfBlock, uOffsetBeyondEndOfBlock);
@@ -94,8 +94,8 @@ def fbUpdateReportForHeapManagerPointer(
           and oHeapManagerData.uCorruptionEndAddress == uAccessViolationAddress
         ):
           sBugAccessTypeId = "BOF";
-          oBugReport.sBugDescription += " This appears to be a classic linear buffer-overrun vulnerability.";
-          sSecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
+          oBugReport.s0BugDescription += " This appears to be a classic linear buffer-overrun vulnerability.";
+          s0SecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
       sCorruptionId = "{%s}" % oHeapManagerData.sCorruptionId;
     else:
       sCorruptionId = "";
@@ -108,9 +108,9 @@ def fbUpdateReportForHeapManagerPointer(
         and oHeapManagerData.uHeapBlockEndPaddingSize \
         and uAccessViolationAddress >= oHeapManagerData.uHeapBlockEndAddress \
         and uAccessViolationAddress <= oHeapManagerData.oVirtualAllocation.uEndAddress:
-        oBugReport.sBugDescription += " An earlier out-of-bounds read before this address may have happened without " \
+        oBugReport.s0BugDescription += " An earlier out-of-bounds read before this address may have happened without " \
               "having triggered an access violation.";
-  oBugReport.sBugTypeId = "".join([
+  oBugReport.s0BugTypeId = "".join([
     sBugAccessTypeId,
     sBlockSizeAndOffsetId,
     sCorruptionId,

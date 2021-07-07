@@ -6,10 +6,10 @@ def fbUpdateReportForUnallocatedPointer(
   if not oVirtualAllocation.bFree:
     return False;
   # No memory is allocated in this area
-  oBugReport.sBugTypeId = "AV%s:Unallocated" % sViolationTypeId;
-  oBugReport.sBugDescription = "An Access Violation exception happend at 0x%X while attempting to %s unallocated memory at 0x%X." % \
+  oBugReport.s0BugTypeId = "AV%s:Unallocated" % sViolationTypeId;
+  oBugReport.s0BugDescription = "An Access Violation exception happend at 0x%X while attempting to %s unallocated memory at 0x%X." % \
       (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress);
-  oBugReport.sSecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
+  oBugReport.s0SecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
     fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
   );

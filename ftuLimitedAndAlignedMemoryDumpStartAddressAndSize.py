@@ -33,7 +33,7 @@ def ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(uMostInterestingAddress, u
     else:
       # The size before and after the address are both too large: the memory dump will have the most interesting
       # address in the middle.
-      uMemoryDumpStartAddress = long(round(uMostInterestingAddress - dxConfig["uMaxMemoryDumpSize"] / 2));
+      uMemoryDumpStartAddress = int(round(uMostInterestingAddress - dxConfig["uMaxMemoryDumpSize"] / 2));
       # Align new start address:
       uMemoryDumpStartAddress -= uMemoryDumpStartAddress & uPointerSizeMask; # decrease to align
       uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;

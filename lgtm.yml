@@ -1,8 +1,3 @@
 queries:
   - include: "*"
   - exclude: py/not-named-self
-extraction:
-  cpp:
-    index:
-      solution:
-        - ./Tests/Tests.sln

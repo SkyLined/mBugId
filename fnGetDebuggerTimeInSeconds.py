@@ -1,26 +1,39 @@
 import datetime, re;
 
-def fnGetDebuggerTimeInSeconds(sDebuggerTime):
+gasbMonths = [b"Jan", b"Feb", b"Mar", b"Apr", b"May", b"Jun", b"Jul", b"Aug", b"Sep", b"Oct", b"Nov", b"Dec"];
+grbDebuggerTime = re.compile(
+  rb"^\s*"
+  rb"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"                         # * Weekday
+  rb"\s+"                                                   #   whitespace
+  rb"(" + rb"|".join(gasbMonths) + rb")"                    # * Month
+  rb"\s+"                                                   #   whitespace
+  rb"(\d+)"                                                 # * Day in month
+  rb"\s+"                                                   #   whitespace
+  rb"(\d+):(\d+):(\d+).(\d+)"                               # * Hour ":" Minute ":" Second "." Milisecond
+  rb"\s+"                                                   #   whitespace
+  rb"(\d+)"                                                 # * Year
+  rb"\s+"                                                   #   whitespace
+  rb"\(.*\)"                                                #  "(" Timezone ")"
+  rb"\s*$"
+);
+
+def fnGetDebuggerTimeInSeconds(sbDebuggerTime):
   # Parse .time and .lastevent timestamps; return a number of seconds since an arbitrary but constant starting point in time.
-  sMonths = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
-  oTimeMatch = re.match("^%s$" % r"\s+".join([
-    r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)",                        # Weekday
-    r"(%s)" % sMonths,                                       # Month
-    r"(\d+)",                                                # Day in month
-    r"(\d+):(\d+):(\d+).(\d+)",                              # Hour:Minute:Second.Milisecond
-    r"(\d+)",                                                # Year
-    r"\(.*\)",                                               # (Timezone)
-  ]), sDebuggerTime);
-  assert oTimeMatch, "Cannot parse debugger time: %s" % repr(sDebuggerTime);
-  sWeekDay, sMonth, sDay, sHour, sMinute, sSecond, sMilisecond, sYear = oTimeMatch.groups();
+  obDebuggerTimeMatch = grbDebuggerTime.match(sbDebuggerTime);
+  assert obDebuggerTimeMatch, \
+    "Cannot parse debugger time: %s" % repr(sbDebuggerTime);
+  (sbWeekDay, sbMonth, sbDay, sbHour, sbMinute, sbSecond, sbMilisecond, sbYear) = \
+      obDebuggerTimeMatch.groups();
   oDateTime = datetime.datetime(
-    long(sYear),
-    sMonths.find(sMonth) / 4 + 1,
-    long(sDay),
-    long(sHour),
-    long(sMinute),
-    long(sSecond),
-    long(sMilisecond.ljust(6, "0")),
+    int(sbYear),
+    gasbMonths.index(sbMonth) + 1,
+    int(sbDay),
+    int(sbHour),
+    int(sbMinute),
+    int(sbSecond),
+    int(sbMilisecond.ljust(6, b"0")),
   );
+  # Convert to a floatingpoint number by calculating the number of seconds since
+  # an arbitrarily chosen epoch.
   return (oDateTime - datetime.datetime(1976,8,28)).total_seconds();
 

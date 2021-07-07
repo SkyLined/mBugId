@@ -7,9 +7,9 @@ __gauProcessesThatShouldBeResumedAfterAttaching = [];
 def __gfResumeProcessAfterAttach(oCdbWrapper, oAttachedToProcess):
   if oAttachedToProcess.uId in __gauProcessesThatShouldBeResumedAfterAttaching:
     __gauProcessesThatShouldBeResumedAfterAttaching.remove(oAttachedToProcess.uId);
-    oCdbWrapper.fasExecuteCdbCommand(
-      sCommand = "~*m",
-      sComment = "Resume threads for process 0x%X" % (oAttachedToProcess.uId),
+    oCdbWrapper.fasbExecuteCdbCommand(
+      sbCommand = b"~*m",
+      sb0Comment = b"Resume threads for process 0x%X" % (oAttachedToProcess.uId),
     ); # TODO: check output
     if len(__gauProcessesThatShouldBeResumedAfterAttaching) == 0:
       # There are no processes that need to be resumed: we no longer need to
@@ -31,9 +31,10 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
       bRedirectStdIn = False,
       bSuspended = True,
     );
-  except WindowsError, oWindowsError:
+  except WindowsError as oWindowsError:
+    sErrorDescription = fsGetWin32ErrorCodeDescription(oWindowsError.errno);
     sMessage = "Unable to start a new process for binary path \"%s\": %s." % \
-        (sBinaryPath, fsGetWin32ErrorCodeDescription(oWindowsError.winerror));
+        (sBinaryPath, sErrorDescription);
     assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
         sMessage;
     return None;
@@ -54,7 +55,7 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     "Command line": oConsoleProcess.sCommandLine,
   });
   oCdbWrapper.fbFireCallbacks("Process started", oConsoleProcess);
-
+  
   # Create helper threads that read the application's output to stdout and stderr. No references to these
   # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
   # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
@@ -75,7 +76,7 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
   if len(__gauProcessesThatShouldBeResumedAfterAttaching) == 0:
     oCdbWrapper.fAddCallback("Process attached", __gfResumeProcessAfterAttach);
   __gauProcessesThatShouldBeResumedAfterAttaching.append(oConsoleProcess.uId);
-
+  
   oCdbWrapper.fQueueAttachForProcessId(oConsoleProcess.uId);
-
+  
   return oConsoleProcess;

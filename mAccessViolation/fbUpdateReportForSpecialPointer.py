@@ -67,10 +67,10 @@ def fbUpdateReportForSpecialPointer(
     if uOffset <= dxConfig["uMaxAddressOffset"]:
       sSign = iOffset < 0 and "-" or "+";
       sOffset = iOffset != 0 and "%s%s" % (sSign, fsGetNumberDescription(uOffset, sSign)) or "";
-      oBugReport.sBugTypeId = "AV%s:%s%s" % (sViolationTypeId, sSpecialAddressId, sOffset);
-      oBugReport.sBugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using %s." % \
+      oBugReport.s0BugTypeId = "AV%s:%s%s" % (sViolationTypeId, sSpecialAddressId, sOffset);
+      oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using %s." % \
         (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress, sAddressDescription);
-      oBugReport.sSecurityImpact = sSecurityImpact;
+      oBugReport.s0SecurityImpact = sSecurityImpact;
       oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
         fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
       );

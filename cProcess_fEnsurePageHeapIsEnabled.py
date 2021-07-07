@@ -17,9 +17,9 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
     sHiveName = "HKLM",
     sKeyName = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName,
   );
-  oGlobalFlags = oRegistryHiveKey.foGetNamedValue("GlobalFlag");
+  oGlobalFlags = oRegistryHiveKey.foGetValueForName("GlobalFlag");
   if oGlobalFlags and oGlobalFlags.sTypeName == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", oGlobalFlags.xValue):
-    uValue = long(oGlobalFlags.xValue[2:], 16);
+    uValue = int(oGlobalFlags.xValue[2:], 16);
     if uValue & guRequiredFlags == guRequiredFlags:
       # Page heap is enabled with all the required options:
       gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = True;
@@ -34,7 +34,7 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   # disabled; I believe whatever keeps cdb from determining the module binary's file name is also keeping page heap
   # from doing the same. In such cases, it appears that page heap cannot be enabled by the user, so we'll report it
   # with the second argument as "False" (not preventable).
-  bPreventable = re.match(r"image[0-9a-f]{8}", oProcess.oMainModule.sCdbId, re.I) is None;
+  bPreventable = re.match(rb"image[0-9a-f]{8}", oProcess.oMainModule.sbCdbId, re.I) is None;
   # Report it
   if not oProcess.oCdbWrapper.fbFireCallbacks("Page heap not enabled", oProcess, bPreventable):
     # This is fatal if it's preventable and there is no callback handler

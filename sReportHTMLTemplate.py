@@ -301,14 +301,13 @@ sReportHTMLTemplate = ("""
 %(sOptionalApplicationArguments)s
         </table>
         <br/>
-        <a href="%(sProductURL)s">%(sProductName)s</a> version %(sProductVersion)s by %(sProductAuthor)s.
+        %(sProductHeader)s
         %(sLicenseHeader)s
       </div>
     </div>
 %(sBlocks)s
     <div class="Footer Block">
-      This report was generated using <a href="%(sProductURL)s">%(sProductName)s version %(sProductVersion)s</a>
-        by %(sProductAuthor)s</a>.<br/>
+      %(sProductFooter)s
       %(sLicenseFooter)s
     </div>
   </body>

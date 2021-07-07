@@ -4,61 +4,66 @@ from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation;
 
 #from cException import cException; # moved to end of file to prevent circular reference
-from .fsGetCPPObjectClassNameFromVFTable import fsGetCPPObjectClassNameFromVFTable;
+from .fsbGetCPPObjectClassNameFromVFTable import fsbGetCPPObjectClassNameFromVFTable;
 from .cErrorDetails import cErrorDetails;
 
 def fsSignature(uSignature):
-  return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in xrange(3,-1,-1)]);
+  return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in range(3,-1,-1)]);
 
 class cStowedException(object):
-  def __init__(oStowedException, \
+  def __init__(oSelf, \
     iCode,
-    uAddress = None,
-    pStackTrace = None, uStackTraceSize = 0,
+    u0Address = None,
+    p0StackTrace = None, uStackTraceSize = 0,
     s0ErrorText = None,
-    sNestedExceptionTypeId = None,
-    oNestedException = None,
-    sWRTLanguageExceptionIUnkownClassName = None,
+    s0NestedExceptionTypeId = None,
+    o0NestedException = None,
+    sb0WRTLanguageExceptionIUnkownClassName = None,
   ):
-    oStowedException.iCode = iCode; # HRESULT, signed 32-bit integer (negative == error).
+    oSelf.iCode = iCode; # HRESULT, signed 32-bit integer (negative == error).
     uCode = iCode + (iCode < 0 and (1 << 32) or 0); # Convert to unsigned 32-bit integer.
-    oStowedException.uAddress = uAddress;
-    oStowedException.pStackTrace = pStackTrace; # dpS {pStackTrace} L{uStackTraceSize}
-    oStowedException.uStackTraceSize = uStackTraceSize;
-    oStowedException.s0ErrorText = s0ErrorText;
-    oStowedException.sNestedExceptionTypeId = sNestedExceptionTypeId;
-    oStowedException.oNestedException = oNestedException;
-    oStowedException.sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName;
+    oSelf.u0Address = u0Address;
+    oSelf.p0StackTrace = p0StackTrace; # dpS {p0StackTrace} L{uStackTraceSize}
+    oSelf.uStackTraceSize = uStackTraceSize;
+    oSelf.s0ErrorText = s0ErrorText;
+    oSelf.s0NestedExceptionTypeId = s0NestedExceptionTypeId;
+    oSelf.o0NestedException = o0NestedException;
+    oSelf.sb0WRTLanguageExceptionIUnkownClassName = sb0WRTLanguageExceptionIUnkownClassName;
     # Create an exception id that uniquely identifies the exception and a description of the exception.
     o0ErrorDetails = cErrorDetails.fo0GetForCode(uCode);
     if o0ErrorDetails:
-      oStowedException.sTypeId = o0ErrorDetails.sTypeId;
-      oStowedException.sSecurityImpact = o0ErrorDetails.s0SecurityImpact;
-      oStowedException.sDescription = o0ErrorDetails.sDescription;
+      oSelf.sTypeId = o0ErrorDetails.sTypeId;
+      oSelf.s0SecurityImpact = o0ErrorDetails.s0SecurityImpact;
+      oSelf.sDescription = o0ErrorDetails.sDescription;
     else:
-      oStowedException.sTypeId = "0x%08X" % uCode;
-      oStowedException.sSecurityImpact = "Unknown";
-      oStowedException.sDescription = "Unknown exception code 0x%08X." % uCode;
-    if oStowedException.s0ErrorText:
-      oStowedException.sDescription += " Error: %s" % oStowedException.s0ErrorText;
-    if sNestedExceptionTypeId:
-      oStowedException.sTypeId += ":%s" % (sNestedExceptionTypeId,);
-      if oStowedException.oNestedException:
-        oStowedException.sTypeId += "(%s)" % (oStowedException.oNestedException.sTypeId,);
-        oStowedException.sDescription += " Nested %s exception: %s." % \
-            (sNestedExceptionTypeId, oStowedException.oNestedException.sDescription);
-        oStowedException.sSecurityImpact = " Nested %s exception: %s." % \
-            (sNestedExceptionTypeId, oStowedException.oNestedException.sSecurityImpact);
-    if oStowedException.sWRTLanguageExceptionIUnkownClassName:
-      oStowedException.sTypeId += "@%s" % oStowedException.sWRTLanguageExceptionIUnkownClassName;
-      oStowedException.sDescription += " WRT Language exception class name: %s." % oStowedException.sWRTLanguageExceptionIUnkownClassName;
+      oSelf.sTypeId = "0x%08X" % uCode;
+      oSelf.s0SecurityImpact = "Unknown";
+      oSelf.sDescription = "Unknown exception code 0x%08X." % uCode;
+    if oSelf.s0ErrorText:
+      oSelf.sDescription += " Error: %s" % oSelf.s0ErrorText;
+    if s0NestedExceptionTypeId:
+      oSelf.sTypeId += ":%s" % (s0NestedExceptionTypeId,);
+      if oSelf.o0NestedException:
+        oSelf.sTypeId += "(%s)" % (oSelf.o0NestedException.sTypeId,);
+        oSelf.sDescription += " Nested %s exception: %s." % \
+            (s0NestedExceptionTypeId, oSelf.o0NestedException.sDescription);
+        if oSelf.s0SecurityImpact != oSelf.o0NestedException.s0SecurityImpact:
+          if oSelf.s0SecurityImpact is None:
+            oSelf.s0SecurityImpact = "Nested exception: %s" % \
+                oSelf.o0NestedException.s0SecurityImpact;
+          elif oSelf.o0NestedException.s0SecurityImpact is not None:
+            oSelf.s0SecurityImpact = "%s, nested exception: %s" % \
+                (oSelf.s0SecurityImpact, oSelf.o0NestedException.s0SecurityImpact);
+    if oSelf.sb0WRTLanguageExceptionIUnkownClassName:
+      oSelf.sTypeId += "@%s" % str(oSelf.sb0WRTLanguageExceptionIUnkownClassName, 'latin1');
+      oSelf.sDescription += " WRT Language exception class name: %s." % oSelf.sb0WRTLanguageExceptionIUnkownClassName;
   
   @staticmethod
   def faoCreateForListAddressAndCount(oProcess, uListAddress, uCount):
     a0uStowedExceptionInformationAddresses = oProcess.fa0uReadPointersForAddressAndCount(uListAddress, uCount);
     assert a0uStowedExceptionInformationAddresses, \
         "Cannot read %d stowed exception information pointers from process %d / 0x%X at address 0x%X" % \
-        (uCount, oProcess.uId, oProcess.uId, uAddress);
+        (uCount, oProcess.uId, oProcess.uId, uListAddress);
     return [
       cStowedException.foCreate(oProcess, uStowedExceptionInformationAddress)
       for uStowedExceptionInformationAddress in a0uStowedExceptionInformationAddresses
@@ -110,36 +115,36 @@ class cStowedException(object):
     uExceptionForm = oStowedExceptionInformation.ExceptionForm_ThreadId & 3;
     uThreadId = (oStowedExceptionInformation.ExceptionForm_ThreadId & 0xfffffffc) << 2;
     # Handle structure
-    sNestedExceptionTypeId = None;
-    oNestedException = None;
-    sWRTLanguageExceptionIUnkownClassName = None;
+    s0NestedExceptionTypeId = None;
+    o0NestedException = None;
+    sb0WRTLanguageExceptionIUnkownClassName = None;
     if (
       oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE
       and oStowedExceptionInformation.NestedExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
     ):
       uNestedExceptionAddress = oStowedExceptionInformation.NestedException.value;
       if oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
-        sNestedExceptionTypeId = "Win32";
-        oNestedException = cException.foCreateFromMemory(
+        s0NestedExceptionTypeId = "Win32";
+        o0NestedException = cException.foCreateFromMemory(
           oProcess = oProcess,
           uExceptionRecordAddress = uNestedExceptionAddress,
         );
       elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_STOWED:
-        sNestedExceptionTypeId = "Stowed";
-        oNestedException = cStowedException.foCreate(
+        s0NestedExceptionTypeId = "Stowed";
+        o0NestedException = cStowedException.foCreate(
           oProcess = oProcess,
           uStowedExceptionAddress = uNestedExceptionAddress,
         );
       elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_CLR:
-        sNestedExceptionTypeId = "CLR";
+        s0NestedExceptionTypeId = "CLR";
         # TODO: find out how to trigger these so I can find out how to handle them.
       elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LEO:
-        sNestedExceptionTypeId = "WRTLanguage";
+        s0NestedExceptionTypeId = "WRTLanguage";
         # These can be triggered using RoOriginateLanguageException. The "NestedException" contains a pointer to an
         # object that implements IUnknown. Apparently this object "contains all the information necessary recreate it
         # the exception a later point." (https://msdn.microsoft.com/en-us/library/dn302172(v=vs.85).aspx)
         # I have not been able to find more documentation for this, so this is based on reverse engineering.
-        sWRTLanguageExceptionIUnkownClassName = fsGetCPPObjectClassNameFromVFTable(
+        sb0WRTLanguageExceptionIUnkownClassName = fsbGetCPPObjectClassNameFromVFTable(
           oProcess = oProcess,
           uCPPObjectAddress = uNestedExceptionAddress,
         );
@@ -153,18 +158,18 @@ class cStowedException(object):
             (uDataSize, oProcess.uId, oProcess.uId, uNestedExceptionAddress);
         auBytes = oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize);
         sData = ",".join(["%02X" % uByte for uByte in auBytes]);
-        sNestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
+        s0NestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
             (oStowedExceptionInformation.NestedExceptionType, uNestedExceptionAddress, sData);
     # Handle the two different forms:
     if uExceptionForm == 1:
       oStowedException = cStowedException(
         iCode = oStowedExceptionInformation.ResultCode,
-        uAddress = oStowedExceptionInformation.ExceptionAddress,
-        pStackTrace = oStowedExceptionInformation.StackTrace,
+        u0Address = oStowedExceptionInformation.ExceptionAddress,
+        p0StackTrace = oStowedExceptionInformation.StackTrace,
         uStackTraceSize = oStowedExceptionInformation.StackTraceWords * oStowedExceptionInformation.StackTraceWordSize,
-        sNestedExceptionTypeId = sNestedExceptionTypeId,
-        oNestedException = oNestedException,
-        sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName,
+        s0NestedExceptionTypeId = s0NestedExceptionTypeId,
+        o0NestedException = o0NestedException,
+        sb0WRTLanguageExceptionIUnkownClassName = sb0WRTLanguageExceptionIUnkownClassName,
       );
     else:
       assert uExceptionForm == 2, \
@@ -176,11 +181,11 @@ class cStowedException(object):
       oStowedException = cStowedException(
         iCode = oStowedExceptionInformation.ResultCode,
         s0ErrorText = s0ErrorText,
-        sNestedExceptionTypeId = sNestedExceptionTypeId,
-        oNestedException = oNestedException,
-        sWRTLanguageExceptionIUnkownClassName = sWRTLanguageExceptionIUnkownClassName,
+        s0NestedExceptionTypeId = s0NestedExceptionTypeId,
+        o0NestedException = o0NestedException,
+        sb0WRTLanguageExceptionIUnkownClassName = sb0WRTLanguageExceptionIUnkownClassName,
       );
     
     return oStowedException;
 
-from cException import cException;
+from .cException import cException;

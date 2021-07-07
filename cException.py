@@ -5,66 +5,48 @@ from mWindowsSDK import *;
 from .cStack import cStack;
 from .cStowedException import cStowedException;
 from .cErrorDetails import cErrorDetails;
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+
+grb_exr_ExceptionOutputLine = re.compile(
+  rb"^\s*"                              #   optional whitespace
+  rb"([A-Za-z]+)"                       # * name
+  rb"(?:"                               #   optional {
+    rb"\["                              #     "["
+    rb"(\d+)"                           # *   index
+    rb"\]"                              #     "["
+  rb")?"                                #   }
+  rb": "                                #   ": "
+  rb"([0-9a-f`]+)"                      # * value
+  rb"(?:"                               #   optional {
+    rb" \("                              #    " ("
+    rb"(.+)"                            # *   symbol_or_code_description
+    rb"\)"                              #     ")"
+  rb")?"                                #   }
+  rb"\s*$"                              # optional whitespace
+);
 
 class cException(object):
-  def __init__(oException, asCdbLines, uCode, sCodeDescription, bApplicationCannotHandleException):
-    oException.asCdbLines = asCdbLines; # This is here merely to be able to debug issues - it is not used.
-    oException.uCode = uCode;
-    oException.sCodeDescription = sCodeDescription;
-    oException.bApplicationCannotHandleException = bApplicationCannotHandleException;
-    
-    oException.uAddress = None;
-    oException.sAddressSymbol = None; # See below
-    oException.sUnloadedModuleFileName = None;
-    oException.oModule = None;
-    oException.uModuleOffset = None;
-    oException.oFunction = None;
-    oException.iFunctionOffset = None;
-    
-    oException.uFlags = None;
-    oException.auParameters = None;
-    oException.sDetails = None;
-    oException.sTypeId = None;
-    oException.sDescription = None;
-    oException.sSecurityImpact = None;
-  
   @classmethod
   def foCreateFromMemory(cException, oProcess, uExceptionRecordAddress):
-    return cException.foCreateHelper(
-      oProcess = oProcess,
-      uExceptionRecordAddress = uExceptionRecordAddress,
-      bApplicationCannotHandleException = False,
-    );
+    return cException(oProcess, uExceptionRecordAddress, False);
     
   @classmethod
-  def foCreate(cException, oProcess, uCode, sCodeDescription, bApplicationCannotHandleException):
-    return cException.foCreateHelper(
-      oProcess = oProcess, 
-      uCode = uCode,
-      sCodeDescription = sCodeDescription,
-      bApplicationCannotHandleException = bApplicationCannotHandleException,
-    );
-
+  def foCreateForLastExceptionInProcess(cException, oProcess, uExpectedCode, bApplicationCannotHandleException):
+    return cException(oProcess, None, bApplicationCannotHandleException);
+    assert cException.uCode == uExpectedCode, \
+        "Exception record has an unexpected ExceptionCode value (0x%08X vs 0x%08X)" % \
+        (cException.uCode, uExpectedCode);
+  
   @classmethod
-  def foCreateHelper(cException,
-      oProcess,
-      # Either
-        uExceptionRecordAddress = None,
-      # Or
-        uCode = None,
-        sCodeDescription = None,
-      # Always
-      bApplicationCannotHandleException = None
-  ):
-    assert bApplicationCannotHandleException is not None, \
-        "bApplicationCannotHandleException is required!";
-    asExceptionRecord = oProcess.fasExecuteCdbCommand(
-      sCommand = ".exr %s;" % (uExceptionRecordAddress is None and "-1" or "0x%X" % uExceptionRecordAddress),
-      sComment = "Get exception record",
+  def __init__(oSelf, oProcess, u0ExceptionRecordAddress, bApplicationCannotHandleException):
+    oSelf.bApplicationCannotHandleException = bApplicationCannotHandleException;
+    asbExceptionRecord = oProcess.fasbExecuteCdbCommand(
+      sbCommand = b".exr %s;" % (u0ExceptionRecordAddress is None and b"-1" or b"0x%X" % u0ExceptionRecordAddress),
+      sb0Comment = b"Get exception record",
       bOutputIsInformative = True,
       bRetryOnTruncatedOutput = True,
     );
-    oException = cException(asExceptionRecord, uCode, sCodeDescription, bApplicationCannotHandleException);
+    oSelf.asCdbLines = asbExceptionRecord;
     # Sample output:
     # |ExceptionAddress: 00007ff6b0f81204 (Tests_x64!fJMP+0x0000000000000004)
     # |   ExceptionCode: c0000005 (Access violation)
@@ -73,99 +55,112 @@ class cException(object):
     # |   Parameter[0]: 0000000000000000
     # |   Parameter[1]: ffffffffffffffff
     # |Attempt to read from address ffffffffffffffff
-    uParameterCount = None;
-    uParameterIndex = None;
-    sCdbExceptionAddress = None;
-    for sLine in asExceptionRecord:
-      oNameValueMatch = re.match(r"^\s*%s\s*$" % (
-        r"(\w+)(?:\[(\d+)\])?\:\s+"     # (name) optional{ "[" (index) "]" } ":" whitespace
-        r"([0-9A-F`]+)"                 # (value)
-        r"(?:\s+\((.*)\))?"             # optional{ whitespace "(" (symbol || description) ")" }
-      ), sLine, re.I);
+    u0InstructionPointer = None; # Must be initialized below!
+    sb0AddressSymbol = None; 
+    u0Code = None; # Must be initialized below!
+    oSelf.sb0CodeDescription = None;
+    u0Flags = None; # Must be initialized below!
+    u0ParameterCount = None; # Must be initialized below!
+    oSelf.sb0Details = None; # May or may not be set below.
+    oSelf.auParameters = [];
+    uParameterIndex = 0;
+    for uLineIndex in range(len(asbExceptionRecord)):
+      sbLine = asbExceptionRecord[uLineIndex];
+      oNameValueMatch = grb_exr_ExceptionOutputLine.match(sbLine);
       if oNameValueMatch:
-        sName, sIndex, sValue, sDetails = oNameValueMatch.groups();
-        uValue = long(sValue.replace("`", ""), 16);
-        if sName == "ExceptionAddress":
-          oException.uInstructionPointer = uValue;
-          sCdbExceptionAddress = sValue + (sDetails and " (%s)" % sDetails or "");
-          oException.sAddressSymbol = sDetails;
-        elif sName == "ExceptionCode":
-          if uCode:
-            assert uValue == uCode, \
-                "Exception record has an unexpected ExceptionCode value (0x%08X vs 0x%08X)\r\n%s" % \
-                (uValue, uCode, "\r\n".join(asExceptionRecord));
-          else:
-            oException.uCode = uValue;
-          if sCodeDescription:
-            # Normally the "details" matches the code description but sometimes it is followed by some
-            # additional information, e.g. "In-page I/O error" v.s. "In-page I/O error <hex code>"
-            assert sDetails is None or sCodeDescription.startswith(sDetails), \
-                "Exception record has an unexpected ExceptionCode description (%s vs %s)\r\n%s" % \
-                (repr(sDetails), repr(sCodeDescription), "\r\n".join(asExceptionRecord));
-          else:
-            oException.sCodeDescription = sDetails;
-        elif sName == "ExceptionFlags":
-          oException.uFlags = uValue;
-        elif sName == "NumberParameters":
-          uParameterCount = uValue;
-          uParameterIndex = 0;
-          oException.auParameters = [];
-        elif sName == "Parameter":
-          assert long(sIndex, 16) == uParameterIndex, \
-              "Unexpected parameter #0x%s vs 0x%X\r\n%s" % (sIndex, uParameterIndex, "\r\n".join(asExceptionRecord));
-          oException.auParameters.append(uValue);
+        sbName, sb0ParameterIndex, sbValue, sb0SymbolOrCodeDescription = oNameValueMatch.groups();
+        uValue = fu0ValueFromCdbHexOutput(sbValue);
+        if sbName == b"ExceptionAddress":
+          assert u0InstructionPointer is None, \
+              "Cannot have two values for %s: %s" % (repr(sbName), repr(asbExceptionRecord));
+          u0InstructionPointer = uValue;
+          sb0AddressSymbol = sb0SymbolOrCodeDescription;
+        elif sbName == b"ExceptionCode":
+          assert u0Code is None, \
+              "Cannot have two values for %s: %s" % (repr(sbName), repr(asbExceptionRecord));
+          u0Code = uValue;
+          oSelf.sb0CodeDescription = sb0SymbolOrCodeDescription;
+        elif sbName == b"ExceptionFlags":
+          assert u0Flags is None, \
+              "Cannot have two values for %s: %s" % (repr(sbName), repr(asbExceptionRecord));
+          u0Flags = uValue;
+        elif sbName == b"NumberParameters":
+          assert u0ParameterCount is None, \
+              "Cannot have two values for %s: %s" % (repr(sbName), repr(asbExceptionRecord));
+          u0ParameterCount = uValue;
+        elif sbName == b"Parameter":
+          assert u0ParameterCount is not None, \
+              "Unexpected parameter before NumberParameters value\r\n%s" % (b"\r\n".join(asbExceptionRecord));
+          assert fu0ValueFromCdbHexOutput(sb0ParameterIndex) == uParameterIndex, \
+              "Unexpected parameter #0x%s vs 0x%X\r\n%s" % (sb0ParameterIndex, uParameterIndex, b"\r\n".join(asbExceptionRecord));
+          oSelf.auParameters.append(uValue);
           uParameterIndex += 1;
         else:
-          raise AssertionError("Unknown exception record value %s\r\n%s" % (sLine, "\r\n".join(asExceptionRecord)));
-      elif oException.sDetails is None:
-        oException.sDetails = sLine;
+          raise AssertionError("Unknown exception record value name %s:\r\n%s" % (repr(sbName), repr(asbExceptionRecord)));
       else:
-        raise AssertionError("Superfluous exception record line %s\r\n%s" % (sLine, "\r\n".join(asExceptionRecord)));
-    assert oException.uInstructionPointer is not None, \
-        "Exception record is missing an ExceptionAddress value\r\n%s" % "\r\n".join(asExceptionRecord);
-    assert oException.uFlags is not None, \
-        "Exception record is missing an ExceptionFlags value\r\n%s" % "\r\n".join(asExceptionRecord);
-    assert uParameterCount is not None, \
-        "Exception record is missing an NumberParameters value\r\n%s" % "\r\n".join(asExceptionRecord);
-    assert uParameterCount == len(oException.auParameters), \
-        "Unexpected number of parameters (%d vs %d)" % (len(oException.auParameters), uParameterCount);
+        assert uLineIndex == len(asbExceptionRecord) - 1, \
+            "Unrecognized exception record line %s: %s" % (sbLine, b"\r\n".join(asbExceptionRecord));
+        oSelf.sb0Details = asbExceptionRecord[-1];
+    
+    assert u0InstructionPointer is not None, \
+        "Exception record is missing an ExceptionAddress value\r\n%s" % b"\r\n".join(asbExceptionRecord);
+    oSelf.uInstructionPointer = u0InstructionPointer;
+    assert u0Code is not None, \
+        "Exception record is missing an ExceptionCode value\r\n%s" % b"\r\n".join(asbExceptionRecord);
+    oSelf.uCode = u0Code;
+    assert u0Flags is not None, \
+        "Exception record is missing an ExceptionFlags value\r\n%s" % b"\r\n".join(asbExceptionRecord);
+    oSelf.uFlags = u0Flags;
+    assert u0ParameterCount is not None, \
+        "Exception record is missing an NumberParameters value\r\n%s" % b"\r\n".join(asbExceptionRecord);
+    assert u0ParameterCount == len(oSelf.auParameters), \
+        "Expected %d parameters but found %d\r\n%s" % (u0ParameterCount, len(oSelf.auParameters), b"\r\n".join(asbExceptionRecord));
     # Now get a preliminary exception id that identifies the type of exception based on the exception code, as well as
     # preliminary security impact.
-    o0ErrorDetails = cErrorDetails.fo0GetForCode(uCode);
+    o0ErrorDetails = cErrorDetails.fo0GetForCode(oSelf.uCode);
     if o0ErrorDetails:
-      oException.sTypeId = o0ErrorDetails.sTypeId;
-      oException.sSecurityImpact = o0ErrorDetails.s0SecurityImpact;
-      oException.sDescription = o0ErrorDetails.sDescription;
+      oSelf.sTypeId = o0ErrorDetails.sTypeId;
+      oSelf.sDescription = o0ErrorDetails.sDescription;
+      oSelf.s0SecurityImpact = o0ErrorDetails.s0SecurityImpact;
     else:
-      oException.sTypeId = "0x%08X" % uCode;
-      oException.sSecurityImpact = "Unknown";
-      if sCodeDescription:
-        oException.sDescription = "Unknown exception code 0x%08X (%s)" % (uCode, sCodeDescription);
-      else:
-        oException.sDescription = "Unknown exception code 0x%08X" % uCode;
-
-    # Compare stack with exception information
-    if oException.sAddressSymbol:
+      oSelf.sTypeId = "0x%08X" % oSelf.uCode;
+      oSelf.sDescription = "Unknown exception code 0x%08X%s" % (
+        oSelf.uCode,
+        (" (%s)" % str(oSelf.sb0CodeDescription, 'latin1')) if oSelf.sb0CodeDescription else ""
+      );
+      oSelf.s0SecurityImpact = "Unknown";
+    
+    if sb0AddressSymbol:
       (
-        oException.uAddress,
-        oException.sUnloadedModuleFileName, oException.oModule, oException.uModuleOffset,
-        oException.oFunction, oException.iFunctionOffset
-      ) = oProcess.ftxSplitSymbolOrAddress(oException.sAddressSymbol);
+        oSelf.u0Address,
+        oSelf.s0UnloadedModuleFileName, oSelf.o0Module, oSelf.u0ModuleOffset,
+        oSelf.o0Function, oSelf.i0OffsetFromStartOfFunction
+      ) = oProcess.ftxSplitSymbolOrAddress(sb0AddressSymbol);
     else:
-      oException.uAddress = oException.uInstructionPointer;
+      oSelf.u0Address = oSelf.uInstructionPointer;
+      oSelf.s0UnloadedModuleFileName = None;
+      oSelf.o0Module = None;
+      oSelf.u0ModuleOffset = None;
+      oSelf.o0Function = None;
+      oSelf.i0OffsetFromStartOfFunction = None;
+    
+    # Compare stack with exception information
     
     #### Work-around for a cdb bug ###############################################################################
-    # cdb appears to assume all breakpoints are triggered by an int3 instruction and sets the exception address
+    # cdb appears to assume most breakpoints are triggered by an int3 instruction and sets the exception address
     # to the instruction that would follow the int3. Since int3 is a one byte instruction, the exception address
-    # will be off-by-one.
-    if oException.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
-      oException.uInstructionPointer -= 1;
-      if oException.uAddress is not None:
-        oException.uAddress -= 1;
-      elif oException.uModuleOffset is not None:
-        oException.uModuleOffset -= 1;
-      elif oException.iFunctionOffset is not None:
-        oException.iFunctionOffset -= 1;
+    # will be off-by-one. We will try fix this by decreasing the instruction pointer.
+    if oSelf.uCode in [STATUS_WX86_BREAKPOINT, STATUS_BREAKPOINT]:
+      if oSelf.u0Address is not None:
+        oSelf.uInstructionPointer -= 1;
+        oSelf.u0Address -= 1;
+      elif oSelf.u0ModuleOffset is not None:
+        if oSelf.u0ModuleOffset > 0:
+          oSelf.uInstructionPointer -= 1;
+          oSelf.u0ModuleOffset -= 1;
+      elif oSelf.i0OffsetFromStartOfFunction is not None:
+        if oSelf.i0OffsetFromStartOfFunction > 0: # Only fix if it looks like it would require fixing
+          oSelf.i0OffsetFromStartOfFunction -= 1;
       else:
-        raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % oException.asExceptionRecord);
-    return oException;
+        raise AssertionError("The exception record appears to have no address or offet to adjust.\r\n%s" % \
+            b"\r\n".join(oSelf.asCdbLines));

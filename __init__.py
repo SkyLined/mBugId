@@ -1,1 +1,4 @@
-from .cBugId import cBugId;
+from .fInitializeProduct import fInitializeProduct;
+fInitializeProduct();
+
+from .mExports import *;
