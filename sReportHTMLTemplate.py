@@ -170,14 +170,6 @@ sReportHTMLTemplate = ("""
       .BinaryInformation, .MemoryDump, .Registers, .Stack {
         white-space: pre;
       }
-      table.Registers {
-        border-spacing: 1ex 0;
-        border-collapse: separate;
-      }
-      table.Registers td + td {
-        padding-left: 1ex;
-        border-left: 1px solid rgba(0,0,0, 0.25);
-      }
       .DisassemblyInformation {
       }
       .DisassemblyAddress {
