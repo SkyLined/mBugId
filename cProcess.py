@@ -2,6 +2,7 @@ import os, re;
 from .cModule import cModule;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
+from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
 from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
@@ -158,6 +159,7 @@ class cProcess(object):
   
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fo0GetHeapManagerDataForAddress = cProcess_fo0GetHeapManagerDataForAddress;
+  fsb0GetSymbolForAddress = cProcess_fsb0GetSymbolForAddress;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
 
