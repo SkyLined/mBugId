@@ -197,7 +197,8 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbLine);
           if not bIgnoreOutput:
             assert not sb0StartOfCommandOutputMarker, \
-                "No start of output marker found in command output:\r\n%s" % b"\r\n".join(asbLines);
+                "No start of output marker found in command output:\r\n%s" % \
+                "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLines);
             # If there is an error during execution of the command, the end marker will not be output. In this case, see
             # if it is an expected and ignored error, or thrown an assertion:
             if sb0EndOfCommandOutputMarker:

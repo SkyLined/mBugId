@@ -491,10 +491,12 @@ class cExcessiveCPUUsageDetector(object):
           sb0TimeType = sbLine.strip(); # Keep track of what type of type of times are being reported.
         else:
           assert sb0TimeType is not None, \
-              "Expected a header before values in %s.\r\n%s" % (sbLine, b"\r\n".join(asbThreadTimes));
+              "Expected a header before values in %s.\r\n%s" % \
+              (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes));
           obThreadTimeMatch = grbThreadTime.match(sbLine);
           assert obThreadTimeMatch, \
-              "Unrecognized \"!runaway3\" output: %s\r\n%s" % (sbLine, b"\r\n".join(asbThreadTimes));
+              "Unrecognized \"!runaway3\" output: %s\r\n%s" % \
+              (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes));
           (sbThreadId, sbDays, sbHours, sbMinutes, sbSecondsMilliseconds) = \
             obThreadTimeMatch.groups();
           uThreadId = fu0ValueFromCdbHexOutput(sbThreadId);
@@ -502,7 +504,11 @@ class cExcessiveCPUUsageDetector(object):
           if nTimeInSeconds >= 2000000000:
             # Due to a bug in !runaway, elapsed time sometimes gets reported as a very, very large number.
             assert sb0TimeType == b"Elapsed Time", \
-                "Unexpected large value for %s: %s\r\n%s" % (sb0TimeType, nTimeInSeconds, b"\r\n".join(asbThreadTimes));
+                "Unexpected large value for %s: %s\r\n%s" % (
+                  sb0TimeType,
+                  nTimeInSeconds,
+                  "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes)
+                );
             # In such cases, do not return a value for elapsed time.
             nTimeInSeconds = None;
           if sb0TimeType == b"User Mode Time":

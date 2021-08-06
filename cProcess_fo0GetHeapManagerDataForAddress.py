@@ -164,10 +164,12 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
       # That didn't work; we have no information about a heap block at this address.
       return None;
   assert grbHeapOutputFirstLine.match(asbCdbHeapOutput[0]), \
-      "Unrecognized page heap report first line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+      "Unrecognized page heap report first line:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbHeapOutput);
   obHeapOutputTypeAndRootAddressMatch = grHeapOutputTypeAndRootAddressLine.match(asbCdbHeapOutput[1]);
   assert obHeapOutputTypeAndRootAddressMatch, \
-      "Unrecognized page heap report second line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+      "Unrecognized page heap report second line:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbHeapOutput);
   sbHeapType, sbHeapRootAddress = obHeapOutputTypeAndRootAddressMatch.groups();
   uHeapRootAddress = fu0ValueFromCdbHexOutput(sbHeapRootAddress);
   if sbHeapType == b"_HEAP":
@@ -178,7 +180,8 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
         "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(absCdbHeapOutput);
     obBlockInformationMatch = grbWindowsHeapInformation.match(asCdbHeapOutput[3]);
     assert obBlockInformationMatch, \
-        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+        "Unrecognized page heap report fourth line:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbHeapOutput);
     (
       sbHeapEntryStartAddress,
       sbHeapEntrySizeInPointers,
@@ -208,12 +211,14 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
         "Expected heap allocator to be %s, but found page heap allocator" % sType;
     obDPHHeapInformationHeaderMatch = grbDPHHeapInformationHeader.match(asbCdbHeapOutput[2]);
     assert obDPHHeapInformationHeaderMatch, \
-        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+        "Unrecognized page heap report third line:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbHeapOutput);
     sbState = obDPHHeapInformationHeaderMatch.group(1);
     bAllocated = sbState == b"busy";
     obBlockInformationMatch = grbDPHHeapInformation.match(asbCdbHeapOutput[3]);
     assert obBlockInformationMatch, \
-        "Unrecognized page heap report fourth line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+        "Unrecognized page heap report fourth line:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbHeapOutput);
     (
       sbAllocationInformationStartAddress,
       sb0HeapBlockStartAddress,

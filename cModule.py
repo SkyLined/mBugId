@@ -84,7 +84,8 @@ class cModule(object):
       );
       if asbLoadSymbolsOutput != [b"Symbol load for %s failed" % oSelf.sbCdbId]:
         assert len(asbLoadSymbolsOutput) == 1 and re.match(rb"Symbols (already )?loaded for %s" % oSelf.sbCdbId, asbLoadSymbolsOutput[0]), \
-            "Unexpected load symbols output:\r\n%s" % b"\r\n".join(asbLoadSymbolsOutput);
+            "Unexpected load symbols output:\r\n%s" % \
+            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLoadSymbolsOutput);
         # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
         # So we will call __fzGetModuleSymbolAndVersionInformation again to find out.
         oSelf.__fzGetModuleSymbolAndVersionInformation();
@@ -127,7 +128,8 @@ class cModule(object):
           asbDLLsOutput.pop(0);
         obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
         assert obFirstLineMatch, \
-            "Unrecognized !dlls output first line : %s\r\n%s" % (repr(asbDLLsOutput[0]), b"\r\n".join(asbDLLsOutput));
+            "Unrecognized !dlls output first line : %s\r\n%s" % \
+              (repr(asbDLLsOutput[0]), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDLLsOutput));
         oSelf.__sb0BinaryPath = obFirstLineMatch.group(1);
       else:
         # Of course, !dlls will sometimes not output anything for unknown reasons.
@@ -198,11 +200,15 @@ class cModule(object):
       bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     );
-    assert len(asb_lmov_Output) > 2, \
-        "Expected at least three lines of \"lmov %s\" output, got %d:\r\n%s" % \
-        (sb_lmov_Arguments, len(asb_lmov_Output), "\r\n".join(asb_lmov_Output));
+    assert len(asb_lmov_Output), \
+        "Got no \"lmov %s\" output!" % (
+          str(sb_lmov_Arguments, "ascii", "strict"),
+        );
     assert grb_lm_Header.match(asb_lmov_Output[0]), \
-        "Unrecognized \"lmov %s\" output header: %s\r\n%s" % (sb_lmov_Arguments, repr(asb_lmov_Output[0]), b"\r\n".join(asb_lmov_Output));
+        "Unrecognized \"lmov %s\" output first line:\r\n%s" % (
+          str(sb_lmov_Arguments, "ascii", "strict"),
+          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output)
+        );
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
     assert oModule.__fbProcess_lmov_Output(asb_lmov_Output), \
@@ -219,9 +225,10 @@ class cModule(object):
     );
     assert len(asb_lmo_Output) > 1, \
         "Expected at least two lines of module information output, got %d:\r\n%s" % \
-        (len(asb_lmo_Output), "\r\n".join(asb_lmo_Output));
+        (len(asb_lmo_Output), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmo_Output));
     assert grb_lm_Header.match(asb_lmo_Output[0]), \
-        "Unrecognized list modules output header: %s\r\n%s" % (repr(asb_lmo_Output[0]), "\r\n".join(asb_lmo_Output));
+        "Unrecognized list modules output header: %s\r\n%s" % \
+        (repr(asb_lmo_Output[0]), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmo_Output));
     aoModules = [];
     for sbLine in asb_lmo_Output[1:]:
       (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sbLine);
@@ -279,9 +286,11 @@ class cModule(object):
     if len(asb_lmov_Output) == 1:
       return False;
     assert len(asb_lmov_Output) > 2, \
-        "Expected at least 3 lines of list module output, got %d:\r\n%s" % (len(asb_lmov_Output), "\r\n".join(asb_lmov_Output));
+        "Expected at least 3 lines of list module output, got %d:\r\n%s" % \
+        (len(asb_lmov_Output), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output));
     assert grb_lm_Header.match(asb_lmov_Output[0]), \
-        "Unexpected list module output on line 1:\r\n%s" % "\r\n".join(asb_lmov_Output);
+        "Unexpected list module output on line 1:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output);
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
     assert oSelf.uStartAddress == uStartAddress, \
         "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oSelf.uStartAddress, uStartAddress);
@@ -310,7 +319,8 @@ class cModule(object):
         continue; # Ignored.
       oNameAndValueMatch = re.match(rb"^\s+([^:]+):\s+(.*?)\s*$", sbLine);
       assert oNameAndValueMatch, \
-          "Unexpected list module output: %s\r\n%s" % (sbLine, "\r\n".join(asb_lmov_Output));
+          "Unexpected list module output: %s\r\n%s" % \
+          (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output));
       (sbName, sbValue) = oNameAndValueMatch.groups();
       dsbValue_by_sbName[sbName] = sbValue;
       oSelf.__atsModuleInformationNameAndValuePairs.append((sbName, sbValue));

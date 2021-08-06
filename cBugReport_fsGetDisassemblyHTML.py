@@ -63,7 +63,8 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
         # If the virtual memory allocation ends shortly after the address, we could see this error:
         asbDisassemblyBeforeAddress.pop();
       assert len(asbDisassemblyBeforeAddress) >= 2, \
-          "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asbDisassemblyBeforeAddress);
+          "Unexpectedly short disassembly output:\r\n%s" % \
+          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDisassemblyBeforeAddress);
       # Limit number of instructions
       asbDisassemblyBeforeAddress = asbDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
       if asbDisassemblyBeforeAddress:
@@ -88,7 +89,8 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       rb0IgnoredErrors = grbIgnoredMemoryAccessError,
     );
     assert len(asbDisassemblyAtAndAfterAddress) >= 2, \
-        "Unexpectedly short disassembly output:\r\n%s" % "\r\n".join(asbDisassemblyAtAndAfterAddress);
+        "Unexpectedly short disassembly output:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDisassemblyAtAndAfterAddress);
     # The first line copntains the symbol at the address where we started disassembly, which we do not want in the
     # output:
     asbDisassemblyAtAndAfterAddress.pop(0);

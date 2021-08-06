@@ -37,7 +37,8 @@ def cCdbWrapper_fSelectProcessIdAndThreadId(oCdbWrapper, uProcessId = None, uThr
     else:
       bUnexpectedOutput = False; #len(asbSelectCommandOutput) != 0;
     assert not bUnexpectedOutput, \
-        "Unexpected select %s output:\r\n%s" % (b"/".join(asbSelected), b"\r\n".join(asbSelectCommandOutput));
+        "Unexpected select %s output:\r\n%s" % \
+        (b"/".join(asbSelected), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSelectCommandOutput));
     if b"process" in asbSelected and b"thread" not in asbSelected:
       # We changed the process, but did not choose a thread; find out what the new thread is:
       uThreadId = oCdbWrapper.fuGetValueForRegister(b"$tid", b"Get current thread id");

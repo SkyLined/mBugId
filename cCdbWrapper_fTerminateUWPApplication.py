@@ -26,11 +26,12 @@ def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
     );
     assert asbTerminateUWPApplicationOutput == asbTerminateUWPApplicationOutput2, \
         "Cannot terminate UWP App and repeating the .terminatepackageapp command does not appear to be useful: %s" % \
-        b"\r\n".join(asbTerminateUWPApplicationOutput2);
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput2);
     assert False, \
         "Cannot terminate UWP App and repeating the .terminatepackageapp command gives an unknown error: %s" % \
-        b"\r\n".join(asbTerminateUWPApplicationOutput2);
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput2);
   if asbTerminateUWPApplicationOutput:
     assert asbTerminateUWPApplicationOutput == [b'The "terminatePackageApp" action will be completed on next execution.'], \
-        "Unexpected .terminatepackageapp output:\r\n%s" % b"\r\n".join(asbTerminateUWPApplicationOutput);
+        "Unexpected .terminatepackageapp output:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput);
 

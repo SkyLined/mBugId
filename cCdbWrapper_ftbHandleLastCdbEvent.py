@@ -66,10 +66,12 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   # |  debugger time: Tue Aug 25 00:06:07.311 2015 (UTC + 2:00)
   asbCleanedLastEventOutput = [sbLine for sbLine in asbLastEventOutput if len(sbLine) != 0]; # Remove empty lines
   assert len(asbCleanedLastEventOutput) == 2, \
-    "Invalid .lastevent output:\r\n%s" % b"\r\n".join(asbLastEventOutput);
+      "Invalid .lastevent output:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
   obEventMatch = grbLastEvent.match(asbCleanedLastEventOutput[0]);
   assert obEventMatch, \
-      "Invalid .lastevent output on line #1:\r\n%s" % b"\r\n".join(asbLastEventOutput);
+      "Invalid .lastevent output on line #1:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
   (
     sb0ProcessIdHex, sb0ThreadIdHex,
     sb0CreateExitProcess, sb0CreateExitProcessIdHex,
@@ -81,7 +83,8 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   ### Parse information about application execution time #############################################################
   obEventTimeMatch = grbDebuggerTime.match(asbCleanedLastEventOutput[1]);
   assert obEventTimeMatch, \
-    "Invalid .lastevent output on line #2:\r\n%s" % b"\r\n".join(asbLastEventOutput);
+    "Invalid .lastevent output on line #2:\r\n%s" % \
+    "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
   oCdbWrapper.oApplicationTimeLock.fAcquire();
   try:
     if oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds:

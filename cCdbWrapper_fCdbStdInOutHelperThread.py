@@ -101,7 +101,8 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     );
     oTimeMatch = len(asbCdbTimeOutput) > 0 and grbDebuggerTime.match(asbCdbTimeOutput[0]);
     assert oTimeMatch, \
-        "Failed to get debugger time!\r\n%s" % "\r\n".join(asbCdbTimeOutput);
+        "Failed to get debugger time!\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCdbTimeOutput);
     del asbCdbTimeOutput;
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:

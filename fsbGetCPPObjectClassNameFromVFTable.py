@@ -21,6 +21,6 @@ def fsbGetCPPObjectClassNameFromVFTable(oProcess, uCPPObjectAddress):
     bOutputIsInformative = True,
   );
   assert len(asbVFTableSymbolOutput) == 1, \
-      "Unexpected vftable pointer symbol output:\r\n%s" % b"\r\n".join(asbVFTableSymbolOutput);
+      "Unexpected vftable pointer symbol output:\r\n%s" % "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbVFTableSymbolOutput);
   obVFTableSymbolClassNameMatch = grbVFTableSymbolClassName.match(asbVFTableSymbolOutput[0]);
   return obVFTableSymbolClassNameMatch.group(1) if obVFTableSymbolClassNameMatch else None;

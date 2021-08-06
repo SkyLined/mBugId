@@ -65,7 +65,8 @@ def cCdbWrapper_fuAddBreakpointForProcessIdAndAddress(oCdbWrapper, uProcessId, u
       return None;
     obActualBreakpointIdMatch = grbSetBreakpointOutput.match(asbBreakpointResult[0]);
     assert obActualBreakpointIdMatch, \
-        "bad breakpoint result\r\n%s" % b"\r\n".join(asbBreakpointResult);
+        "bad set breakpoint result:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbBreakpointResult);
     uBreakpointId = int(obActualBreakpointIdMatch.group(1));
     # This breakpoint must have been "removed" with fRemoveBreakpoint before a new breakpoint can be set at this
     # location. If it was not, throw an exception.
@@ -73,7 +74,8 @@ def cCdbWrapper_fuAddBreakpointForProcessIdAndAddress(oCdbWrapper, uProcessId, u
         "Two active breakpoints at the same location is not supported";
   else:
     assert len(asbBreakpointResult) == 0, \
-        "bad breakpoint result\r\n%s" % b"\r\n".join(asbBreakpointResult);
+        "bad set breakpoint result\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbBreakpointResult);
   oCdbWrapper.fbFireCallbacks("Log message", "Added breakpoint", {
     "Breakpoint id": "%d" % uBreakpointId,
     "Address": uAddress,

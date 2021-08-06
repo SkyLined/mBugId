@@ -9,15 +9,26 @@ def cCdbWrapper_fuGetValueForRegister(oCdbWrapper, sbRegister, sb0Comment):
     sb0Comment = sb0Comment,
   );
   assert len(asbCommandOutput) == 1, \
-      "Expected exactly one line in \"r\" command output:\r\n%s" % b"\r\n".join(asbCommandOutput);
+      "Expected exactly one line in \"r\" command output:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput);
   asbRegisterAndValueResult = asbCommandOutput[0].split(b"=", 1);
   assert len(asbRegisterAndValueResult) == 2, \
-      "Missing \"=\" in result:\r\n%s" % b"\r\n".join(asbCommandOutput);
+      "Missing \"=\" in result:\r\n%s" % \
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput);
   sbRegisterResult, sbValue = asbRegisterAndValueResult;
   assert sbRegisterResult.lower() == sbRegister.lower(), \
-      "Expected result to start with %s, not %s\r\n%s" % \
-      (repr(sbRegister.lower() + "="), repr(sbRegisterResult + "="), b"\r\n".join(asbCommandOutput));
+      "Expected result to start with %s, not %s\r\n%s" % (
+        repr(sbRegister.lower() + "="),
+        repr(sbRegisterResult + "="), 
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput)
+      );
   try:
     return fu0ValueFromCdbHexOutput(sbValue);
   except:
-    raise AssertionError("Cannot parse value %s for %s:\r\n%s" % (repr(sbValue), sbRegister, b"\r\n".join(asbCommandOutput)));
+    raise AssertionError(
+      "Cannot parse value %s for %s:\r\n%s" % (
+        repr(sbValue),
+        sbRegister,
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput)
+      )
+    );

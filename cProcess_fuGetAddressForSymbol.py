@@ -17,12 +17,19 @@ def cProcess_fuGetAddressForSymbol(oProcess, sbSymbol):
     uValueAtIndex = 1;
   else:
     assert len(asbCommandOutput) == 1, \
-        "Expected only one line in value result:\r\n%s" % "\r\n".join(asbCommandOutput);
+        "Expected only one line in value result:\r\n%s" % \
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput);
   if grbIgnoredErrors.match(asbCommandOutput[uValueAtIndex]):
     return None;
   try:
     return fu0ValueFromCdbHexOutput(asbCommandOutput[uValueAtIndex]);
   except:
-    raise AssertionError("Cannot parse value %s for %s on line %s: %s\r\n%s" % \
-        (repr(asbCommandOutput[uValueAtIndex]), repr(sbSymbol), uValueAtIndex + 1, asbCommandOutput[uValueAtIndex], \
-        b"\r\n".join(asbCommandOutput)));
+    raise AssertionError(
+      "Cannot parse value %s for %s on line %s: %s\r\n%s" % (
+        repr(asbCommandOutput[uValueAtIndex]),
+        repr(sbSymbol),
+        uValueAtIndex + 1,
+        asbCommandOutput[uValueAtIndex],
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput)
+      )
+    );
