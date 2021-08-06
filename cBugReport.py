@@ -12,41 +12,12 @@ from .cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN import cBugRepor
 from .cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW import cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW;
 from .cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION;
 from .cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION;
+
+from .cBugReport_fs0GetRegistersBlockHTML import cBugReport_fs0GetRegistersBlockHTML;
 from .cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
-from .cBugReport_fsMemoryDumpHTML import cBugReport_fsMemoryDumpHTML;
+from .cBugReport_fs0GetMemoryDumpBlockHTML import cBugReport_fs0GetMemoryDumpBlockHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 # Remaining local modules are load JIT to mitigate loops.
-
-gaasbRelevantRegisterNamesAndPadding_by_sISA = {
-  "x86": [
-    [b"eax:8", b"xmm0:32"],
-    [b"ebx:8", b"xmm1:32"],
-    [b"ecx:8", b"xmm2:32"],
-    [b"edx:8", b"xmm3:32"],
-    [b"esi:8", b"xmm4:32"],
-    [b"edi:8", b"xmm5:32"],
-    [b"esp:8", b"xmm6:32"],
-    [b"ebp:8", b"xmm7:32"],
-  ],
-  "x64": [
-    [b"rax:16", b"xmm0:32"],
-    [b"rbx:16", b"xmm1:32"],
-    [b"rcx:16", b"xmm2:32"],
-    [b"rdx:16", b"xmm3:32"],
-    [b"rsi:16", b"xmm4:32"],
-    [b"rdi:16", b"xmm5:32"],
-    [b"rsp:16", b"xmm6:32"],
-    [b"rbp:16", b"xmm7:32"],
-    [b"r8:16",  b"xmm8:32"],
-    [b"r9:16",  b"xmm9:32"],
-    [b"r10:16", b"xmm10:32"],
-    [b"r11:16", b"xmm11:32"],
-    [b"r12:16", b"xmm12:32"],
-    [b"r13:16", b"xmm13:32"],
-    [b"r14:16", b"xmm14:32"],
-    [b"r15:16", b"xmm15:32"],
-  ],
-}
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
@@ -90,14 +61,22 @@ class cBugReport(object):
     return oSelf.__o0Stack;
   
   def fAddMemoryDump(oSelf, uStartAddress, uEndAddress, sDescription):
-    assert uStartAddress not in oSelf.__dtxMemoryDumps, \
-        "Trying to dump the same memory twice";
     assert uStartAddress < uEndAddress, \
         "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
     uSize = uEndAddress - uStartAddress;
     assert uSize <= dxConfig["uMaxMemoryDumpSize"], \
         "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uEndAddress, uSize, uStartAddress);
-    oSelf.__dtxMemoryDumps[uStartAddress] = (uEndAddress, sDescription);
+    if uStartAddress in oSelf.__dtxMemoryDumps:
+      # If it already exists, expand it to the new end address if needed and
+      # add the description if different.
+      (uPreviousEndAddress, asDescriptions) = oSelf.__dtxMemoryDumps[uStartAddress];
+      if sDescription not in asDescriptions:
+        asDescriptions.append(sDescription);
+      if uPreviousEndAddress > uEndAddress:
+        uEndAddress = uPreviousEndAddress;
+    else:
+      asDescriptions = [sDescription];
+    oSelf.__dtxMemoryDumps[uStartAddress] = (uEndAddress, asDescriptions);
   
   @classmethod
   def fo0CreateForException(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, oException):
@@ -211,39 +190,19 @@ class cBugReport(object):
       # Add exception specific blocks if needed:
       asBlocksHTML += oSelf.asExceptionSpecificBlocksHTML;
       
+      # Add registers if needed
       if oSelf.bRegistersRelevant:
-        # Create and add registers block
-        d0uRegisterValue_by_sbName = oWindowsAPIThread.fd0uGetRegisterValueByName();
-        if d0uRegisterValue_by_sbName:
-          duRegisterValue_by_sbName = d0uRegisterValue_by_sbName;
-          uPadding = 3 + 3 + ({"x86":8, "x64": 16}[oProcess.sISA]);
-          asRegistersHTML = [];
-          for asbRegisterNamesAndPadding in gaasbRelevantRegisterNamesAndPadding_by_sISA[oProcess.sISA]:
-            asLine = [];
-            for sbRegisterNameAndPadding in asbRegisterNamesAndPadding:
-              (sbRegisterName, sbPadding) = sbRegisterNameAndPadding.split(b":");
-              uRegisterValue = duRegisterValue_by_sbName[sbRegisterName];
-              sRegisterValue = "%X" % uRegisterValue;
-              sValuePadding = " " * (int(sbPadding) - len(sRegisterValue));
-              asLine.append("<td>%s = %s<span class=\"HexNumberHeader\">0x</span>%s</td>" % \
-                  (sbRegisterName.ljust(5), sValuePadding, sRegisterValue));
-            asRegistersHTML.append("<tr>%s</tr>" % "".join(asLine));
-          asBlocksHTML.append(sBlockHTMLTemplate % {
-            "sName": "Registers",
-            "sCollapsed": "Collapsed",
-            "sContent": "<table class=\"Registers\">%s</table>" % "\n".join(asRegistersHTML),
-          });
+        s0RegistersBlockHTML = oSelf.fs0GetRegistersBlockHTML(oProcess, oWindowsAPIThread);
+        if s0RegistersBlockHTML:
+          asBlocksHTML.append(s0RegistersBlockHTML);
       
       # Add relevant memory blocks in order if needed
       for uStartAddress in sorted(oSelf.__dtxMemoryDumps.keys()):
-        (uEndAddress, sDescription) = oSelf.__dtxMemoryDumps[uStartAddress];
-        sMemoryDumpHTML = oSelf.fsMemoryDumpHTML(oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress);
-        if sMemoryDumpHTML:
-          asBlocksHTML.append(sBlockHTMLTemplate % {
-            "sName": sDescription,
-            "sCollapsed": "Collapsed",
-            "sContent": "<span class=\"Memory\">%s</span>" % sMemoryDumpHTML,
-          });
+        (uEndAddress, asDescriptions) = oSelf.__dtxMemoryDumps[uStartAddress];
+        sDescription = " / ".join(asDescriptions);
+        s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress);
+        if s0MemoryDumpBlockHTML:
+          asBlocksHTML.append(s0MemoryDumpBlockHTML);
       
       # Create and add disassembly blocks if needed:
       for oFrame in aoStackFramesPartOfId:
@@ -369,9 +328,10 @@ class cBugReport(object):
     assert oCdbWrapper.fbFireCallbacks("Bug report", oSelf), \
         "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";
   
-  fxProcessStack = cBugReport_fxProcessStack
-  fsMemoryDumpHTML = cBugReport_fsMemoryDumpHTML;
+  fs0GetRegistersBlockHTML = cBugReport_fs0GetRegistersBlockHTML;
+  fs0GetMemoryDumpBlockHTML = cBugReport_fs0GetMemoryDumpBlockHTML;
   fsGetDisassemblyHTML = cBugReport_fsGetDisassemblyHTML;
+  fxProcessStack = cBugReport_fxProcessStack;
 
 from .mBugTranslations import fApplyBugTranslationsToBugReport;
 from .cStack import cStack;
