@@ -65,6 +65,8 @@ dxConfig = {
                                         # at all when part of the memory it attempts to disassemble is not readable.
   ### HTML Report Memory dump settings
   "uStackDumpSizeInPointers": 0x100,    # How many pointer sized values should a stack dump contain?
+  "uRegisterPointerDumpSizeInPointers": 0x40,    # How many pointer sized values should a memory dump for a region
+                                        # that a register points to contain?
   "uMaxMemoryDumpSize": 0x1000,         # How many bytes should a memory dump contain at most? This value should be set
                                         # so the dump includes as much relevant information as possible, but not so
                                         # large that it causes a "Range error" in cdb. e.g. attempting to dump 0x6034C
