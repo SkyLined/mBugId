@@ -39,6 +39,17 @@ aoBugTranslations = [
     s0zTranslatedBugDescription = "The application triggered a breakpoint to indicate it was unable to allocate enough memory.",
     s0zTranslatedSecurityImpact = None,
   ),
+  # IllegalInstruction without symbol -> ignore
+  # JIT compiled JavaScript uses it to signal stuff, e.g.  MacroAssembler::wasmTrapInstruction.
+  # JIT compiled Javascript is generated assembly, hence there is no symbol.
+  cBugTranslation(
+    srzOriginalBugTypeId = r"IllegalInstruction",
+    azs0rbAppliesOnlyToTopStackFrame = [
+      None,
+    ],
+    s0zTranslatedBugTypeId = None,
+    bDebug = True,
+  ),
   # Breakpoint -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
