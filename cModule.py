@@ -211,6 +211,14 @@ class cModule(object):
           str(sb_lmov_Arguments, "ascii", "strict"),
           "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output)
         );
+    if len(asb_lmov_Output) == 1:
+      return None; # There is no module here.
+    assert len(asb_lmov_Output) > 2, \
+        "Expected at least three lines of \"lmov %s\" output, got %d:\r\n%s" % (
+          str(sb_lmov_Arguments, "ascii", "strict"),
+          len(asb_lmov_Output),
+          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output)
+        );
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
     assert oModule.__fbProcess_lmov_Output(asb_lmov_Output), \
