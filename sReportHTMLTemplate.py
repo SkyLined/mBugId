@@ -167,7 +167,7 @@ sReportHTMLTemplate = ("""
         color: grey;
         white-space: pre;
       }
-      .BinaryInformation, .Memory, .Registers, .Stack {
+      .BinaryInformation, .MemoryDump, .Registers, .Stack {
         white-space: pre;
       }
       table.Registers {
@@ -192,6 +192,10 @@ sReportHTMLTemplate = ("""
         color: grey;
         padding-right: 0.5em;
       }
+      .MemoryOffset {
+        color: grey;
+        padding-right: 0.5em;
+      }
       .MemoryInaccessible {
         color: grey;
         text-align: center;
@@ -208,10 +212,14 @@ sReportHTMLTemplate = ("""
         padding-left: 0.5em;
         padding-right: 0.5em;
       }
+      .MemoryDetails {
+      }
       .MemoryPointerSymbol {
         padding-left: 0.5em;
+        background-color: rgba(0,255,255,0.3);
       }
       .MemoryRemarks {
+        padding-left: 0.5em;
         background-color: rgba(255,255,0,0.3);
       }
       .StackFrame {
