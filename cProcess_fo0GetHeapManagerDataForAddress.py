@@ -87,8 +87,7 @@ grbDPHHeapInformation = re.compile(         # line #4
   rb"\s*$"                                  # optional whitespace
 );
 
-def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType):
-  sType = sType or "unknown";
+def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknown"):
   # Strip warnings and errors that we may be able to ignore:
   asbCdbHeapOutput = [
     sbLine

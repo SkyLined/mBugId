@@ -53,18 +53,20 @@ class cProcess(object):
   def oMainModule(oProcess):
     if oProcess.__oMainModule is None:
       uMainModuleStartAddress = oProcess.oWindowsAPIProcess.uBinaryStartAddress;
-      oProcess.__oMainModule = oProcess.foGetOrCreateModuleForStartAddress(uMainModuleStartAddress);
+      oProcess.__oMainModule = oProcess.fo0GetOrCreateModuleForStartAddress(uMainModuleStartAddress);
+      assert oProcess.__oMainModule, \
+          "Cannot find main module for binary start address 0x%X!?" % uMainModuleStartAddress;
     return oProcess.__oMainModule;
   
-  def foGetOrCreateModuleForStartAddress(oProcess, uStartAddress):
+  def fo0GetOrCreateModuleForStartAddress(oProcess, uStartAddress):
     for oModule in oProcess.__doModules_by_sbCdbId.values():
       if oModule.uStartAddress == uStartAddress:
         return oModule;
-    return cModule.foCreateForStartAddress(oProcess, uStartAddress);
+    return cModule.fo0CreateForStartAddress(oProcess, uStartAddress);
   
-  def foGetOrCreateModuleForCdbId(oProcess, sbCdbId):
+  def fo0GetOrCreateModuleForCdbId(oProcess, sbCdbId):
     if sbCdbId not in oProcess.__doModules_by_sbCdbId:
-      return cModule.foCreateForCdbId(oProcess, sbCdbId);
+      return cModule.fo0CreateForCdbId(oProcess, sbCdbId);
     return oProcess.__doModules_by_sbCdbId[sbCdbId];
   
   def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus):
@@ -91,12 +93,6 @@ class cProcess(object):
   def __str__(oProcess):
     return 'Process(%s %s #%d)' % (oProcess.sBinaryName, oProcess.sISA, oProcess.uProcessId);
   
-  def ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress):
-    return cProcess_ftxSplitSymbolOrAddress(oProcess, sSymbolOrAddress);
-  
-  def fEnsurePageHeapIsEnabled(oProcess):
-    return cProcess_fEnsurePageHeapIsEnabled(oProcess);
-    
   def fasbGetStack(oProcess, sbCdbCommand):
     return cProcess_fasbGetStack(oProcess, sbCdbCommand);
   
@@ -114,14 +110,10 @@ class cProcess(object):
     oProcess.fSelectInCdb();
     return oProcess.oCdbWrapper.fasbExecuteCdbCommand(sbCommand, sb0Comment, **dxArguments);
   
-  def fuGetAddressForSymbol(oProcess, sbSymbol):
-    return cProcess_fuGetAddressForSymbol(oProcess, sbSymbol);
   def fuGetValueForRegister(oProcess, sbRegister, sb0Comment):
     oProcess.fSelectInCdb();
     return oProcess.oCdbWrapper.fuGetValueForRegister(sbRegister, sb0Comment);
-  def fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = None):
-    return cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType);
-
+  
   # Proxy properties and methods to oWindowsAPIProcess
   @property
   def sISA(oProcess):
@@ -163,3 +155,9 @@ class cProcess(object):
     return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress, bUnicode);
   def fWriteStringForAddress(oSelf, sData, uAddress, bUnicode = False):
     return oSelf.oWindowsAPIProcess.fWriteStringForAddress(oSelf, sData, uAddress, bUnicode);
+  
+  fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
+  fo0GetHeapManagerDataForAddress = cProcess_fo0GetHeapManagerDataForAddress;
+  ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
+  fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
+

@@ -4,6 +4,7 @@ import mProductDetails;
 from mWindowsAPI import cConsoleProcess, cProcess, fsGetPythonISA;
 from mMultiThreading import cLock, cWithCallbacks;
 from mFileSystemItem import cFileSystemItem;
+from mNotProvided import *;
 
 from .cASanErrorDetector import cASanErrorDetector;
 from .cCdbStoppedException import cCdbStoppedException;
@@ -82,8 +83,8 @@ class cCdbWrapper(cWithCallbacks):
     o0UWPApplication,
     asApplicationArguments,
     asLocalSymbolPaths,
-    a0sSymbolCachePaths, 
-    a0sSymbolServerURLs,
+    azsSymbolCachePaths, 
+    azsSymbolServerURLs,
     d0sURLTemplate_by_srSourceFilePath,
     bGenerateReportHTML,        
     u0ProcessMaxMemoryUse,
@@ -113,8 +114,8 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.bStopping = False;
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
     oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths;
-    oCdbWrapper.asSymbolCachePaths = dxConfig["asDefaultSymbolCachePaths"] if a0sSymbolCachePaths is None else a0sSymbolCachePaths;
-    oCdbWrapper.asSymbolServerURLs = dxConfig["asDefaultSymbolServerURLs"] if a0sSymbolServerURLs is None else a0sSymbolServerURLs;
+    oCdbWrapper.asSymbolCachePaths = fxGetFirstProvidedValue(azsSymbolCachePaths, dxConfig["asDefaultSymbolCachePaths"]);
+    oCdbWrapper.asSymbolServerURLs = fxGetFirstProvidedValue(azsSymbolServerURLs, dxConfig["asDefaultSymbolServerURLs"]);
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = d0sURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse;

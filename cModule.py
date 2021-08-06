@@ -187,13 +187,15 @@ class cModule(object):
     ]);
   
   @staticmethod
-  def foCreateForStartAddress(oProcess, uStartAddress):
-    return cModule.__foGetOrCreateFrom_lmov(oProcess, b"a 0x%X;" % uStartAddress);
+  def fo0CreateForStartAddress(oProcess, uStartAddress):
+    return cModule.__fo0GetOrCreateFrom_lmov(oProcess, b"a 0x%X;" % uStartAddress);
+    
   @staticmethod
-  def foCreateForCdbId(oProcess, sbCdbId):
-    return cModule.__foGetOrCreateFrom_lmov(oProcess, b"m %s;" % sbCdbId);
+  def fo0CreateForCdbId(oProcess, sbCdbId):
+    return cModule.__fo0GetOrCreateFrom_lmov(oProcess, b"m %s;" % sbCdbId);
+  
   @staticmethod
-  def __foGetOrCreateFrom_lmov(oProcess, sb_lmov_Arguments):
+  def __fo0GetOrCreateFrom_lmov(oProcess, sb_lmov_Arguments):
     asb_lmov_Output = oProcess.fasbExecuteCdbCommand(
       sbCommand = b"lmov %s" % sb_lmov_Arguments,
       sb0Comment = b"Get module information",

@@ -67,7 +67,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     elif oCdbWrapper.o0UWPApplication and not oCdbWrapper.bUWPApplicationStarted:
     ### When debugging an UWP application, terminate any existing instances and start a new one. #####################
       if len(oCdbWrapper.asApplicationArguments) == 0:
-        sArgument = None;
+        sbArgument = None;
       else:
         # This check should be superfluous, but it doesn't hurt to make sure.
         assert len(oCdbWrapper.asApplicationArguments) == 1, \
