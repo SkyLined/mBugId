@@ -16,6 +16,15 @@ def cCdbWrapper_fAttachCdbToProcessForId(oCdbWrapper, uProcessId):
         sMessage;
     oCdbWrapper.fStop();
   elif asbAttachToProcessOutput == [
+    b"Cannot debug pid %d, Win32 error 0n5" % uProcessId,
+    b'    "Access is denied."',
+    b"Unable to initialize target, Win32 error 0n5",
+  ]:
+    sMessage = "Unable to attach to process %d/0x%X because it is being debugged or has a higher integrity level." % (uProcessId, uProcessId);
+    assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
+        sMessage;
+    oCdbWrapper.fStop();
+  elif asbAttachToProcessOutput == [
     b"Cannot debug pid %d, NTSTATUS 0xC000010A"% uProcessId,
     b'    "An attempt was made to access an exiting process."',
     b'Unable to initialize target, NTSTATUS 0xC000010A',
