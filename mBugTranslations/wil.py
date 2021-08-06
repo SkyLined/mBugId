@@ -5,7 +5,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # * -> hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!wil::details::DebugBreak",
       rb".*!wil::details::in1diag3::Throw_Hr",
       rb".*!wil::details::ThrowResultExceptionInternal",
@@ -17,7 +17,7 @@ aoBugTranslations = [
   # Breakpoint -> Assert
   cBugTranslation(
    srzOriginalBugTypeId = "Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::ReportFailure",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -27,7 +27,7 @@ aoBugTranslations = [
   # AppExit -> Assert
   cBugTranslation(
    srzOriginalBugTypeId = "AppExit",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::ReportFailure",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -37,7 +37,7 @@ aoBugTranslations = [
   # Assert -> Assert:Win32
   cBugTranslation(
    srzOriginalBugTypeId = "Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::(?:ReportFailure_Win32|in1diag3::_?FailFast_Win32)",
     ],
     s0zTranslatedBugTypeId = "Assert:Win32",
@@ -45,7 +45,7 @@ aoBugTranslations = [
   # Assert -> Assert:HRESULT
   cBugTranslation(
    srzOriginalBugTypeId = "Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::(?:ReportFailure_Hr|in1diag3::_?FailFast_Hr)",
     ],
     s0zTranslatedBugTypeId = "Assert:HRESULT",
@@ -53,7 +53,7 @@ aoBugTranslations = [
   # Assert -> Assert:Unexpected
   cBugTranslation(
    srzOriginalBugTypeId = "Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::(?:ReportFailure_Unexpected|in1diag3::_?FailFast_Unexpected)",
     ],
     s0zTranslatedBugTypeId = "Assert:Unexpected",
@@ -61,7 +61,7 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
    srzOriginalBugTypeId = "Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::in1diag3::_?FailFast_NullAlloc",
     ],
     s0zTranslatedBugTypeId = "OOM",
@@ -70,7 +70,7 @@ aoBugTranslations = [
   # Assert:HRESULT -> OOM
   cBugTranslation(
    srzOriginalBugTypeId = "Assert:HRESULT",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!wil::details::in1diag3::_?FailFast_NullAlloc",
     ],
     s0zTranslatedBugTypeId = "OOM",

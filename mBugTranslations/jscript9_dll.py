@@ -3,13 +3,13 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # Breakpoint -> ignore stack
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"jscript9\.dll!ReportFatalException",
     ],
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"jscript9\.dll!JavascriptDispatch_OOM_fatal_error",
     ],
     s0zTranslatedBugTypeId = "OOM",

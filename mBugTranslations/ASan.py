@@ -12,7 +12,7 @@ aoBugTranslations = [
   # AVs during initialization --> expected, not a bug.
   cBugTranslation(
     srzOriginalBugTypeId = r"AVW:Reserved\[(0x)?[\dA-F]+n?\]@\d+",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!__asan::FastPoisonShadow",
     ],
     s0zTranslatedBugTypeId = None,
@@ -21,7 +21,7 @@ aoBugTranslations = [
   # IllegalInstruction --> ASan
   cBugTranslation(
     srzOriginalBugTypeId = r"IllegalInstruction",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!__sanitizer::Trap",
     ],
     s0zTranslatedBugTypeId = "ASan",
@@ -32,7 +32,7 @@ aoBugTranslations = [
   # ASan --> (hide irrelevant frames only)
   cBugTranslation(
     srzOriginalBugTypeId = "ASan",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!agent::asan::\w+.*",
       rb".*!_*asan_\w+.*",
       rb".*!__asan::\w+.*",

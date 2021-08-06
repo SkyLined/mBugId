@@ -5,10 +5,10 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert(:HRESULT)?",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!CIsoMalloc::_InitializeEntry",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!CIsoScope::_?Alloc\w+",
       rb".*!IsoAllocMessageBuffer",
     ],

@@ -4,7 +4,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"combase\.dll!SendReport",
       rb"combase\.dll!RoOriginateError",
       rb"combase\.dll!RoFailFastWithErrorContextInternal2",

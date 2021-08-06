@@ -3,7 +3,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # Breakpoint -> hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"chakra\.dll!ReportFatalException",
       rb"chakra\.dll!Js::Exception::RaiseIfScriptActive",
       rb"chakra\.dll!Js::JavascriptError::ThrowOutOfMemoryError",
@@ -13,7 +13,7 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"chakra\.dll!Js::Throw::FatalInternalError",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -23,7 +23,7 @@ aoBugTranslations = [
   # Breakpoint -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"chakra\.dll!MarkStack_OOM_fatal_error",
       rb"chakra\.dll!JavascriptDispatch_OOM_fatal_error",
       rb"chakra\.dll!OutOfMemory_fatal_error",

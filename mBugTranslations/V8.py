@@ -4,7 +4,7 @@ aoBugTranslations = [
   # AVE@NULL -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"AVE@NULL",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!v8::base::OS::Abort",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -14,7 +14,7 @@ aoBugTranslations = [
   # AVE@NULL -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"AVE@NULL",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!V8_Fatal",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -24,7 +24,7 @@ aoBugTranslations = [
   # Assert -> ignore functions
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!V8_Fatal",
       rb".*!v8::base::OS::Abort",
       rb".*!v8::MaybeLocal<.+>::ToLocalChecked",
@@ -37,7 +37,7 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!v8::internal::V8::FatalProcessOutOfMemory",
     ],
     s0zTranslatedBugTypeId = "OOM",
@@ -47,7 +47,7 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!v8::Utils::ReportOOMFailure",
     ],
     s0zTranslatedBugTypeId = "OOM",

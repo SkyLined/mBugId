@@ -4,7 +4,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # * -> hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!_?CxxThrowException",
       rb".*!abort",
     ],
@@ -12,7 +12,7 @@ aoBugTranslations = [
   # Breakpoint -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!malloc",
     ],
     s0zTranslatedBugTypeId = "OOM",
@@ -29,7 +29,7 @@ aoBugTranslations = [
   # AppExit -> PureCall
   cBugTranslation(
     srzOriginalBugTypeId = r"AppExit",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!_?purecall",
     ],
     s0zTranslatedBugTypeId = "PureCall",
@@ -39,20 +39,20 @@ aoBugTranslations = [
   # PureCall -> hide irrelevant frames
   cBugTranslation(
     srzOriginalBugTypeId = r"PureCall",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!_?purecall",
     ],
   ),
   # StackExhaustion (hide irrelevant frames)
   cBugTranslation(
     srzOriginalBugTypeId = r"StackExhaustion",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!__?chkstk",
     ],
   ),
   # hide irrelevant heap management frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!(m|re)alloc",
       rb".*!mem(chr|cmp|cpy|move|set)",
       rb".*!(.+::)?operator (delete|new(\[\])?)",

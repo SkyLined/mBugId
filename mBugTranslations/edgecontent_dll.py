@@ -4,7 +4,7 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"edgecontent\.dll!`anonymous namespace'::MemoryLimitWatchdogThreadProc",
     ],
     s0zTranslatedBugTypeId = "OOM",

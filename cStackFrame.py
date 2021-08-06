@@ -95,10 +95,21 @@ class cStackFrame(object):
   def bHidden(oSelf):
     return oSelf.s0IsHiddenBecause is not None;
   
-  def fbHideIfItMatchesSymbols(oSelf, rbSymbols, sReason):
-    fAssertType("rbSymbols", rbSymbols, re.Pattern);
-    # This frame should have a symbol, if it does not have a symbol, it does not match.
-    if oSelf.sb0SimplifiedAddress is not None and rbSymbols.match(oSelf.sb0SimplifiedAddress):
+  def fbHideIfItMatchesSymbols(oSelf, r0bSymbols, sReason, bAlsoHideNoneFrames):
+    if bAlsoHideNoneFrames:
+      # If we are hiding None frame, r0bSymbols can be None
+      fAssertType("r0bSymbols", r0bSymbols, re.Pattern, None);
+    else:
+      # If we are not hiding None frame, r0bSymbols can not be None, or it would never be hiding anything!
+      fAssertType("r0bSymbols", r0bSymbols, re.Pattern);
+    fAssertType("sReason", sReason, str);
+    fAssertType("bAlsoHideNoneFrames", bAlsoHideNoneFrames, bool);
+    # If this frame does not have a symbol, hide it if bAlsoHideNoneFrames is True.
+    # If this frame has a symbol, hide it if matches the regular expression (if any).
+    if (
+      bAlsoHideNoneFrames if oSelf.sb0SimplifiedAddress is None else
+      (r0bSymbols and r0bSymbols.match(oSelf.sb0SimplifiedAddress))
+    ):
       oSelf.s0IsHiddenBecause = sReason;
       return True;
     return False;

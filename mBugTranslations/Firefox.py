@@ -4,7 +4,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # Breakpoint -> hide irrelevent stack frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"(mozglue|xul)\.dll!Abort",
       rb"(mozglue|xul)\.dll!arena_\w+",
       rb"(mozglue|xul)\.dll!(.*::)?\w+alloc(<.+>|::.*)?",
@@ -16,7 +16,7 @@ aoBugTranslations = [
   # Breakpoint -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"mozglue\.dll!arena_run_split",
       rb"mozglue\.dll!mozalloc_handle_oom",
       rb"mozglue\.dll!pages_commit",
@@ -31,7 +31,7 @@ aoBugTranslations = [
   # IllegalInstruction -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"IllegalInstruction",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"xul\.dll!alloc::oom::default_oom_handler",
       rb"xul\.dll!alloc::heap::\{\{impl\}\}::oom",
     ],
@@ -42,7 +42,7 @@ aoBugTranslations = [
   # Breakpoint -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"xul\.dll!NS_DebugBreak",
     ],
     s0zTranslatedBugTypeId = "Assert",

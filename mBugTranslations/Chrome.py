@@ -4,7 +4,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # ASan build related -> Ignored
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!`anonymous namespace'::Create", # Part of skia
       rb".*!base::debug::BreakDebugger",
       rb".*!base::debug::CollectGDIUsageAndDie",
@@ -25,7 +25,7 @@ aoBugTranslations = [
   # Breakpoint -> Ignored
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!__sanitizer_cov",
     ],
     s0zTranslatedBugTypeId = None, # This is apparently triggered by ASAN builds to determine EIP/RIP.
@@ -35,7 +35,7 @@ aoBugTranslations = [
   # Breakpoint -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!base::`anonymous namespace'::OnNoMemory",
       rb".*!base::internal::SchedulerWorkerPoolImpl::Start", # CHECK() on thread start
       rb".*!base::PartitionRecommitSystemPages",
@@ -51,7 +51,7 @@ aoBugTranslations = [
   # Breakpoint -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!blink::reportFatalErrorInMainThread",
       rb".*!v8::Utils::ReportApiFailure",
       rb".*!logging::LogMessage::~LogMessage",
@@ -63,7 +63,7 @@ aoBugTranslations = [
   # AVW@NULL -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"AVW@NULL",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!base::win::`anonymous namespace'::ForceCrashOnSigAbort",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -73,7 +73,7 @@ aoBugTranslations = [
   # Various -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"0xE0000008|Assert|AVW@NULL", # 0xE0000008 (win::kOomExceptionCode) -> OOM
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!base::`anonymous namespace'::OnNoMemory",
       rb".*!(?:base|WTF)::[Pp]artitions?(?:ExcessiveAllocationSize|OutOfMemory(Using\w+)?)",
       rb".*!blink::(?:BlinkGCOutOfMemory|ReportOOMErrorInMainThread)",
@@ -87,7 +87,7 @@ aoBugTranslations = [
   # OOM -> hide irrelevant frames
   cBugTranslation(
     srzOriginalBugTypeId = r"OOM",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".+!(.+::)?(Win)?CallNewHandler",
       rb".+!(.+::)?\w+_malloc(_\w+)?",
       rb".+!(.+::)?\w*(Alloc|alloc|OutOfMemory)\w*(<.+>)?",

@@ -3,7 +3,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # * -> hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"kernelbase\.dll!DebugBreak",
       rb"kernelbase\.dll!RaiseException",
       rb"kernelbase\.dll!RaiseFailFastException",

@@ -185,8 +185,15 @@ class cStack(object):
     oSelf.aoFrames.append(oStackFrame);
     return True;
   
-  def fbHideTopFramesIfTheyMatchSymbols(oSelf, rbSymbols, sReason):
-    fAssertType("rbSymbols", rbSymbols, re.Pattern);
+  def fbHideTopFramesIfTheyMatchSymbols(oSelf, r0bSymbols, sReason, bAlsoHideNoneFrames = False):
+    if bAlsoHideNoneFrames:
+      # If we are hiding None frame, r0bSymbols can be None
+      fAssertType("r0bSymbols", r0bSymbols, re.Pattern, None);
+    else:
+      # If we are not hiding None frame, r0bSymbols can not be None, or it would never be hiding anything!
+      fAssertType("r0bSymbols", r0bSymbols, re.Pattern);
+    fAssertType("sReason", sReason, str);
+    fAssertType("bAlsoHideNoneFrames", bAlsoHideNoneFrames, bool);
     uFrameIndex = 0;
     while uFrameIndex < len(oSelf.aoFrames) and (oSelf.aoFrames[uFrameIndex].s0IsHiddenBecause is not None):
       uFrameIndex += 1;
@@ -194,7 +201,7 @@ class cStack(object):
       return False; # All frames are hidden!?
     uStartFrameIndex = uFrameIndex;
     # Match as many frames as possible.
-    while oSelf.aoFrames[uFrameIndex].fbHideIfItMatchesSymbols(rbSymbols, sReason):
+    while uFrameIndex < len(oSelf.aoFrames) and oSelf.aoFrames[uFrameIndex].fbHideIfItMatchesSymbols(r0bSymbols, sReason, bAlsoHideNoneFrames):
       uFrameIndex += 1;
     return uStartFrameIndex != uFrameIndex; # Return true if any frames matched
   
@@ -215,7 +222,8 @@ class cStack(object):
         break;
       ob_dps_StackOutputLineMatch = grb_dps_StackOutputLine.match(sbLine, re.I);
       assert ob_dps_StackOutputLineMatch, \
-            "Unknown stack output: %s\r\n%s" % (repr(sbLine), b"\r\n".join(asbStackOutput));
+            "Unknown stack output: %s\r\n%s" % \
+            (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput));
       sbReturnAddress, sbCdbSymbolOrAddress, sb0SourceFilePath, sb0SourceFileLineNumber = \
           ob_dps_StackOutputLineMatch.groups();
       (
@@ -275,7 +283,11 @@ class cStack(object):
         b" # ChildEBP RetAddr  ",
         b" # Child-SP          RetAddr           Call Site",
         b"Could not allocate memory for stack trace",
-      ], "Unknown stack header: %s\r\n%s" % (repr(asbStackOutput[uStackStartIndex]), b"\r\n".join(asbStackOutput));
+      ], \
+          "Unknown stack header: %s\r\n%s" % (
+            repr(asbStackOutput[uStackStartIndex]),
+            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput)
+          );
       uStackStartIndex += 1;
       oStack = cStack();
       u0FrameInstructionPointer = u0InstructionPointer;
@@ -290,7 +302,8 @@ class cStack(object):
           break;
         ob_kn_StackOutputLineMatch = grb_kn_StackOutputLine.match(sbLine);
         assert ob_kn_StackOutputLineMatch, \
-            "Unknown stack output: %s\r\n%s" % (repr(sbLine), b"\r\n".join(asbStackOutput));
+            "Unknown stack output: %s\r\n%s" % \
+            (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput));
         (sb0ReturnAddress, sbCdbSymbolOrAddress, sb0SourceFilePath, sb0SourceFileLineNumber) = \
             ob_kn_StackOutputLineMatch.groups();
         u0ReturnAddress = fu0ValueFromCdbHexOutput(sb0ReturnAddress);

@@ -8,7 +8,7 @@ aoBugTranslations = [
   # things work in MS Office... sigh.
   cBugTranslation(
     srzOriginalBugTypeId = r"OOBR\[.*\].*",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"oledb32\.dll!SafeCheckWCharNullTermination",
     ],
     s0zTranslatedBugTypeId = None,

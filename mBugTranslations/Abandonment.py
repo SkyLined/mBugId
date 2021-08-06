@@ -4,10 +4,10 @@ aoBugTranslations = [
   # Breakpoint -> Assert
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::InduceAbandonment",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!Abandonment::AssertionFailed",
     ],
     s0zTranslatedBugTypeId = "Assert",
@@ -17,7 +17,7 @@ aoBugTranslations = [
   # Assert -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::(?:OutOfMemory|CheckAllocation)",
     ],
     s0zTranslatedBugTypeId = "OOM",
@@ -27,7 +27,7 @@ aoBugTranslations = [
   # Assert -> Assert:HRESULT
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::CheckHRESULT(?:Strict)?",
     ],
     s0zTranslatedBugTypeId = "Assert:HRESULT",
@@ -37,7 +37,7 @@ aoBugTranslations = [
   # Assert -> Assert:Arguments
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::InvalidArguments",
     ],
     s0zTranslatedBugTypeId = "Assert:Arguments",
@@ -47,7 +47,7 @@ aoBugTranslations = [
   # Assert -> Assert:Unreachable
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::UnreachableCode",
     ],
     s0zTranslatedBugTypeId = "Assert:Unreachable",
@@ -57,7 +57,7 @@ aoBugTranslations = [
   # Assert -> Assert:Fail
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::Fail",
     ],
     s0zTranslatedBugTypeId = "Assert:Fail",
@@ -67,10 +67,10 @@ aoBugTranslations = [
   # Assert -> Assert:HRESULT
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::InduceHRESULTAbandonment",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!Abandonment::CheckHRESULTStrict",
     ],
     s0zTranslatedBugTypeId = "Assert:HRESULT",
@@ -80,7 +80,7 @@ aoBugTranslations = [
   # Assert -> Assert:Deprecated
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::DeprecatedAPI",
     ],
     s0zTranslatedBugTypeId = "Assert:Deprecated",
@@ -90,7 +90,7 @@ aoBugTranslations = [
   # Assert -> Assert:RequiredQI
   cBugTranslation(
     srzOriginalBugTypeId = r"Assert",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::InduceRequiredQIAbandonment",
     ],
     s0zTranslatedBugTypeId = "Assert:QI",
@@ -100,7 +100,7 @@ aoBugTranslations = [
   # FailFast -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"FailFast",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!Abandonment::(?:OutOfMemory|CheckAllocation)",
     ],
     s0zTranslatedBugTypeId = "OOM",
@@ -110,7 +110,7 @@ aoBugTranslations = [
   # OOM -> hide irelevant frames
   cBugTranslation(
     srzOriginalBugTypeId = r"OOM",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!Abandonment::CheckAllocationT<.+>",
     ],
   ),

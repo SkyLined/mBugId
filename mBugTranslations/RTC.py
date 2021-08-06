@@ -3,11 +3,11 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [];
 aoBugTranslations.append(cBugTranslation(
   srzOriginalBugTypeId = r"Breakpoint",
-  azsrbAppliesOnlyToTopStackFrame = [
+  azs0rbAppliesOnlyToTopStackFrame = [
     rb".*!failwithmessage",
     rb".*!_RTC_StackFailure",
   ],
-  asrbAdditionalIrrelevantStackFrameSymbols = [
+  azs0rbAdditionalIrrelevantStackFrameSymbols = [
     rb".*!_RTC_CheckStackVars\d*",
   ],
   s0zTranslatedBugTypeId = "OOBW:Stack",

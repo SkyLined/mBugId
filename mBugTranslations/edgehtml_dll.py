@@ -4,7 +4,7 @@ aoBugTranslations = [
   # OOM -> hide irelevant frames
   cBugTranslation(
     srzOriginalBugTypeId = r"OOM",
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"edgehtml\.dll!Streams::Chunk<.+>::InternalAlloc",
     ],
   ),

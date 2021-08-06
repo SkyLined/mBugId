@@ -4,11 +4,11 @@ aoBugTranslations = [
   # Breakpoint -> OOM
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb"mshtml\.dll!ReportFatalException",
       rb"mshtml\.dll!MarkStack_OOM_fatal_error",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"mshtml\.dll!Memory::.*",
       rb"mshtml\.dll!MemoryProtection::.*",
     ],

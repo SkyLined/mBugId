@@ -3,7 +3,7 @@ from .cBugTranslation import cBugTranslation;
 aoBugTranslations = [
   # IntegerOverflow -> hide irrelevant frames
   cBugTranslation(
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!SafeIntExceptionHandler<.+>::SafeIntOnOverflow",
       rb".*!msl::utilities::SafeIntErrorPolicy_SafeIntException::SafeIntOnOverflow",
     ],
@@ -16,7 +16,7 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"SafeInt",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!msl::utilities::SafeInt<.+>::operator\+\+",
     ],
     s0zTranslatedBugTypeId = "IntegerOverflow",
@@ -25,7 +25,7 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"SafeInt",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!msl::utilities::SafeInt<.+>::operator\-\-",
     ],
     s0zTranslatedBugTypeId = "IntegerUnderflow",
@@ -34,10 +34,10 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"SafeInt",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!msl::utilities::details::MultiplicationHelper<.+>::Multiply",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!msl::utilities::SafeInt<...>::operator\*=<.+>",
     ],
     s0zTranslatedBugTypeId = "IntegerTruncation",
@@ -46,10 +46,10 @@ aoBugTranslations = [
   ),
   cBugTranslation(
     srzOriginalBugTypeId = r"SafeInt",
-    azsrbAppliesOnlyToTopStackFrame = [
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!msl::utilities::details::SafeCastHelper<.+>::Cast",
     ],
-    asrbAdditionalIrrelevantStackFrameSymbols = [
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!msl::utilities::SafeInt<.+>::SafeInt<.+><.+>",
       rb".*!msl::utilities::SafeInt<.+>::operator=<.+>",
     ],
