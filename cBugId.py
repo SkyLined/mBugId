@@ -18,8 +18,9 @@ import os, sys;
 """;
 
 # Actually load the stuff from external modules that we need.
-from mWindowsAPI import oSystemInfo;
+from mWindowsAPI import oSystemInfo, cUWPApplication;
 from mMultiThreading import cLock;
+from mNotProvided import *;
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
@@ -46,14 +47,30 @@ class cBugId(object):
     o0UWPApplication = None,
     asApplicationArguments = [],
     asLocalSymbolPaths = [],
-    a0sSymbolCachePaths = None, 
-    a0sSymbolServerURLs = None,
+    azsSymbolCachePaths = zNotProvided, 
+    azsSymbolServerURLs = zNotProvided,
     d0sURLTemplate_by_srSourceFilePath = None,
     bGenerateReportHTML = False,
     u0ProcessMaxMemoryUse = None,
     u0TotalMaxMemoryUse = None,
     uMaximumNumberOfBugs = 1,
   ):
+    fAssertTypes({
+      "sCdbISA": (sCdbISA, str),
+      "s0ApplicationBinaryPath": (s0ApplicationBinaryPath, str, None),
+      "a0uApplicationProcessIds": (a0uApplicationProcessIds, [int], None),
+      "u0JITDebuggerEventId": (u0JITDebuggerEventId, int, None),
+      "o0UWPApplication": (o0UWPApplication, cUWPApplication, None),
+      "asApplicationArguments": (asApplicationArguments, [str]),
+      "asLocalSymbolPaths": (asLocalSymbolPaths, [str]),
+      "azsSymbolCachePaths": (azsSymbolCachePaths, [str], zNotProvided), 
+      "azsSymbolServerURLs": (azsSymbolServerURLs, [str], zNotProvided),
+      "d0sURLTemplate_by_srSourceFilePath": (d0sURLTemplate_by_srSourceFilePath, dict, None),
+      "bGenerateReportHTML": (bGenerateReportHTML, bool),        
+      "u0ProcessMaxMemoryUse": (u0ProcessMaxMemoryUse, int, None),
+      "u0TotalMaxMemoryUse": (u0TotalMaxMemoryUse, int, None),
+      "uMaximumNumberOfBugs": (uMaximumNumberOfBugs, int),
+    });
     oBugId.__oRunningLock = cLock(bLocked = True);
     oBugId.__bStarted = False;
     oBugId.o0UWPApplication = o0UWPApplication;
@@ -69,8 +86,8 @@ class cBugId(object):
       o0UWPApplication = oBugId.o0UWPApplication,
       asApplicationArguments = asApplicationArguments,
       asLocalSymbolPaths = asLocalSymbolPaths,
-      a0sSymbolCachePaths = a0sSymbolCachePaths,
-      a0sSymbolServerURLs = a0sSymbolServerURLs,
+      azsSymbolCachePaths = azsSymbolCachePaths,
+      azsSymbolServerURLs = azsSymbolServerURLs,
       d0sURLTemplate_by_srSourceFilePath = d0sURLTemplate_by_srSourceFilePath,
       bGenerateReportHTML = bGenerateReportHTML,
       u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse,
