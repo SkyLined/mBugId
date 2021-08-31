@@ -2,11 +2,11 @@ import mProductDetails;
 
 def ftsReportLicenseHeaderAndFooterHTML(oProductDetails):
   oLicenseCollection = mProductDetails.foGetLicenseCollectionForAllLoadedProducts();
-  oLicense = oLicenseCollection.foGetLicenseForProductDetails(oProductDetails);
-  bLicensedForCommercialUse = oLicense and oLicense.sUsageTypeDescription == "commercial use";
+  o0License = oLicenseCollection.fo0GetLicenseForProductDetails(oProductDetails);
+  bLicensedForCommercialUse = o0License and o0License.sUsageTypeDescription == "commercial use";
   sLicenseHeaderHTML = " ".join([
-    oLicense and (
-      "Licensed to %s for %s." % (oLicense.sLicenseeName, oLicense.sUsageTypeDescription)
+    o0License and (
+      "Licensed to %s for %s." % (o0License.sLicenseeName, o0License.sUsageTypeDescription)
     ) or "",
     not bLicensedForCommercialUse and (
       "You may not use this version of " + oProductDetails.sProductName + " for commercial purposes. Please contact "
@@ -15,7 +15,7 @@ def ftsReportLicenseHeaderAndFooterHTML(oProductDetails):
     ) or "",
   ]);
   if bLicensedForCommercialUse:
-    sLicenseFooterHTML = "This copy of BugId is licensed for commercial use by %s." % oLicense.sLicenseeName;
+    sLicenseFooterHTML = "This copy of BugId is licensed for commercial use by %s." % o0License.sLicenseeName;
   else:
     sLicenseFooterHTML = (
       "<a "
@@ -59,9 +59,9 @@ def ftsReportLicenseHeaderAndFooterHTML(oProductDetails):
       ">"
         "Creative Commons Attribution-NonCommercial 4.0 International License"
       "</a> "
-      + (oLicense and "to %s" % oLicense.sLicenseeName or "during a trial period") + "."
+      + (o0License and "to %s" % o0License.sLicenseeName or "during a trial period") + "."
       "<br/>"
       "Please contact the author if you wish to "
-      + (oLicense and "use BugId commercially" or "continue to use BugId after the trial period") + "."
+      + (o0License and "use BugId commercially" or "continue to use BugId after the trial period") + "."
     );
   return (sLicenseHeaderHTML, sLicenseFooterHTML);
