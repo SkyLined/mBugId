@@ -6,7 +6,6 @@ from mRegistry import cRegistryHiveKey;
 gdbPageHeapEnabled_by_sBinaryName = {};
 guRequiredFlags = 0x02109870;
 
-
 def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   if oProcess.bPageHeapEnabled is not None:
     return; # We have ensured this before.
@@ -15,7 +14,7 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
     return;
   oRegistryHiveKey = cRegistryHiveKey(
     sHiveName = "HKLM",
-    sKeyName = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName,
+    sKeyPath = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName,
   );
   oGlobalFlags = oRegistryHiveKey.foGetValueForName("GlobalFlag");
   if oGlobalFlags and oGlobalFlags.sTypeName == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", oGlobalFlags.xValue):
