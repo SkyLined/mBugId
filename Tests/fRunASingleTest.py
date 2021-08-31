@@ -231,7 +231,7 @@ def fRunASingleTest(
       sCdbISA = sISA, # Debug with a cdb.exe for an ISA that matches the target process.
       s0ApplicationBinaryPath = sApplicationBinaryPath,
       asApplicationArguments = asApplicationArguments,
-      a0sSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
+      azsSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
       bGenerateReportHTML = mGlobals.bGenerateReportHTML,
       u0TotalMaxMemoryUse = mGlobals.uTotalMaxMemoryUse,
       uMaximumNumberOfBugs = uMaximumNumberOfBugs,
