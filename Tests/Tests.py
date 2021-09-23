@@ -8,6 +8,7 @@ except ModuleNotFoundError as oException:
     raise;
   m0DebugOutput = None;
 
+guExitCodeInternalError = 1; # Use standard value;
 try:
   try:
     from mConsole import oConsole;
@@ -355,5 +356,5 @@ try:
   oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
 except Exception as oException:
   if m0DebugOutput:
-    m0DebugOutput.fTerminateWithException(oException, bShowStacksForAllThread = True);
+    m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
   raise;

@@ -29,6 +29,7 @@ def fOutputStack(oStack):
       [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
     );
 
+guExitCodeInternalError = 1; # Use standard value;
 def fRunASingleTest(
   sISA,
   axCommandLineArguments,
@@ -182,7 +183,7 @@ def fRunASingleTest(
         oConsole.fOutput(sLine);
     oBugId.fStop();
     if m0DebugOutput:
-      m0DebugOutput.fTerminateWithException(oException, oTraceBack, bShowStacksForAllThread = True);
+      m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
     raise oException;
   def fPageHeapNotEnabledCallback(oBugId, oProcess, bIsMainProcess, bPreventable):
     assert oProcess.sBinaryName == "cmd.exe", \
