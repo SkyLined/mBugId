@@ -20,7 +20,7 @@ def fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymb
       "u0Address part of split symbol should always be None here!?";
   return asbSymbolOutput[0];
 
-def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress):
+def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # Ask cdb for the symbol at the given address. This may cause cdb to output all kinds of stuff related to
   # loading symbols, which make the output unparsable. If we cannot parse the output, we try again: the assumption
   # is that the second time around, cdb will have loaded symbols and only the expected symbol will be output.
@@ -33,7 +33,7 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress):
   sbGetSymbolCommand = b'.printf "%%y\\n", 0x%X;' % uAddress;
   asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = sbGetSymbolCommand, 
-    sb0Comment = b"Get symbol for address (first attempt)",
+    sb0Comment = b"Get symbol for %s (first attempt)" % sbAddressDescription,
   );
   try:
     # Check if the output is a valid symbol or address and return the symbol
@@ -43,7 +43,7 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress):
     pass;
   asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = sbGetSymbolCommand, 
-    sb0Comment = b"Get symbol for address (second attempt: cdb may have output symbol loading junk the first time)",
+    sb0Comment = b"Get symbol for %s (second attempt: cdb may have output symbol loading junk the first time)" % sbAddressDescription,
   );
   try:
     # Check if the output is a valid symbol or address again and return the

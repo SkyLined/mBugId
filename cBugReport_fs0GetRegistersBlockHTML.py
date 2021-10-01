@@ -68,7 +68,7 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
     uRegisterValue = duRegisterValue_by_sbName[sbRegisterName];
     sRegisterValue = "%X" % uRegisterValue;
     sValuePadding = "0" * (uPadding - len(sRegisterValue));
-    sb0Symbol = oProcess.fsb0GetSymbolForAddress(uRegisterValue) if bShowSymbol else None;
+    sb0Symbol = oProcess.fsb0GetSymbolForAddress(uRegisterValue, b"register %s" % sbRegisterName) if bShowSymbol else None;
     asRegistersTableHTML.extend([
       '<tr>',
         '<td>', sRegisterName, '</td>',

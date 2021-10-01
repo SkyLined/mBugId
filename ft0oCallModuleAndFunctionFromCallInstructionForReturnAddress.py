@@ -31,7 +31,7 @@ def ft0oCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, uRetu
     return None; # This opcode is not for the CALL instruction we can parse.
   # Find out the target of the call instruction (which is relative to the return address).
   uCallTargetAddress = uReturnAddress + oCallInstruction.i32Displacement;
-  sb0Symbol = oProcess.fsb0GetSymbolForAddress(uCallTargetAddress);
+  sb0Symbol = oProcess.fsb0GetSymbolForAddress(uCallTargetAddress, b"CALL instruction at 0x%X target" % (uReturnAddress - 5));
   if sb0Symbol is None:
     return None;
   (
