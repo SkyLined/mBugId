@@ -24,15 +24,20 @@ class cCollateralBugHandler(object):
       # A poisoned pointer can point to allocatable memory, so no need to reserve a region around it to prevent that.
       uVirtualAllocationStartAddress = uPoisonAddress - (uPoisonAddress % oSystemInfo.uAllocationAddressGranularity);
       uVirtualAllocationSize = oSystemInfo.uAllocationAddressGranularity;
-      oVirtualAllocation = cVirtualAllocation.foCreateForProcessId(
+      o0VirtualAllocation = cVirtualAllocation.fo0CreateForProcessId(
         uProcessId = oProcess.uId,
         uAddress = uVirtualAllocationStartAddress,
         uSize = uVirtualAllocationSize,
         bReserved = True,
       );
-      uPoisonAddress = oVirtualAllocation.uStartAddress + (uPoisonAddress % oSystemInfo.uAllocationAddressGranularity);
+      if not o0VirtualAllocation:
+        oCdbWrapper.fLogMessage("Collateral bug handler cannot reserve memory around poison address", {
+          "uPoisonAddress": uPoisonAddress, "uProcessId": oProcess.uId, "uSize": uVirtualAllocationSize,
+        });
+      else:
+        uPoisonAddress = o0VirtualAllocation.uStartAddress + (uPoisonAddress % oSystemInfo.uAllocationAddressGranularity);
 #      print "Reserved 0x%X bytes at 0x%08X around poisoned address 0x%08X" % \
-#          (oVirtualAllocation.uSize, oVirtualAllocation.uStartAddress, uPoisonAddress);
+#          (o0VirtualAllocation.uSize, o0VirtualAllocation.uStartAddress, uPoisonAddress);
 #    else:
 #      print "Set poison to invalid address 0x%08X" % uPoisonAddress;
     oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId] = uPoisonAddress;
