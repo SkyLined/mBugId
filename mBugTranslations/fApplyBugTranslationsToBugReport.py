@@ -12,6 +12,7 @@ from .edgecontent_dll import aoBugTranslations as aoBugTranslations_edgecontent_
 from .Firefox import aoBugTranslations as aoBugTranslations_Firefox;
 from .iso import aoBugTranslations as aoBugTranslations_iso;
 from .jscript9_dll import aoBugTranslations as aoBugTranslations_jscript9_dll;
+from .kernel32_dll import aoBugTranslations as aoBugTranslations_kernel32_dll;
 from .kernelbase_dll import aoBugTranslations as aoBugTranslations_kernelbase_dll;
 from .mshtml_dll import aoBugTranslations as aoBugTranslations_mshtml_dll;
 from .ntdll_dll import aoBugTranslations as aoBugTranslations_ntdll_dll;
@@ -40,6 +41,7 @@ for aoBugTranslations_X in [
   aoBugTranslations_Firefox,
   aoBugTranslations_iso,
   aoBugTranslations_jscript9_dll,
+  aoBugTranslations_kernel32_dll,
   aoBugTranslations_kernelbase_dll,
   aoBugTranslations_mshtml_dll,
   aoBugTranslations_ntdll_dll,
