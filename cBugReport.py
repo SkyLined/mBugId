@@ -31,6 +31,7 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
   WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
+
 class cBugReport(object):
   def __init__(oSelf, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact, uStackFramesCount):
     oSelf.__oCdbWrapper = oCdbWrapper;
@@ -61,7 +62,11 @@ class cBugReport(object):
     return oSelf.__o0Stack;
   
   def fAddMemoryDump(oSelf, uStartAddress, uEndAddress, sDescription):
-    assert uStartAddress < uEndAddress, \
+#    assert uStartAddress >=0 and uStartAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
+#        "Invalid uStartAddress 0x%X." % uStartAddress;
+#    assert uEndAddress >=0 and uEndAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
+#        "Invalid uEndAddress 0x%X." % uEndAddress;
+    assert uEndAddress > uStartAddress, \
         "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
     uSize = uEndAddress - uStartAddress;
     assert uSize <= dxConfig["uMaxMemoryDumpSize"], \

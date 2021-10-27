@@ -95,16 +95,19 @@ def fsPaddedHexValueHTML(uValue, uSizeInBits, sxHeader = "0x"):
   );
 
 def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress):
-  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uStartAddress);
+  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uStartAddress);
+  if not o0VirtualAllocation:
+    return None;
+  
   asMemoryVirtualAllocationTableHTML = [
     "<tr><td colspan=2><b>Virtual Allocation</b></td></tr>\r\n",
-    "<tr><td>Type</td><td>0x%X (%s)</td>\r\n" % (oVirtualAllocation.uType, oVirtualAllocation.sType),
-    "<tr><td>Base address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(oVirtualAllocation.uAllocationBaseAddress, oProcess.uPointerSize),
-    "<tr><td>Start address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(oVirtualAllocation.uStartAddress, oProcess.uPointerSize),
-    "<tr><td>End address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(oVirtualAllocation.uEndAddress, oProcess.uPointerSize),
-    "<tr><td>Size:</td><td>0x%X</td>\r\n" % oVirtualAllocation.uSize,
-    "<tr><td>State:</td><td>0x%X (%s)</td>\r\n" % (oVirtualAllocation.uState, oVirtualAllocation.sState),
-    "<tr><td>Protection</td><td>0x%X (%s)</td>\r\n" % (oVirtualAllocation.uProtection, oVirtualAllocation.sProtection),
+    "<tr><td>Type</td><td>0x%X (%s)</td>\r\n" % (o0VirtualAllocation.uType, o0VirtualAllocation.sType),
+    "<tr><td>Base address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(o0VirtualAllocation.uAllocationBaseAddress, oProcess.uPointerSize),
+    "<tr><td>Start address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(o0VirtualAllocation.uStartAddress, oProcess.uPointerSize),
+    "<tr><td>End address:</td><td>%s</td>\r\n" % fsPaddedHexValueHTML(o0VirtualAllocation.uEndAddress, oProcess.uPointerSize),
+    "<tr><td>Size:</td><td>0x%X</td>\r\n" % o0VirtualAllocation.uSize,
+    "<tr><td>State:</td><td>0x%X (%s)</td>\r\n" % (o0VirtualAllocation.uState, o0VirtualAllocation.sState),
+    "<tr><td>Protection</td><td>0x%X (%s)</td>\r\n" % (o0VirtualAllocation.uProtection, o0VirtualAllocation.sProtection),
   ];
   uPointerSize = oProcess.uPointerSize;
   uAlignedStartAddress = uStartAddress - (uStartAddress % uPointerSize);

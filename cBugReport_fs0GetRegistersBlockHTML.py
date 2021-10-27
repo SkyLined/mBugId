@@ -77,12 +77,14 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
         '<td>', str(sb0Symbol, "ascii", "strict") if sb0Symbol else "", '</td>',
       '</tr>\n',
     ]);
-    if oProcess.foGetVirtualAllocationForAddress(uRegisterValue).bAllocated:
-      uStartAddress = uRegisterValue;
-      uEndAddress = uStartAddress + dxConfig["uRegisterPointerDumpSizeInPointers"];
-      sDescription = "Pointed to by register %s" % sRegisterName;
-      oBugReport.fAddMemoryDump(uStartAddress, uEndAddress, sDescription);
-      oBugReport.atxMemoryRemarks.append(("Register %s" % sRegisterName, uRegisterValue, None));
+    if uRegisterValue < 1 << (oProcess.uPointerSize * 8):
+      o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uRegisterValue);
+      if o0VirtualAllocation and o0VirtualAllocation.bAllocated:
+        uStartAddress = uRegisterValue;
+        uEndAddress = uStartAddress + dxConfig["uRegisterPointerDumpSizeInPointers"];
+        sDescription = "Pointed to by register %s" % sRegisterName;
+        oBugReport.fAddMemoryDump(uStartAddress, uEndAddress, sDescription);
+        oBugReport.atxMemoryRemarks.append(("Register %s" % sRegisterName, uRegisterValue, None));
   return sBlockHTMLTemplate % {
     "sName": "Registers",
     "sCollapsed": "Collapsed",

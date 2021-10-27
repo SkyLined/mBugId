@@ -9,14 +9,15 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oT
   # Check if this stack exhaustion happened because it ran out of free memory to to commit more stack space by
   # attempting to allocate some memory in the process.
   try:
-    oTestVirtualAllocation = cVirtualAllocation.foCreateForProcessId(oProcess.uId, oSystemInfo.uPageSize);
+    o0TestVirtualAllocation = cVirtualAllocation.fo0CreateForProcessId(oProcess.uId, oSystemInfo.uPageSize);
   except MemoryError:
     oBugReport.s0BugTypeId = "OOM";
     oBugReport.s0BugDescription = "The process was unable to allocate addition stack memory.";
     oBugReport.s0SecurityImpact = "Denial of Service";
     return oBugReport;
   else:
-    oTestVirtualAllocation.fFree();
+    if o0TestVirtualAllocation:
+      o0TestVirtualAllocation.fFree();
   
   # Stack exhaustion can be caused by recursive function calls, where one or more functions repeatedly call themselves
   # Figure out if this is the case and fide all frames at the top of the stack until the "first" frame in the loop.

@@ -2,17 +2,17 @@ import re;
 from .dxConfig import dxConfig;
 
 grbIgnoredMemoryAccessError = re.compile(
-  rb"^"
+  rb"\A"
   rb"\s*\^ Memory access error in '.+'"
-  rb"$"
+  rb"\Z"
 );
 
 grAddressOpCodeInstruction = re.compile(
-  r"^"
+  r"\A"
   r"([0-9a-fA-F`]+\s+)"
   r"([0-9a-fA-F]+\s+)"
   r"(.+)"
-  r"$"
+  r"\Z"
 );
 
 def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bHighlightLine, sRemark):
@@ -41,16 +41,16 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       dxConfig["uDisassemblyInstructionsBefore"] \
       * dxConfig["uDisassemblyAverageInstructionSize"] \
       + dxConfig["uDisassemblyAlignmentBytes"];
-  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAddress);
-  if not oVirtualAllocation.bAllocated:
+  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uAddress);
+  if not o0VirtualAllocation or not o0VirtualAllocation.bAllocated:
     return None;
   # Get disassembly around code in which exception happened. This may not be possible if the instruction pointer points to unmapped memory.
   asDisassemblyBeforeAddressHTML = [];
   if uDisassemblyBytesBefore > 0:
     # Find out if we can get disassembly before uAddress by determining the start and end address we want and adjusting
     # them to the start and end address of the memory region.
-    uStartAddress = max(uAddress - uDisassemblyBytesBefore, oVirtualAllocation.uStartAddress);
-    uLastAddress = min(uAddress, oVirtualAllocation.uEndAddress) - 1;
+    uStartAddress = max(uAddress - uDisassemblyBytesBefore, o0VirtualAllocation.uStartAddress);
+    uLastAddress = min(uAddress, o0VirtualAllocation.uEndAddress) - 1;
     if (uStartAddress < uLastAddress):
       asbDisassemblyBeforeAddress = oProcess.fasbExecuteCdbCommand(
         sbCommand = b"u 0x%X 0x%X;" % (uStartAddress, uLastAddress),
@@ -80,7 +80,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
         ];
   asDisassemblyAtAndAfterAddressHTML = [];
   if dxConfig["uDisassemblyInstructionsAfter"] > 0:
-    # Get disassembly after uAddress is easier, as we can just as for oVirtualAllocation.uEndAddress instructions
+    # Get disassembly after uAddress is easier, as we can just as for o0VirtualAllocation.uEndAddress instructions
     asbDisassemblyAtAndAfterAddress = oProcess.fasbExecuteCdbCommand(
       sbCommand = b"u 0x%X L%d;" % (uAddress, dxConfig["uDisassemblyInstructionsAfter"]),
       sb0Comment = b"Disassemble starting at address 0x%X" % uAddress, 
