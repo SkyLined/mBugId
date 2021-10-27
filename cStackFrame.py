@@ -114,8 +114,10 @@ class cStackFrame(object):
       return True;
     return False;
   
+  def __str__(oSelf):
+    return "#%d %s (hash=%s%s)" % (oSelf.uIndex, str(oSelf.sbAddress, "ascii", "strict"), oSelf.sId, ", hidden: %s" % oSelf.s0IsHiddenBecause if oSelf.bHidden else "");
   def __repr__(oSelf):
-    return "<cStackFrame %s @ %s%s>" % (oSelf.sId, str(oSelf.sbAddress, "ascii", "strict"), " (hidden)" if oSelf.bHidden else "");
+    return "<cStackFrame %s>" % oSelf;
 
 from .cStack import cStack;
 from .cModule import cModule;
