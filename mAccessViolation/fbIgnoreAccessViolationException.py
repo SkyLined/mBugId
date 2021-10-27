@@ -95,11 +95,11 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
 #    print "@@@ u0InstructionPointer == None";
     return False;
   uInstructionPointer = u0InstructionPointer;
-  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uInstructionPointer);
-  if not oVirtualAllocation.bExecutable:
+  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uInstructionPointer);
+  if not o0VirtualAllocation or not o0VirtualAllocation.bExecutable:
     # This can happen if a call/return sets the instruction pointer to a corrupted value; it may point to a region that
     # is not allocated, or contains non-executable data. (e.g. a poisoned value)
-#    print "@@@ oVirtualAllocation.bExecutable == False";
+#    print "@@@ o0VirtualAllocation.bExecutable == False";
     return False; # This memory is not executable: we cannot continue execution.
   asbDiassemblyOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = b"u 0x%X L2" % uInstructionPointer, 
