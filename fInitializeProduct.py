@@ -1,4 +1,4 @@
-def fInitializeProduct():
+﻿def fInitializeProduct():
   import json, os, sys;
   
   try:
