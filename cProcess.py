@@ -1,9 +1,11 @@
 import os, re;
 from .cModule import cModule;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
+from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress;
 from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
 from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
+from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
 from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
 from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
 
@@ -134,8 +136,8 @@ class cProcess(object):
   @property
   def uIntegrityLevel(oProcess):
     return oProcess.oWindowsAPIProcess.uIntegrityLevel;
-  def foGetVirtualAllocationForAddress(oSelf, uAddress):
-    return oSelf.oWindowsAPIProcess.foGetVirtualAllocationForAddress(uAddress);  
+  def fo0GetVirtualAllocationForAddress(oSelf, uAddress):
+    return oSelf.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uAddress);  
   def fs0ReadStringForAddressAndLength(oSelf, uAddress, uSize, bUnicode = False):
     return oSelf.oWindowsAPIProcess.fs0ReadStringForAddressAndLength(uAddress, uSize, bUnicode);  
   def fs0ReadNullTerminatedStringForAddress(oSelf, uAddress, bUnicode = False):
@@ -158,8 +160,9 @@ class cProcess(object):
     return oSelf.oWindowsAPIProcess.fWriteStringForAddress(oSelf, sData, uAddress, bUnicode);
   
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
+  fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
   fo0GetHeapManagerDataForAddress = cProcess_fo0GetHeapManagerDataForAddress;
   fsb0GetSymbolForAddress = cProcess_fsb0GetSymbolForAddress;
+  fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
-
