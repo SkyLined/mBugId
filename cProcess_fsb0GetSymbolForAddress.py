@@ -3,22 +3,36 @@ import re;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 
 grbAddress = re.compile(
-  rb"^"
+  rb"\A"
   rb"[0-9`a-f]+"              # address
-  rb"$"
+  rb"\Z"
+);
+grbSymbolWithOrWithoutAddress = re.compile(
+  rb"\A"
+  rb"(.*?)"                   # symbol
+  rb"(?:"                     # optional {
+    rb"\s+" rb"\("            #   whitespace "(" 
+      rb"(?:[0-9`a-f]+?)"     #   address
+    rb"\)"                    #   ")"
+  rb")?"                      # }
+  rb"\Z"
 );
 
+
 def fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymbolOutput):
-  assert len(asbSymbolOutput) == 1, "";
+  assert len(asbSymbolOutput) == 1, \
+      "No symbol output";
   # If there is no symbol at the addres, the address will be output, which we
   # can detect, so we can return None:
   if grbAddress.match(asbSymbolOutput[0]) and fu0ValueFromCdbHexOutput(asbSymbolOutput[0]) == uAddress:
     return None;
+  o0SymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);
+  (sbSymbolWithoutAddress,) = o0SymbolWithOrWithoutAddressMatch.groups();
   # This will throw an exception is the output contains junk.
-  txSplitSymbolOrAddress = oProcess.ftxSplitSymbolOrAddress(asbSymbolOutput[0]);
+  txSplitSymbolOrAddress = oProcess.ftxSplitSymbolOrAddress(sbSymbolWithoutAddress);
   assert txSplitSymbolOrAddress[0] is None, \
       "u0Address part of split symbol should always be None here!?";
-  return asbSymbolOutput[0];
+  return sbSymbolWithoutAddress;
 
 def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # Ask cdb for the symbol at the given address. This may cause cdb to output all kinds of stuff related to
@@ -52,9 +66,9 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
     return fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymbolOutput);
   except Exception as oException:
     raise AssertionError(
-      "Unexpected get symbol output for %s (%s):\r\n%s" % (
+      "Cannot process get symbol output for %s (%s):\r\n%s" % (
         repr(sbGetSymbolCommand),
-        " | ".join(oException.args),
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSymbolOutput)
+        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSymbolOutput),
+        repr(oException),
       )
     );
