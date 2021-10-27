@@ -34,7 +34,7 @@ dxConfig = {
                                         # that are written to the heap, the BugId will change with it. It may also
                                         # result in many different BugIds for the same bug if the bytes written depend
                                         # on things not in the input that triggered the bug, e.g. timing.
-  "uMaxExportFunctionOffset": 0x30,     # When using export symbols, anything but a direct hit is not reliable; the
+  "uMaxExportFunctionOffset": 0x100,    # When using export symbols, anything but a direct hit is not reliable; the
                                         # higher an offset gets, the less reliable it is. You can choose the cut off
                                         # point using this option: any offset up to and including this number is
                                         # considered to be valid, any larger offset is not considerd valid and will
