@@ -3,7 +3,7 @@ import re;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 
 grbSymbolOrAddress = re.compile(
-  rb"^\s*"                                      # optional whitespace
+  rb"\A\s*"                                      # optional whitespace
   rb"(?:"                                       # either {
     rb"<Unloaded_"                              #   "<Unloaded_"
     rb"(.*)"                                    #   <<<module file name>>>
@@ -25,13 +25,13 @@ grbSymbolOrAddress = re.compile(
     rb"(?:0x)?"                                 #   optional { "0x" }
     rb"([0-9`a-f]+)"                            #   <<<address>>>
   rb")"                                         # }
-  rb"\s*$"                                      # optional whitespace
+  rb"\s*\Z"                                     # optional whitespace
 );
 
 def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
   obSymbolOrAddressMatch = grbSymbolOrAddress.match(sbSymbolOrAddress);
   assert obSymbolOrAddressMatch, \
-      "Unknown symbol or address format: %s" % repr(sbSymbolOrAddress);
+      "Symbol or address does not match a known format: %s" % repr(sbSymbolOrAddress);
   (
     sb0UnloadedModuleFileName, sb0UnloadedModuleOffset,
     sb0ModuleCdbIdOrAddress, sb0ModuleOffset,
