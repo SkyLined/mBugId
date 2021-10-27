@@ -11,7 +11,7 @@ grbIgnoredWarningsAndErrors = re.compile(
   rb")$"
 );
 grb_dps_StackOutputLine = re.compile(
-  rb"^\s*"                                  # optional whitespace
+  rb"\A\s*"                                 # optional whitespace
   rb"[0-9A-F`]+"                            #   stack_address
   rb"\s+"                                   # whilespace
   rb"([0-9A-F`]+)"                          #   **return_address**
@@ -25,10 +25,23 @@ grb_dps_StackOutputLine = re.compile(
     rb"(\d+)"                               #   **line_number**
     rb"\]"                                  #   "]"
   rb")?"                                    # }
-  rb"\s*$"                                  # optional whitespace
+  rb"\s*\Z"                                 # optional whitespace
+);
+grb_kn_StackOutputHeaderLine = re.compile(
+  rb"\A\s*"                                 # optional whitespace
+  rb"#"                                     # "#"
+  rb"\s+"                                   # whilespace
+  rb"Child(?:EBP|\-SP)"                     # "ChildEBP" or "Child-SP"
+  rb"\s+"                                   # whilespace
+  rb"RetAddr"                               # "RetAddr"
+  rb"(?:"                                    # optional {
+    rb"\s+"                                 #   whilespace
+    rb"Call Site"                           #   "Call Site"
+  rb")?"                                    # }
+  rb"\s*\Z"                                 # optional whitespace
 );
 grb_kn_StackOutputLine = re.compile(
-  rb"^\s*"                                  # optional whitespace
+  rb"\A\s*"                                 # optional whitespace
   rb"[0-9a-f]+"                             # frame_number
   rb"\s+"                                   # whilespace
   rb"(?:"                                   # either {
@@ -50,7 +63,7 @@ grb_kn_StackOutputLine = re.compile(
     rb"(\d+)"                               #   **line_number**
     rb"\]"                                  #   "]"
   rb")?"                                    # }
-  rb"\s*$"                                  # optional whitespace
+  rb"\s*\Z"                                 # optional whitespace
 );
 
 # Windows loads kernel32 and ntdll and they do some thread initialization. These
@@ -73,16 +86,21 @@ rbCRTThreadInitialisationFunctionSymbols = re.compile(
     rb"invoke_main"
   rb")\Z"
 );
+# Windows compile time mitigations add even more complexity:
+rbMitigationFunctionSymbols = re.compile(
+  rb"\A("
+    rb"ntdll\.dll!LdrpDispatchUserCallTarget"
+  rb")\Z"
+);
 
 class cStack(object):
   def __init__(oSelf):
     oSelf.aoFrames = [];
     oSelf.bPartialStack = True;
-    oSelf.__dCache_t0oCallModuleAndFunction_by_uReturnAddress = {};
+    oSelf.__du0CallTargetAddress_by_uReturnAddress = {};
   
-  def fbCreateAndAddStackFrame(oSelf,
+  def foCreateAndAddStackFrame(oSelf,
     oProcess,
-    uIndex,
     sbCdbSymbolOrAddress,
     u0InstructionPointer, u0ReturnAddress,
     u0Address,
@@ -91,14 +109,9 @@ class cStack(object):
     o0Function, i0OffsetFromStartOfFunction,
     sb0SourceFilePath = None, u0SourceFileLineNumber = None,
   ):
-    # frames must be created in order:
-    assert uIndex == len(oSelf.aoFrames), \
-        "Unexpected frame index %d vs %d" % (uIndex, len(oSelf.aoFrames));
-    uMaxStackFramesCount = dxConfig["uMaxStackFramesCount"];
-    
     oStackFrame = cStackFrame(
       oSelf,
-      uIndex = uIndex,
+      uIndex = len(oSelf.aoFrames),
       sbCdbSymbolOrAddress = sbCdbSymbolOrAddress,
       u0InstructionPointer = u0InstructionPointer, u0ReturnAddress = u0ReturnAddress,
       u0Address = u0Address,
@@ -107,83 +120,22 @@ class cStack(object):
       o0Function = o0Function, i0OffsetFromStartOfFunction = i0OffsetFromStartOfFunction,
       sb0SourceFilePath = sb0SourceFilePath, u0SourceFileLineNumber = u0SourceFileLineNumber,
     );
-    if oStackFrame.sb0UniqueAddress is None and oStackFrame.u0ReturnAddress:
-      # This frame has no symbol but it has a return address and the caller frame exists.
-      u0FindoutSymbolFromReturnAddress = oStackFrame.u0ReturnAddress;
-      uReturnAddressFrameIndex = uIndex;
-      s0DoNotUpdateFrameIfAddressIs = None;
-    elif oStackFrame.u0ReturnAddress is None and len(oSelf.aoFrames) > 0:
-      # This frame is reported as an inline function, but that may not be true. If a function
-      # was called from this frame, the return address of the previously added frame could
-      # help determine the real function name for this frame.
-      u0FindoutSymbolFromReturnAddress = oSelf.aoFrames[-1].u0ReturnAddress;
-      uReturnAddressFrameIndex = uIndex - 1;
-      s0DoNotUpdateFrameIfAddressIs = oSelf.aoFrames[-1].sb0UniqueAddress;
-    else:
-      u0FindoutSymbolFromReturnAddress = None;
-    if u0FindoutSymbolFromReturnAddress is not None:
-      # We have an inlined function on the stack, that may actually not be an inlined function:
-      if oStackFrame.u0ReturnAddress in oSelf.__dCache_t0oCallModuleAndFunction_by_uReturnAddress:
-        t0oCallModuleAndFunction = oSelf.__dCache_t0oCallModuleAndFunction_by_uReturnAddress[u0FindoutSymbolFromReturnAddress];
-      else:
-        t0oCallModuleAndFunction = oSelf.__dCache_t0oCallModuleAndFunction_by_uReturnAddress[u0FindoutSymbolFromReturnAddress] = \
-            ft0oCallModuleAndFunctionFromCallInstructionForReturnAddress(oProcess, u0FindoutSymbolFromReturnAddress);
-      if t0oCallModuleAndFunction and (oStackFrame.o0Module, oStackFrame.o0Function) != t0oCallModuleAndFunction:
-        # The call instruction found at this frame's return address is assumed to give us better information:
-        (oModule, oFunction) = t0oCallModuleAndFunction;
-        if oStackFrame.u0Address:
-          uFunctionAddress = oProcess.fuGetAddressForSymbol(oFunction.sbCdbId);
-          i0OffsetFromStartOfFunction = oStackFrame.u0Address - uFunctionAddress;
-          if -0x1000 < i0OffsetFromStartOfFunction < 0x1000:
-            if gbDebugOutput: print("Stackframe @ 0x%X, function @ 0x%X, offset too large (%d)" % (oStackFrame.u0Address, uFunctionAddress, i0OffsetFromStartOfFunction));
-            i0OffsetFromStartOfFunction = None;
-          else:
-            if gbDebugOutput: print("Stackframe @ 0x%X, function @ 0x%X, offset = %d" % (oStackFrame.u0Address, uFunctionAddress, i0OffsetFromStartOfFunction));
-        else:
-          i0OffsetFromStartOfFunction = None;
-        oUpdatedStackFrame = cStackFrame(
-          oSelf,
-          uIndex = uIndex,
-          sbCdbSymbolOrAddress = sbCdbSymbolOrAddress,
-          u0InstructionPointer = u0InstructionPointer, u0ReturnAddress = u0ReturnAddress,
-          u0Address = None,
-          sb0UnloadedModuleFileName = None,
-          o0Module = oModule, u0ModuleOffset = None, 
-          o0Function = oFunction, i0OffsetFromStartOfFunction = i0OffsetFromStartOfFunction,
-          sb0SourceFilePath = sb0SourceFilePath, u0SourceFileLineNumber = u0SourceFileLineNumber,
-        );
-        if s0DoNotUpdateFrameIfAddressIs is None or s0DoNotUpdateFrameIfAddressIs != oUpdatedStackFrame.sb0UniqueAddress:
-          if gbDebugOutput: print("- Used return address 0x%X for frame #%d to update frame %sfrom %s to %s" % (
-            u0FindoutSymbolFromReturnAddress,
-            uReturnAddressFrameIndex,
-            ("#%d " % uIndex) if uIndex != uReturnAddressFrameIndex else "",
-            repr(oStackFrame), repr(oUpdatedStackFrame),
-          ));
-          oStackFrame = oUpdatedStackFrame;
-        else:
-          if gbDebugOutput: print("* Did not use return address 0x%X for frame #%d to update frame %sfrom %s to %s: matches %s" % (
-            u0FindoutSymbolFromReturnAddress,
-            uReturnAddressFrameIndex,
-            ("#%d " % uIndex) if uIndex != uReturnAddressFrameIndex else "",
-            repr(oStackFrame), repr(oUpdatedStackFrame),
-            s0DoNotUpdateFrameIfAddressIs,
-          ));
     # Hide stack frames that make no sense because they are not in executable memory.
     if oStackFrame.s0IsHiddenBecause is None and oStackFrame.u0Address:
-      oFrameCodeVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(oStackFrame.u0Address);
-      if not oFrameCodeVirtualAllocation.bExecutable:
+      o0FrameCodeVirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(oStackFrame.u0Address);
+      if not o0FrameCodeVirtualAllocation or not o0FrameCodeVirtualAllocation.bExecutable:
         # This frame's instruction pointer does not point to executable memory; it is probably invalid.
         oStackFrame.s0IsHiddenBecause = "Address 0x%X is not in executable memory" % oStackFrame.u0Address;
     # Hide stack frames that are part of the thread initialization code.
     if oStackFrame.o0Function and oStackFrame.o0Function.oModule.sb0SimplifiedName:
       if rbOSThreadInitialisationSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
-        if gbDebugOutput: print("- %s because it is part of thread initialization code" % repr(oStackFrame));
         oStackFrame.s0IsHiddenBecause = "Part of OS thread initialization code";
+      elif rbMitigationFunctionSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
+        oStackFrame.s0IsHiddenBecause = "Part of OS vulnerability mitigation code";
       elif oStackFrame.o0Function.oModule.sbCdbId == oProcess.oMainModule.sbCdbId and rbCRTThreadInitialisationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
-        if gbDebugOutput: print("- %s because it is part of thread initialization code" % repr(oStackFrame));
         oStackFrame.s0IsHiddenBecause = "Part of CRT thread initialization code";
     oSelf.aoFrames.append(oStackFrame);
-    return True;
+    return oStackFrame;
   
   def fbHideTopFramesIfTheyMatchSymbols(oSelf, r0bSymbols, sReason, bAlsoHideNoneFrames = False):
     if bAlsoHideNoneFrames:
@@ -215,10 +167,11 @@ class cStack(object):
     oStack = cStack(asbStack);
     # Here are some lines you might expect to parse:
     # |TODO put something here...
-    uFrameIndex = 0;
     u0InstructionPointer = None; # Unknown for first frame.
+    oStack.bPartialStack = False;
     for sbLine in asbStack:
-      if uFrameIndex == uStackFramesCount:
+      if len(oStack.aoFrames) >= uStackFramesCount:
+        oStack.bPartialStack = True;
         break;
       ob_dps_StackOutputLineMatch = grb_dps_StackOutputLine.match(sbLine, re.I);
       assert ob_dps_StackOutputLineMatch, \
@@ -232,9 +185,8 @@ class cStack(object):
         o0Function, i0OffsetFromStartOfFunction
       ) = oProcess.ftxSplitSymbolOrAddress(sbCdbSymbolOrAddress);
       u0ReturnAddress = fu0ValueFromCdbHexOutput(sbReturnAddress);
-      if not oStack.fbCreateAndAddStackFrame(
+      oStackFrame = oStack.foCreateAndAddStackFrame(
         oProcess,
-        uIndex = uFrameIndex,
         sbCdbSymbolOrAddress = sbCdbSymbolOrAddress, 
         u0InstructionPointer = u0InstructionPointer,
         u0ReturnAddress = u0ReturnAddress,
@@ -243,12 +195,9 @@ class cStack(object):
         o0Module = o0Module, u0ModuleOffset = u0ModuleOffset, 
         o0Function = o0Function, i0OffsetFromStartOfFunction = i0OffsetFromStartOfFunction,
         sb0SourceFilePath = sb0SourceFilePath, u0SourceFileLineNumber = int(sb0SourceFileLineNumber) if sb0SourceFileLineNumber else None,
-      ):
-        break; # Stack frame is part of ntdll loader; nothing else of interest is expected to be on the stack.
+      );
       # Last frame's return address is next frame's instruction pointer.
       u0InstructionPointer = u0ReturnAddress;
-      uFrameIndex += 1;
-    oStack.bPartialStack = uFrameIndex == uStackFramesCount;
     return oStack;
   
   @classmethod
@@ -258,6 +207,7 @@ class cStack(object):
     o0StackVirtualAllocation = oThread.o0StackVirtualAllocation;
     u0InstructionPointer = oThread.fu0GetRegister(b"*ip");
     for uTryCount in range(dxConfig["uMaxSymbolLoadingRetries"] + 1):
+      if gbDebugOutput: print("Analyzing stack (attempt #%d)..." % (uTryCount + 1));
       asbStackOutput = oProcess.fasbExecuteCdbCommand(
         sbCommand = b"kn 0x%X;" % (uStackFramesCount + 1),
         sb0Comment = b"Get stack",
@@ -274,32 +224,32 @@ class cStack(object):
       # |---
       # |Could not allocate memory for stack trace
       uStackStartIndex = 0;
-      while asbStackOutput[uStackStartIndex] in [
-        b"Unable to read dynamic function table list head",
-      ]:
-        # Ignored warning/error
+      # Ignored warning/error
+      while asbStackOutput[uStackStartIndex]  == b"Unable to read dynamic function table list head":
         uStackStartIndex += 1;
-      assert asbStackOutput[uStackStartIndex] in [
-        b" # ChildEBP RetAddr  ",
-        b" # Child-SP          RetAddr           Call Site",
-        b"Could not allocate memory for stack trace",
-      ], \
+      # Make sure we have a header for a stack output or a known error:
+      assert (
+        grb_kn_StackOutputHeaderLine.match(asbStackOutput[uStackStartIndex])
+        or asbStackOutput[uStackStartIndex] == b"Could not allocate memory for stack trace"
+      ), \
           "Unknown stack header: %s\r\n%s" % (
             repr(asbStackOutput[uStackStartIndex]),
             "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput)
           );
+      # Skip the stack output header or error and process remaining lines (0 in case of error).
       uStackStartIndex += 1;
       oStack = cStack();
       u0FrameInstructionPointer = u0InstructionPointer;
-      uFrameIndex = 0;
+      oStack.bPartialStack = False;
       for sbLine in asbStackOutput[uStackStartIndex:]:
-        if gbDebugOutput: print("Stack line: %s" % repr(sbLine));
-        if grbIgnoredWarningsAndErrors.match(sbLine):
-          if gbDebugOutput: print("- Ignored");
-          continue;
-        if uFrameIndex == uStackFramesCount:
-          if gbDebugOutput: print("- Enough frames");
+        if len(oStack.aoFrames) == uStackFramesCount:
+          if gbDebugOutput: print("- Stop processing stack because we have enough frames.");
+          oStack.bPartialStack = True;
           break;
+        if gbDebugOutput: print("* Stack line: %s" % repr(sbLine));
+        if grbIgnoredWarningsAndErrors.match(sbLine):
+          if gbDebugOutput: print("  -> Ignored warning/error");
+          continue;
         ob_kn_StackOutputLineMatch = grb_kn_StackOutputLine.match(sbLine);
         assert ob_kn_StackOutputLineMatch, \
             "Unknown stack output: %s\r\n%s" % \
@@ -330,8 +280,7 @@ class cStack(object):
         ):
           # Remove the incorrect frame, and undo the update to the frame index.
           oIncorrectFrame = oStack.aoFrames.pop();
-          if gbDebugOutput: print("- remove bogus frame: %s" % oIncorrectFrame);
-          uFrameIndex -= 1;
+          if gbDebugOutput: print(" -> Ignore bogus frame: %s" % oIncorrectFrame);
           # Use most of the values from the incorrect frame, except the return address for the combined frame:
           sbCdbSymbolOrAddress = oIncorrectFrame.sbCdbSymbolOrAddress;
           u0FrameInstructionPointer = oIncorrectFrame.u0InstructionPointer;
@@ -344,16 +293,19 @@ class cStack(object):
           i0OffsetFromStartOfFunction = oIncorrectFrame.i0OffsetFromStartOfFunction;
           sb0SourceFilePath = oIncorrectFrame.sb0SourceFilePath;
           u0SourceFileLineNumber = oIncorrectFrame.u0SourceFileLineNumber;
-        elif o0Module and not o0Module.bSymbolsAvailable and uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
-          if gbDebugOutput: print("- Symbol issues; will retry");
-          # We will retry this to see if any symbol problems have been resolved:
-          break;
+        elif o0Module and not o0Module.bSymbolsAvailable:
+          if uTryCount < dxConfig["uMaxSymbolLoadingRetries"]:
+            if gbDebugOutput: print("- Symbols are not available; trying again...");
+            # We will retry this to see if any symbol problems have been resolved:
+            break;
+          if gbDebugOutput: print("- Symbols could not be loaded, continuing anyway...");
         # Symbols for a module with export symbol are untrustworthy unless the offset is zero. If the offset is not
         # zero, do not use the symbol, but rather the offset from the start of the module.
         if o0Function and (i0OffsetFromStartOfFunction not in range(dxConfig["uMaxExportFunctionOffset"])):
           assert o0Module, \
               "Function but no module!?";
           if not o0Module.bSymbolsAvailable:
+            if gbDebugOutput: print("  -> Symbols are not available and function offset is suspicious; ignoring function name...");
             if u0FrameInstructionPointer:
               # Calculate the offset the easy way.
               u0ModuleOffset = u0FrameInstructionPointer - o0Module.uStartAddress;
@@ -363,9 +315,8 @@ class cStack(object):
               u0ModuleOffset = uFunctionAddress + (i0OffsetFromStartOfFunction or 0) - o0Module.uStartAddress;
             o0Function = None;
             i0OffsetFromStartOfFunction = None;
-        if not oStack.fbCreateAndAddStackFrame(
+        oStackFrame = oStack.foCreateAndAddStackFrame(
           oProcess,
-          uIndex = uFrameIndex,
           sbCdbSymbolOrAddress = sbCdbSymbolOrAddress,
           u0InstructionPointer = u0FrameInstructionPointer,
           u0ReturnAddress = u0ReturnAddress,
@@ -374,20 +325,61 @@ class cStack(object):
           o0Module = o0Module, u0ModuleOffset = u0ModuleOffset,
           o0Function = o0Function, i0OffsetFromStartOfFunction = i0OffsetFromStartOfFunction,
           sb0SourceFilePath = sb0SourceFilePath, u0SourceFileLineNumber = u0SourceFileLineNumber,
-        ):
-          break; # Stack frame is part of ntdll loader; nothing else of interest is expected to be on the stack.
-        uFrameIndex += 1;
+        );
+        if gbDebugOutput: print("  -STACK-> %s" % oStackFrame);
+        if u0ReturnAddress is not None:
+          if u0ReturnAddress not in oStack.__du0CallTargetAddress_by_uReturnAddress:
+            oStack.__du0CallTargetAddress_by_uReturnAddress[u0ReturnAddress] = \
+                oProcess.fu0GetTargetAddressForCallInstructionReturnAddress(u0ReturnAddress);
+          u0CallTargetAddressFromInstruction = oStack.__du0CallTargetAddress_by_uReturnAddress[u0ReturnAddress];
+          if u0CallTargetAddressFromInstruction is None:
+            if gbDebugOutput: print("  -> Return address 0x%X => no CALL instruction found." % u0ReturnAddress);
+          else:
+            sb0CallTargetSymbol = oProcess.fsb0GetSymbolForAddress(u0CallTargetAddressFromInstruction, b"Get function symbol for CALL instruction target address 0x%X" % u0CallTargetAddressFromInstruction);
+            if sb0CallTargetSymbol is None:
+              # We cannot use the CALL we found before the return address to determine the correct symbol.
+              if gbDebugOutput: print("  -> Return address 0x%X => CALL 0x%X (no symbol)" % (u0ReturnAddress, u0CallTargetAddressFromInstruction));
+            else:
+              if gbDebugOutput: print("  -> Return address 0x%X => CALL %s (0x%X)" % (u0ReturnAddress, str(sb0CallTargetSymbol, "ascii", "strict"), u0CallTargetAddressFromInstruction));
+              # In certain situations, it might make sense to overwrite the stack given by cdb...
+              (
+                u0CallTargetAddress, # Should be None since we have a symbol (== module and function)
+                sb0CallTargetUnloadedModuleFileName, o0CallTargetModule, u0CallTargetModuleOffsetForCallTarget,
+                o0CallTargetFunction, i0CallTargetOffsetFromStartOfFunction
+              ) = oProcess.ftxSplitSymbolOrAddress(sb0CallTargetSymbol);
+              # We only add this as a frame if we have found a proper function symbol:
+              if o0CallTargetFunction and (not o0Function or o0CallTargetFunction.sbUniqueName != o0Function.sbUniqueName):
+                # I have not looked into how to get this info:
+                sb0CallTargetSourceFilePath = None;
+                u0CallTargetSourceFileLineNumber = None;
+                # The offsets we get above are for the call target, but we want to have the offset for the frame instruction pointer, sOSISA
+                # so we will have to do some math:
+                if u0FrameInstructionPointer is None:
+                  i0CallTargetOffsetFromStartOfFunction = None;
+                else:
+                  i0CallTargetOffsetFromStartOfFunction = None if o0CallTargetFunction is None else u0FrameInstructionPointer - u0CallTargetAddressFromInstruction;
+                oStackFrame = oStack.foCreateAndAddStackFrame(
+                  oProcess,
+                  sbCdbSymbolOrAddress = sb0CallTargetSymbol,
+                  u0InstructionPointer = u0FrameInstructionPointer,
+                  u0ReturnAddress = u0ReturnAddress,
+                  u0Address = u0CallTargetAddress,
+                  sb0UnloadedModuleFileName = sb0CallTargetUnloadedModuleFileName,
+                  o0Module = o0CallTargetModule, u0ModuleOffset = u0CallTargetModuleOffsetForCallTarget,
+                  o0Function = o0CallTargetFunction, i0OffsetFromStartOfFunction = i0CallTargetOffsetFromStartOfFunction,
+                  sb0SourceFilePath = sb0CallTargetSourceFilePath, u0SourceFileLineNumber = u0CallTargetSourceFileLineNumber,
+                );
+                if gbDebugOutput: print("  -CALL-> %s" % oStackFrame);
+        # Let's see what this stack frame's return address is. We can cache this info to speed this process up.
         if u0ReturnAddress:
           # Last frame's return address is next frame's instruction pointer.
           u0FrameInstructionPointer = u0ReturnAddress;
       else:
         # No symbol loading problems found: we are done.
         break;
-    oStack.bPartialStack = uFrameIndex == uStackFramesCount;
     return oStack;
 
 from .cModule import cModule;
 from .cStackFrame import cStackFrame;
 from .dxConfig import dxConfig;
-from .ft0oCallModuleAndFunctionFromCallInstructionForReturnAddress import ft0oCallModuleAndFunctionFromCallInstructionForReturnAddress;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
