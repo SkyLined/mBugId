@@ -17,8 +17,8 @@ def cCdbWrapper_fuAddBreakpointForProcessIdAndAddress(oCdbWrapper, uProcessId, u
   # Find out if there is executable memory at the address requested, to determine if setting a breakpoint
   # there makes sense.
   oProcess = oCdbWrapper.doProcess_by_uId[uProcessId];
-  oVirtualAllocation = oProcess.foGetVirtualAllocationForAddress(uAddress);
-  if not oVirtualAllocation.bExecutable:
+  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uAddress);
+  if not o0VirtualAllocation or not o0VirtualAllocation.bExecutable:
     return None; # The memory at the given address is not allocated and/or executable.
   # Select the right process.
   oCdbWrapper.fSelectProcessId(uProcessId);
