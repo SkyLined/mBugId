@@ -120,7 +120,7 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse;
     oCdbWrapper.u0TotalMaxMemoryUse = u0TotalMaxMemoryUse;
-    oCdbWrapper.oReservedMemoryVirtualAllocation = None;
+    oCdbWrapper.o0ReservedMemoryVirtualAllocation = None;
     oCdbWrapper.fAddEvents(
       # These are the names of all the events that cCdbWrapper can throw. If it's not in the list, you cannot use it in
       # `fAddCallback`, `fbRemoveCallback`, or `fbFireCallbacks`. The same event names are used by cBugId, but
