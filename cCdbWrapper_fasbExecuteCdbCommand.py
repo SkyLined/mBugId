@@ -67,7 +67,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       sb0Comment and (b" $$ %s" % sb0Comment) or b"",
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
-  while uTries:
+  while 1:
     oCdbWrapper.fbFireCallbacks("Cdb stdin input", sbCommand);
     try:
       oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes(sbCommand + b"\r\n");
@@ -90,9 +90,9 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
         sb0EndOfCommandOutputMarker = bUseMarkers and gsbEndOfCommandOutputMarker or None,
       );
     except cEndOfCommandOutputMarkerMissingException as oEndOfCommandOutputMarkerMissingException:
-      assert uTries > 1, \
-          "End-of-command-output marker missing:\r\n%s" % "\r\n".join(oEndOfCommandOutputMarkerMissingException.asCommandOutput);
       uTries -= 1;
+      if uTries == 0:
+        raise;
     finally:
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nExecutionTimeInSeconds = time.time() - nStartTimeInSeconds;
