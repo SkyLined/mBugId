@@ -192,9 +192,9 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   
   ### Analyze potential bugs #########################################################################################
   # Free reserve memory before exception analysis
-  if oCdbWrapper.oReservedMemoryVirtualAllocation:
-    oCdbWrapper.oReservedMemoryVirtualAllocation.fFree();
-    oCdbWrapper.oReservedMemoryVirtualAllocation = None;
+  if oCdbWrapper.o0ReservedMemoryVirtualAllocation:
+    oCdbWrapper.o0ReservedMemoryVirtualAllocation.fFree();
+    oCdbWrapper.o0ReservedMemoryVirtualAllocation = None;
   o0BugReport = cBugReport.fo0CreateForException(
     oCdbWrapper,
     oCdbWrapper.oCdbCurrentProcess,
