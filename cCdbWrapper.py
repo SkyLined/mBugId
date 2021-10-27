@@ -141,7 +141,7 @@ class cCdbWrapper(cWithCallbacks):
       "Failed to debug application", # (str sReason)
       "Finished", # ()
       "Internal exception", # (mMultiThreading.cThread oThread, Exception oException, traceback oTraceBack)
-      "Log message", # (str sDescription, dict dxData)
+      "Log message", # (str sDescription[, dict d0xData])
       "License errors", # (str[] asErrors)
       "License warnings", # (str[] asWarnings)
       "Page heap not enabled", # (cProcess oProcess, bool bPreventable)
@@ -212,15 +212,20 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.oASanErrorDetector = cASanErrorDetector(oCdbWrapper);
     
     if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
-      def fWriteLogMessageToReport(oCdbWrapper, sMessage, dsData = None):
-        sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
+      def fWriteLogMessageToReport(oCdbWrapper, sMessage, d0xData = None):
+        s0Data = None if d0xData is None else (
+          "{%s}" % ", ".join(["%s: %s" % (repr(sName), repr(sValue)) for (sName, sValue) in d0xData.items()])
+        );
         oCdbWrapper.sLogHTML += "<span class=\"LogMessage\">%s%s</span><br/>\n" % \
-            (oCdbWrapper.fsHTMLEncode(sMessage), sData and " (%s)" % oCdbWrapper.fsHTMLEncode(sData) or "");
+            (oCdbWrapper.fsHTMLEncode(sMessage), s0Data and " %s" % s0Data or "");
       oCdbWrapper.fAddCallback("Log message", fWriteLogMessageToReport);
   
   @property
-  def bUsingSymbolServers(oCdbWrapper):
-    return len(oCdbWrapper.asSymbolServerURLs) > 0;
+  def bUsingSymbolServers(oSelf):
+    return len(oSelf.asSymbolServerURLs) > 0;
+  
+  def fLogMessage(oSelf, sMessage, d0xData = None):
+    oSelf.fbFireCallbacks("Log message", sMessage, d0xData);
   
   def fStart(oCdbWrapper):
     global guSymbolOptions;
@@ -266,13 +271,13 @@ class cCdbWrapper(cWithCallbacks):
     # breakpoints triggered in the target application. For this we'll start a copy of cdb.exe, suspended, since we
     # alreadyknow the path to the binary. We do not need to provide any arguments since the application will be
     # suspended and not do anything after initialization.
-    oCdbWrapper.fbFireCallbacks("Log message", "Starting utility process...");
+    oCdbWrapper.fLogMessage("Starting utility process...");
     oCdbWrapper.oUtilityProcess = cProcess.foCreateForBinaryPath(
       sBinaryPath = oCdbBinaryFile.sPath,
       bHidden = True,
       bSuspended = True,
     );
-    oCdbWrapper.fbFireCallbacks("Log message", "Started utility process (0x%X)." % oCdbWrapper.oUtilityProcess.uId);
+    oCdbWrapper.fLogMessage("Started utility process (0x%X)." % oCdbWrapper.oUtilityProcess.uId);
     if oCdbWrapper.s0ApplicationBinaryPath is not None:
       # If a process must be started, add it to the command line.
       assert not oCdbWrapper.auApplicationProcessIds, \
@@ -324,7 +329,7 @@ class cCdbWrapper(cWithCallbacks):
       sBinaryPath = oCdbBinaryFile.sPath,
       asArguments = asArguments,
     );
-    oCdbWrapper.fbFireCallbacks("Log message", "Started cdb.exe", {
+    oCdbWrapper.fLogMessage("Started cdb.exe", {
       "Command line components": [oCdbBinaryFile.sPath] + asArguments,
     });
     
