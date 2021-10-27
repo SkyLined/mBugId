@@ -138,24 +138,16 @@ class cBugReport(object):
     import mBugId;
     assert oSelf.s0BugTypeId, \
         "Cannot report a bug with no bug type id!";
-    # Remove the internal process object from the bug report; it is no longer needed and should not be exposed to the
-    # outside.
-    oProcess = oSelf.__oProcess;
-    del oSelf.__oProcess;
-    oWindowsAPIThread = oSelf.__oWindowsAPIThread;
-    del oSelf.__oWindowsAPIThread;
-    o0Stack = oSelf.__o0Stack;
-#    del oSelf.__o0Stack;
     # Calculate Stack Id, determine sBugLocation and optionally create and return sStackHTML.
-    aoStackFramesPartOfId, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oProcess, o0Stack);
+    aoStackFramesPartOfId, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
     oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId);
     
     # If bug binary and main binary are not the same, gather information for both of them:
-    aoRelevantModules = [oProcess.oMainModule];
+    aoRelevantModules = [oSelf.__oProcess.oMainModule];
     # Find the Module in which the bug is reported and add it to the relevant list if it's not there already.
     for oStackFrame in aoStackFramesPartOfId:
       if oStackFrame.o0Module:
-        if oStackFrame.o0Module != oProcess.oMainModule:
+        if oStackFrame.o0Module != oSelf.__oProcess.oMainModule:
           aoRelevantModules.append(oStackFrame.o0Module);
         break;
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
@@ -197,7 +189,7 @@ class cBugReport(object):
       
       # Add registers if needed
       if oSelf.bRegistersRelevant:
-        s0RegistersBlockHTML = oSelf.fs0GetRegistersBlockHTML(oProcess, oWindowsAPIThread);
+        s0RegistersBlockHTML = oSelf.fs0GetRegistersBlockHTML(oSelf.__oProcess, oSelf.__oWindowsAPIThread);
         if s0RegistersBlockHTML:
           asBlocksHTML.append(s0RegistersBlockHTML);
       
@@ -205,7 +197,7 @@ class cBugReport(object):
       for uStartAddress in sorted(oSelf.__dtxMemoryDumps.keys()):
         (uEndAddress, asDescriptions) = oSelf.__dtxMemoryDumps[uStartAddress];
         sDescription = " / ".join(asDescriptions);
-        s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(oCdbWrapper, oProcess, sDescription, uStartAddress, uEndAddress);
+        s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(oCdbWrapper, oSelf.__oProcess, sDescription, uStartAddress, uEndAddress);
         if s0MemoryDumpBlockHTML:
           asBlocksHTML.append(s0MemoryDumpBlockHTML);
       
@@ -215,14 +207,14 @@ class cBugReport(object):
           if oFrame.uIndex == 0:
             sFrameDisassemblyHTML = oSelf.fsGetDisassemblyHTML(
               oCdbWrapper,
-              oProcess,
+              oSelf.__oProcess,
               uAddress = oFrame.u0InstructionPointer,
               sDescriptionOfInstructionAtAddress = "current instruction"
             );
           else:
             sFrameDisassemblyHTML = oSelf.fsGetDisassemblyHTML(
               oCdbWrapper, 
-              oProcess,
+              oSelf.__oProcess,
               uAddress = oFrame.u0InstructionPointer,
               sDescriptionOfInstructionBeforeAddress = "call",
               sDescriptionOfInstructionAtAddress = "return address"
@@ -247,22 +239,22 @@ class cBugReport(object):
 # so I have disabled it.
       sOptionalIntegrityLevelHTML = "";
 #      # Get process integrity level.
-#      if oProcess.uIntegrityLevel is None:
+#      if oSelf.__oProcess.uIntegrityLevel is None:
 #        sOptionalIntegrityLevelHTML = "(unknown)";
 #      else:
 #        sIntegrityLevel =  " ".join([s for s in [
-#          {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oProcess.uIntegrityLevel >> 12, "Unknown"),
+#          {0: "Untrusted", 1: "Low", 2: "Medium", 3: "High", 4: "System"}.get(oSelf.__oProcess.uIntegrityLevel >> 12, "Unknown"),
 #          "Integrity",
-#          oProcess.uIntegrityLevel & 0x100 and "Plus",
+#          oSelf.__oProcess.uIntegrityLevel & 0x100 and "Plus",
 #        ] if s]);
-#        if oProcess.uIntegrityLevel >= 0x3000:
+#        if oSelf.__oProcess.uIntegrityLevel >= 0x3000:
 #          sIntegrityLevel += "; this process appears to run with elevated privileges!";
-#        elif oProcess.uIntegrityLevel >= 0x2000:
+#        elif oSelf.__oProcess.uIntegrityLevel >= 0x2000:
 #          sIntegrityLevel += "; this process appears to not be sandboxed!";
 #        else:
 #          sIntegrityLevel += "; this process appears to be sandboxed.";
 #        sOptionalIntegrityLevelHTML = "<tr><td>Integrity level: </td><td>0x%X (%s)</td></tr>" % \
-#            (oProcess.uIntegrityLevel, sIntegrityLevel);
+#            (oSelf.__oProcess.uIntegrityLevel, sIntegrityLevel);
       if oCdbWrapper.oJobObject is None or oSelf.s0BugTypeId != "OOM":
         sOptionalMemoryUsageHTML = None;
       else:
@@ -328,7 +320,7 @@ class cBugReport(object):
         # There is so little memory available that we cannot seem to be able to create a report at all.
         # This is highly unlikely, but let's try to handle every eventuality.
         oSelf.sReportHTML = "The report was <b>NOT</b> created because there was not enough memory available to add any information.";
-    oSelf.sProcessBinaryName = oProcess.sBinaryName;
+    oSelf.sProcessBinaryName = oSelf.__oProcess.sBinaryName;
     
     assert oCdbWrapper.fbFireCallbacks("Bug report", oSelf), \
         "You really should add an event handler for \"Bug report\" events, as reporting bugs is cBugIds purpose";
