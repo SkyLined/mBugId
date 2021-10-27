@@ -7,9 +7,9 @@ def cCdbWrapper_fAllocateReserveMemoryIfNeeded(oCdbWrapper):
   # Reserve some memory for exception analysis in case the target application causes a system-wide low-memory
   # situation.
   if dxConfig["uReservedMemory"]:
-    if oCdbWrapper.oReservedMemoryVirtualAllocation is None:
+    if oCdbWrapper.o0ReservedMemoryVirtualAllocation is None:
       try:
-        oCdbWrapper.oReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateForProcessId(
+        oCdbWrapper.o0ReservedMemoryVirtualAllocation = cVirtualAllocation.fo0CreateForProcessId(
           uProcessId = oCdbWrapper.oUtilityProcess.uId,
           uSize = dxConfig["uReservedMemory"],
         );
