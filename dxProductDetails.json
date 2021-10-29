@@ -1,18 +1,18 @@
 {
   "a0sDebugAdditionalProductNames": [
-    "mFileSystemItem",
+    "mConsole",
     "mDebugOutput",
-    "mConsole"
+    "mFileSystemItem"
   ],
   "a0sDependentOnProductNames": [
-    "mMultiThreading",
-    "mProductDetails",
+    "mDateTime",
     "mHumanReadable",
+    "mMultiThreading",
     "mNotProvided",
+    "mProductDetails",
     "mRegistry",
     "mWindowsAPI",
-    "mWindowsSDK",
-    "mDateTime"
+    "mWindowsSDK"
   ],
   "asProductTypes": [
     "Python module"
@@ -25,7 +25,7 @@
     "sbUserName": "SkyLined"
   },
   "o0TrialPeriodDuration": "+1m",
-  "oProductVersion": "2021-08-06 20:03",
+  "oProductVersion": "2021-10-29 10:00",
   "s0PythonModuleName": "mBugId",
   "sProductAuthor": "SkyLined",
   "sProductName": "mBugId",
