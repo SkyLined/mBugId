@@ -386,7 +386,7 @@ class cPageHeapManagerData(cHeapManagerData):
     if oSelf.__d0uCorruptedByte_by_uAddress is None:
       oSelf.__fDetectCorruption();
     return oSelf.__uMemoryDumpEndAddress;
-
+  
   @property
   def uMemoryDumpSize(oSelf):
     if oSelf.__d0uCorruptedByte_by_uAddress is None:
@@ -424,7 +424,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oField = getattr(oSelf.o0HeapBlockHeader, sFieldName);
       uAddress += oField.fuGetOffsetOfMember(sSubFieldName);
     return uAddress;
-
+  
   def fuHeapBlockHeaderFieldSize(oSelf, sFieldName, sSubFieldName = None):
     assert oSelf.o0HeapBlockHeader, \
         "Please make sure `.oSelf.o0HeapBlockHeader` is available before calling this method!";
@@ -432,7 +432,7 @@ class cPageHeapManagerData(cHeapManagerData):
     if sSubFieldName:
       oField = getattr(oField, sSubFieldName);
     return oField.fuGetSize();
-
+  
   def fatxMemoryRemarks(oSelf):
     if oSelf.__d0uCorruptedByte_by_uAddress is None:
       oSelf.__fDetectCorruption();
