@@ -161,8 +161,6 @@ def fo0GetAllocationInformationForProcessAndAddress(oProcess, uAllocationInforma
   # DPH_HEAP_BLOCK structures are stored sequentially in a virtual allocation.
   if gbDebugOutput:
     oAllocationInformationVirtualAllocation = cVirtualAllocation(oProcess.uId, uAllocationInformationStartAddress);
-    assert oAllocationInformationVirtualAllocation.bAllocated, \
-        "Cannot find virtual allocation for page heap allocation information at 0x%X" % uAllocationInformationStartAddress;
     print(("┌─ Vitual Allocation @ 0x%X in process %d/0x%X " % (uAllocationInformationStartAddress, oProcess.uId, oProcess.uId)).ljust(80, "─"));
     for sLine in oAllocationInformationVirtualAllocation.fasDump():
       print("│ %s" % sLine);
@@ -265,9 +263,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess,
       oAllocationInformation.pVirtualBlock.fuGetValue(),
     );
-    if not oVirtualAllocation.bAllocated:
-      return None;
-    # This virtual allocation starts with a DPH_ALLOCATION_HEADER structure
+    # If still allocated, this virtual allocation starts with a DPH_ALLOCATION_HEADER structure
     o0AllocationHeader = fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(
       oVirtualAllocation,
       oProcess.uPointerSize,
