@@ -1,4 +1,4 @@
-import hashlib, re;
+﻿import hashlib, re;
 from .cHeapManagerData import cHeapManagerData;
 from .dxConfig import dxConfig;
 from .fsGetNumberDescription import fsGetNumberDescription;
@@ -163,30 +163,32 @@ def fo0GetAllocationInformationForProcessAndAddress(oProcess, uAllocationInforma
     oAllocationInformationVirtualAllocation = cVirtualAllocation(oProcess.uId, uAllocationInformationStartAddress);
     assert oAllocationInformationVirtualAllocation.bAllocated, \
         "Cannot find virtual allocation for page heap allocation information at 0x%X" % uAllocationInformationStartAddress;
-    print((",- oAllocationInformationVirtualAllocation ").ljust(80, "-"));
+    print(("┌─ Vitual Allocation @ 0x%X in process %d/0x%X " % (uAllocationInformationStartAddress, oProcess.uId, oProcess.uId)).ljust(80, "─"));
     for sLine in oAllocationInformationVirtualAllocation.fasDump():
-      print("| %s" % sLine);
-    print("`".ljust(80, "-"));
+      print("│ %s" % sLine);
   # Try to read the page heap allocation information
   DPH_HEAP_BLOCK = {4: DPH_HEAP_BLOCK32, 8: DPH_HEAP_BLOCK64}[oProcess.uPointerSize]; 
   o0AllocationInformation = oProcess.fo0ReadStructureForAddress(
     DPH_HEAP_BLOCK,
     uAllocationInformationStartAddress,
   );
-  if o0AllocationInformation and gbDebugOutput:
-    print((",- oAllocationInformation ").ljust(80, "-"));
-    for sLine in oAllocationInformation.fasDump():
-      print("| %s" % sLine);
-    print("`".ljust(80, "-"));
+  if gbDebugOutput:
+    if o0AllocationInformation:
+      print(("├─ DPH_HEAP_BLOCK ").ljust(80, "─"));
+      for sLine in o0AllocationInformation.fasDump():
+        print("│ %s" % sLine);
+      print("└".ljust(80, "─"));
+    else:
+      print("└─ No DPH_HEAP_BLOCK available ".ljust(80, "─"));
   return o0AllocationInformation;
 
 def foGetVirtualAllocationForProcessAndAddress(oProcess, uAddressInVirtualAllocation):
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInVirtualAllocation);
   if gbDebugOutput:
-    print((",- oVirtualAllocation ").ljust(80, "-"));
+    print(("┌─ Virtual Allocation @ 0x%X in process %d/0x%X" % (uAddressInVirtualAllocation, oProcess.uId, oProcess.uId)).ljust(80, "─"));
     for sLine in oVirtualAllocation.fasDump():
-      print("| %s" % sLine);
-    print("`".ljust(80, "-"));
+      print("│ %s" % sLine);
+    print("└".ljust(80, "─"));
   return oVirtualAllocation;
 
 def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation, uPointerSize):
@@ -210,17 +212,17 @@ def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation,
 #          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]),
 #          "\r\n".join(oAllocationHeader.fasDump()));
   if gbDebugOutput:
-    print((",- oAllocationHeader ").ljust(80, "-"));
+    print(("┌─ oAllocationHeader ").ljust(80, "─"));
     for sLine in oAllocationHeader.fasDump():
-      print("| %s" % sLine);
-    print("`".ljust(80, "-"));
+      print("│ %s" % sLine);
+    print("└".ljust(80, "─"));
   return oAllocationHeader;
 
 def foGetPageHeapManagerDataHelper(uPointerSize, uAllocationInformationStartAddress, oAllocationInformation, oVirtualAllocation, o0AllocationHeader):
   # The page heap header structure at the start of the virtual allocation should point to a page heap allocation
   # information structure that points back to the same virtual allocation:
   DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION32, 8: DPH_BLOCK_INFORMATION64}[uPointerSize];
-  uUserAllocationAddress = oAllocationInformation.pUserAllocation.value;
+  uUserAllocationAddress = oAllocationInformation.pUserAllocation.fuGetValue();
   uHeapBlockHeaderStartAddress = uUserAllocationAddress - DPH_BLOCK_INFORMATION.fuGetSize();
   uHeapBlockEndAddress = uUserAllocationAddress + oAllocationInformation.nUserRequestedSize;
   if oVirtualAllocation.bAllocated:
@@ -248,18 +250,20 @@ class cPageHeapManagerData(cHeapManagerData):
   sType = "page heap";
   @staticmethod 
   def fo0GetForProcessAndAllocationInformationStartAddress(oProcess, uAllocationInformationStartAddress):
+    if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress: collecting info...");
     o0AllocationInformation = fo0GetAllocationInformationForProcessAndAddress(
       oProcess,
       uAllocationInformationStartAddress,
     );
-    if not o0AllocationInformation:
+    if o0AllocationInformation is None:
+      if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress: info not found, returning None.");
       return None;
     oAllocationInformation = o0AllocationInformation;
     # The DPH_HEAP_BLOCK structure contains a pointer to the virtual allocation that contains the
     # heap block.
     oVirtualAllocation = foGetVirtualAllocationForProcessAndAddress(
       oProcess,
-      oAllocationInformation.pVirtualBlock.value,
+      oAllocationInformation.pVirtualBlock.fuGetValue(),
     );
     if not oVirtualAllocation.bAllocated:
       return None;
@@ -268,6 +272,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oVirtualAllocation,
       oProcess.uPointerSize,
     ) if oVirtualAllocation.bAllocated else None;
+    if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress: returning info.");
     return foGetPageHeapManagerDataHelper(oProcess.uPointerSize, uAllocationInformationStartAddress, oAllocationInformation, oVirtualAllocation, o0AllocationHeader)
     
   @staticmethod
@@ -277,7 +282,10 @@ class cPageHeapManagerData(cHeapManagerData):
       uAddressInVirtualAllocation,
     );
     if not oVirtualAllocation.bAllocated:
-      # There really is nothing here for us to report details on:
+      if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAddress: heap memory block freed, returning None.");
+      # The memory for this heap block has been freed: we cannot determine the
+      # location for the DPH_ALLOCATION_HEADER structure, and thus cannot
+      # provide any result.
       return None;
     # The virtual allocation starts with a DPH_ALLOCATION_HEADER structure
     o0AllocationHeader = fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(
@@ -285,6 +293,7 @@ class cPageHeapManagerData(cHeapManagerData):
       oProcess.uPointerSize,
     );
     if not o0AllocationHeader:
+      if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAddress: allocation header not found, returning None.");
       return None;
     oAllocationHeader = o0AllocationHeader;
     # The DPH_ALLOCATION_HEADER structure contains a pointer to a DPH_HEAP_BLOCK structure
@@ -294,8 +303,10 @@ class cPageHeapManagerData(cHeapManagerData):
       uAllocationInformationStartAddress,
     );
     if not o0AllocationInformation:
+      if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAddress: allocation info not found, returning None.");
       return None;
     oAllocationInformation = o0AllocationInformation;
+    if gbDebugOutput: print("cPageHeapManagerData.fo0GetForProcessAndAddress: returning info.");
     return foGetPageHeapManagerDataHelper(oProcess.uPointerSize, uAllocationInformationStartAddress, oAllocationInformation, oVirtualAllocation, oAllocationHeader);
   
   def __init__(oSelf,
@@ -318,9 +329,9 @@ class cPageHeapManagerData(cHeapManagerData):
     
     oSelf.oVirtualAllocation = oVirtualAllocation;
     
-    oSelf.uHeapBlockStartAddress = oAllocationInformation.pUserAllocation.value;
-    oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize.value;
-    oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize.value;
+    oSelf.uHeapBlockStartAddress = oAllocationInformation.pUserAllocation.fuGetValue();
+    oSelf.uHeapBlockEndAddress = oSelf.uHeapBlockStartAddress + oAllocationInformation.nUserRequestedSize.fuGetValue();
+    oSelf.uHeapBlockSize = oAllocationInformation.nUserRequestedSize.fuGetValue();
     
     oSelf.o0AllocationHeader = o0AllocationHeader;
     if o0AllocationHeader:
@@ -338,8 +349,8 @@ class cPageHeapManagerData(cHeapManagerData):
           "Page heap block header end address 0x%X should be the same as the heap block start address 0x%X" % \
           (oSelf.uHeapBlockHeaderEndAddress, oSelf.uHeapBlockStartAddress);
     
-    oSelf.bAllocated = oAllocationInformation.uState.value == DPH_STATE_ALLOCATED;
-    oSelf.bFreed = oAllocationInformation.uState.value == DPH_STATE_FREED;
+    oSelf.bAllocated = oAllocationInformation.uState.fuGetValue() == DPH_STATE_ALLOCATED;
+    oSelf.bFreed = oAllocationInformation.uState.fuGetValue() == DPH_STATE_FREED;
     
     if uHeapBlockEndPaddingSize:
       oSelf.uHeapBlockEndPaddingStartAddress = oSelf.uHeapBlockEndAddress;
@@ -466,19 +477,19 @@ class cPageHeapManagerData(cHeapManagerData):
       ];
     return atxMemoryRemarks;
   
-  def __fDetectCorruptionHelper(oSelf, uStartAddress, sbExpectedBytes, sbActualBytes):
+  def __fDetectCorruptionHelper(oSelf, uStartAddress, sbExpectedBytes, sbActualBytes, sDebugName):
     assert len(sbExpectedBytes) == len(sbActualBytes), \
         "Cannot compare %d expected bytes to %d actual bytes" % (len(sbExpectedBytes), len(sbActualBytes));
-    asStatus = [];
-    uFirstDetectedCorruption = None;
-    uLastDetectedCorruption = None;
+    au0ModifiedBytes = [];
+    u0FirstDetectedCorruptionAddress = None;
+    u0LastDetectedCorruptionAddress = None;
     for uIndex in range(len(sbExpectedBytes)):
       if sbActualBytes[uIndex] != sbExpectedBytes[uIndex]:
-        asStatus.append("^^");
+        au0ModifiedBytes.append(sbActualBytes[uIndex]);
         uAddress = uStartAddress + uIndex;
-        if uFirstDetectedCorruption is None:
-          uFirstDetectedCorruption = uAddress;
-        uLastDetectedCorruption = uAddress;
+        if u0FirstDetectedCorruptionAddress is None:
+          u0FirstDetectedCorruptionAddress = uAddress;
+        u0LastDetectedCorruptionAddress = uAddress;
         if oSelf.__uCorruptionStartAddress is None or oSelf.__uCorruptionStartAddress > uAddress:
           oSelf.__uCorruptionStartAddress = uAddress;
         if oSelf.__uCorruptionEndAddress is None or oSelf.__uCorruptionEndAddress < uAddress + 1:
@@ -489,26 +500,44 @@ class cPageHeapManagerData(cHeapManagerData):
         if uAddress > oSelf.__uMemoryDumpEndAddress:
           oSelf.__uMemoryDumpEndAddress = uAddress;
       else:
-        asStatus.append("  ");
+        au0ModifiedBytes.append(None);
     if gbDebugOutput:
-      print("Comparing memory @ 0x%X" % uStartAddress);
-      print("Expected: %s" % " ".join(["%02X" % uChar for uChar in sbExpectedBytes]));
-      print("Actual:   %s" % " ".join(["%02X" % uChar for uChar in sbActualBytes]));
-      if uFirstDetectedCorruption:
-        print("Detected: %s" % " ".join([sStatus for sStatus in asStatus]));
-        print("New:      0x%X-0x%X" % (uFirstDetectedCorruption, uLastDetectedCorruption + 1));
-        print("Total:    0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress));
+      if u0FirstDetectedCorruptionAddress is not None:
+        print("│ × Corruption detected in %s [0x%X] @ 0x%X" % (sDebugName, len(sbExpectedBytes), uStartAddress));
+        print("│   Expected:  %s" % " ".join(["%02X" % uByte for uByte in sbExpectedBytes]));
+        print("│   Corrupt:   %s" % " ".join(["··" if u0Byte is None else ("%02X" % u0Byte) for u0Byte in au0ModifiedBytes]));
+        print("│   Range:     0x%X-0x%X" % (u0FirstDetectedCorruptionAddress, u0LastDetectedCorruptionAddress + 1));
       else:
-        print("OK");
+        print("│ √ No corruption in %s [0x%X] @ 0x%X" % (sDebugName, len(sbExpectedBytes), uStartAddress));
   
   def __fDetectCorruption(oSelf):
+    oSelf.__d0uCorruptedByte_by_uAddress = {};
     if not oSelf.oVirtualAllocation.bAllocated or oSelf.o0HeapBlockHeader is None:
+      if gbDebugOutput and oSelf.o0HeapBlockHeader is None: print("Corruption cannnot be detected because heap block header was not found");
+      # The heap block has been freed; we cannot detect corruption.
       oSelf.__uMemoryDumpStartAddress = None;
       oSelf.__uMemoryDumpEndAddress = None;
       return;
-    oSelf.__d0uCorruptedByte_by_uAddress = {};
+    if gbDebugOutput: print("┌─ Detecting corruption around page heap block [0x%X]@ 0x%X" % (oSelf.uHeapBlockSize, oSelf.uHeapBlockStartAddress));
     oSelf.__uMemoryDumpStartAddress = oSelf.uHeapBlockHeaderSize and oSelf.uHeapBlockHeaderStartAddress or oSelf.uHeapBlockStartAddress;
     oSelf.__uMemoryDumpEndAddress = oSelf.uHeapBlockEndPaddingSize and oSelf.uHeapBlockEndPaddingEndAddress or oSelf.uHeapBlockEndAddress;
+    # Check the page heap block header
+    DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION32, 8: DPH_BLOCK_INFORMATION64}[oSelf.uPointerSize];
+    LIST_ENTRY = {4: LIST_ENTRY32, 8: LIST_ENTRY64}[oSelf.uPointerSize];
+    oExpectedHeapBlockHeader = DPH_BLOCK_INFORMATION(**dict([tx for tx in [
+      ("StartStamp", uPaddingStartAllocated if oSelf.bAllocated else uPaddingStartFreed),
+      ("PaddingStart", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingStart") else None,
+      ("Heap", oSelf.uHeapRootAddress or oSelf.o0HeapBlockHeader.Heap), # We do not always know the correct value
+      ("RequestedSize", oSelf.oAllocationInformation.nUserRequestedSize.fuGetValue()),
+      ("ActualSize", oSelf.oVirtualAllocation.uSize),
+      ("FreeQueue", oSelf.o0HeapBlockHeader.FreeQueue), # We do not know the correct value.
+      ("StackTrace", oSelf.oAllocationInformation.StackTrace),
+      ("PaddingEnd", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingEnd") else None,
+      ("EndStamp", oSelf.bAllocated and uAllocatedEndStamp or uFreedEndStamp),
+    ] if tx]));
+    sbExpectedBytes = oExpectedHeapBlockHeader.fsbGetBytes();
+    sbActualBytes = oSelf.o0HeapBlockHeader.fsbGetBytes();
+    oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sbExpectedBytes, sbActualBytes, "page heap block header");
     # Check the empty space between the allocation header and the heap block header; it should contain nothing but "\0"s
     uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset = oSelf.uAllocationHeaderEndAddress - oSelf.oVirtualAllocation.uStartAddress;
     uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize = oSelf.uHeapBlockHeaderStartAddress - oSelf.uAllocationHeaderEndAddress;
@@ -519,24 +548,7 @@ class cPageHeapManagerData(cHeapManagerData):
     );
     assert sb0ActualBytes, \
         "Cannot read page heap data";
-    oSelf.__fDetectCorruptionHelper(oSelf.uAllocationHeaderEndAddress, sbExpectedBytes, sb0ActualBytes)
-    # Check the page heap block header
-    DPH_BLOCK_INFORMATION = {4: DPH_BLOCK_INFORMATION32, 8: DPH_BLOCK_INFORMATION64}[oSelf.uPointerSize];
-    LIST_ENTRY = {4: LIST_ENTRY32, 8: LIST_ENTRY64}[oSelf.uPointerSize];
-    oExpectedHeapBlockHeader = DPH_BLOCK_INFORMATION(**dict([tx for tx in [
-      ("StartStamp", uPaddingStartAllocated if oSelf.bAllocated else uPaddingStartFreed),
-      ("PaddingStart", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingStart") else None,
-      ("Heap", oSelf.uHeapRootAddress or oSelf.o0HeapBlockHeader.Heap), # We do not always know the correct value
-      ("RequestedSize", oSelf.oAllocationInformation.nUserRequestedSize.value),
-      ("ActualSize", oSelf.oVirtualAllocation.uSize),
-      ("FreeQueue", oSelf.o0HeapBlockHeader.FreeQueue), # We do not know the correct value.
-      ("StackTrace", oSelf.oAllocationInformation.StackTrace),
-      ("PaddingEnd", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingEnd") else None,
-      ("EndStamp", oSelf.bAllocated and uAllocatedEndStamp or uFreedEndStamp),
-    ] if tx]));
-    sbExpectedBytes = oExpectedHeapBlockHeader.fsbGetBytes();
-    sbActualBytes = oSelf.o0HeapBlockHeader.fsbGetBytes();
-    oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sbExpectedBytes, sbActualBytes);
+    oSelf.__fDetectCorruptionHelper(oSelf.uAllocationHeaderEndAddress, sbExpectedBytes, sb0ActualBytes, "padding after page heap block header")
     # Check the heap block if it is freed
     if oSelf.bFreed:
       sbExpectedBytes = bytes((uFreedHeapBlockFillByte,)) * oSelf.uHeapBlockSize;
@@ -546,7 +558,7 @@ class cPageHeapManagerData(cHeapManagerData):
       );
       assert sb0ActualBytes, \
           "Cannot read page heap data";
-      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockStartAddress, sbExpectedBytes, sb0ActualBytes);
+      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockStartAddress, sbExpectedBytes, sb0ActualBytes, "heap block");
     # Check the allocation end padding
     if oSelf.uHeapBlockEndPaddingSize:
       sbExpectedBytes = bytes((uHeapBlockEndPaddingFillByte,)) * oSelf.uHeapBlockEndPaddingSize;
@@ -556,9 +568,9 @@ class cPageHeapManagerData(cHeapManagerData):
       );
       assert sb0ActualBytes, \
           "Cannot read page heap data";
-      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockEndPaddingStartAddress, sbExpectedBytes, sb0ActualBytes);
+      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockEndPaddingStartAddress, sbExpectedBytes, sb0ActualBytes, "padding after heap block");
     if gbDebugOutput:
       if oSelf.__uCorruptionStartAddress:
-        print("Result:   0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress));
+        print("└─ × Corruption detected in range 0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress));
       else:
-        print("Result:   OK");
+        print("└─ √ No corruption detected.");

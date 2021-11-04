@@ -9,6 +9,8 @@ from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from mWindowsAPI import *;
 
+gbDebugOutput = False;
+
 class cVerifierStopDetector(object):
   def __init__(oSelf, oCdbWrapper):
     # Hook application debug output events to detect VERIFIER STOP messages
@@ -82,6 +84,20 @@ class cVerifierStopDetector(object):
       # |
       return; # This is a VERIFIER STOP, but not an interesting one and we can continue the application.
     
+    if gbDebugOutput:
+      def fsValues(sFormat, u0Value1, u0Value2):
+        if u0Value1 is None and u0Value2 is None:
+          return "-";
+        return sFormat % (
+          ("0x%X" % u0Value1) if u0Value1 is not None else "-",
+          ("0x%X" % u0Value2) if u0Value2 is not None else "-",
+        );
+      print("VERIFIER STOP debug output detected (heap block %s, handle %s, corruption %s)" % (
+        fsValues("[%s]@%s", u0VerifierStopHeapBlockSize,  u0VerifierStopHeapBlockAddress),
+        fsValues("%s/%s", u0VerifierStopHeapBlockHandle, u0VerifierStopHeapHandle),
+        fsValues("%s@%s", u0CorruptedStamp, u0CorruptionAddress),
+      ));
+    
     assert u0VerifierStopHeapBlockAddress is not None, \
         "The heap block start address was not found in the verifier stop message.\r\n%s" % \
         "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
@@ -91,6 +107,7 @@ class cVerifierStopDetector(object):
     
     o0PageHeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(u0VerifierStopHeapBlockAddress, sType = "page heap");
     if o0PageHeapManagerData is None and sbMessage == b"block already freed":
+      if gbDebugOutput: print("VERIFIER STOP: freed block bug work around needed");
       # There is a bug in application verifier where it reports the address of the DPH_HEAP_BLOCK structure instead of
       # the heap block in certain situations. In this case, "!heap" will not return any information and
       # oPageHeapManagerData will be None. We can still find the correct information though:
@@ -105,9 +122,14 @@ class cVerifierStopDetector(object):
     uMemoryDumpStartAddress = None;
     atxMemoryRemarks = [];
     if o0PageHeapManagerData:
+      if gbDebugOutput: print("VERIFIER STOP: page heap manager data found.", {
+        "uHeapBlockStartAddress": o0PageHeapManagerData.uHeapBlockStartAddress,
+        "uHeapBlockSize": o0PageHeapManagerData.uHeapBlockSize,
+      });
       (sBlockSizeId, sBlockOffsetId, sBlockOffsetDescription, sBlockSizeDescription) = \
           o0PageHeapManagerData.ftsGetIdAndDescriptionForAddress(u0VerifierStopHeapBlockAddress);
     else:
+      if gbDebugOutput: print("VERIFIER STOP: unable to get page heap manager data.");
       sBlockSizeId = "[%s]" % (fsGetNumberDescription(u0VerifierStopHeapBlockSize),);
       sBlockOffsetId = "@?";
       sBlockOffsetDescription = "at address 0x%08X in" % (u0VerifierStopHeapBlockAddress,);
@@ -120,6 +142,7 @@ class cVerifierStopDetector(object):
       and o0PageHeapManagerData
       and not o0PageHeapManagerData.oVirtualAllocation.bReserved
     ):
+      if gbDebugOutput: print("VERIFIER STOP: corrupted start stamp reported but not confirmed.");
       # Verifier sometimes reports this and I am not sure what is going on. Page heap will report that the heap block was
       # freed by the current function on the stack, while verifier reports this error almost immediately after that (from
       # that same stack). However, the start stamp reported in the verifier error is a valid value indicating the memory
@@ -140,6 +163,7 @@ class cVerifierStopDetector(object):
       and o0PageHeapManagerData
       and o0PageHeapManagerData.uHeapBlockStartAddress != u0VerifierStopHeapBlockAddress
     ):
+      if gbDebugOutput: print("VERIFIER STOP: corrupted stamp reported indicates a misalligned free.");
       # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
       # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we
@@ -149,6 +173,7 @@ class cVerifierStopDetector(object):
           sBlockOffsetAndSizeDescription;
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     elif sbMessage == b"block already freed":
+      if gbDebugOutput: print("VERIFIER STOP: double free reported.");
       # |VERIFIER STOP 00000007: pid 0x1358: block already freed
       # |
       # |        02F71000 : Heap handle
@@ -160,6 +185,7 @@ class cVerifierStopDetector(object):
       sSecurityImpact = "Potentially exploitable security issue, if the attacker can force the application to " \
           "allocate memory between the two frees";
     elif sbMessage == b"corrupted heap pointer or using wrong heap":
+      if gbDebugOutput: print("VERIFIER STOP: wrong heap handle reported.");
       # |VERIFIER STOP 00000006: pid 0x144C: corrupted heap pointer or using wrong heap 
       # |
       # |        077F1000 : Heap used in the call
@@ -190,6 +216,7 @@ class cVerifierStopDetector(object):
             "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
             "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
         if not o0PageHeapManagerData or not o0PageHeapManagerData.o0HeapBlockHeader:
+          if gbDebugOutput: print("VERIFIER STOP: corrupted stamp reported but block is already free!?");
           # This makes no sense: there is no heap block header because the memory is really freed by verifier but left
           # reserved to prevent it from being reallocated. So the start and end stamp no longer exist...
           assert not o0PageHeapManagerData or o0PageHeapManagerData.oVirtualAllocation.bReserved, \
@@ -201,14 +228,17 @@ class cVerifierStopDetector(object):
           oPageHeapManagerData = o0PageHeapManagerData;
           sBugAccessTypeId = "OOBW";
           if sbMessage == b"corrupted start stamp":
+            if gbDebugOutput: print("VERIFIER STOP: corrupted start stamp reported.");
             uExpectedCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("StartStamp");
             uExpectedCorruptionEndAddress = uExpectedCorruptionStartAddress + \
                 oPageHeapManagerData.fuHeapBlockHeaderFieldSize("StartStamp");
           else:
+            if gbDebugOutput: print("VERIFIER STOP: corrupted end stamp reported.");
             uExpectedCorruptionStartAddress = oPageHeapManagerData.fuHeapBlockHeaderFieldAddress("EndStamp");
             uExpectedCorruptionEndAddress = uExpectedCorruptionStartAddress + \
                 oPageHeapManagerData.fuHeapBlockHeaderFieldSize("EndStamp");
       elif sbMessage in [b"corrupted suffix pattern", b"corrupted header"]:
+        if gbDebugOutput: print("VERIFIER STOP: corrupted stamp/header reported, indicating an out-of-bounds write.");
         assert u0CorruptionAddress is not None, \
             "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
             "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
@@ -220,6 +250,7 @@ class cVerifierStopDetector(object):
         uExpectedCorruptionStartAddress = u0CorruptionAddress;
         uExpectedCorruptionEndAddress = u0CorruptionAddress + 1; # We do not know the size, so assume one byte.
       elif sbMessage == b"corrupted infix pattern":
+        if gbDebugOutput: print("VERIFIER STOP: corrupted infix reported, indicating an out-of-bounds write.");
         assert u0CorruptionAddress is not None, \
             "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
             "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
@@ -230,12 +261,14 @@ class cVerifierStopDetector(object):
         uExpectedCorruptionEndAddress = u0CorruptionAddress + 1; # We do not know the size, so assume one byte.
         sBugAccessTypeId = "WAF";
       else:
-        raise AssertionError("Unhandled VERIFIER STOP message: %s" % sbMessage);
+        if gbDebugOutput: print("VERIFIER STOP: unknown error message %s." % str(sbMessage, "ascii", "replace"));
+        raise AssertionError("Unhandled VERIFIER STOP message: %s" % str(sbMessage, "ascii", "replace"));
       # We cannot trust the information in the VERIFIER STOP message: if you run the test "OutOfBounds Heap Write 1 -1 1"
       # (meaning you allocate 1 byte, write 1 byte at offset -1) you would expect it to report that the "end stamp" of
       # the heap block header was corrupted. HOWEVER IT INCORRECTLY REPORTS THAT THE START STAMP WAS CORRUPTED. So, only
       # if we cannot detect any corruption ourselves will we use the information we got from the VERIFIER STOP message.
       if not o0PageHeapManagerData or not o0PageHeapManagerData.bCorruptionDetected:
+        if gbDebugOutput: print("VERIFIER STOP: reported corruption was not detected!?");
         sBugDescription = "Heap corruption reported but not detected %s." % sBlockOffsetAndSizeDescription;
         sSecurityImpact = "Unknown - Application Verifier reported this but it could not be confirmed.";
         sCorruptionId = "{?}";
@@ -249,6 +282,7 @@ class cVerifierStopDetector(object):
         sBugDescription = "Heap corruption detected at 0x%X; %s %s." % \
             (oPageHeapManagerData.uCorruptionStartAddress, sBlockOffsetDescription, sBlockSizeDescription);
         if oPageHeapManagerData.uCorruptionStartAddress == oPageHeapManagerData.uHeapBlockEndAddress:
+          if gbDebugOutput: print("VERIFIER STOP: reported corruption at end of block indicates classic buffer-overrun");
           sBugAccessTypeId = "BOF";
           sBugDescription += " This appears to be a classic buffer-overrun vulnerability.";
           sSecurityImpact = "Potentially highly exploitable security issue.";

@@ -5,6 +5,8 @@ from mWindowsAPI import *;
 from .cPageHeapManagerData import cPageHeapManagerData;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 
+gbDebugOutput = False;
+
 grbIgnoredHeapOutputLines = re.compile(
   rb"^\s*"                                  # optional whitepsace
   rb"(?:"                                   # either {
@@ -154,6 +156,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
   # |unable to resolve ntdll!RtlpStackTraceDataBase
   
   if len(asbCdbHeapOutput) < 4:
+    if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: Unrecognized !heap output: %s" % repr(asbCdbHeapOutput));
     # No !heap output; make sure it is enabled for this process.
     oProcess.fEnsurePageHeapIsEnabled();
     # Try to manually figure things out.
@@ -172,6 +175,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
   sbHeapType, sbHeapRootAddress = obHeapOutputTypeAndRootAddressMatch.groups();
   uHeapRootAddress = fu0ValueFromCdbHexOutput(sbHeapRootAddress);
   if sbHeapType == b"_HEAP":
+    if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected regular heap");
     assert sType in ["windows", "unknown"], \
         "Expected heap allocator to be %s, but found default windows allocator" % sType;
     # Regular Windows heap.
@@ -196,7 +200,6 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
     oVirtualAllocation = cVirtualAllocation(oProcess.uId, u0HeapBlockStartAddress);
     assert oVirtualAllocation, \
       "Cannot find virtual allocation for heap block at 0x%X" % u0HeapBlockStartAddress;
-    from .cWindowsHeapManagerData import cWindowsHeapManagerData;
     oHeapManagerData = cWindowsHeapManagerData(
       oVirtualAllocation,
       uHeapEntryStartAddress,
@@ -206,6 +209,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
       bAllocated,
     );
   else:
+    if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected page heap");
     assert sType in ["page heap", "unknown"], \
         "Expected heap allocator to be %s, but found page heap allocator" % sType;
     obDPHHeapInformationHeaderMatch = grbDPHHeapInformationHeader.match(asbCdbHeapOutput[2]);
@@ -234,7 +238,10 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
       oProcess,
       uAllocationInformationStartAddress,
     );
-    if not o0HeapManagerData:
+    if o0HeapManagerData is None:
+      if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: nothing found at 0x%X in process %d/0x%X: returning None" % (
+        uAllocationInformationStartAddress, oProcess.uId, oProcess.uId, 
+       ));
       return None;
     oHeapManagerData = o0HeapManagerData;
     oHeapManagerData.uHeapRootAddress = uHeapRootAddress;
@@ -263,4 +270,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
     assert u0HeapBlockSize == oHeapManagerData.uHeapBlockSize, \
         "Page heap block size (0x%X) is different than reported by cdb (@ 0x%X)" % \
         (oHeapManagerData.uHeapBlockSize, u0HeapBlockSize);
+  if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: returning %s" % repr(oHeapManagerData));
   return oHeapManagerData;
+
+from .cWindowsHeapManagerData import cWindowsHeapManagerData;
