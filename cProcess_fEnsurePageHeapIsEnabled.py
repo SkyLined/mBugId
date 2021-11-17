@@ -16,9 +16,9 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
     sHiveName = "HKLM",
     sKeyPath = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\%s" % oProcess.sBinaryName,
   );
-  oGlobalFlags = oRegistryHiveKey.foGetValueForName("GlobalFlag");
-  if oGlobalFlags and oGlobalFlags.sTypeName == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", oGlobalFlags.xValue):
-    uValue = int(oGlobalFlags.xValue[2:], 16);
+  o0GlobalFlags = oRegistryHiveKey.fo0GetValueForName("GlobalFlag");
+  if o0GlobalFlags and o0GlobalFlags.sTypeName == "REG_SZ" and re.match("^0x[0-9a-fA-F]{8}$", o0GlobalFlags.xValue):
+    uValue = int(o0GlobalFlags.xValue[2:], 16);
     if uValue & guRequiredFlags == guRequiredFlags:
       # Page heap is enabled with all the required options:
       gdbPageHeapEnabled_by_sBinaryName[oProcess.sBinaryName] = True;
