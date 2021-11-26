@@ -32,8 +32,8 @@ def cCdbWrapper_fHandleAttachedToApplicationProcess(oCdbWrapper):
   
   # Fire events
   oCdbWrapper.fbFireCallbacks("Log message", "Process attached", {
-    "Is main process": (bIsMainProcess and "yes" or "no",),
-    "Process id": "0x%X" % (oCdbWrapper.oCdbCurrentProcess.uId,),
+    "Is main process": bIsMainProcess and "yes" or "no",
+    "Process Id": "0x%X" % (oCdbWrapper.oCdbCurrentProcess.uId,),
     "Binary name": oCdbWrapper.oCdbCurrentProcess.sBinaryName,
     "Command line":oCdbWrapper.oCdbCurrentProcess.sCommandLine,
   });
