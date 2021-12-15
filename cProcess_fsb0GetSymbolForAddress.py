@@ -1,6 +1,7 @@
 import re;
 
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .rbSymbolOrAddress import rbSymbolOrAddress;
 
 grbAddress = re.compile(
   rb"\A"
@@ -19,20 +20,7 @@ grbSymbolWithOrWithoutAddress = re.compile(
 );
 
 
-def fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymbolOutput):
-  assert len(asbSymbolOutput) == 1, \
-      "No symbol output";
-  # If there is no symbol at the addres, the address will be output, which we
-  # can detect, so we can return None:
-  if grbAddress.match(asbSymbolOutput[0]) and fu0ValueFromCdbHexOutput(asbSymbolOutput[0]) == uAddress:
-    return None;
-  o0SymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);
-  (sbSymbolWithoutAddress,) = o0SymbolWithOrWithoutAddressMatch.groups();
-  # This will throw an exception is the output contains junk.
-  txSplitSymbolOrAddress = oProcess.ftxSplitSymbolOrAddress(sbSymbolWithoutAddress);
-  assert txSplitSymbolOrAddress[0] is None, \
-      "u0Address part of split symbol should always be None here!?";
-  return sbSymbolWithoutAddress;
+guNumberOfTries = 2;
 
 def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # Ask cdb for the symbol at the given address. This may cause cdb to output all kinds of stuff related to
@@ -45,30 +33,28 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # Output for a valid symbol (in x86 debugger, notice different header aligning):
   #   >ntdll!DbgBreakPoint (77ec1250)
   sbGetSymbolCommand = b'.printf "%%y\\n", 0x%X;' % uAddress;
-  asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
-    sbCommand = sbGetSymbolCommand, 
-    sb0Comment = b"Get symbol for %s (first attempt)" % sbAddressDescription,
-  );
-  try:
-    # Check if the output is a valid symbol or address and return the symbol
-    # or None respectively. Throw exception if not which we catch to try again.
-    return fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymbolOutput);
-  except:
-    pass;
-  asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
-    sbCommand = sbGetSymbolCommand, 
-    sb0Comment = b"Get symbol for %s (second attempt: cdb may have output symbol loading junk the first time)" % sbAddressDescription,
-  );
-  try:
-    # Check if the output is a valid symbol or address again and return the
-    # symbol or None respectively. Throw exception if not which we catch to
-    # throw a more informative error:
-    return fs0ProcessOutputOrThrowExceptionIfItContainsJunk(oProcess, uAddress, asbSymbolOutput);
-  except Exception as oException:
-    raise AssertionError(
-      "Cannot process get symbol output for %s (%s):\r\n%s" % (
-        repr(sbGetSymbolCommand),
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSymbolOutput),
-        repr(oException),
-      )
+  for uAttemptIndex in range(guNumberOfTries):
+    asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
+      sbCommand = sbGetSymbolCommand, 
+      sb0Comment = b"Get symbol for %s (attempt #%d)" % (sbAddressDescription, uAttemptIndex + 1),
     );
+    # If the output contains more than one line, it must be caused by symbol loading; try again.
+    if len(asbSymbolOutput) != 1:
+      continue;
+    # If there is no symbol at the addres, only the address will be output; return None:
+    if grbAddress.match(asbSymbolOutput[0]) and fu0ValueFromCdbHexOutput(asbSymbolOutput[0]) == uAddress:
+      return None;
+    oSymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);
+    assert oSymbolWithOrWithoutAddressMatch, \
+        "This should always match!"; # By design - something is very broken if not.
+    # See if the output contains something we recognize as a symbol; return it.
+    sbSymbol = oSymbolWithOrWithoutAddressMatch.group(1);
+    o0SymbolMatch = rbSymbolOrAddress.match(sbSymbol);
+    if o0SymbolMatch:
+      return sbSymbol;
+  raise AssertionError(
+    "Cannot process get symbol output for address 0x%X:\r\n%s" % (
+      uAddress,
+      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSymbolOutput),
+    )
+  );
