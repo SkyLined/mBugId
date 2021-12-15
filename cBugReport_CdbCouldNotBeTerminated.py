@@ -7,6 +7,7 @@ from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
 class cBugReport_CdbCouldNotBeTerminated(object):
+  bIsInternalBug = True;
   def __init__(oBugReport, oCdbWrapper):
     import cBugId;
     o0ProductDetails = (

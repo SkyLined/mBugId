@@ -33,6 +33,7 @@ dfoAnalyzeException_by_uExceptionCode = {
 };
 
 class cBugReport(object):
+  bIsInternalBug = False;
   def __init__(oSelf, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact, uStackFramesCount):
     oSelf.__oCdbWrapper = oCdbWrapper;
     oSelf.__oProcess = oProcess;

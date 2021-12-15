@@ -8,6 +8,7 @@ from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
 class cBugReport_CdbTerminatedUnexpectedly(object):
+  bIsInternalBug = True;
   def __init__(oBugReport, oCdbWrapper, uExitCode):
     import mBugId;
     o0ProductDetails = (
