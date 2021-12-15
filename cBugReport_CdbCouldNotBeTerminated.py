@@ -9,7 +9,7 @@ from .sReportHTMLTemplate import sReportHTMLTemplate;
 class cBugReport_CdbCouldNotBeTerminated(object):
   bIsInternalBug = True;
   def __init__(oBugReport, oCdbWrapper):
-    import cBugId;
+    import mBugId;
     o0ProductDetails = (
       mProductDetails.fo0GetProductDetailsForMainModule()
       or mProductDetails.fo0GetProductDetailsForModule(mBugId)
