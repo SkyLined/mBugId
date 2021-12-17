@@ -6,6 +6,7 @@ from .cStack import cStack;
 from .cStowedException import cStowedException;
 from .cErrorDetails import cErrorDetails;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .mCP437 import fsCP437FromBytesString;
 
 grb_exr_ExceptionOutputLine = re.compile(
   rb"^\s*"                              #   optional whitespace
@@ -91,10 +92,10 @@ class cException(object):
         elif sbName == b"Parameter":
           assert u0ParameterCount is not None, \
               "Unexpected parameter before NumberParameters value\r\n%s" % \
-              "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord);
+              "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord);
           assert fu0ValueFromCdbHexOutput(sb0ParameterIndex) == uParameterIndex, \
               "Unexpected parameter #0x%s vs 0x%X\r\n%s" % \
-              (sb0ParameterIndex, uParameterIndex, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord));
+              (sb0ParameterIndex, uParameterIndex, "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord));
           oSelf.auParameters.append(uValue);
           uParameterIndex += 1;
         else:
@@ -102,29 +103,29 @@ class cException(object):
       else:
         assert uLineIndex == len(asbExceptionRecord) - 1, \
             "Unrecognized exception record line %s: %s" % \
-            (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord));
+            (sbLine, "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord));
         oSelf.sb0Details = asbExceptionRecord[-1];
     
     assert u0InstructionPointer is not None, \
         "Exception record is missing an ExceptionAddress value\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord);
     oSelf.uInstructionPointer = u0InstructionPointer;
     assert u0Code is not None, \
         "Exception record is missing an ExceptionCode value\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord);
     oSelf.uCode = u0Code;
     assert u0Flags is not None, \
         "Exception record is missing an ExceptionFlags value\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord);
     oSelf.uFlags = u0Flags;
     assert u0ParameterCount is not None, \
         "Exception record is missing an NumberParameters value\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord);
     assert u0ParameterCount == len(oSelf.auParameters), \
         "Expected %d parameters but found %d\r\n%s" % (
           u0ParameterCount,
           len(oSelf.auParameters),
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbExceptionRecord)
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbExceptionRecord)
         );
     # Now get a preliminary exception id that identifies the type of exception based on the exception code, as well as
     # preliminary security impact.
@@ -137,7 +138,7 @@ class cException(object):
       oSelf.sTypeId = "0x%08X" % oSelf.uCode;
       oSelf.sDescription = "Unknown exception code 0x%08X%s" % (
         oSelf.uCode,
-        (" (%s)" % str(oSelf.sb0CodeDescription, 'latin1')) if oSelf.sb0CodeDescription else ""
+        (" (%s)" % fsCP437FromBytesString(oSelf.sb0CodeDescription)) if oSelf.sb0CodeDescription else ""
       );
       oSelf.s0SecurityImpact = "Unknown";
     

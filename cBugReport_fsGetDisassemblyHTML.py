@@ -1,5 +1,7 @@
 import re;
+
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
 
 grbIgnoredMemoryAccessError = re.compile(
   rb"\A"
@@ -7,32 +9,32 @@ grbIgnoredMemoryAccessError = re.compile(
   rb"\Z"
 );
 
-grAddressOpCodeInstruction = re.compile(
-  r"\A"
-  r"([0-9a-fA-F`]+\s+)"
-  r"([0-9a-fA-F]+\s+)"
-  r"(.+)"
-  r"\Z"
+grbAddressOpCodeInstruction = re.compile(
+  rb"\A"
+  rb"([0-9a-fA-F`]+\s+)"
+  rb"([0-9a-fA-F]+\s+)"
+  rb"(.+)"
+  rb"\Z"
 );
 
-def fsHTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sLine, bHighlightLine, sRemark):
+def fsCP437HTMLEncodeAndColorDisassemblyLine(oCdbWrapper, sbLine, bHighlightLine, sRemark):
   # If this line starts with an address and opcode, make those semi-transparent.
-  oAddressOpCodeInstructionMatch = grAddressOpCodeInstruction.match(sLine);
-  if oAddressOpCodeInstructionMatch:
-    (sAddress, sOpcode, sInstruction) = oAddressOpCodeInstructionMatch.groups();
+  obAddressOpCodeInstructionMatch = grbAddressOpCodeInstruction.match(sbLine);
+  if obAddressOpCodeInstructionMatch:
+    (sbAddress, sbOpcode, sbInstruction) = obAddressOpCodeInstructionMatch.groups();
     return "<tr>%s</tr>" % "".join([
-      "<td class=\"DisassemblyAddress%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sAddress)),
-      "<td class=\"DisassemblyOpcode%s\">%s</td>" % (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sOpcode)),
+      "<td class=\"DisassemblyAddress%s\">%s</td>" % (bHighlightLine and " Important" or "", fsCP437HTMLFromBytesString(sbAddress)),
+      "<td class=\"DisassemblyOpcode%s\">%s</td>" % (bHighlightLine and " Important" or "", fsCP437HTMLFromBytesString(sbOpcode)),
       "<td class=\"DisassemblyInstruction%s\">%s%s</td>" % (
         bHighlightLine and " Important" or "",
-        oCdbWrapper.fsHTMLEncode(sInstruction),
+        fsCP437HTMLFromBytesString(sbInstruction),
         sRemark and (
           bHighlightLine and (" // %s" % sRemark) or (" <span class=\"Important\">// %s</span>" % sRemark)
         ) or "",
       ),
     ]);
   return "<tr><td colspan=\"3\" class=\"DisassemblyInformation%s\">%s</td></tr>" % \
-      (bHighlightLine and " Important" or "", oCdbWrapper.fsHTMLEncode(sLine, uTabStop = 8));
+      (bHighlightLine and " Important" or "", fsCP437HTMLFromBytesString(sbLine, u0TabStop = 8));
   
 def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress, sDescriptionOfInstructionBeforeAddress = None, sDescriptionOfInstructionAtAddress = None):
   # See dxConfig.py for a description of these "magic" values.
@@ -64,15 +66,15 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
         asbDisassemblyBeforeAddress.pop();
       assert len(asbDisassemblyBeforeAddress) >= 2, \
           "Unexpectedly short disassembly output:\r\n%s" % \
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDisassemblyBeforeAddress);
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDisassemblyBeforeAddress);
       # Limit number of instructions
       asbDisassemblyBeforeAddress = asbDisassemblyBeforeAddress[-dxConfig["uDisassemblyInstructionsBefore"]:];
       if asbDisassemblyBeforeAddress:
         # Optionally highlight and describe instruction before the address:
         asDisassemblyBeforeAddressHTML = [
-          fsHTMLEncodeAndColorDisassemblyLine(
+          fsCP437HTMLEncodeAndColorDisassemblyLine(
             oCdbWrapper = oCdbWrapper,
-            sLine = str(asbDisassemblyBeforeAddress[uIndex], 'latin1'),
+            sbLine = asbDisassemblyBeforeAddress[uIndex],
             bHighlightLine = False,
             sRemark = uIndex == len(asbDisassemblyBeforeAddress) - 1 and sDescriptionOfInstructionBeforeAddress or None,
           )
@@ -90,7 +92,7 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
     );
     assert len(asbDisassemblyAtAndAfterAddress) >= 2, \
         "Unexpectedly short disassembly output:\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDisassemblyAtAndAfterAddress);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDisassemblyAtAndAfterAddress);
     # The first line copntains the symbol at the address where we started disassembly, which we do not want in the
     # output:
     asbDisassemblyAtAndAfterAddress.pop(0);
@@ -98,9 +100,9 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       # If the virtual memory allocation ends shortly after the address, we could an error that we want to remove:
       asbDisassemblyAtAndAfterAddress.pop();
     asDisassemblyAtAndAfterAddressHTML = [
-      fsHTMLEncodeAndColorDisassemblyLine(
+      fsCP437HTMLEncodeAndColorDisassemblyLine(
         oCdbWrapper = oCdbWrapper,
-        sLine = str(asbDisassemblyAtAndAfterAddress[uIndex], 'latin1'),
+        sbLine = asbDisassemblyAtAndAfterAddress[uIndex],
         bHighlightLine = uIndex == 0,
         sRemark = uIndex == 0 and sDescriptionOfInstructionAtAddress or None,
       )

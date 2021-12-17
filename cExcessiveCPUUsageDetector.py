@@ -5,6 +5,8 @@ from mMultiThreading import cLock;
 from .cBugReport import cBugReport;
 from .dxConfig import dxConfig;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+# local imports are at the end of this file to avoid import loops.
+from .mCP437 import fsCP437FromBytesString;
 
 gbDebugOutput = False;
 gbDebugOutputCalculation = False;
@@ -492,11 +494,11 @@ class cExcessiveCPUUsageDetector(object):
         else:
           assert sb0TimeType is not None, \
               "Expected a header before values in %s.\r\n%s" % \
-              (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes));
+              (sbLine, "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbThreadTimes));
           obThreadTimeMatch = grbThreadTime.match(sbLine);
           assert obThreadTimeMatch, \
               "Unrecognized \"!runaway3\" output: %s\r\n%s" % \
-              (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes));
+              (sbLine, "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbThreadTimes));
           (sbThreadId, sbDays, sbHours, sbMinutes, sbSecondsMilliseconds) = \
             obThreadTimeMatch.groups();
           uThreadId = fu0ValueFromCdbHexOutput(sbThreadId);
@@ -507,7 +509,7 @@ class cExcessiveCPUUsageDetector(object):
                 "Unexpected large value for %s: %s\r\n%s" % (
                   sb0TimeType,
                   nTimeInSeconds,
-                  "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbThreadTimes)
+                  "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbThreadTimes)
                 );
             # In such cases, do not return a value for elapsed time.
             nTimeInSeconds = None;

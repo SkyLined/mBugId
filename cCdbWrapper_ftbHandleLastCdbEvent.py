@@ -8,6 +8,7 @@ from .cException import cException;
 from .cProcess import cProcess;
 from .fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .mCP437 import fsCP437FromBytesString;
 
 # Return (bEventIsFatal, bEventHasBeenHandled)
 HIDE_EVENT_FROM_APPLICATION = (False, True);
@@ -67,11 +68,11 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   asbCleanedLastEventOutput = [sbLine for sbLine in asbLastEventOutput if len(sbLine) != 0]; # Remove empty lines
   assert len(asbCleanedLastEventOutput) == 2, \
       "Invalid .lastevent output:\r\n%s" % \
-      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
+      "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastEventOutput);
   obEventMatch = grbLastEvent.match(asbCleanedLastEventOutput[0]);
   assert obEventMatch, \
       "Invalid .lastevent output on line #1:\r\n%s" % \
-      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
+      "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastEventOutput);
   (
     sb0ProcessIdHex, sb0ThreadIdHex,
     sb0CreateExitProcess, sb0CreateExitProcessIdHex,
@@ -84,7 +85,7 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   obEventTimeMatch = grbDebuggerTime.match(asbCleanedLastEventOutput[1]);
   assert obEventTimeMatch, \
     "Invalid .lastevent output on line #2:\r\n%s" % \
-    "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastEventOutput);
+    "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastEventOutput);
   oCdbWrapper.oApplicationTimeLock.fAcquire();
   try:
     if oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds:

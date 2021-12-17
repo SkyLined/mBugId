@@ -1,5 +1,6 @@
 import re;
 
+from .mCP437 import fsCP437FromBytesString;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from .rbSymbolOrAddress import rbSymbolOrAddress;
 
@@ -55,6 +56,6 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   raise AssertionError(
     "Cannot process get symbol output for address 0x%X:\r\n%s" % (
       uAddress,
-      "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSymbolOutput),
+      "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbSymbolOutput),
     )
   );

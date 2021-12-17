@@ -17,7 +17,7 @@ from .cBugReport_fs0GetRegistersBlockHTML import cBugReport_fs0GetRegistersBlock
 from .cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
 from .cBugReport_fs0GetMemoryDumpBlockHTML import cBugReport_fs0GetMemoryDumpBlockHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
-# Remaining local modules are load JIT to mitigate loops.
+# Remaining local imports are at the end of this file to avoid import loops.
 
 dfoAnalyzeException_by_uExceptionCode = {
   CPP_EXCEPTION_CODE:  cBugReport_foAnalyzeException_Cpp,
@@ -52,7 +52,7 @@ class cBugReport(object):
     oSelf.s0StackId = None;
     oSelf.s0UniqueStackId = None;
     oSelf.sId = None;
-    oSelf.sBugLocation = None;
+    oSelf.s0BugLocation = None;
     oSelf.sBugSourceLocation = None;
     oSelf.sReportHTML = None;
   
@@ -139,7 +139,7 @@ class cBugReport(object):
     import mBugId;
     assert oSelf.s0BugTypeId, \
         "Cannot report a bug with no bug type id!";
-    # Calculate Stack Id, determine sBugLocation and optionally create and return sStackHTML.
+    # Calculate Stack Id, determine s0BugLocation and optionally create and return sStackHTML.
     aoStackFramesPartOfId, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
     oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId);
     
@@ -160,8 +160,8 @@ class cBugReport(object):
     for oModule in aoRelevantModules:
       # This function populates the version properties of the oModule object and returns HTML if a report is needed.
       if oModule.sb0BinaryName:
-        sBinaryName = str(oModule.sb0BinaryName, 'latin1');
-        sVersion = str(oModule.sb0FileVersion or oModule.sb0Timestamp or b"unknown", 'latin1');
+        sBinaryName = fsCP437FromBytesString(oModule.sb0BinaryName);
+        sVersion = fsCP437FromBytesString(oModule.sb0FileVersion or oModule.sb0Timestamp or b"unknown");
         oSelf.asVersionInformation.append("%s %s (%s)" % (sBinaryName, sVersion, oModule.sISA));
         if oCdbWrapper.bGenerateReportHTML:
           asBinaryInformationHTML.append(oModule.sInformationHTML);
@@ -222,7 +222,7 @@ class cBugReport(object):
             );
           if sFrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
-              "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, oCdbWrapper.fsHTMLEncode(oFrame.sbAddress)),
+              "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, fsCP437HTMLFromBytesString(oFrame.sbAddress)),
               "sCollapsed": "Collapsed",
               "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
             });
@@ -284,17 +284,20 @@ class cBugReport(object):
         bReportTruncated = False;
         try:
           oSelf.sReportHTML = sReportHTMLTemplate % {
-            "sId": oCdbWrapper.fsHTMLEncode(oSelf.sId),
-            "sOptionalUniqueStackId": oSelf.s0UniqueStackId != oSelf.s0StackId and
-                "<tr><td>Full stack id:</td><td>%s</td></tr>" % oCdbWrapper.fsHTMLEncode(oSelf.s0UniqueStackId) or "",
-            "sBugLocation": oCdbWrapper.fsHTMLEncode(oSelf.sBugLocation),
-            "sBugDescription": oCdbWrapper.fsHTMLEncode(oSelf.s0BugDescription), # Cannot be None at this point
+            "sId": fsCP437HTMLFromString(oSelf.sId),
+            "sOptionalUniqueStackId": (
+              "<tr><td>Full stack id:</td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.s0UniqueStackId)
+              if oSelf.s0UniqueStackId and oSelf.s0UniqueStackId != oSelf.s0StackId
+              else ""
+            ),
+            "sBugLocation": fsCP437HTMLFromString(oSelf.s0BugLocation) if oSelf.s0BugLocation else "Unknown",
+            "sBugDescription": fsCP437HTMLFromString(oSelf.s0BugDescription), # Cannot be None at this point
             "sBinaryVersion": sBinaryVersionHTML,
             "sOptionalSource": oSelf.sBugSourceLocation and \
                 "<tr><td>Source: </td><td>%s</td></tr>" % oSelf.sBugSourceLocation or "",
             "sSecurityImpact": (
               "None" if oSelf.s0SecurityImpact is None
-              else ('<span class="SecurityImpact">%s</span>' % oCdbWrapper.fsHTMLEncode(oSelf.s0SecurityImpact))
+              else ('<span class="SecurityImpact">%s</span>' % fsCP437HTMLFromString(oSelf.s0SecurityImpact))
             ),
             "sOptionalIntegrityLevel": sOptionalIntegrityLevelHTML,
             "sOptionalMemoryUsage": sOptionalMemoryUsageHTML or "",
@@ -336,5 +339,6 @@ from .cStack import cStack;
 from .dxConfig import dxConfig;
 from .ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from .ftsReportProductHeaderAndFooterHTML import ftsReportProductHeaderAndFooterHTML;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;

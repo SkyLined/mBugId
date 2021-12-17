@@ -2,6 +2,8 @@ import hashlib, math, re;
 
 from mNotProvided import *;
 
+# local imports are at the end of this file to avoid import loops.
+
 class cStackFrame(object):
   def __init__(oSelf, 
     oStack,
@@ -115,7 +117,7 @@ class cStackFrame(object):
     return False;
   
   def __str__(oSelf):
-    return "#%d %s (hash=%s%s)" % (oSelf.uIndex, str(oSelf.sbAddress, "ascii", "strict"), oSelf.sId, ", hidden: %s" % oSelf.s0IsHiddenBecause if oSelf.bHidden else "");
+    return "#%d %s (hash=%s%s)" % (oSelf.uIndex, fsCP437FromBytesString(oSelf.sbAddress), oSelf.sId, ", hidden: %s" % oSelf.s0IsHiddenBecause if oSelf.bHidden else "");
   def __repr__(oSelf):
     return "<cStackFrame %s>" % oSelf;
 
@@ -123,3 +125,4 @@ from .cStack import cStack;
 from .cModule import cModule;
 from .cFunction import cFunction;
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437FromBytesString;

@@ -1,5 +1,7 @@
 import re;
 
+from .mCP437 import fsCP437FromBytesString;
+
 grbSetBreakpointOutput = re.compile(
   rb"^\s*"
   rb"breakpoint "
@@ -66,7 +68,7 @@ def cCdbWrapper_fuAddBreakpointForProcessIdAndAddress(oCdbWrapper, uProcessId, u
     obActualBreakpointIdMatch = grbSetBreakpointOutput.match(asbBreakpointResult[0]);
     assert obActualBreakpointIdMatch, \
         "bad set breakpoint result:\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbBreakpointResult);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbBreakpointResult);
     uBreakpointId = int(obActualBreakpointIdMatch.group(1));
     # This breakpoint must have been "removed" with fRemoveBreakpoint before a new breakpoint can be set at this
     # location. If it was not, throw an exception.
@@ -75,7 +77,7 @@ def cCdbWrapper_fuAddBreakpointForProcessIdAndAddress(oCdbWrapper, uProcessId, u
   else:
     assert len(asbBreakpointResult) == 0, \
         "bad set breakpoint result\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbBreakpointResult);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbBreakpointResult);
   oCdbWrapper.fbFireCallbacks("Log message", "Added breakpoint", {
     "Breakpoint id": "%d" % uBreakpointId,
     "Address": uAddress,

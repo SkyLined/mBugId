@@ -7,7 +7,6 @@ from mFileSystemItem import cFileSystemItem;
 from mNotProvided import *;
 
 from .cASanErrorDetector import cASanErrorDetector;
-from .cCdbStoppedException import cCdbStoppedException;
 from .cCdbWrapper_fAllocateReserveMemoryIfNeeded import cCdbWrapper_fAllocateReserveMemoryIfNeeded;
 from .cCdbWrapper_fApplicationStdOutOrErrHelperThread import cCdbWrapper_fApplicationStdOutOrErrHelperThread;
 from .cCdbWrapper_fasbExecuteCdbCommand import cCdbWrapper_fasbExecuteCdbCommand;
@@ -33,7 +32,6 @@ from .cCdbWrapper_fRemoveBreakpoint import cCdbWrapper_fRemoveBreakpoint;
 from .cCdbWrapper_fRunTimeoutCallbacks import cCdbWrapper_fRunTimeoutCallbacks;
 from .cCdbWrapper_fSaveDumpToFile import cCdbWrapper_fSaveDumpToFile;
 from .cCdbWrapper_fSelectProcessIdAndThreadId import cCdbWrapper_fSelectProcessIdAndThreadId;
-from .cCdbWrapper_fsHTMLEncode import cCdbWrapper_fsHTMLEncode;
 from .cCdbWrapper_fStartUWPApplication import cCdbWrapper_fStartUWPApplication;
 from .cCdbWrapper_ftbHandleLastCdbEvent import cCdbWrapper_ftbHandleLastCdbEvent;
 from .cCdbWrapper_fTerminateUWPApplication import cCdbWrapper_fTerminateUWPApplication;
@@ -45,6 +43,7 @@ from .cExcessiveCPUUsageDetector import cExcessiveCPUUsageDetector;
 from .cHelperThread import cHelperThread;
 from .cVerifierStopDetector import cVerifierStopDetector;
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437HTMLFromString;
 
 # Remaining local modules are load JIT to mitigate loops.
 
@@ -216,8 +215,10 @@ class cCdbWrapper(cWithCallbacks):
         s0Data = None if d0xData is None else (
           "{%s}" % ", ".join(["%s: %s" % (repr(sName), repr(sValue)) for (sName, sValue) in d0xData.items()])
         );
-        oCdbWrapper.sLogHTML += "<span class=\"LogMessage\">%s%s</span><br/>\n" % \
-            (oCdbWrapper.fsHTMLEncode(sMessage), s0Data and " %s" % s0Data or "");
+        oCdbWrapper.sLogHTML += "<span class=\"LogMessage\">%s%s</span><br/>\n" % (
+          fsCP437HTMLFromString(sMessage),
+          s0Data and " %s" % fsCP437HTMLFromString(s0Data) or "",
+        );
       oCdbWrapper.fAddCallback("Log message", fWriteLogMessageToReport);
   
   @property
@@ -430,7 +431,6 @@ class cCdbWrapper(cWithCallbacks):
   fQueueAttachForProcessExecutableNames = cCdbWrapper_fQueueAttachForProcessExecutableNames;
   fRemoveBreakpoint = cCdbWrapper_fRemoveBreakpoint;
   fSaveDumpToFile = cCdbWrapper_fSaveDumpToFile;
-  fsHTMLEncode = cCdbWrapper_fsHTMLEncode;
   fStartUWPApplication = cCdbWrapper_fStartUWPApplication;
   ftbHandleLastCdbEvent = cCdbWrapper_ftbHandleLastCdbEvent;
   fTerminateUWPApplication = cCdbWrapper_fTerminateUWPApplication;

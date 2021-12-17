@@ -3,6 +3,7 @@ from mBugId import cBugId;
 from mConsole import oConsole;
 from mFileSystemItem import cFileSystemItem;
 import mGlobals;
+from mBugId.mCP437 import fsCP437FromBytesString;
 
 try: # mDebugOutput use is Optional
   import mDebugOutput as m0DebugOutput;
@@ -24,8 +25,8 @@ def fOutputStack(oStack):
   for oStackFrame in oStack.aoFrames:
     oConsole.fOutput(
       NORMAL, "  \u2022 ",
-      NORMAL if oStackFrame.bHidden else HILITE, str(oStackFrame.sb0UniqueAddress or b"---", 'ascii'),
-      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else HILITE, str(oStackFrame.sbCdbSymbolOrAddress, 'ascii'), NORMAL, ")",
+      NORMAL if oStackFrame.bHidden else HILITE, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
+      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else HILITE, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), NORMAL, ")",
       [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
     );
 
@@ -33,7 +34,7 @@ guExitCodeInternalError = 1; # Use standard value;
 def fRunASingleTest(
   sISA,
   axCommandLineArguments,
-  asExpectedBugIdAndLocations,
+  a0sExpectedBugIdAndLocations,
   sExpectedFailedToDebugApplicationErrorMessage = None,
   bRunInShell = False,
   s0ApplicationBinaryPath = None,
@@ -67,7 +68,7 @@ def fRunASingleTest(
       " ASan" if bASan else "",
       " ".join(asApplicationArguments), \
       bRunInShell and " (in child process)" or "",
-      asExpectedBugIdAndLocations and " => ".join(asExpectedBugIdAndLocations) or "no bugs"
+      a0sExpectedBugIdAndLocations and " => ".join(a0sExpectedBugIdAndLocations) or "no bugs"
     );
   
   sTestBinaryName = os.path.basename(sApplicationBinaryPath).lower();
@@ -84,15 +85,15 @@ def fRunASingleTest(
   
   asLog = [];
   def fCdbStdInInputCallback(oBugId, sbInput):
-    sInput = str(sbInput, 'latin1');
+    sInput = fsCP437FromBytesString(sbInput);
     if mGlobals.bShowCdbIO: oConsole.fOutput("stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
   def fCdbStdOutOutputCallback(oBugId, sbOutput):
-    sOutput = str(sbOutput, 'latin1');
+    sOutput = fsCP437FromBytesString(sbOutput);
     if mGlobals.bShowCdbIO: oConsole.fOutput("stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
   def fCdbStdErrOutputCallback(oBugId, sbOutput):
-    sOutput = str(sbOutput, 'latin1');
+    sOutput = fsCP437FromBytesString(sbOutput);
     if mGlobals.bShowCdbIO: oConsole.fOutput("stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
@@ -221,8 +222,8 @@ def fRunASingleTest(
     oConsole.fOutput();
     oConsole.fOutput("=" * 80);
     oConsole.fOutput("%s %s" % (sApplicationBinaryPath, " ".join(asApplicationArguments)));
-    if asExpectedBugIdAndLocations:
-      for sExpectedBugIdAndLocation in asExpectedBugIdAndLocations:
+    if a0sExpectedBugIdAndLocations:
+      for sExpectedBugIdAndLocation in a0sExpectedBugIdAndLocations:
         oConsole.fOutput("  => %s" % sExpectedBugIdAndLocation);
     oConsole.fOutput("-" * 80);
   bBugIdStarted = False;
@@ -276,44 +277,61 @@ def fRunASingleTest(
     def fDumpExpectedAndReported():
       uCounter = 0;
       while 1:
-        sExpectedBugIdAndLocation = uCounter < len(asExpectedBugIdAndLocations) and asExpectedBugIdAndLocations[uCounter];
-        oBugReport = uCounter < len(aoBugReports) and aoBugReports[uCounter];
-        if not sExpectedBugIdAndLocation and not oBugReport:
+        s0ExpectedBugIdAndLocation = a0sExpectedBugIdAndLocations[uCounter] if uCounter < len(a0sExpectedBugIdAndLocations) else None;
+        o0BugReport = aoBugReports[uCounter] if uCounter < len(aoBugReports) else None;
+        if not s0ExpectedBugIdAndLocation and not o0BugReport:
           break;
         uCounter += 1;
-        oConsole.fOutput("  Expected #%d: %s" % (uCounter, repr(sExpectedBugIdAndLocation)));
-        oConsole.fOutput("  Reported   : %s" % repr(oBugReport and "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation)));
-        if oBugReport:
-          oConsole.fOutput("               %s" % repr(oBugReport.s0BugDescription));
+        s0DetectedBugIdAndLocation = (
+          "%s @ %s" % (o0BugReport.sId, o0BugReport.s0BugLocation or "(unknown)") if o0BugReport is not None else
+          None
+        );
+        oConsole.fOutput("  Bug #%d %s:" % (
+          uCounter,
+          (
+            "is as expected" if s0DetectedBugIdAndLocation == s0ExpectedBugIdAndLocation else
+            "was not detected" if s0DetectedBugIdAndLocation is None else
+            "was not expected" if s0ExpectedBugIdAndLocation is None else
+            "has an unexpected bug id/location"
+          ),
+        ));
+        if s0ExpectedBugIdAndLocation:
+          oConsole.fOutput("  Expected: %s" % (repr(s0ExpectedBugIdAndLocation)));
+        else:
+          oConsole.fOutput("  Expected: no bug.");
+        if o0BugReport:
+          oConsole.fOutput("  Detected: %ss" % repr(s0DetectedBugIdAndLocation));
+          oConsole.fOutput("            (Description: %s)" % repr(o0BugReport.s0BugDescription));
+        else:
+          oConsole.fOutput("  Detected: no bug.");
     if sExpectedFailedToDebugApplicationErrorMessage:
       pass;
-    elif asExpectedBugIdAndLocations is None:
+    elif a0sExpectedBugIdAndLocations is None:
       uCounter = 0;
       oConsole.fOutput("* Test results for: %s" % sTestDescription);
       for oBugReport in aoBugReports:
         uCounter += 1;
-        sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
+        sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
         oConsole.fOutput("  Test bug #%d: %s." % (uCounter, repr(sBugIdAndLocation)));
         if oBugReport.o0Stack:
           fOutputStack(oBugReport.o0Stack);
-    elif asExpectedBugIdAndLocations:
-      if len(aoBugReports) != len(asExpectedBugIdAndLocations):
+    else:
+      if len(aoBugReports) != len(a0sExpectedBugIdAndLocations):
         if not mGlobals.bShowCdbIO: 
           for sLine in asLog:
             oConsole.fOutput(sLine);
         oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
-        oConsole.fOutput(ERROR, "  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(asExpectedBugIdAndLocations)));
+        oConsole.fOutput(ERROR, "  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(a0sExpectedBugIdAndLocations)));
         fDumpExpectedAndReported();
         raise AssertionError("Test reported different number of bugs than was expected");
       else:
         uCounter = 0;
-        for oBugReport in aoBugReports:
-          sExpectedBugIdAndLocation = asExpectedBugIdAndLocations[uCounter];
-          uCounter += 1;
-          sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.sBugLocation);
+        for uCounter in range(len(a0sExpectedBugIdAndLocations)):
+          sExpectedBugIdAndLocation = a0sExpectedBugIdAndLocations[uCounter];
           rExpectedBugIdAndLocation = re.compile("^(%s)$" % sExpectedBugIdAndLocation.replace("<binary>", re.escape(sTestBinaryName)));
-          bSuccess = rExpectedBugIdAndLocation.match(sBugIdAndLocation);
-          if not bSuccess:
+          oBugReport = aoBugReports[uCounter];
+          s0DetectedBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
+          if not rExpectedBugIdAndLocation.match(s0DetectedBugIdAndLocation):
             if not mGlobals.bShowCdbIO: 
               for sLine in asLog:
                 oConsole.fOutput(ERROR, sLine);
@@ -326,7 +344,7 @@ def fRunASingleTest(
     if mGlobals.bSaveReportHTML:
       for oBugReport in aoBugReports:
         # We'd like a report file name base on the BugId, but the later may contain characters that are not valid in a file name
-        sDesiredReportFileName = "%s %s @ %s.html" % (sISA, oBugReport.sId, oBugReport.sBugLocation);
+        sDesiredReportFileName = "%s %s @ %s.html" % (sISA, oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
         # Thus, we need to translate these characters to create a valid filename that looks very similar to the BugId
         sValidReportFileName = cFileSystemItem.fsGetValidName(sDesiredReportFileName, bUseUnicodeHomographs = False);
         sReportsFilePath = os.path.join(mGlobals.sReportsFolderPath, sValidReportFileName);
@@ -346,5 +364,5 @@ def fRunASingleTest(
   finally:
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput("* Finished %s" % sTestDescription);
-    elif asExpectedBugIdAndLocations is not None:
+    elif a0sExpectedBugIdAndLocations is not None:
       oConsole.fOutput("+ %s" % sTestDescription);

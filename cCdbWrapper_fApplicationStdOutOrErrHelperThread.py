@@ -1,4 +1,5 @@
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437HTMLFromString;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
@@ -14,7 +15,7 @@ def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess
     if oCdbWrapper.bGenerateReportHTML:
       sClassName = "Application%s" % {"stdout": "StdOut", "stderr": "StdErr"}[sPipeName];
       oCdbWrapper.sCdbIOHTML += "<span class=\"%s\">%s</span><br/>\n" % \
-          (sClassName, oCdbWrapper.fsHTMLEncode(s0Line, uTabStop = 8));
+          (sClassName, fsCP437HTMLFromString(s0Line, u0TabStop = 8));
   if gbDebugIO: print("\r<app:0x%X:%s:EOF" % (oConsoleProcess.uId, sPipeName));
   oCdbWrapper.aoApplicationStdOutAndStdErrPipes.remove(oPipe);
   

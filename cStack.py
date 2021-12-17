@@ -2,6 +2,8 @@ import re;
 
 from mNotProvided import *;
 
+# local imports are at the end of this file to avoid import loops.
+
 gbDebugOutput = False;
 
 grbIgnoredWarningsAndErrors = re.compile(
@@ -176,7 +178,7 @@ class cStack(object):
       ob_dps_StackOutputLineMatch = grb_dps_StackOutputLine.match(sbLine, re.I);
       assert ob_dps_StackOutputLineMatch, \
             "Unknown stack output: %s\r\n%s" % \
-            (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput));
+            (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbStackOutput));
       sbReturnAddress, sbCdbSymbolOrAddress, sb0SourceFilePath, sb0SourceFileLineNumber = \
           ob_dps_StackOutputLineMatch.groups();
       (
@@ -234,7 +236,7 @@ class cStack(object):
       ), \
           "Unknown stack header: %s\r\n%s" % (
             repr(asbStackOutput[uStackStartIndex]),
-            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput)
+            "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbStackOutput)
           );
       # Skip the stack output header or error and process remaining lines (0 in case of error).
       uStackStartIndex += 1;
@@ -253,7 +255,7 @@ class cStack(object):
         ob_kn_StackOutputLineMatch = grb_kn_StackOutputLine.match(sbLine);
         assert ob_kn_StackOutputLineMatch, \
             "Unknown stack output: %s\r\n%s" % \
-            (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbStackOutput));
+            (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbStackOutput));
         (sb0ReturnAddress, sbCdbSymbolOrAddress, sb0SourceFilePath, sb0SourceFileLineNumber) = \
             ob_kn_StackOutputLineMatch.groups();
         u0ReturnAddress = fu0ValueFromCdbHexOutput(sb0ReturnAddress);
@@ -340,7 +342,7 @@ class cStack(object):
               # We cannot use the CALL we found before the return address to determine the correct symbol.
               if gbDebugOutput: print("  -> Return address 0x%X => CALL 0x%X (no symbol)" % (u0ReturnAddress, u0CallTargetAddressFromInstruction));
             else:
-              if gbDebugOutput: print("  -> Return address 0x%X => CALL %s (0x%X)" % (u0ReturnAddress, str(sb0CallTargetSymbol, "ascii", "strict"), u0CallTargetAddressFromInstruction));
+              if gbDebugOutput: print("  -> Return address 0x%X => CALL %s (0x%X)" % (u0ReturnAddress, fsCP437FromBytesString(sb0CallTargetSymbol), u0CallTargetAddressFromInstruction));
               # In certain situations, it might make sense to overwrite the stack given by cdb...
               (
                 u0CallTargetAddress, # Should be None since we have a symbol (== module and function)
@@ -383,3 +385,4 @@ from .cModule import cModule;
 from .cStackFrame import cStackFrame;
 from .dxConfig import dxConfig;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .mCP437 import fsCP437FromBytesString;

@@ -1,6 +1,8 @@
 import re;
 
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .mCP437 import fsCP437HTMLFromBytesString;
 
 grbMemoryDumpLine = re.compile(
   rb"^"
@@ -153,7 +155,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDes
         sMemoryBytesHTML += sBytePrefixHTML;
         sNewByteAndCharClass = fbByteHasRemarks(oBugReport, uAddress + uOffset) and "Important" or None;
         # byte
-        sByteHTML = oCdbWrapper.fsHTMLEncode(sbHexBytes[-2:]);
+        sByteHTML = fsCP437HTMLFromBytesString(sbHexBytes[-2:]);
         if sCurrentByteClass is not sNewByteAndCharClass:
           if sCurrentByteClass:
             sMemoryBytesHTML += '</span>';
@@ -162,7 +164,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDes
           sCurrentByteClass = sNewByteAndCharClass;
         sMemoryBytesHTML += sByteHTML;
         # char
-        sCharHTML = fsHTMLCP437(chr(int(sbHexBytes[-2:], 16)), bSlashedZero = True);
+        sCharHTML = fsCP437HTMLFromBytesString(bytes((int(sbHexBytes[-2:], 16),)));
         if sCurrentCharClass is not sNewByteAndCharClass:
           if sCurrentCharClass:
             sMemoryCharsHTML += '</span>';
@@ -176,7 +178,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDes
         sMemoryBytesHTML += '</span>';
       if sCurrentCharClass:
         sMemoryCharsHTML += '</span>';
-      sMemoryPointerHTML = oCdbWrapper.fsHTMLEncode(str(sbPointerAddress, 'latin1'));
+      sMemoryPointerHTML = fsCP437HTMLFromBytesString(sbPointerAddress);
       if sb0PointerSymbol:
         # sb0PointerSymbol is actually "pointer sized value at address pointed to" space "symbol at address pointed to"
         # with the later being optional. We are only interested in the symbol, so we drop the first part and set it to
@@ -187,7 +189,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDes
         '<td class="MemoryChars">', sMemoryCharsHTML, '</td>',
         '<td class="MemoryPointer">', sMemoryPointerHTML, '</td>',
         '<td class="MemoryDetails">',
-          ('<span class="MemoryPointerSymbol">&#8594; %s</span>' % oCdbWrapper.fsHTMLEncode(sb0PointerSymbol))
+          ('<span class="MemoryPointerSymbol">&#8594; %s</span>' % fsCP437HTMLFromBytesString(sb0PointerSymbol))
               if sb0PointerSymbol else "",
           ('<span class="MemoryRemarks">// %s</span>' % ", ".join(asRemarks))
               if asRemarks else "",
@@ -216,6 +218,3 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, sDes
       "</span>",
     ]),
   };
-
-from .sBlockHTMLTemplate import sBlockHTMLTemplate;
-from .fsHTMLCP437 import fsHTMLCP437;

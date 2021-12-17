@@ -3,6 +3,7 @@ import re;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .mCP437 import fsCP437HTMLFromString;
 
 dsSecurityImpact_by_sASanBugType = {
   "use-after-poison": "Potentially exploitable security issue",
@@ -518,7 +519,7 @@ class cASanErrorDetector(object):
         "sName": "ASan bug report",
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
-          oSelf.oCdbWrapper.fsHTMLEncode(s, uTabStop = 8) for s in asASanErrorMessage
+          fsCP437HTMLFromString(sLine, u0TabStop = 8) for sLine in asASanErrorMessage
         ])
       };
       oBugReport.asExceptionSpecificBlocksHTML.append(sASanOutputHTML);

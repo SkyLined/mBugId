@@ -1,6 +1,8 @@
 import hashlib;
+
 from .dxConfig import dxConfig;
 from .SourceCodeLinks import fsb0GetSourceCodeLinkURLForPath;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
 
 def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # Get a HTML representation of the stack, find the topmost relevant stack frame and get stack id.
@@ -35,17 +37,18 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       asFrameNotesHTML = [];
       sOptionalSourceHTML = None;
       if oStackFrame.sb0SourceFilePath:
-        sSourceReference = (
-          str(oStackFrame.sb0SourceFilePath, 'latin1')
-          + (oStackFrame.u0SourceFileLineNumber is not None and (" @ %d" % oStackFrame.u0SourceFileLineNumber) or "")
+        sbSourceReference = b"%s%s" % (
+          oStackFrame.sb0SourceFilePath,
+          b"" if oStackFrame.u0SourceFileLineNumber is None else (b" @ %d" % oStackFrame.u0SourceFileLineNumber),
         );
         sb0SourceReferenceURL = fsb0GetSourceCodeLinkURLForPath(oStackFrame.sb0SourceFilePath, oStackFrame.u0SourceFileLineNumber);
         if sb0SourceReferenceURL:
-          sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % \
-              (oCdbWrapper.fsHTMLEncode(sb0SourceReferenceURL), oCdbWrapper.fsHTMLEncode(sSourceReference));
+          sOptionalSourceHTML = "[<a href=\"%s\" target=\"_blank\">%s</a>]" % (
+            fsCP437HTMLFromBytesString(sb0SourceReferenceURL),
+            fsCP437HTMLFromBytesString(sbSourceReference),
+          );
         else:
-          sOptionalSourceHTML = "[%s]" % \
-              oCdbWrapper.fsHTMLEncode(sSourceReference);
+          sOptionalSourceHTML = "[%s]" % fsCP437HTMLFromBytesString(sbSourceReference);
     if oCdbWrapper.bGenerateReportHTML:
       if oStackFrame.bIsInline:
         # This frame is hidden (because it is irrelevant to the crash)
@@ -54,10 +57,10 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       if oStackFrame.s0IsHiddenBecause is not None:
         # This frame is hidden (because it is irrelevant to the crash)
           asFrameHTMLClasses.append("StackFrameHidden");
-          asFrameNotesHTML.append(oCdbWrapper.fsHTMLEncode(oStackFrame.s0IsHiddenBecause));
+          asFrameNotesHTML.append(fsCP437HTMLFromString(oStackFrame.s0IsHiddenBecause));
       if oStackFrame.bIsPartOfId:
           asFrameHTMLClasses.append("StackFramePartOfId");
-          asFrameNotesHTML.append("id: %s" % oCdbWrapper.fsHTMLEncode(oStackFrame.sId));
+          asFrameNotesHTML.append("id: %s" % fsCP437HTMLFromString(oStackFrame.sId));
       if not oStackFrame.o0Function:
         asFrameHTMLClasses.append("StackFrameWithoutSymbol");
         asFrameNotesHTML.append("no function symbol available");
@@ -65,7 +68,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
       aoStackFramesPartOfId.append(oStackFrame);
     if oCdbWrapper.bGenerateReportHTML:
       asHTML.append(" ".join([s for s in [
-        "<span class=\"%s\">%s</span>" % (" ".join(asFrameHTMLClasses), oCdbWrapper.fsHTMLEncode(oStackFrame.sbAddress)),
+        "<span class=\"%s\">%s</span>" % (" ".join(asFrameHTMLClasses), fsCP437HTMLFromBytesString(oStackFrame.sbAddress)),
         asFrameNotesHTML and "<span class=\"StackFrameNotes\">(%s)</span>" % ", ".join(asFrameNotesHTML),
         sOptionalSourceHTML and "<span class=\"StackFrameSource\">[%s]</span>" % sOptionalSourceHTML,
       ] if s]));
@@ -83,17 +86,22 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
     asStackIds.append(oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]]);
   oBugReport.s0StackId = ".".join(asStackIds) or None;
   # Get the bug location.
-  oBugReport.sBugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
+  oBugReport.s0BugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
-    oBugReport.sBugLocation = str(oTopIdStackFrame.sb0SimplifiedAddress, 'latin1') if oTopIdStackFrame.sb0SimplifiedAddress else "<unknown>";
-    if oProcess and oTopIdStackFrame.o0Module != oProcess.oMainModule:
-      # Exception did not happen in the process' binary: add process' binary name to the location:
-      oBugReport.sBugLocation = "%s!%s" % (oProcess.sSimplifiedBinaryName, oBugReport.sBugLocation);
+    if oTopIdStackFrame.sb0SimplifiedAddress:
+      # We can use the top stack frame for the bug locaiton.
+      oBugReport.s0BugLocation = "%s%s" % (
+        # We need to add the process binary only if it is not the same as the module binary for the function in which
+        # the bug happened (i.e. `binary.exe!kernel32.dll!function`)
+        (oProcess.sSimplifiedBinaryName + "!") if oProcess and oTopIdStackFrame.o0Module != oProcess.oMainModule
+            else "",
+        fsCP437FromBytesString(oTopIdStackFrame.sb0SimplifiedAddress)
+      );
     if oTopIdStackFrame.sb0SourceFilePath:
-      oBugReport.sBugSourceLocation = (
-        str(oTopIdStackFrame.sb0SourceFilePath, 'latin1')
-        + (oTopIdStackFrame.u0SourceFileLineNumber is not None and " @ %d" % oTopIdStackFrame.u0SourceFileLineNumber or "")
+      oBugReport.sBugSourceLocation = "%s%s" % (
+        fsCP437FromBytesString(oTopIdStackFrame.sb0SourceFilePath),
+        "" if oTopIdStackFrame.u0SourceFileLineNumber is None else " @ %d" % oTopIdStackFrame.u0SourceFileLineNumber,
       );
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:

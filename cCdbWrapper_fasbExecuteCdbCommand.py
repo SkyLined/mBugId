@@ -4,6 +4,7 @@ from mNotProvided import *;
 from .cCdbStoppedException import cCdbStoppedException;
 from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
 
 gbLogCommandExecutionTime = False;
 gbDebugIO = False; # Used for debugging cdb I/O issues
@@ -49,11 +50,14 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       oCdbWrapper.sCdbIOHTML += "<hr/>\n";
       if not bShowOutputButNotCommandInHTMLReport:
         # Add the command and the prompt to the output:
-        oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % \
-            oCdbWrapper.fsHTMLEncode(str(sbCommand, 'latin1'), uTabStop = 8);
+        oCdbWrapper.sCdbIOHTML += oCdbWrapper.sPromptHTML + "<span class=\"CDBCommand\">%s</span>" % (
+          fsCP437HTMLFromBytesString(sbCommand, u0TabStop = 8),
+        );
         if sb0Comment:
           # Optionally add the comment.
-          oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span>" % oCdbWrapper.fsHTMLEncode(str(sb0Comment, 'latin1'));
+          oCdbWrapper.sCdbIOHTML += " <span class=\"CDBComment\">$ %s</span>" % (
+            fsCP437HTMLFromBytesString(sb0Comment),
+          );
         # End of line
         oCdbWrapper.sCdbIOHTML += "<br/>\n";
     oCdbWrapper.sPromptHTML = None; # We expect a new prompt.
@@ -79,7 +83,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       oCdbWrapper.fbFireCallbacks("Log message", "Failed to write to cdb.exe stdin");
       raise cCdbStoppedException();
     try:
-      if gbDebugIO: print(">stdin>%s" % str(sbCommand, 'latin1'));
+      if gbDebugIO: print(">stdin>%s" % fsCP437FromBytesString(sbCommand));
       return oCdbWrapper.fasbReadOutput(
         bOutputIsInformative = bOutputIsInformative,
         bApplicationWillBeRun = bApplicationWillBeRun,

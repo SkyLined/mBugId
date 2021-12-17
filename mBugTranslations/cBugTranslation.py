@@ -2,9 +2,11 @@ import re;
 
 from mNotProvided import *;
 
+# local imports are at the end of this file to avoid import loops.
+
 def fsRegExpToString(rRegExp):
   return "/%s/%s" % (
-    str(rRegExp.pattern, "ascii", "strict") if isinstance(rRegExp.pattern, bytes) else rRegExp.pattern,
+    fsCP437FromBytesString(rRegExp.pattern) if isinstance(rRegExp.pattern, bytes) else rRegExp.pattern,
     "".join([
       "a" if rRegExp.flags & re.A else "",
       "i" if rRegExp.flags & re.I else "",
@@ -202,3 +204,5 @@ class cBugTranslation(object):
         ));
       oSelf.f0Callback(oCdbWrapper, oBugReport);
     return bTranslated;
+
+from ..mCP437 import fsCP437FromBytesString;

@@ -36,8 +36,8 @@ class cHelperThread(object):
     return oSelf.__oThread == cThread.foGetCurrent();
   
   def fStart(oSelf):
-    assert not oSelf.bIsRunning, \
-        "Cannot run twice in parallel.";
+    if oSelf.bIsRunning:
+      oSelf.__oThread.fStart(); # This should cause an exception.
     try:
       oSelf.__oThread = cThread(oSelf.__fRun);
     except thread.error as oException:

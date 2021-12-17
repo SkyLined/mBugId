@@ -3,9 +3,7 @@ import re;
 from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation;
 
-#from cException import cException; # moved to end of file to prevent circular reference
-from .fsbGetCPPObjectClassNameFromVFTable import fsbGetCPPObjectClassNameFromVFTable;
-from .cErrorDetails import cErrorDetails;
+# local imports are at the end of this file to avoid import loops.
 
 def fsSignature(uSignature):
   return "".join([chr((uSignature >> (uByteIndex * 8)) & 0xFF) for uByteIndex in range(3,-1,-1)]);
@@ -55,7 +53,7 @@ class cStowedException(object):
             oSelf.s0SecurityImpact = "%s, nested exception: %s" % \
                 (oSelf.s0SecurityImpact, oSelf.o0NestedException.s0SecurityImpact);
     if oSelf.sb0WRTLanguageExceptionIUnkownClassName:
-      oSelf.sTypeId += "@%s" % str(oSelf.sb0WRTLanguageExceptionIUnkownClassName, 'latin1');
+      oSelf.sTypeId += "@%s" % fsCP437FromBytesString(oSelf.sb0WRTLanguageExceptionIUnkownClassName);
       oSelf.sDescription += " WRT Language exception class name: %s." % oSelf.sb0WRTLanguageExceptionIUnkownClassName;
   
   @staticmethod
@@ -189,3 +187,6 @@ class cStowedException(object):
     return oStowedException;
 
 from .cException import cException;
+from .fsbGetCPPObjectClassNameFromVFTable import fsbGetCPPObjectClassNameFromVFTable;
+from .cErrorDetails import cErrorDetails;
+from .mCP437 import fsCP437FromBytesString;

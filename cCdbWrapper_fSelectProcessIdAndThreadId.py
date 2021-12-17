@@ -1,3 +1,5 @@
+from .mCP437 import fsCP437FromBytesString;
+
 def cCdbWrapper_fSelectProcessIdAndThreadId(oCdbWrapper, uProcessId = None, uThreadId = None):
   # Both arguments are optional
   sbSelectCommand = b"";
@@ -38,7 +40,7 @@ def cCdbWrapper_fSelectProcessIdAndThreadId(oCdbWrapper, uProcessId = None, uThr
       bUnexpectedOutput = False; #len(asbSelectCommandOutput) != 0;
     assert not bUnexpectedOutput, \
         "Unexpected select %s output:\r\n%s" % \
-        (b"/".join(asbSelected), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbSelectCommandOutput));
+        (b"/".join(asbSelected), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbSelectCommandOutput));
     if b"process" in asbSelected and b"thread" not in asbSelected:
       # We changed the process, but did not choose a thread; find out what the new thread is:
       uThreadId = oCdbWrapper.fuGetValueForRegister(b"$tid", b"Get current thread id");

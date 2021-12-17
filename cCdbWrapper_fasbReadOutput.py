@@ -1,10 +1,12 @@
 import re;
+
+from mFileSystemItem import cFileSystemItem;
+
 from .cCdbStoppedException import cCdbStoppedException;
 from .cEndOfCommandOutputMarkerMissingException import cEndOfCommandOutputMarkerMissingException;
 from .cHelperThread import cHelperThread;
 from .dxConfig import dxConfig;
-
-from mFileSystemItem import cFileSystemItem;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
@@ -128,7 +130,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
               if len(sb0IgnoredLine) > 0:
                 if bAddOutputToHTMLReport:
                   sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBStdOut";
-                  sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, oCdbWrapper.fsHTMLEncode(sb0IgnoredLine, uTabStop = 8));
+                  sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, fsCP437HTMLFromBytesString(sb0IgnoredLine, u0TabStop = 8));
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                 if bApplicationWillBeRun:
@@ -145,7 +147,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
                 # Some cruft got injected into the line; remove it and pretend that it was output before the line:
                 sb0ReturnedLine, sbCruft = oIgnoredCdbOutputLine.groups();
                 if bAddOutputToHTMLReport:
-                  sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>\n" % (oCdbWrapper.fsHTMLEncode(sbCruft, uTabStop = 8));
+                  sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>\n" % (fsCP437HTMLFromBytesString(sbCruft, u0TabStop = 8));
                   # Add the line to the current block of I/O
                   oCdbWrapper.sCdbIOHTML += sLineHTML;
                 # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
@@ -159,7 +161,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
                 if sb0ReturnedLine:
                   if bAddOutputToHTMLReport:
                     sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
-                    sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, oCdbWrapper.fsHTMLEncode(sb0ReturnedLine, uTabStop = 8));
+                    sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % (sClass, fsCP437HTMLFromBytesString(sb0ReturnedLine, u0TabStop = 8));
                     # Add the line to the current block of I/O
                     oCdbWrapper.sCdbIOHTML += sLineHTML;
                   if bApplicationWillBeRun:
@@ -183,7 +185,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           sb0ReturnedLine = b"";
       else:
         sbLine += bytes((u0Byte,));
-        if gbDebugIO: print("\r<stdout<%s" % str(sbLine, 'latin1'), end=' ');
+        if gbDebugIO: print("\r<stdout<%s" % fsCP437FromBytesString(sbLine), end=' ');
         if sb0IgnoredLine is None:
           sb0ReturnedLine += bytes((u0Byte,));
         else:
@@ -198,7 +200,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           if not bIgnoreOutput:
             assert not sb0StartOfCommandOutputMarker, \
                 "No start of output marker found in command output:\r\n%s" % \
-                "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLines);
+                "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLines);
             # If there is an error during execution of the command, the end marker will not be output. In this case, see
             # if it is an expected and ignored error, or thrown an assertion:
             if sb0EndOfCommandOutputMarker:
@@ -207,7 +209,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
                 raise cEndOfCommandOutputMarkerMissingException(asbReturnedLines);
           if oCdbWrapper.bGenerateReportHTML:
             # The prompt is always stored in a new block of I/O
-            oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % oCdbWrapper.fsHTMLEncode(sbLine);
+            oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % fsCP437HTMLFromBytesString(sbLine);
           break;
   finally:
     if bApplicationWillBeRun:

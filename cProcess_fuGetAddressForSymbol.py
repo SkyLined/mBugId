@@ -1,6 +1,7 @@
 import re;
 
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .mCP437 import fsCP437FromBytesString;
 
 grbIgnoredErrors = re.compile(rb"^(Couldn't resolve error at .*|Ambiguous symbol error at '.+')$");
 
@@ -18,7 +19,7 @@ def cProcess_fuGetAddressForSymbol(oProcess, sbSymbol):
   else:
     assert len(asbCommandOutput) == 1, \
         "Expected only one line in value result:\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCommandOutput);
   if grbIgnoredErrors.match(asbCommandOutput[uValueAtIndex]):
     return None;
   try:
@@ -30,6 +31,6 @@ def cProcess_fuGetAddressForSymbol(oProcess, sbSymbol):
         repr(sbSymbol),
         uValueAtIndex + 1,
         asbCommandOutput[uValueAtIndex],
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbCommandOutput)
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCommandOutput)
       )
     );

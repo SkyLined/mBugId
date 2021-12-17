@@ -1,3 +1,5 @@
+from .mCP437 import fsCP437FromBytesString;
+
 def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
   oCdbWrapper.fbFireCallbacks("Log message", "Terminating UWP application", {
     "Application Id": oUWPApplication.sApplicationId, 
@@ -5,8 +7,8 @@ def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
     "Package full name": oUWPApplication.sPackageFullName, 
   });
   # Kill it so we are sure to run a fresh copy.
-  sbPackageName = bytes(oUWPApplication.sPackageName, 'latin1');
-  sbPackageFullName = bytes(oUWPApplication.sPackageFullName, 'latin1');
+  sbPackageName = bytes(oUWPApplication.sPackageName, "ascii", "strict");
+  sbPackageFullName = bytes(oUWPApplication.sPackageFullName, "ascii", "strict");
   asbTerminateUWPApplicationOutput = oCdbWrapper.fasbExecuteCdbCommand(
     sbCommand = b".terminatepackageapp %s;" % sbPackageFullName,
     sb0Comment = b"Terminate UWP application %s" % sbPackageName,
@@ -26,12 +28,12 @@ def cCdbWrapper_fTerminateUWPApplication(oCdbWrapper, oUWPApplication):
     );
     assert asbTerminateUWPApplicationOutput == asbTerminateUWPApplicationOutput2, \
         "Cannot terminate UWP App and repeating the .terminatepackageapp command does not appear to be useful: %s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput2);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbTerminateUWPApplicationOutput2);
     assert False, \
         "Cannot terminate UWP App and repeating the .terminatepackageapp command gives an unknown error: %s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput2);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbTerminateUWPApplicationOutput2);
   if asbTerminateUWPApplicationOutput:
     assert asbTerminateUWPApplicationOutput == [b'The "terminatePackageApp" action will be completed on next execution.'], \
         "Unexpected .terminatepackageapp output:\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbTerminateUWPApplicationOutput);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbTerminateUWPApplicationOutput);
 

@@ -1,5 +1,8 @@
 import re;
+
 from mWindowsSDK import *;
+
+from .mCP437 import fsCP437FromBytesString;
 
 gbDebugOutput = False;
 
@@ -112,5 +115,5 @@ def cProcess_fu0GetTargetAddressForCallInstructionReturnAddress(oProcess, uRetur
       rb0IgnoredErrors = rbIgnoredMemoryAccessError,
     );
     for sbLine in asbDisassemblyBeforeAddress[-8:]:
-      print ("  %s" % str(sbLine, "ascii", "strict"));
+      print ("  %s" % fsCP437FromBytesString(sbLine));
   return None; # This opcode is not for the CALL instruction we can parse.

@@ -1,13 +1,8 @@
 import re;
-from .cBugReport import cBugReport;
-from .cPageHeapManagerData import cPageHeapManagerData;
-from .dxConfig import dxConfig;
-from .fsGetNumberDescription import fsGetNumberDescription;
-from .fsNumberOfBytes import fsNumberOfBytes;
-from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+
 from mWindowsAPI import *;
+
+# local imports are at the end of this file to avoid import loops.
 
 gbDebugOutput = False;
 
@@ -49,7 +44,7 @@ class cVerifierStopDetector(object):
       obInformationMatch = re.match(rb"^\t([0-9A-F]+) : (.*?)\s*$", sbLine);
       assert obInformationMatch, \
           "Unhandled VERIFIER STOP message line: %s\r\n%s" % \
-          (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput));
+          (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput));
       (sbValue, sbDescription) = obInformationMatch.groups();
       uValue = fu0ValueFromCdbHexOutput(sbValue);
       sbDescription = sbDescription.lower(); # Both "Corruption address" and "corruption address" are used :(
@@ -73,7 +68,7 @@ class cVerifierStopDetector(object):
         # an empty or "Not used." description to indicates this.
         assert sbDescription in [b"", b"Not used."] and uValue == 0, \
             "Unhandled VERIFIER STOP message line: %s\r\n%s" % \
-            (repr(sbLine), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput));
+            (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput));
     if uErrorNumber == 0x303:
       # |VERIFIER STOP 0000000000000303: pid 0xB2C: NULL handle passed as parameter. A valid handle must be used.
       # |
@@ -100,10 +95,10 @@ class cVerifierStopDetector(object):
     
     assert u0VerifierStopHeapBlockAddress is not None, \
         "The heap block start address was not found in the verifier stop message.\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
     assert u0VerifierStopHeapBlockSize is not None, \
         "The heap block size was not found in the verifier stop message.\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
     
     o0PageHeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(u0VerifierStopHeapBlockAddress, sType = "page heap");
     if o0PageHeapManagerData is None and sbMessage == b"block already freed":
@@ -194,10 +189,10 @@ class cVerifierStopDetector(object):
       # |        277F1000 : Heap owning the block
       assert u0VerifierStopHeapHandle is not None, \
           "Missing 'Heap used in the call' value in the VERIFIER STOP message.\r\n%s" % \
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
       assert u0VerifierStopHeapBlockHandle is not None, \
           "Missing 'Heap owning the block' value in the VERIFIER STOP message.\r\n%s" % \
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
       sBugTypeId = "WrongHeap%s" % sBlockSizeId;
       sBugDescription = "The application provided an incorrect heap handle (0x%X) for %s which belongs to another " \
           "heap (handle 0x%X)" % (u0VerifierStopHeapHandle, sBlockSizeDescription, u0VerifierStopHeapBlockHandle);
@@ -214,7 +209,7 @@ class cVerifierStopDetector(object):
       if sbMessage in [b"corrupted start stamp", b"corrupted end stamp"]:
         assert u0CorruptionAddress is None, \
             "We do not expect the corruption address to be provided in this VERIFIER STOP message\r\n%s" % \
-            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+            "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
         if not o0PageHeapManagerData or not o0PageHeapManagerData.o0HeapBlockHeader:
           if gbDebugOutput: print("VERIFIER STOP: corrupted stamp reported but block is already free!?");
           # This makes no sense: there is no heap block header because the memory is really freed by verifier but left
@@ -241,7 +236,7 @@ class cVerifierStopDetector(object):
         if gbDebugOutput: print("VERIFIER STOP: corrupted stamp/header reported, indicating an out-of-bounds write.");
         assert u0CorruptionAddress is not None, \
             "The corruption address is expected to be provided in this VERIFIER STOP message:\r\n%s" % \
-            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+            "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
         # Page heap stores the heap as close as possible to the edge of a page, taking into account that the start of the
         # heap block must be properly aligned. Bytes between the heap block and the end of the page are initialized to
         # 0xD0. Verifier has detected that one of the bytes changed value, which indicates an out-of-bounds write. BugId
@@ -253,7 +248,7 @@ class cVerifierStopDetector(object):
         if gbDebugOutput: print("VERIFIER STOP: corrupted infix reported, indicating an out-of-bounds write.");
         assert u0CorruptionAddress is not None, \
             "The corruption address is expected to be provided in the VERIFIER STOP message:\r\n%s" % \
-            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDebugOutput);
+            "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
         # Page heap sometimes does not free a heap block immediately, but overwrites the bytes with 0xF0. Verifier has
         # detected that one of the bytes changed value, which indicates a write-after-free. BugId will try to find all
         # bytes that were changed:
@@ -261,8 +256,8 @@ class cVerifierStopDetector(object):
         uExpectedCorruptionEndAddress = u0CorruptionAddress + 1; # We do not know the size, so assume one byte.
         sBugAccessTypeId = "WAF";
       else:
-        if gbDebugOutput: print("VERIFIER STOP: unknown error message %s." % str(sbMessage, "ascii", "replace"));
-        raise AssertionError("Unhandled VERIFIER STOP message: %s" % str(sbMessage, "ascii", "replace"));
+        if gbDebugOutput: print("VERIFIER STOP: unknown error message %s." % fsCP437FromBytesString(sbMessage));
+        raise AssertionError("Unhandled VERIFIER STOP message: %s" % fsCP437FromBytesString(sbMessage));
       # We cannot trust the information in the VERIFIER STOP message: if you run the test "OutOfBounds Heap Write 1 -1 1"
       # (meaning you allocate 1 byte, write 1 byte at offset -1) you would expect it to report that the "end stamp" of
       # the heap block header was corrupted. HOWEVER IT INCORRECTLY REPORTS THAT THE START STAMP WAS CORRUPTED. So, only
@@ -317,7 +312,7 @@ class cVerifierStopDetector(object):
         "sName": "VERIFIER STOP message",
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
-          oCdbWrapper.fsHTMLEncode(sbLine, uTabStop = 8) for sbLine in asbDebugOutput
+          fsCP437HTMLFromBytesString(sbLine, u0TabStop = 8) for sbLine in asbDebugOutput
         ])
       };
       oBugReport.asExceptionSpecificBlocksHTML.append(sVerifierStopMessageHTML);
@@ -325,3 +320,13 @@ class cVerifierStopDetector(object):
     oBugReport.bRegistersRelevant = False;
     oBugReport.fReport();
     oCdbWrapper.fStop();
+
+from .cBugReport import cBugReport;
+from .cPageHeapManagerData import cPageHeapManagerData;
+from .dxConfig import dxConfig;
+from .fsGetNumberDescription import fsGetNumberDescription;
+from .fsNumberOfBytes import fsNumberOfBytes;
+from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;

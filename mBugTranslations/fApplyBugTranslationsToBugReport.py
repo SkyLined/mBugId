@@ -68,7 +68,7 @@ def fApplyBugTranslationsToBugReport(oCdbWrapper, oBugReport):
         uSanityCheckMaximumLoops -= 1;
         assert uSanityCheckMaximumLoops, \
             "A bug translation loop was detected that appears to involved %s being applied to %s @ %s" % \
-            (str(oBugTranslation), oBugReport.sId, oBugReport.sBugLocation);
+            (str(oBugTranslation), oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
         break;
     else:
       # No translations apply: done.

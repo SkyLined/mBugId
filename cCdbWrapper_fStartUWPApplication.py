@@ -1,10 +1,12 @@
 from mNotProvided import *;
 
+from .mCP437 import fsCP437FromBytesString;
+
 def cCdbWrapper_fStartUWPApplication(oCdbWrapper, oUWPApplication, sb0Argument):
   fAssertType("sb0Argument", sb0Argument, bytes, None);
-  sbPackageName = bytes(oUWPApplication.sPackageName, 'latin1');
-  sbPackageFullName = bytes(oUWPApplication.sPackageFullName, 'latin1');
-  sbApplicationId = bytes(oUWPApplication.sApplicationId, 'latin1');
+  sbPackageName = bytes(oUWPApplication.sPackageName, "ascii", "strict");
+  sbPackageFullName = bytes(oUWPApplication.sPackageFullName, "ascii", "strict");
+  sbApplicationId = bytes(oUWPApplication.sApplicationId, "ascii", "strict");
   if sb0Argument is None:
     # Note that the space between the application id and the command-terminating semi-colon MUST be there to
     # make sure the semi-colon is not interpreted as part of the application id!

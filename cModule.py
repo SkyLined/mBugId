@@ -2,6 +2,7 @@ import os, re;
 
 from .cFunction import cFunction;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
 
 grb_dlls_OutputLine = re.compile(
   rb"^\s*"
@@ -55,7 +56,7 @@ class cModule(object):
     oSelf.__sb0FileVersion = None;
     oSelf.__sb0Timestamp = None;
     oSelf.__doFunction_by_sbSymbol = {};
-    oSelf.__atsModuleInformationNameAndValuePairs = None;
+    oSelf.__atsbModuleInformationNameAndValuePairs = None;
     oSelf.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
   def __repr__(oSelf):
@@ -85,7 +86,7 @@ class cModule(object):
       if asbLoadSymbolsOutput != [b"Symbol load for %s failed" % oSelf.sbCdbId]:
         assert len(asbLoadSymbolsOutput) == 1 and re.match(rb"Symbols (already )?loaded for %s" % oSelf.sbCdbId, asbLoadSymbolsOutput[0]), \
             "Unexpected load symbols output:\r\n%s" % \
-            "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLoadSymbolsOutput);
+            "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLoadSymbolsOutput);
         # Unfortunately, it does not tell us if it loaded a pdb, or if export symbols are used.
         # So we will call __fzGetModuleSymbolAndVersionInformation again to find out.
         oSelf.__fzGetModuleSymbolAndVersionInformation();
@@ -129,7 +130,7 @@ class cModule(object):
         obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
         assert obFirstLineMatch, \
             "Unrecognized !dlls output first line : %s\r\n%s" % \
-              (repr(asbDLLsOutput[0]), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbDLLsOutput));
+              (repr(asbDLLsOutput[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDLLsOutput));
         oSelf.__sb0BinaryPath = obFirstLineMatch.group(1);
       else:
         # Of course, !dlls will sometimes not output anything for unknown reasons.
@@ -174,14 +175,16 @@ class cModule(object):
   def sInformationHTML(oSelf):
     if not oSelf.__bModuleSymbolAndVersionInformationAvailable:
       oSelf.__fzGetModuleSymbolAndVersionInformation();
-    fsHTMLEncode = oSelf.oProcess.oCdbWrapper.fsHTMLEncode;
     sb0BinaryName = oSelf.sb0BinaryName;
     return "".join([
-      "<h2 class=\"SubHeader\">%s</h2>" % fsHTMLEncode(str(sb0BinaryName, 'latin1') if sb0BinaryName else "<unknown binary>"),
+      "<h2 class=\"SubHeader\">%s</h2>" % (
+        fsCP437HTMLFromBytesString(sb0BinaryName) if sb0BinaryName
+        else "<unknown binary>"
+      ),
       "<table>",
     ] + [
-      "<tr><td>%s</td><td>%s</td></tr>" % (fsHTMLEncode(sName), fsHTMLEncode(sValue))
-      for sName, sValue in oSelf.__atsModuleInformationNameAndValuePairs
+      "<tr><td>%s</td><td>%s</td></tr>" % (fsCP437HTMLFromBytesString(sbName), fsCP437HTMLFromBytesString(sbValue))
+          for (sbName, sbValue) in oSelf.__atsbModuleInformationNameAndValuePairs
     ] + [
       "</table>",
     ]);
@@ -204,20 +207,20 @@ class cModule(object):
     );
     assert len(asb_lmov_Output), \
         "Got no \"lmov %s\" output!" % (
-          str(sb_lmov_Arguments, "ascii", "strict"),
+          fsCP437FromBytesString(sb_lmov_Arguments),
         );
     assert grb_lm_Header.match(asb_lmov_Output[0]), \
         "Unrecognized \"lmov %s\" output first line:\r\n%s" % (
-          str(sb_lmov_Arguments, "ascii", "strict"),
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output)
+          fsCP437FromBytesString(sb_lmov_Arguments),
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output)
         );
     if len(asb_lmov_Output) == 1:
       return None; # There is no module here.
     assert len(asb_lmov_Output) > 2, \
         "Expected at least three lines of \"lmov %s\" output, got %d:\r\n%s" % (
-          str(sb_lmov_Arguments, "ascii", "strict"),
+          fsCP437FromBytesString(sb_lmov_Arguments),
           len(asb_lmov_Output),
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output)
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output)
         );
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
     oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
@@ -235,10 +238,10 @@ class cModule(object):
     );
     assert len(asb_lmo_Output) > 1, \
         "Expected at least two lines of module information output, got %d:\r\n%s" % \
-        (len(asb_lmo_Output), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmo_Output));
+        (len(asb_lmo_Output), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmo_Output));
     assert grb_lm_Header.match(asb_lmo_Output[0]), \
         "Unrecognized list modules output header: %s\r\n%s" % \
-        (repr(asb_lmo_Output[0]), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmo_Output));
+        (repr(asb_lmo_Output[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmo_Output));
     aoModules = [];
     for sbLine in asb_lmo_Output[1:]:
       (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sbLine);
@@ -292,15 +295,15 @@ class cModule(object):
     # |    LegalTrademarks:  Firefox is a Trademark of The Mozilla Foundation.
     # |    Comments:         Firefox is a Trademark of The Mozilla Foundation.
     # The first two lines can be skipped.
-    oSelf.__atsModuleInformationNameAndValuePairs = [];
+    oSelf.__atsbModuleInformationNameAndValuePairs = [];
     if len(asb_lmov_Output) == 1:
       return False;
     assert len(asb_lmov_Output) > 2, \
         "Expected at least 3 lines of list module output, got %d:\r\n%s" % \
-        (len(asb_lmov_Output), "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output));
+        (len(asb_lmov_Output), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output));
     assert grb_lm_Header.match(asb_lmov_Output[0]), \
         "Unexpected list module output on line 1:\r\n%s" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output);
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
     assert oSelf.uStartAddress == uStartAddress, \
         "Module start address was given as 0x%X, but is now reported to be 0x%X" % (oSelf.uStartAddress, uStartAddress);
@@ -330,10 +333,10 @@ class cModule(object):
       oNameAndValueMatch = re.match(rb"^\s+([^:]+):\s+(.*?)\s*$", sbLine);
       assert oNameAndValueMatch, \
           "Unexpected list module output: %s\r\n%s" % \
-          (sbLine, "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asb_lmov_Output));
+          (sbLine, "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output));
       (sbName, sbValue) = oNameAndValueMatch.groups();
       dsbValue_by_sbName[sbName] = sbValue;
-      oSelf.__atsModuleInformationNameAndValuePairs.append((sbName, sbValue));
+      oSelf.__atsbModuleInformationNameAndValuePairs.append((sbName, sbValue));
     sb0ModuleBinaryPath = dsbValue_by_sbName[b"Image path"] if b"Image path" in dsbValue_by_sbName else None;
     if oSelf.__sb0BinaryPath is None and sb0ModuleBinaryPath:
       # If the "Image path" is absolute, os.path.join will simply use that, otherwise it will be relative to the base path
@@ -341,8 +344,8 @@ class cModule(object):
       if sProcessBinaryPath:
         sProcessBinaryBasePath = os.path.dirname(sProcessBinaryPath);
         try:
-          sb0ModuleBinaryPath = os.path.join(bytes(sProcessBinaryBasePath, 'latin1'), sb0ModuleBinaryPath);
-        except:
+          sb0ModuleBinaryPath = os.path.join(bytes(sProcessBinaryBasePath, "ascii", "strict"), sb0ModuleBinaryPath);
+        except UnicodeEncodeError:
           pass;
       # The above is kinda hacky, so check that the file exists before assuming the value is correct:
       if os.path.isfile(sb0ModuleBinaryPath):

@@ -2,6 +2,7 @@ import re;
 
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
+from .mCP437 import fsCP437FromBytesString;
 
 grbEIPOutsideAllocatedMemory = re.compile(
   rb"^"
@@ -93,7 +94,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
     # |00007ff9`b6f1a904 488b8d500d0000  mov     rcx,qword ptr [rbp+0D50h] ss:00000244`4124f590=0000024441210240
     assert len(asbLastInstructionAndAddress) == 1, \
         "Unexpected last instruction output:\r\n%r" % \
-        "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastInstructionAndAddress);
+        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastInstructionAndAddress);
     obEIPOutsideAllocatedMemoryMatch = grbEIPOutsideAllocatedMemory.match(asbLastInstructionAndAddress[0]);
     if obEIPOutsideAllocatedMemoryMatch:
       sbAddress = obEIPOutsideAllocatedMemoryMatch.group(1);
@@ -102,7 +103,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       obLastInstructionMatch = grbInstruction.match(asbLastInstructionAndAddress[0]);
       assert obLastInstructionMatch, \
           "Unexpected last instruction output:\r\n%s" % \
-          "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbLastInstructionAndAddress);
+          "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastInstructionAndAddress);
       (sbDestinationOperandThatDoesNotReferenceMemory, sbAddress1, sbValue, sbAddress2, sbAddress3) = \
           obLastInstructionMatch.groups();
       sbAddress = sbAddress1 or sbAddress2 or sbAddress3;

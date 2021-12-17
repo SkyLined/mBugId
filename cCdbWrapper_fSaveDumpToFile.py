@@ -1,5 +1,7 @@
 from mNotProvided import *;
 
+from .mCP437 import fsCP437FromBytesString;
+
 def cCdbWrapper_fSaveDumpToFile(oCdbWrapper, sFilePath, bOverwrite, bFull):
   fAssertType("sFilePath", sFilePath, str);
   asbFlags = [s for s in [
@@ -7,6 +9,6 @@ def cCdbWrapper_fSaveDumpToFile(oCdbWrapper, sFilePath, bOverwrite, bFull):
     b"/mAfFhuty" if bFull else b"/miR",
   ] if s];
   oCdbWrapper.fasbExecuteCdbCommand( \
-    sbCommand = b".dump %s \"%s\";" % (b" ".join(asbFlags), bytes(sFilePath, 'latin1')),
+    sbCommand = b".dump %s \"%s\";" % (b" ".join(asbFlags), bytes(sFilePath, "ascii", "strict")),
     sb0Comment = b"Save dump to file",
   );

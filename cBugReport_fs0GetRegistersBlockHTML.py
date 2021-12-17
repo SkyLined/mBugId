@@ -1,4 +1,6 @@
 from .dxConfig import dxConfig;
+from .mCP437 import fsCP437FromBytesString;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 gdaxbRelevantRegisters_by_sISA = {
   #  NAME    SIZE   SYMBOL
@@ -64,7 +66,7 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
   duRegisterValue_by_sbName = d0uRegisterValue_by_sbName;
   asRegistersTableHTML = [];
   for (sbRegisterName, uPadding, bShowSymbol) in gdaxbRelevantRegisters_by_sISA[oProcess.sISA]:
-    sRegisterName = str(sbRegisterName, "ascii", "strict");
+    sRegisterName = fsCP437FromBytesString(sbRegisterName);
     uRegisterValue = duRegisterValue_by_sbName[sbRegisterName];
     sRegisterValue = "%X" % uRegisterValue;
     sValuePadding = "0" * (uPadding - len(sRegisterValue));
@@ -74,7 +76,7 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
         '<td>', sRegisterName, '</td>',
         '<td> = </td>',
         '<td><span class="HexNumberHeader">0x', sValuePadding, '</span>', sRegisterValue, '</td>',
-        '<td>', str(sb0Symbol, "ascii", "strict") if sb0Symbol else "", '</td>',
+        '<td>', fsCP437FromBytesString(sb0Symbol) if sb0Symbol else "", '</td>',
       '</tr>\n',
     ]);
     if uRegisterValue < 1 << (oProcess.uPointerSize * 8):
@@ -91,4 +93,3 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
     "sContent": "<table class=\"Registers\">\n%s</table>" % "".join(asRegistersTableHTML),
   };
 
-from .sBlockHTMLTemplate import sBlockHTMLTemplate;

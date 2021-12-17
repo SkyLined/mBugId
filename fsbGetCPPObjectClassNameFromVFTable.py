@@ -1,5 +1,7 @@
 import re;
 
+from .mCP437 import fsCP437FromBytesString;
+
 grbVFTableSymbolClassName = re.compile(
   rb"^"                                       
   rb"[0-9`A-F]+"                              # number
@@ -21,6 +23,6 @@ def fsbGetCPPObjectClassNameFromVFTable(oProcess, uCPPObjectAddress):
     bOutputIsInformative = True,
   );
   assert len(asbVFTableSymbolOutput) == 1, \
-      "Unexpected vftable pointer symbol output:\r\n%s" % "\r\n".join(str(sbLine, "ascii", "strict") for sbLine in asbVFTableSymbolOutput);
+      "Unexpected vftable pointer symbol output:\r\n%s" % "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbVFTableSymbolOutput);
   obVFTableSymbolClassNameMatch = grbVFTableSymbolClassName.match(asbVFTableSymbolOutput[0]);
   return obVFTableSymbolClassNameMatch.group(1) if obVFTableSymbolClassNameMatch else None;
