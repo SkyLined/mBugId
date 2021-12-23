@@ -1,13 +1,9 @@
 class cFunction(object):
   def __init__(oSelf, oModule, sbSymbol):
-    assert oModule.sb0BinaryName, \
-        "Cannot have a function in a module without a binary name: %s" % repr(oModule);
-    assert oModule.sb0SimplifiedName, \
-        "Cannot have a function in a module without a simplified binary name: %s" % repr(oModule);
     oSelf.oModule = oModule;
     oSelf.sbSymbol = sbSymbol;
     oSelf.sbCdbId = b"%s!%s" % (oModule.sbCdbId, sbSymbol);
-    oSelf.sbName = b"%s!%s" % (oModule.sb0BinaryName, sbSymbol);
+    oSelf.sbName = b"%s!%s" % (oModule.sb0BinaryName or "<unknown module>", sbSymbol);
     # Replace complex template stuff with "<...>" to make a symbol easier to read.
     asbComponents = [b""];
     for uChar in sbSymbol:
