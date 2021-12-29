@@ -1,4 +1,4 @@
-import os, re, traceback;
+﻿import os, re, traceback;
 from mBugId import cBugId;
 from mConsole import oConsole;
 from mFileSystemItem import cFileSystemItem;
@@ -79,22 +79,22 @@ def fRunASingleTest(
   
   oConsole.fSetTitle(sTestDescription);
   if mGlobals.bDebugStartFinish:
-    oConsole.fOutput("* Started %s" % sTestDescription);
+    oConsole.fOutput("→ Started %s" % sTestDescription);
   else:
-    oConsole.fStatus("* %s" % sTestDescription);
+    oConsole.fStatus("► %s" % sTestDescription);
   
   asLog = [];
   def fCdbStdInInputCallback(oBugId, sbInput):
     sInput = fsCP437FromBytesString(sbInput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("stdin<%s" % sInput);
+    if mGlobals.bShowCdbIO: oConsole.fOutput("  stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
   def fCdbStdOutOutputCallback(oBugId, sbOutput):
     sOutput = fsCP437FromBytesString(sbOutput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("stdout>%s" % sOutput);
+    if mGlobals.bShowCdbIO: oConsole.fOutput("  stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
   def fCdbStdErrOutputCallback(oBugId, sbOutput):
     sOutput = fsCP437FromBytesString(sbOutput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("stderr>%s" % sOutput);
+    if mGlobals.bShowCdbIO: oConsole.fOutput("  stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
   def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asOutput):
@@ -162,7 +162,7 @@ def fRunASingleTest(
     oBugId.fStop();
     raise AssertionError("Failed to apply memory limits to process");
   def fFinishedCallback(oBugId):
-    if mGlobals.bShowCdbIO: oConsole.fOutput("Finished");
+    if mGlobals.bShowCdbIO: oConsole.fOutput("  Finished");
     asLog.append("Finished");
   def fLicenseWarningsCallback(oBugId, asLicenseWarnings):
     if not mGlobals.bLicenseWarningsShown:
@@ -236,7 +236,7 @@ def fRunASingleTest(
       azsSymbolServerURLs = ["http://msdl.microsoft.com/download/symbols"], # Will be ignore if symbols are disabled.
       bGenerateReportHTML = mGlobals.bGenerateReportHTML,
       u0TotalMaxMemoryUse = mGlobals.uTotalMaxMemoryUse,
-      uMaximumNumberOfBugs = uMaximumNumberOfBugs,
+      u0MaximumNumberOfBugs = uMaximumNumberOfBugs,
     );
     oBugId.fAddCallback("Application resumed", fApplicationResumedCallback);
     oBugId.fAddCallback("Application running", fApplicationRunningCallback);
@@ -308,7 +308,7 @@ def fRunASingleTest(
       pass;
     elif a0sExpectedBugIdAndLocations is None:
       uCounter = 0;
-      oConsole.fOutput("* Test results for: %s" % sTestDescription);
+      oConsole.fOutput("→ Test results for: %s" % sTestDescription);
       for oBugReport in aoBugReports:
         uCounter += 1;
         sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
@@ -320,7 +320,7 @@ def fRunASingleTest(
         if not mGlobals.bShowCdbIO: 
           for sLine in asLog:
             oConsole.fOutput(sLine);
-        oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
+        oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
         oConsole.fOutput(ERROR, "  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(a0sExpectedBugIdAndLocations)));
         fDumpExpectedAndReported();
         raise AssertionError("Test reported different number of bugs than was expected");
@@ -335,7 +335,7 @@ def fRunASingleTest(
             if not mGlobals.bShowCdbIO: 
               for sLine in asLog:
                 oConsole.fOutput(ERROR, sLine);
-            oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
+            oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
             oConsole.fOutput(ERROR, "  Test bug #%d does not match %s." % (uCounter, repr(sExpectedBugIdAndLocation)));
             fDumpExpectedAndReported()
             if oBugReport.o0Stack:
@@ -354,15 +354,15 @@ def fRunASingleTest(
           oReportFile.fbWrite(sbReportHTML, bKeepOpen = False, bParseZipFiles = True, bThrowErrors = True);
         else:
           oReportFile.fbCreateAsFile(sbReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False, bThrowErrors = True);
-        oConsole.fOutput("  Wrote report: %s" % sReportsFilePath);
+        oConsole.fOutput("→ Wrote report: %s" % sReportsFilePath);
   except Exception as oException:
     if bBugIdStarted and not bBugIdStopped:
       oBugId.fTerminate();
-    oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
+    oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
     oConsole.fOutput(ERROR, "  Exception:   %s" % repr(oException));
     raise;
   finally:
     if mGlobals.bDebugStartFinish:
-      oConsole.fOutput("* Finished %s" % sTestDescription);
+      oConsole.fOutput("  √ Finished %s" % sTestDescription);
     elif a0sExpectedBugIdAndLocations is not None:
-      oConsole.fOutput("+ %s" % sTestDescription);
+      oConsole.fOutput("√ %s" % sTestDescription);
