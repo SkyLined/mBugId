@@ -98,7 +98,7 @@ class cModule(object):
       if oSelf.__sbSymbolStatus in [b"deferred", b"export symbols", b"no symbols"]:
         # Loading the symbols failed; force reload all modules and overwriting any cached pdbs.
         oSelf.oProcess.fasbExecuteCdbCommand(
-          sbCommand = b"!sym noisy; .block {.reload /d /f /o /v;}; !sym quiet;",
+          sbCommand = b"!sym noisy; .block {.reload /f /o /v /w %s;}; !sym quiet;" % oSelf.sb0BinaryName,
           sb0Comment = b"Reload symbols for module %s@0x%X" % (oSelf.sbCdbId, oSelf.uStartAddress),
           bRetryOnTruncatedOutput = True,
         );
