@@ -26,7 +26,7 @@ class cHeapManagerData(object):
     return ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress(
       uBlockStartAddress = oSelf.uHeapBlockStartAddress,
       uBlockSize = oSelf.uHeapBlockSize,
-      sBlockType = "heap",
+      sBlockType = "%sheap" % ("freed " if oSelf.bFreed else "",),
       uAddress = uAddress,
     );
   
