@@ -100,9 +100,6 @@ class cProcess(object):
   def __str__(oProcess):
     return 'Process(%s %s #%d)' % (oProcess.sBinaryName, oProcess.sISA, oProcess.uProcessId);
   
-  def fasbGetStack(oProcess, sbCdbCommand):
-    return cProcess_fasbGetStack(oProcess, sbCdbCommand);
-  
   def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, u0ThreadId = None, sb0Command = None):
     return oProcess.oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
       uProcessId = oProcess.uId,
@@ -159,7 +156,7 @@ class cProcess(object):
   def fo0ReadStructureForAddress(oSelf, cStructure, uAddress):
     return oSelf.oWindowsAPIProcess.fo0ReadStructureForAddress(cStructure, uAddress);  
   def fWriteBytesForAddress(oSelf, sData, uAddress):
-    return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress, bUnicode);
+    return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress);
   def fWriteStringForAddress(oSelf, sData, uAddress, bUnicode = False):
     return oSelf.oWindowsAPIProcess.fWriteStringForAddress(oSelf, sData, uAddress, bUnicode);
   def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
