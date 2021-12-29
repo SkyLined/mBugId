@@ -139,6 +139,8 @@ class cCdbWrapper(cWithCallbacks):
       "Application suspended", # (str sReason)
       "ASan detected", # ()
       "Bug report", # (cBugReport oBugReport)
+      "Cdb command started executing", # (sbCommand, uAttempt, uTries, sb0Comment)
+      "Cdb command finished executing", # (sbCommand, uAttempt, uTries, sb0Comment)
       "Cdb stderr output", # (str sOutput)
       "Cdb stdin input", # (str sInput)
       "Cdb stdout output", # (str sOutput)

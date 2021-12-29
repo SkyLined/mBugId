@@ -39,6 +39,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
 ):
   fAssertType("sbCommand", sbCommand, bytes);
   fAssertType("sb0Comment", sb0Comment, bytes, None);
+  sCommand = fsCP437FromBytesString(sbCommand);
   assert oCdbWrapper.oCdbStdInOutHelperThread.fbIsCurrentThread(), \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutHelperThread call.";
   if oCdbWrapper.bGenerateReportHTML:
@@ -70,7 +71,11 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       sb0Comment and (b" $$ %s" % sb0Comment) or b"",
     );
   uTries = bRetryOnTruncatedOutput and 5 or 1; # It seems that one retry may not be enough... :(
+  uAttempt = 0;
+  s0Comment = fsCP437FromBytesString(sb0Comment) if sb0Comment else None;
   while 1:
+    uAttempt += 1;
+    oCdbWrapper.fbFireCallbacks("Cdb command started executing", sCommand, uAttempt, uTries, s0Comment);
     oCdbWrapper.fbFireCallbacks("Cdb stdin input", sbCommand);
     try:
       oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes(sbCommand + b"\r\n");
@@ -82,21 +87,21 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       oCdbWrapper.fbFireCallbacks("Log message", "Failed to write to cdb.exe stdin");
       raise oCdbWrapper.cCdbStoppedException();
     try:
-      if gbDebugIO: print(">stdin>%s" % fsCP437FromBytesString(sbCommand));
+      if gbDebugIO: print(">stdin>%s" % sCommand);
       return oCdbWrapper.fasbReadOutput(
         bOutputIsInformative = bOutputIsInformative,
         bApplicationWillBeRun = bApplicationWillBeRun,
         bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
         bIgnoreOutput = bIgnoreOutput,
-        rb0IgnoredErrors = rb0IgnoredErrors if uTries == 1 else None, # Only ignore errors the last try.
+        rb0IgnoredErrors = rb0IgnoredErrors if uAttempt < uTries else None, # Only ignore errors the last try.
         sb0StartOfCommandOutputMarker = bUseMarkers and gsbStartOfCommandOutputMarker or None,
         sb0EndOfCommandOutputMarker = bUseMarkers and gsbEndOfCommandOutputMarker or None,
       );
     except oCdbWrapper.cEndOfCommandOutputMarkerMissingException as oEndOfCommandOutputMarkerMissingException:
-      uTries -= 1;
-      if uTries == 0:
+      if uAttempt == uTries:
         raise;
     finally:
+      oCdbWrapper.fbFireCallbacks("Cdb command finished executing", sCommand, uAttempt, uTries, s0Comment);
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nExecutionTimeInSeconds = time.time() - nStartTimeInSeconds;
         oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nExecutionTimeInSeconds;
