@@ -100,7 +100,7 @@ class cVerifierStopDetector(object):
         "The heap block size was not found in the verifier stop message.\r\n%s" % \
         "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
     
-    o0PageHeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(u0VerifierStopHeapBlockAddress, sType = "page heap");
+    o0PageHeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(u0VerifierStopHeapBlockAddress, s0ExpectedType = "page heap");
     if o0PageHeapManagerData is None and sbMessage == b"block already freed":
       if gbDebugOutput: print("VERIFIER STOP: freed block bug work around needed");
       # There is a bug in application verifier where it reports the address of the DPH_HEAP_BLOCK structure instead of

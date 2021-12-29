@@ -2,9 +2,10 @@ import re;
 
 from mWindowsAPI import *;
 
-from ..mCP437 import fsCP437FromBytesString;
 from ..cPageHeapManagerData import cPageHeapManagerData;
+from ..dxConfig import dxConfig;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from ..mCP437 import fsCP437FromBytesString;
 
 gbDebugOutput = False;
 
@@ -90,8 +91,44 @@ grbDPHHeapInformation = re.compile(         # line #4
   rb"\s*$"                                  # optional whitespace
 );
 
-def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknown"):
-  # Strip warnings and errors that we may be able to ignore:
+def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType = None):
+  if uAddress < dxConfig["uMaxAddressOffset"]:
+    return None; # quick return for NULL pointers
+  if uAddress >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
+    return None; # quick return for invalid addresses.
+  # Page heap can keep freed heap blocks reserved in order to detect use-after-free and
+  # keep information about the heap block. It also keeps a canary page reserved to detect
+  # out-of-bounds reads. So, if the memory page is free, it cannot be a page heap block
+  # that we can find information about.
+  # Normal heaps are always either allocated, or freed. In the later case we cannot find
+  # information about it.
+  # In short, we can quickly determine if it makes sense to see if there is a heap block
+  # at the given address, by checking if the virtual allocation at the address is valid 
+  # and not free. We can also ignore virtual allocations that are executable, as heap
+  # blocks are never executable under normal circumstances.
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddress);
+  if not oVirtualAllocation.bIsValid or oVirtualAllocation.bFree or oVirtualAllocation.bExecutable:
+    return None;
+  # Using "!heap -p -a 0x%X" can take quite a long time for addresses that do not point
+  # near a valid page heap block. I believe the check on the virtual allocation above
+  # should filter out all these cases, but I cannot guarantee it.
+  # Our own page heap manager code can try to make sense of the page heap meta-data near
+  # the address. It will throw an AssertionError if it believes the address is not part
+  # of the page heap. Theoretically, random data could look like valid page heap meta
+  # data and lead to incorrect results. However, I expect the chances of that happening
+  # are really small and the time-savings are enormous, so I've opted to gamble:
+  try:
+    o0PageHeapManagerData = cPageHeapManagerData.fo0GetForProcessAndAddress(oProcess, uAddress);
+  except AssertionError:
+    # The address does not appear to point near a valid page heap backing page.
+    bBugIdPageHeapManagerDataWasAbleToProcessData = False;
+  else:
+    bBugIdPageHeapManagerDataWasAbleToProcessData = True;
+    if o0PageHeapManagerData:
+      # The address appears to point near a valid page heap block.
+      return o0PageHeapManagerData;
+  # At this point I expect the memory to either point to a regular windows heap, or
+  # non-free, non-heap memory. Let's ask cdb.exe what it thinks we are looking at:
   asbCdbHeapOutput = [
     sbLine
     for sbLine in oProcess.fasbExecuteCdbCommand(
@@ -157,15 +194,9 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
   # |unable to resolve ntdll!RtlpStackTraceDataBase
   
   if len(asbCdbHeapOutput) < 4:
+    # That didn't work; we have no information about a heap block at this address.
     if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: Unrecognized !heap output: %s" % repr(asbCdbHeapOutput));
-    # No !heap output; make sure it is enabled for this process.
-    oProcess.fEnsurePageHeapIsEnabled();
-    # Try to manually figure things out.
-    try:
-      return cPageHeapManagerData.fo0GetForProcessAndAddress(oProcess, uAddress);
-    except AssertionError:
-      # That didn't work; we have no information about a heap block at this address.
-      return None;
+    return None;
   assert grbHeapOutputFirstLine.match(asbCdbHeapOutput[0]), \
       "Unrecognized page heap report first line:\r\n%s" % \
       "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCdbHeapOutput);
@@ -177,12 +208,13 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
   uHeapRootAddress = fu0ValueFromCdbHexOutput(sbHeapRootAddress);
   if sbHeapType == b"_HEAP":
     if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected regular heap");
-    assert sType in ["windows", "unknown"], \
-        "Expected heap allocator to be %s, but found default windows allocator" % sType;
+    if s0ExpectedType is not None:
+      assert s0ExpectedType == "windows", \
+          "Expected heap allocator to be %s, but found default windows allocator" % s0ExpectedType;
     # Regular Windows heap.
     assert grbWindowsHeapInformationHeader.match(asbCdbHeapOutput[2]), \
-        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(absCdbHeapOutput);
-    obBlockInformationMatch = grbWindowsHeapInformation.match(asCdbHeapOutput[3]);
+        "Unrecognized page heap report third line:\r\n%s" % "\r\n".join(asbCdbHeapOutput);
+    obBlockInformationMatch = grbWindowsHeapInformation.match(asbCdbHeapOutput[3]);
     assert obBlockInformationMatch, \
         "Unrecognized page heap report fourth line:\r\n%s" % \
         "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCdbHeapOutput);
@@ -210,9 +242,13 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
       bAllocated,
     );
   else:
+    # If !heap -p can process this, we should have been able to process it too!
+    assert bBugIdPageHeapManagerDataWasAbleToProcessData, \
+          "BugId cPageHeapManagerData was unable to process what appears to be a valid page heap block:\n%s" % repr(asbCdbHeapOutput);
     if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected page heap");
-    assert sType in ["page heap", "unknown"], \
-        "Expected heap allocator to be %s, but found page heap allocator" % sType;
+    if s0ExpectedType is not None:
+      assert s0ExpectedType == "page heap", \
+          "Expected heap allocator to be %s, but found page heap allocator" % s0ExpectedType;
     obDPHHeapInformationHeaderMatch = grbDPHHeapInformationHeader.match(asbCdbHeapOutput[2]);
     assert obDPHHeapInformationHeaderMatch, \
         "Unrecognized page heap report third line:\r\n%s" % \
@@ -247,9 +283,8 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, sType = "unknow
     oHeapManagerData = o0HeapManagerData;
     oHeapManagerData.uHeapRootAddress = uHeapRootAddress;
     assert bAllocated == oHeapManagerData.bAllocated, \
-        "cdb says block is %s, but page heap allocation information says %s" % \
-        (sbState, oHeapManagerData.bAllocated and "allocated" or "free", \
-        uExpectedState, "\r\n".join(asCdbHeapOutput));
+        "cdb says block is %s, but page heap allocation information says it is %s" % \
+        (sbState, oHeapManagerData.bAllocated and "allocated" or "free");
     assert uVirtualAllocationStartAddress == oHeapManagerData.oVirtualAllocation.uStartAddress, \
         "Page heap allocation found at a different address (@ 0x%X) than reported by cdb (@ 0x%X)" % \
         (oHeapManagerData.oVirtualAllocation.uStartAddress, uVirtualAllocationStartAddress);
