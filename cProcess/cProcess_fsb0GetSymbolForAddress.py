@@ -1,8 +1,9 @@
 import re;
 
-from ..mCP437 import fsCP437FromBytesString;
+from ..dxConfig import dxConfig;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..rbSymbolOrAddress import rbSymbolOrAddress;
+from ..mCP437 import fsCP437FromBytesString;
 
 grbAddress = re.compile(
   rb"\A"
@@ -33,6 +34,8 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   #   >nmozglue+0xf0c4 (73f1f0c4)
   # Output for a valid symbol (in x86 debugger, notice different header aligning):
   #   >ntdll!DbgBreakPoint (77ec1250)
+  if uAddress < dxConfig["uMaxAddressOffset"]:
+    return None; # quick return for NULL pointers
   sbGetSymbolCommand = b'.printf "%%y\\n", 0x%X;' % uAddress;
   for uAttemptIndex in range(guNumberOfTries):
     asbSymbolOutput = oProcess.fasbExecuteCdbCommand(
