@@ -80,11 +80,15 @@ grbInstructionPointerArgumentTargetSize = re.compile(
   rb"$"               #
 );
 
-def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, uPointerSizedValue = None):
+def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, u0PointerSizedOriginalValue = None):
   if sViolationTypeId == "E":
     # The application is attempting to execute code at an address that does not point to executable memory; this cannot
     # be ignored.
 #    print "@@@ sViolationTypeId == \"E\"";
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "executing in un-executable memory is not handled"
+    );
     return False;
   # See if we can fake execution of the current instruction, so we can continue the application as if it had been
   # executed without actually executing it.
@@ -93,6 +97,10 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   if u0InstructionPointer is None:
     # We cannot get the instruction pointer for this thread; it must be terminated and cannot be continued.
 #    print "@@@ u0InstructionPointer == None";
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "the instruction pointer for this thread could not be retreived"
+    );
     return False;
   uInstructionPointer = u0InstructionPointer;
   o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uInstructionPointer);
@@ -100,6 +108,10 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
     # This can happen if a call/return sets the instruction pointer to a corrupted value; it may point to a region that
     # is not allocated, or contains non-executable data. (e.g. a poisoned value)
 #    print "@@@ o0VirtualAllocation.bExecutable == False";
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "executing in un-executable memory is not handled"
+    );
     return False; # This memory is not executable: we cannot continue execution.
   asbDiassemblyOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = b"u 0x%X L2" % uInstructionPointer, 
@@ -108,6 +120,10 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   if len(asbDiassemblyOutput) == 0:
     # The instruction pointer does not point to valid memory.
 #    print "@@@ asbDiassemblyOutput == []";
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "the disassembly of the code being executed could not be retreived"
+    );
     return False;
   assert len(asbDiassemblyOutput) == 3, \
       "Expected 3 lines of disassembly, got %d:\r\n%s" % (len(asbDiassemblyOutput), b"\r\n".join(asbDiassemblyOutput));
@@ -121,6 +137,10 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   if sbCurrentInstructionName not in [b"add", b"addsd", b"call", b"cmp", b"jmp", b"mov", b"movzx", b"movsd", b"mulsd", b"sub", b"subsd"]:
 #    print "Cannot handle instruction %s:\r\n%s" % (repr(sbCurrentInstructionName), b"\r\n".join(asbDiassemblyOutput));
 #    print "@@@ sbCurrentInstructionName == %s" % repr(sbCurrentInstructionName);
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "the instruction that caused this exception (%s) is not currently handled" % str(sbCurrentInstructionName, "ascii", "strict")
+    );
     return False;
   # Grab info from next instruction (it's starting address):
   obNextInstructionMatch = grbInstruction.match(sbNextInstruction);
@@ -144,8 +164,29 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
     if sbCurrentInstructionName in [b"cmp"]:
       # This instruction will only affect flags, so we'll read 8 bits to use as flags from the poisoned values.
       # TODO: At some point, we may want to do this for other arithmatic operations as well.
-      uPoisonFlagsValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, 8, uPointerSizedValue);
       asbFlags = [b"of", b"sf", b"zf", b"af", b"pf", b"cf"];
+      au0FlagValues = [
+        oThread.fu0GetRegister(asbFlags[uIndex])
+        for uIndex in range(len(asbFlags))
+      ];
+      if None in au0FlagValues:
+        oCdbWrapper.fFireCallbacks(
+          "Bug cannot be ignored", 
+          "cannot read current flag values"
+        );
+      uCurrentValue = sum(
+        au0FlagValues << uIndex
+        for uIndex in range(len(asbFlags))
+      );
+      uPoisonFlagsValue = oCollateralBugHandler.fuGetPoisonedValue(
+        oProcess = oProcess,
+        oWindowsAPIThread = oProcess.foGetWindowsAPIThreadForId[oThread.uId],
+        sDestination = "flags(%s)" % ", ".join(str(sbFlag, "ascii", "strict") for sbFlag in asbFlags),
+        sInstruction = str(b"%s %s" % (sbCurrentInstructionName, sbCurrentInstructionArguments), "ascii", "strict"),
+        i0CurrentValue = uCurrentValue,
+        uBites = 6,
+        u0PointerSizedOriginalValue = u0PointerSizedOriginalValue,
+      );
       duRegisterValue_by_sbName = dict([
         (asbFlags[uIndex], (uPoisonFlagsValue >> uIndex) & 1)
         for uIndex in range(len(asbFlags))
@@ -153,7 +194,15 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
       duRegisterValue_by_sbName[b"*ip"] = uNextInstructionAddress;
       if not oThread.fbSetRegisters(duRegisterValue_by_sbName):
 #        print "@@@ set %s == False" % repr(duRegisterValue_by_sbName);
+        oCdbWrapper.fFireCallbacks(
+          "Bug cannot be ignored", 
+          "cannot set flags and the instruction pointer registers"
+        );
         return False;
+      oCdbWrapper.fFireCallbacks(
+        "Bug ignored", 
+        "flags set, '%s' instruction skipped" % str(sbCurrentInstruction, "ascii", "strict"),
+      );
       return True;
     (sbDestinationArgument, sbSourceArgument) = asbCurrentInstructionArguments;
     obDestinationArgumentPointerMatch = grbInstructionPointerArgumentTargetSize.match(sbDestinationArgument);
@@ -162,7 +211,14 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
       # TODO: This does not alter flags like a normal instruction might!!!!
       if not oThread.fbSetRegister(b"*ip", uNextInstructionAddress):
 #        print "@@@ set %s == False" % repr({"*ip": uNextInstructionAddress});
+        oCdbWrapper.fFireCallbacks(
+          "Bug cannot be ignored", 
+          "cannot set the instruction pointer register"
+        );
         return False;
+      oCdbWrapper.fFireCallbacks("Bug ignored", 
+        "write ignored, '%s' instruction skipped" % str(sbCurrentInstruction, "ascii", "strict"),
+      );
       return True;
   obSourceArgumentPointerTargetSizeMatch = grbInstructionPointerArgumentTargetSize.match(sbSourceArgument);
   if obSourceArgumentPointerTargetSizeMatch is None:
@@ -172,6 +228,10 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
     # A call to an address taken from a register containing a bogus value would have resulted in an execute access
     # violation, after which we cannot continue.
 #    print "@@@ sbSourceArgument == %s" % sbSourceArgument;
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "attempting to read a target address for a jump or call from an invalid address is not handlded"
+    );
     return False;
   # We fake read AVs that read memory into a register by setting that register to a poisoned value and advancing
   # the instruction pointer to the next instruction.
@@ -183,7 +243,15 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
       (sbDestinationRegister, b"\r\n".join(asbDiassemblyOutput));
   (sbSourcePointerTargetSize,) = obSourceArgumentPointerTargetSizeMatch.groups();
   uSourceSizeInBits = gduSizeInBits_by_sbPointerTargetSize[sbSourcePointerTargetSize];
-  uPoisonValue = oCollateralBugHandler.fuGetPoisonedValue(oProcess, uSourceSizeInBits, uPointerSizedValue);
+  uPoisonValue = oCollateralBugHandler.fuGetPoisonedValue(
+    oProcess = oProcess,
+    oWindowsAPIThread = oProcess.foGetWindowsAPIThreadForId(oThread.uId),
+    sDestination = str(b"register %s" % sbDestinationRegister, "ascii", "strict"),
+    sInstruction = str(b"%s %s" % (sbCurrentInstructionName, sbCurrentInstructionArguments), "ascii", "strict"),
+    i0CurrentValue = oThread.fu0GetRegister(sbDestinationRegister),
+    uBits = uSourceSizeInBits,
+    u0PointerSizedOriginalValue = u0PointerSizedOriginalValue,
+  );
 #    print "Faked read %d bits (0x%X) into %d bits %s" % (uSourceSize, uPoisonValue, uDestinationSizeInBits, sbDestinationRegister);
   duNewRegisterValues_by_sbName = {
     sbDestinationRegister: uPoisonValue,
@@ -191,6 +259,18 @@ def fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProces
   };
   if not oThread.fbSetRegisters(duNewRegisterValues_by_sbName):
 #    print "@@@ set %s == False" % repr(duNewRegisterValues_by_sbName);
+    oCdbWrapper.fFireCallbacks(
+      "Bug cannot be ignored", 
+      "cannot set the '%s' and instruction pointer registers" % str(sbDestinationRegister, "ascii", "strict"),
+    );
     return False;
+  oCdbWrapper.fFireCallbacks("Bug ignored", 
+    "read faked, register '%s' set to 0x%X, '%s %s' instruction skipped" % (
+      str(sbDestinationRegister, "ascii", "strict"),
+      uPoisonValue,
+      str(sbCurrentInstructionName, "ascii", "strict"),
+      str(sbCurrentInstructionArguments, "ascii", "strict"),
+    ),
+  );
   return True;
 

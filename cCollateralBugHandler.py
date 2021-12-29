@@ -1,7 +1,10 @@
 import re;
-from .dxConfig import dxConfig;
+
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 from mWindowsSDK import *;
+
+from .dxConfig import dxConfig;
+from .mCP437 import fsCP437FromBytesString;
 
 duPoisonValue_by_sISA = {
   "x86": 0x41414141,
@@ -9,9 +12,11 @@ duPoisonValue_by_sISA = {
 };
   
 class cCollateralBugHandler(object):
-  def __init__(oSelf, oCdbWrapper, uMaximumNumberOfBugs):
+  def __init__(oSelf, oCdbWrapper, u0MaximumNumberOfBugs, f0iInteractiveAskForValue):
+    oSelf.__oCdbWrapper = oCdbWrapper;
     oSelf.__duPoisonedAddress_by_uProcessId = {};
-    oSelf.__uMaximumNumberOfBugs = uMaximumNumberOfBugs;
+    oSelf.__u0MaximumNumberOfBugs = u0MaximumNumberOfBugs;
+    oSelf.__f0iInteractiveAskForValue = f0iInteractiveAskForValue;
     oSelf.__uBugCount = 0;
     oSelf.__fbIgnoreException = None;
     oSelf.uValueIndex = 0;
@@ -51,8 +56,17 @@ class cCollateralBugHandler(object):
     # Try to handle this exception to allow the application to continue in order to find out what collateral bugs
     # we can find.
     oSelf.__uBugCount += 1;
-    if oSelf.__uBugCount >= oSelf.__uMaximumNumberOfBugs or not oSelf.__fbIgnoreException:
+    if (
+      oSelf.__u0MaximumNumberOfBugs is not None and oSelf.__uBugCount >= oSelf.__u0MaximumNumberOfBugs
+    ) or (
+      not oSelf.__fbIgnoreException
+    ):
       # Don't handle any more bugs, or don't handle this particular bug.
+      oSelf.oCdbWrapper.fFireCallbacks(
+        "Bug cannot be ignored", 
+        "BugId does not know how to ignore this bug." if oSelf.__fbIgnoreException is None else \
+            "The maximum number of bugs has been reached.",
+      );
       return False;
     fbIgnoreException = oSelf.__fbIgnoreException;
     oSelf.__fbIgnoreException = None;
@@ -79,13 +93,39 @@ class cCollateralBugHandler(object):
       return None
     return iOffset
   
-  def fuGetPoisonedValue(oSelf, oProcess, uBits, uPointerSizedValue = None):
+  def fuGetPoisonedValue(oSelf, oProcess, oWindowsAPIThread, sDestination, sInstruction, i0CurrentValue, uBits, u0PointerSizedOriginalValue):
     auCollateralValues = dxConfig["auCollateralPoisonValues"];
-    uPoisonValue = None;
     if oSelf.uValueIndex < len(auCollateralValues):
       uPoisonValue = auCollateralValues[oSelf.uValueIndex];
-    if uPoisonValue is None:
-      uPoisonValue = uPointerSizedValue is None and duPoisonValue_by_sISA[oProcess.sISA] or uPointerSizedValue;
+    else:
+      uPoisonValue = duPoisonValue_by_sISA[oProcess.sISA];
     oSelf.uValueIndex += 1;
-    return uPoisonValue & ((1 << uBits) - 1);
-    
+    uPoisonValue = uPoisonValue & ((1 << uBits) - 1);
+    if not oSelf.__f0iInteractiveAskForValue:
+      return uPoisonValue;
+    while 1:
+      iMinValue = -(1 << (uBits - 1));
+      uMaxValue = (1 << uBits) - 1;
+      u0OriginalValue = None if u0PointerSizedOriginalValue is None else (u0PointerSizedOriginalValue & uMaxValue);
+      a0txRegisters = oProcess.fa0txGetRegistersForThreadId(oWindowsAPIThread.uId);
+      iUserProvidedValue = oSelf.__f0iInteractiveAskForValue(
+        uProcessId = oProcess.uId,
+        uThreadId = oWindowsAPIThread.uId,
+        sInstruction = sInstruction,
+        a0txRegisters = a0txRegisters,
+        sDestination = sDestination,
+        i0CurrentValue = i0CurrentValue,
+        u0OriginalValue = u0OriginalValue,
+        iMinValue = iMinValue,
+        iMaxValue = uMaxValue,
+        iSuggestedValue = uPoisonValue,
+      );
+      assert iMinValue <= iUserProvidedValue <= uMaxValue, \
+          "Value %s0x%X, returned by f0iInteractiveAskForValue (%s) is not in range -0x%X - 0x%X" % (
+            "-" if iUserProvidedValue < 0 else "", abs(iUserProvidedValue),
+            repr(oSelf.__f0iInteractiveAskForValue),
+            abs(iMinValue),
+            uMaxValue,
+          );
+      return iUserProvidedValue & uMaxValue;
+

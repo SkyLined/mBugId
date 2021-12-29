@@ -53,7 +53,8 @@ class cBugId(object):
     bGenerateReportHTML = False,
     u0ProcessMaxMemoryUse = None,
     u0TotalMaxMemoryUse = None,
-    uMaximumNumberOfBugs = 1,
+    u0MaximumNumberOfBugs = 1,
+    f0iCollateralInteractiveAskForValue = None,
   ):
     fAssertTypes({
       "sCdbISA": (sCdbISA, str),
@@ -69,8 +70,10 @@ class cBugId(object):
       "bGenerateReportHTML": (bGenerateReportHTML, bool),        
       "u0ProcessMaxMemoryUse": (u0ProcessMaxMemoryUse, int, None),
       "u0TotalMaxMemoryUse": (u0TotalMaxMemoryUse, int, None),
-      "uMaximumNumberOfBugs": (uMaximumNumberOfBugs, int),
+      "u0MaximumNumberOfBugs": (u0MaximumNumberOfBugs, int, None),
     });
+    assert f0iCollateralInteractiveAskForValue is None or hasattr(f0iCollateralInteractiveAskForValue, "__call__"), \
+        "f0iCollateralInteractiveAskForValue must be None or callable, not %s." % repr(f0iCollateralInteractiveAskForValue);
     oBugId.__oRunningLock = cLock(bLocked = True);
     oBugId.__bStarted = False;
     oBugId.o0UWPApplication = o0UWPApplication;
@@ -92,7 +95,8 @@ class cBugId(object):
       bGenerateReportHTML = bGenerateReportHTML,
       u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse,
       u0TotalMaxMemoryUse = u0TotalMaxMemoryUse,
-      uMaximumNumberOfBugs = uMaximumNumberOfBugs,
+      u0MaximumNumberOfBugs = u0MaximumNumberOfBugs,
+      f0iCollateralInteractiveAskForValue = f0iCollateralInteractiveAskForValue,
     );
     # Once we're done, release the "running" lock
     oBugId.__oCdbWrapper.fAddCallback("Finished", lambda oCdbWrapper:

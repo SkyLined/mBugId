@@ -94,7 +94,8 @@ class cCdbWrapper(cWithCallbacks):
     bGenerateReportHTML,        
     u0ProcessMaxMemoryUse,
     u0TotalMaxMemoryUse,
-    uMaximumNumberOfBugs,
+    u0MaximumNumberOfBugs,
+    f0iCollateralInteractiveAskForValue,
   ):
     if sCdbISA:
       assert not (sCdbISA == "x64" and fsGetPythonISA() == "x86"), \
@@ -138,6 +139,8 @@ class cCdbWrapper(cWithCallbacks):
       "Application stdout output", # (mWindowsAPI.cConsoleProcess oConsoleProcess, str sOutput)
       "Application suspended", # (str sReason)
       "ASan detected", # ()
+      "Bug cannot be ignored", # (str sReason)
+      "Bug ignored", # (str sReason)
       "Bug report", # (cBugReport oBugReport)
       "Cdb command started executing", # (sbCommand, uAttempt, uTries, sb0Comment)
       "Cdb command finished executing", # (sbCommand, uAttempt, uTries, sb0Comment)
@@ -211,7 +214,11 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.time() at the moment the application was last resumed
     
-    oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(oCdbWrapper, uMaximumNumberOfBugs);
+    oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(
+      oCdbWrapper,
+      u0MaximumNumberOfBugs,
+      f0iCollateralInteractiveAskForValue,
+    );
     
     # Create VERIFIER STOP and Asan ERROR detectors. The later also needs to be called when a Breakpoint exception
     # happens in order to report it (the former reports the error as soon as it is detected in applicationm debug
