@@ -114,7 +114,8 @@ class cCdbWrapper(cWithCallbacks):
     # so we can make sure they are all terminated and closed respectively when cBugId
     # is terminated.
     oCdbWrapper.aoApplicationProcesses = [];
-    oCdbWrapper.aoApplicationStdOutAndStdErrPipes = [];
+    oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId = {};
+    oCdbWrapper.daoApplicationStdOutAndStdErrPipeThreads_by_uProcessId = {};
     oCdbWrapper.bUWPApplicationStarted = False;
     oCdbWrapper.bStopping = False;
     oCdbWrapper.asApplicationArguments = asApplicationArguments;

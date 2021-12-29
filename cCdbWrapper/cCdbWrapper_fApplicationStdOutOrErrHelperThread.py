@@ -17,5 +17,7 @@ def cCdbWrapper_fApplicationStdOutOrErrHelperThread(oCdbWrapper, oConsoleProcess
       oCdbWrapper.sCdbIOHTML += "<span class=\"%s\">%s</span><br/>\n" % \
           (sClassName, fsCP437HTMLFromString(s0Line, u0TabStop = 8));
   if gbDebugIO: print("\r<app:0x%X:%s:EOF" % (oConsoleProcess.uId, sPipeName));
-  oCdbWrapper.aoApplicationStdOutAndStdErrPipes.remove(oPipe);
-  
+  aoApplicationStdOutAndStdErrPipes = oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId[uProcessId];
+  aoApplicationStdOutAndStdErrPipes.remove(oPipe);
+  if len(aoApplicationStdOutAndStdErrPipes) == 0:
+    del oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId[uProcessId];

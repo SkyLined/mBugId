@@ -62,9 +62,15 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     "stdout": oConsoleProcess.oStdOutPipe,
     "stderr": oConsoleProcess.oStdErrPipe,
   }.items():
-    oCdbWrapper.aoApplicationStdOutAndStdErrPipes.append(oPipe);
+    oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId.setdefault(oConsoleProcess.uId, []).append(oPipe);
     sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
-    oHelperThread = oCdbWrapper.foCreateHelperThread(sThreadName, oCdbWrapper.fApplicationStdOutOrErrHelperThread, oConsoleProcess, oPipe, sPipeName);
+    oHelperThread = oCdbWrapper.foCreateHelperThread(
+      sThreadName,
+      oCdbWrapper.fApplicationStdOutOrErrHelperThread,
+      oConsoleProcess,
+      oPipe,
+      sPipeName,
+    );
     oHelperThread.fStart();
   
   # We need cdb to attach to the process and we need to resume the process once

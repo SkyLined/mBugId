@@ -37,16 +37,6 @@ def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
     else:
       oCdbWrapper.fbFireCallbacks("Log message", "Application process %s terminated." % oApplicationProcess);
   
-  # Make sure all application processes' pipes are closed:
-  for oPipe in oCdbWrapper.aoApplicationStdOutAndStdErrPipes:
-    oCdbWrapper.fbFireCallbacks("Log message", "Closing application pipe %s..." % oPipe);
-    try:
-      oPipe.fClose();
-    except Exception as oException:
-      oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s could not be closed: %s" % (oPipe, oException));
-    else:
-      oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s closed." % oPipe);
-  
   # Wait for all other threads to terminate
   while len(oCdbWrapper.aoActiveHelperThreads) > 1:
     for oHelperThread in oCdbWrapper.aoActiveHelperThreads:
@@ -59,6 +49,20 @@ def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
       oHelperThread.fWait();
       # The list may have been changed while we waited, so start again.
       break;
+  
+  # Make sure all application processes' pipes are closed:
+  for (uProcessId, aoApplicationStdOutAndStdErrPipes) in oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId.items():
+    for oPipe in aoApplicationStdOutAndStdErrPipes:
+      oCdbWrapper.fbFireCallbacks("Log message",
+        "Closing application process %d/0x%X pipe %s..." % (uProcessId, uProcessId, oPipe),
+      );
+      try:
+        oPipe.fClose();
+      except Exception as oException:
+        oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s could not be closed: %s" % (oPipe, oException));
+      else:
+        oCdbWrapper.fbFireCallbacks("Log message", "Application pipe %s closed." % oPipe);
+  
   assert (
     len(oCdbWrapper.aoActiveHelperThreads) == 1 \
     and oCdbWrapper.aoActiveHelperThreads[0] == oCdbWrapper.oCleanupHelperThread
