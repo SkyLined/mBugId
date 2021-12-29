@@ -157,7 +157,12 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   uExceptionCode = fu0ValueFromCdbHexOutput(sb0ExceptionCode);
   o0ErrorDetails = cErrorDetails.fo0GetForCode(uExceptionCode);
   sRelatedErrorDefineName = o0ErrorDetails.sDefineName if o0ErrorDetails else "unknown";
-  oCdbWrapper.fbFireCallbacks("Application suspended", "%s chance exception 0x%08X (%s)" % (sbExceptionChance.capitalize(), uExceptionCode, sRelatedErrorDefineName));
+  sDetails = "%s chance exception 0x%08X (%s)" % (
+    str(sbExceptionChance.capitalize(), "ascii", "strict"),
+    uExceptionCode,
+    sRelatedErrorDefineName,
+  );
+  oCdbWrapper.fbFireCallbacks("Application suspended", sDetails);
 
   # Handle user pressing CTRL+C
   if uExceptionCode == DBG_CONTROL_C:  # User pressed CTRL+C event: terminate.
