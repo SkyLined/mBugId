@@ -4,6 +4,7 @@ from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
 
 from ..cModule import cModule;
 
+from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress;
 from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
@@ -164,6 +165,7 @@ class cProcess(object):
   def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.fs0GetBinaryPathForModuleAddress(uAddress);
   
+  fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
   fo0GetHeapManagerDataForAddress = cProcess_fo0GetHeapManagerDataForAddress;
