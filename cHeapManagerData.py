@@ -18,7 +18,7 @@ class cHeapManagerData(object):
     
     oSelf.bCorruptionDetected = False;
     
-    oSelf.uMemoryDumpStartAddress = oSelf.uHeapBlockHeaderSize and uHeapBlockHeaderStartAddress or uHeapBlockStartAddress;
+    oSelf.uMemoryDumpStartAddress = uHeapBlockStartAddress - oSelf.uHeapBlockHeaderSize;
     oSelf.uMemoryDumpEndAddress = oSelf.uAllocationEndPaddingSize and oSelf.uAllocationEndPaddingEndAddress or oSelf.uHeapBlockEndAddress;
     oSelf.uMemoryDumpSize = oSelf.uMemoryDumpEndAddress - oSelf.uMemoryDumpStartAddress;
   
