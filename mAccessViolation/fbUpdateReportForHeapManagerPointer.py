@@ -124,13 +124,13 @@ def fbUpdateReportForHeapManagerPointer(
     uAccessViolationAddress >= oHeapManagerData.uHeapBlockStartAddress and \
     uAccessViolationAddress + oProcess.uPointerSize < oHeapManagerData.uHeapBlockEndAddress
   ):
-    uPointerSizedValue = oHeapManagerData.oVirtualAllocation.fuReadValueForOffsetAndSize(
+    u0PointerSizedOriginalValue = oHeapManagerData.oVirtualAllocation.fuReadValueForOffsetAndSize(
       uAccessViolationAddress - oHeapManagerData.uHeapBlockStartAddress,
       oProcess.uPointerSize,
     );
   else:
-    uPointerSizedValue = None;
+    u0PointerSizedOriginalValue = None;
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, uPointerSizedValue = uPointerSizedValue)
+    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, u0PointerSizedOriginalValue)
   );
   return True;
