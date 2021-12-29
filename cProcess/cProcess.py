@@ -40,6 +40,10 @@ class cProcess(object):
     # until the cache is invalidated.
     oProcess.__bAllModulesEnumerated = False;
   
+    # Symbols and heap manager data for addressess will be cached here. They are discarded whenever the application is resumed.
+    oProcess.__dsb0Symbol_by_uAddress = {};
+    oProcess.__do0HeapManagerData_by_uAddress = {};
+    
   @property
   def oWindowsAPIProcess(oProcess):
     if oProcess.__oWindowsAPIProcess is None:
@@ -93,6 +97,8 @@ class cProcess(object):
     oProcess.__doModules_by_sbCdbId = {};
     oProcess.__oMainModule = None;
     oProcess.__bAllModulesEnumerated = False;
+    oProcess.__dsb0Symbol_by_uAddress = {};
+    oProcess.__do0HeapManagerData_by_uAddress = {};
   
   def fSelectInCdb(oProcess):
     oProcess.oCdbWrapper.fSelectProcessId(oProcess.uId);
@@ -162,11 +168,25 @@ class cProcess(object):
   def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.fs0GetBinaryPathForModuleAddress(uAddress);
   
+  def fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType = None):
+    # Wrap this in a bit of caching for speed.
+    if uAddress in oSelf.__do0HeapManagerData_by_uAddress:
+      return oSelf.__do0HeapManagerData_by_uAddress[uAddress];
+    o0HeapManagerData = cProcess_fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType);
+    oSelf.__do0HeapManagerData_by_uAddress[uAddress] = o0HeapManagerData;
+    return o0HeapManagerData;
+
+  def fsb0GetSymbolForAddress(oSelf, uAddress, sbAddressDescription):
+    # Wrap this in a bit of caching for speed.
+    if uAddress in oSelf.__dsb0Symbol_by_uAddress:
+      return oSelf.__dsb0Symbol_by_uAddress[uAddress];
+    sb0Symbol = cProcess_fsb0GetSymbolForAddress(oSelf, uAddress, sbAddressDescription);
+    oSelf.__dsb0Symbol_by_uAddress[uAddress] = sb0Symbol;
+    return sb0Symbol;
+
   fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
-  fo0GetHeapManagerDataForAddress = cProcess_fo0GetHeapManagerDataForAddress;
-  fsb0GetSymbolForAddress = cProcess_fsb0GetSymbolForAddress;
   fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
