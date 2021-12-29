@@ -27,7 +27,7 @@ EXCEPTION_OBJECT_DESCRIPTION_4_64 = iStructureType64.fcCreateClass("EXCEPTION_OB
   (CHAR[guMaxSymbolName], "szDecoratedClassName"),
 );
 
-def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oThread, oException):
+def cBugReport_foAnalyzeException_Cpp(oBugReport, oProcess, oWindowsAPIThread, oException):
   # Based on https://blogs.msdn.microsoft.com/oldnewthing/20100730-00/?p=13273/
   # Attempt to get the symbol of the virtual function table of the object that was thrown and add that the the type id:
   if oProcess.sISA == "x64":

@@ -3,7 +3,7 @@ from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 from ..dxConfig import dxConfig;
 
-def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oThread, oException):
+def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oWindowsAPIThread, oException):
   assert oBugReport.o0Stack, \
       "Stack is missing!?";
   oStack = oBugReport.o0Stack;

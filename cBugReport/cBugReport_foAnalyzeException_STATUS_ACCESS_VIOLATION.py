@@ -47,7 +47,7 @@ grbInstruction = re.compile(
   rb")"                       # }
   rb"$"
 );
-def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oThread, oException):
+def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, oWindowsAPIThread, oException):
   oCdbWrapper = oProcess.oCdbWrapper;
   # Parameter[0] = access type (0 = read, 1 = write, 8 = execute)
   # Parameter[1] = address
@@ -129,7 +129,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       oBugReport.o0Stack.aoFrames[0].s0IsHiddenBecause = "called address";
   
   fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
-    oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress
+    oCdbWrapper, oBugReport, oProcess, oWindowsAPIThread, sViolationTypeId, uAccessViolationAddress
   );
 
   if sViolationTypeNotes:

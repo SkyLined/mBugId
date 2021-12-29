@@ -87,7 +87,7 @@ auErrorCodesForWhichAStackDumpCouldBeUseful = [
   FAST_FAIL_INVALID_CONTROL_STACK,
 ];
 
-def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oThread, oException):
+def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProcess, oWindowsAPIThread, oException):
   # Parameter[0] = fail fast code
   assert len(oException.auParameters) > 0, \
       "Missing fail fast code in parameters!";
@@ -110,7 +110,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
     oBugReport.s0BugDescription += "Additional parameters: [ %s ]." % " | ".join(["%d/0x%X" % (u, u) for u in oException.auParameters[1:]]);
   
   if oProcess.oCdbWrapper.bGenerateReportHTML and uFastFailCode in auErrorCodesForWhichAStackDumpCouldBeUseful:
-    u0StackPointer = oThread.fu0GetRegister(b"*sp");
+    u0StackPointer = oWindowsAPIThread.fu0GetRegister(b"*sp");
     if u0StackPointer is not None:
       uStackPointer = u0StackPointer;
       # TODO: Call !teb, parse "StackLimit:", trim stack memory dump if needed.
