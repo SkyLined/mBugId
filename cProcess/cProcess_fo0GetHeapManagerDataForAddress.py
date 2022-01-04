@@ -243,6 +243,8 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType 
     );
   else:
     # If !heap -p can process this, we should have been able to process it too!
+    if not bBugIdPageHeapManagerDataWasAbleToProcessData:
+      cPageHeapManagerData.fo0GetForProcessAndAddress(oProcess, uAddress);
     assert bBugIdPageHeapManagerDataWasAbleToProcessData, \
           "BugId cPageHeapManagerData was unable to process what appears to be a valid page heap block:\n%s" % repr(asbCdbHeapOutput);
     if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected page heap");
