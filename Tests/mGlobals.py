@@ -17,7 +17,7 @@ uTotalMaxMemoryUse =  0x10000000; # The test application memory use limit: it sh
                                   #   to function (including enough space for ASan's shadow memory!), but small enough
                                   #   to detect excessive memory use quickly, before it causes the entire system to run
                                   #   s low on memory. 0x10000000 ~= 256 Mb, which seems to work well.
-uOOMAllocationBlockSize = 0x1234; # The out-of-memory test allocations size. it should be large enough to cause OOM
+uOOMAllocationBlockSize = 0xF0000; # The out-of-memory test allocations size. it should be large enough to cause OOM
                                   #   reasonably fast, but small enough so a not to hit the guTotalMaxMemoryUse
                                   #   immediately, as this would not represent a normal OOM scenario.
 uLargeHeapBlockSize = 0x00800000; # Should be large to detect potential issues when handling large allocations, but
