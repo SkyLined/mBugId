@@ -168,14 +168,16 @@ class cProcess(object):
   def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.fs0GetBinaryPathForModuleAddress(uAddress);
   
-  def fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType = None):
+  def fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType = None, bMayNotBeParseable = False):
     # Wrap this in a bit of caching for speed.
     if uAddress in oSelf.__do0HeapManagerData_by_uAddress:
       return oSelf.__do0HeapManagerData_by_uAddress[uAddress];
-    o0HeapManagerData = cProcess_fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType);
+    o0HeapManagerData = cProcess_fo0GetHeapManagerDataForAddress(
+      oSelf, uAddress, s0ExpectedType, bMayNotBeParseable
+    );
     oSelf.__do0HeapManagerData_by_uAddress[uAddress] = o0HeapManagerData;
     return o0HeapManagerData;
-
+  
   def fsb0GetSymbolForAddress(oSelf, uAddress, sbAddressDescription):
     # Wrap this in a bit of caching for speed.
     if uAddress in oSelf.__dsb0Symbol_by_uAddress:
@@ -183,7 +185,7 @@ class cProcess(object):
     sb0Symbol = cProcess_fsb0GetSymbolForAddress(oSelf, uAddress, sbAddressDescription);
     oSelf.__dsb0Symbol_by_uAddress[uAddress] = sb0Symbol;
     return sb0Symbol;
-
+  
   fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
