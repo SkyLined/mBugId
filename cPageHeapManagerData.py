@@ -199,9 +199,21 @@ def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oVirtualAllocation,
     uOffset = 0,
   );
   assert oAllocationHeader.uMarker in auValidPageHeapAllocationHeaderMarkers, \
-      "Page heap allocation header marker has unhandled value 0x%X (expected %s):\r\n%s" % \
-      (oAllocationHeader.uMarker.fuGetValue(), " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderMarkers]),
-      "\r\n".join(oAllocationHeader.fasDump()));
+      "\r\n".join([
+        "Page heap allocation header marker has unhandled value 0x%X (expected %s):" % (
+          oAllocationHeader.uMarker.fuGetValue(),
+          " or ".join([
+            "0x%X" % uValidMarker
+            for uValidMarker in auValidPageHeapAllocationHeaderMarkers
+          ]),
+        ),
+        "DPH_ALLOCATION_HEADER:",
+        "\r\n".join(oAllocationHeader.fasDump()),
+        "Virtual Allocation:",
+        "\r\n".join(oVirtualAllocation.fasDump()),
+        "\r\n".join(oVirtualAllocation.fasDumpContents(uStartOffset = 0, u0Size = 0x100)),
+        "\r\n".join(oVirtualAllocation.fasDumpContents(uStartOffset = oVirtualAllocation.uSize - 0x100, u0Size = 0x100)),
+      ]);
 # Maybe this should be enabled in a "strict" setting, as I would like to know what other values are common. But I've
 # missed bugs because this assertion terminated cBugId while reporting one, which is not good.
 #    if hasattr(oAllocationHeader, "uPadding"):
