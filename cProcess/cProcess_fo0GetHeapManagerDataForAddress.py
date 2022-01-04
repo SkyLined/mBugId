@@ -91,7 +91,7 @@ grbDPHHeapInformation = re.compile(         # line #4
   rb"\s*$"                                  # optional whitespace
 );
 
-def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType = None):
+def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType = None, bMayNotBeParseable = False):
   if uAddress < dxConfig["uMaxAddressOffset"]:
     return None; # quick return for NULL pointers
   if uAddress >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
@@ -242,11 +242,13 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType 
       bAllocated,
     );
   else:
-    # If !heap -p can process this, we should have been able to process it too!
-    if not bBugIdPageHeapManagerDataWasAbleToProcessData:
+    # If !heap -p can process this, we should have been able to process it too.
+    # Except that we cannot properly handle some types of corruption, as this prevents
+    # us from reading the page heap meta data. So, if no corruption is expected, we
+    # will run our page heap processor again, which will fail, giving us an idea of
+    # the root cause of the problem.
+    if not bBugIdPageHeapManagerDataWasAbleToProcessData and not bMayNotBeParseable:
       cPageHeapManagerData.fo0GetForProcessAndAddress(oProcess, uAddress);
-    assert bBugIdPageHeapManagerDataWasAbleToProcessData, \
-          "BugId cPageHeapManagerData was unable to process what appears to be a valid page heap block:\n%s" % repr(asbCdbHeapOutput);
     if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: detected page heap");
     if s0ExpectedType is not None:
       assert s0ExpectedType == "page heap", \
