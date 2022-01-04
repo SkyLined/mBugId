@@ -62,12 +62,15 @@ class cCollateralBugHandler(object):
       not oSelf.__fbIgnoreException
     ):
       # Don't handle any more bugs, or don't handle this particular bug.
-      oSelf.oCdbWrapper.fFireCallbacks(
-        "Bug cannot be ignored", 
-        "BugId does not know how to ignore this bug." if oSelf.__fbIgnoreException is None else \
-            "The maximum number of bugs has been reached.",
-      );
-      return False;
+      if oSelf.__u0MaximumNumberOfBugs != 1:
+        # If collateral bug handling is enabled, we should fire a callback to
+        # explain why this bug was not handled.
+        oSelf.__oCdbWrapper.fFireCallbacks(
+          "Bug cannot be ignored", 
+          "BugId does not know how to ignore this bug." if oSelf.__fbIgnoreException is None else \
+              "The maximum number of bugs has been reached.",
+        );
+        return False;
     fbIgnoreException = oSelf.__fbIgnoreException;
     oSelf.__fbIgnoreException = None;
     return fbIgnoreException(oSelf);
