@@ -16,7 +16,10 @@ def cProcess_fa0txGetRegistersForThreadId(oProcess, uThreadId):
       if sb0Symbol:
         s0Details = fsCP437FromBytesString(sb0Symbol);
       else:
-        o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(uRegisterValue);
+        o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(
+          uAddress = uRegisterValue,
+          bMayNotBeParseable = True, # We do not even know if this is a heap block.
+        );
         if o0HeapManagerData:
           (sSizeId, sOffsetId, sOffsetDescription, sSizeDescription) = \
               o0HeapManagerData.ftsGetIdAndDescriptionForAddress(uRegisterValue);
