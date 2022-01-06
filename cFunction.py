@@ -3,7 +3,7 @@ class cFunction(object):
     oSelf.oModule = oModule;
     oSelf.sbSymbol = sbSymbol;
     oSelf.sbCdbId = b"%s!%s" % (oModule.sbCdbId, sbSymbol);
-    oSelf.sbName = b"%s!%s" % (oModule.sb0BinaryName or "<unknown module>", sbSymbol);
+    oSelf.sbName = b"%s!%s" % (oModule.sb0BinaryName or b"<unknown module>", sbSymbol);
     # Replace complex template stuff with "<...>" to make a symbol easier to read.
     asbComponents = [b""];
     for uChar in sbSymbol:
