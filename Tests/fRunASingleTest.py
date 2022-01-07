@@ -351,9 +351,9 @@ def fRunASingleTest(
         oReportFile = cFileSystemItem(sReportsFilePath);
         sbReportHTML = bytes(oBugReport.sReportHTML, "utf-8");
         if oReportFile.fbIsFile(bParseZipFiles = True):
-          oReportFile.fbWrite(sbReportHTML, bKeepOpen = False, bParseZipFiles = True, bThrowErrors = True);
+          oReportFile.fWrite(sbReportHTML, bKeepOpen = False, bParseZipFiles = True);
         else:
-          oReportFile.fbCreateAsFile(sbReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False, bThrowErrors = True);
+          oReportFile.fCreateAsFile(sbReportHTML, bCreateParents = True, bParseZipFiles = True, bKeepOpen = False);
         oConsole.fOutput("→ Wrote report: %s" % sReportsFilePath);
   except Exception as oException:
     if bBugIdStarted and not bBugIdStopped:
