@@ -119,9 +119,31 @@ class cModule(object):
   
   @property
   def s0BinaryPath(oSelf):
-    if oSelf.__s0BinaryPath is None:
-      oSelf.__s0BinaryPath = oSelf.oProcess.fs0GetBinaryPathForModuleAddress(oSelf.uStartAddress);
-    return oSelf.__s0BinaryPath;
+    if oSelf.__bBinaryPathSet:
+      return oSelf.__s0BinaryPath;
+    oSelf.__bBinaryPathSet = True; # At least, it will be below.
+    
+    oSelf.__s0BinaryPath = oSelf.oProcess.fs0GetBinaryPathForModuleAddress(oSelf.uStartAddress);
+    if oSelf.__s0BinaryPath:
+      return oSelf.__s0BinaryPath;
+    
+    asbDLLsOutput = oSelf.oProcess.fasbExecuteCdbCommand(
+      sbCommand = b"!dlls -c 0x%X" % oSelf.uStartAddress,
+      sb0Comment = b"Get binary information for module %s@0x%X" % (oSelf.sbCdbId, oSelf.uStartAddress),
+      bRetryOnTruncatedOutput = True,
+      bOutputIsInformative = True,
+    );
+    if asbDLLsOutput:
+      while asbDLLsOutput[0] in [b"", b"This is Win8 with the loader DAG."]:
+        asbDLLsOutput.pop(0);
+      obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
+      assert obFirstLineMatch, \
+          "Unrecognized !dlls output first line : %s\r\n%s" % \
+            (repr(asbDLLsOutput[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDLLsOutput));
+      sb0BinaryPath = obFirstLineMatch.group(1);
+      oSelf.__s0BinaryPath = str(sb0BinaryPath, "ascii", "replace");
+      return oSelf.__s0BinaryPath;
+    return None;
   
   @property
   def s0BinaryName(oSelf):
@@ -131,40 +153,6 @@ class cModule(object):
   def sb0BinaryName(oSelf):
     s0BinaryName = oSelf.s0BinaryName;
     return bytes(s0BinaryName, "ascii", "replace") if s0BinaryName is not None else None;
-
-# We no longer track the ASCII version of the binary path
-#  @property
-#  def sb0BinaryPath(oSelf):
-#    if oSelf.__sb0BinaryPath is None:
-#      asbDLLsOutput = oSelf.oProcess.fasbExecuteCdbCommand(
-#        sbCommand = b"!dlls -c 0x%X" % oSelf.uStartAddress,
-#        sb0Comment = b"Get binary information for module %s@0x%X" % (oSelf.sbCdbId, oSelf.uStartAddress),
-#        bRetryOnTruncatedOutput = True,
-#        bOutputIsInformative = True,
-#      );
-#      if asbDLLsOutput:
-#        while asbDLLsOutput[0] in [b"", b"This is Win8 with the loader DAG."]:
-#          asbDLLsOutput.pop(0);
-#        obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
-#        assert obFirstLineMatch, \
-#            "Unrecognized !dlls output first line : %s\r\n%s" % \
-#              (repr(asbDLLsOutput[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDLLsOutput));
-#        oSelf.__sb0BinaryPath = obFirstLineMatch.group(1);
-#      else:
-#        # Of course, !dlls will sometimes not output anything for unknown reasons.
-#        # In this case we have to resort to less reliable measures.
-#        oSelf.__fzGetModuleSymbolAndVersionInformation();
-#    return oSelf.__sb0BinaryPath;
-#  
-#  @property
-#  def sb0BinaryName(oSelf):
-#    if oSelf.sb0BinaryPath is not None:
-#      return os.path.basename(oSelf.sb0BinaryPath);
-#    # "!dlls" may not work yet if the process was recently started, but "__fzGetModuleSymbolAndVersionInformation"
-#    # uses "lm", which should give us the name of the binary as well:
-#    if oSelf.__sb0BinaryName is None:
-#      oSelf.__fzGetModuleSymbolAndVersionInformation();
-#    return oSelf.__sb0BinaryName;
   
   # The below are never available until __fzGetModuleSymbolAndVersionInformation is called:
   @property
