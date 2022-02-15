@@ -4,6 +4,9 @@ from ..cFunction import cFunction;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
 
+grb_dlls_ErrorHeader = re.compile(
+  rb'^ERROR: Could not read module list head at \w+$'
+);
 grb_dlls_OutputLine = re.compile(
   rb"^\s*"
   rb"0x"
@@ -133,9 +136,9 @@ class cModule(object):
       bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     );
-    if asbDLLsOutput:
-      while asbDLLsOutput[0] in [b"", b"This is Win8 with the loader DAG."]:
-        asbDLLsOutput.pop(0);
+    while asbDLLsOutput and asbDLLsOutput[0] in [b"", b"This is Win8 with the loader DAG."]:
+      asbDLLsOutput.pop(0);
+    if asbDLLsOutput and not grb_dlls_ErrorHeader.match(asbDLLsOutput[0]):
       obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
       assert obFirstLineMatch, \
           "Unrecognized !dlls output first line : %s\r\n%s" % \
