@@ -543,8 +543,8 @@ class cPageHeapManagerData(cHeapManagerData):
       ("PaddingEnd", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingEnd") else None,
       ("EndStamp", oSelf.bAllocated and uAllocatedEndStamp or uFreedEndStamp),
     ] if tx]));
-    sbExpectedBytes = oExpectedHeapBlockHeader.fsbGetBytes();
-    sbActualBytes = oSelf.o0HeapBlockHeader.fsbGetBytes();
+    sbExpectedBytes = oExpectedHeapBlockHeader.fsbGetValue();
+    sbActualBytes = oSelf.o0HeapBlockHeader.fsbGetValue();
     oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sbExpectedBytes, sbActualBytes, "page heap block header");
     # Check the empty space between the allocation header and the heap block header; it should contain nothing but "\0"s
     uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset = oSelf.uAllocationHeaderEndAddress - oSelf.oVirtualAllocation.uStartAddress;
