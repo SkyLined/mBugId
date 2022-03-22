@@ -18,7 +18,7 @@ class cCollateralBugHandler(object):
     oSelf.__u0MaximumNumberOfBugs = u0MaximumNumberOfBugs;
     oSelf.__f0iInteractiveAskForValue = f0iInteractiveAskForValue;
     oSelf.__uBugCount = 0;
-    oSelf.__fbIgnoreException = None;
+    oSelf.__f0bIgnoreException = None;
     oSelf.uValueIndex = 0;
     oCdbWrapper.fAddCallback("Process attached", oSelf.fHandleNewProcess);
     oCdbWrapper.fAddCallback("Process terminated", oSelf.fHandleProcessTerminated);
@@ -48,9 +48,9 @@ class cCollateralBugHandler(object):
     oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId] = uPoisonAddress;
   
   def fSetIgnoreExceptionFunction(oSelf, fbIgnoreException):
-    assert oSelf.__fbIgnoreException is None, \
+    assert oSelf.__f0bIgnoreException is None, \
         "Cannot set two exception handlers!"
-    oSelf.__fbIgnoreException = fbIgnoreException;
+    oSelf.__f0bIgnoreException = fbIgnoreException;
   
   def fbTryToIgnoreException(oSelf):
     # Try to handle this exception to allow the application to continue in order to find out what collateral bugs
@@ -59,7 +59,7 @@ class cCollateralBugHandler(object):
     if (
       oSelf.__u0MaximumNumberOfBugs is not None and oSelf.__uBugCount >= oSelf.__u0MaximumNumberOfBugs
     ) or (
-      not oSelf.__fbIgnoreException
+      not oSelf.__f0bIgnoreException
     ):
       # Don't handle any more bugs, or don't handle this particular bug.
       if oSelf.__u0MaximumNumberOfBugs != 1:
@@ -67,17 +67,17 @@ class cCollateralBugHandler(object):
         # explain why this bug was not handled.
         oSelf.__oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 
-          "BugId does not know how to ignore this bug." if oSelf.__fbIgnoreException is None else \
+          "BugId does not know how to ignore this bug." if oSelf.__f0bIgnoreException is None else \
               "The maximum number of bugs has been reached.",
         );
-        return False;
-    fbIgnoreException = oSelf.__fbIgnoreException;
-    oSelf.__fbIgnoreException = None;
+      return False;
+    fbIgnoreException = oSelf.__f0bIgnoreException;
+    oSelf.__f0bIgnoreException = None;
     return fbIgnoreException(oSelf);
   
   def fDiscardIgnoreExceptionFunction(oSelf):
     # The exception was not considered a bug and the application should handle it; if a handler was set, discard it.
-    oSelf.__fbIgnoreException = None;
+    oSelf.__f0bIgnoreException = None;
   
   def fHandleProcessTerminated(oSelf, oCdbWrapper, oProcess):
     del oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];

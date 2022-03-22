@@ -10,7 +10,6 @@ from ..fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString;
 
-
 # Return (bEventIsFatal, bEventHasBeenHandled)
 HIDE_EVENT_FROM_APPLICATION = (False, True);
 REPORT_EVENT_TO_APPLICATION = (False, False);
@@ -215,7 +214,7 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
     # if the code later tries to set another exception handler.
     oCdbWrapper.oCollateralBugHandler.fDiscardIgnoreExceptionFunction();
     return REPORT_EVENT_TO_APPLICATION;
-
+  
   ### Report bug and see if the collateral bug handler can ignore it #################################################
   o0BugReport.fReport();
   # If we cannot ignore this bug, stop execution:

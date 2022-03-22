@@ -52,11 +52,12 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     uMainLoopCounter += 1;
     oCdbWrapper.fbFireCallbacks("Log message", "Main loop #%d" % uMainLoopCounter);
     (bEventIsFatal, bEventHasBeenHandled) = oCdbWrapper.ftbHandleLastCdbEvent(asbOutputWhileRunningApplication);
-    if bEventIsFatal: # This indicates we need to stop.
+    # bEventIsFatal indicates we need to stop.
+    # bEventHasBeenHandled indicates the application should handle the event, not us.
+    if bEventIsFatal:
       break;
     # (Re-)allocate reserve memory
     oCdbWrapper.fAllocateReserveMemoryIfNeeded();
-    # bEventHasBeenHandled indicates the application should handle the event, not us.
     for (uProcessId, oProcess) in list(oCdbWrapper.doProcess_by_uId.items()):
       if oProcess.bTerminated:
         del oCdbWrapper.doProcess_by_uId[uProcessId];
