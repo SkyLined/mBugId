@@ -2,6 +2,7 @@ import re;
 
 import mProductDetails;
 from mWindowsSDK import *;
+from mNotProvided import *;
 
 from .cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from .cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
@@ -92,33 +93,31 @@ class cBugReport(object):
       uStackFramesCount += (dxConfig["uMinStackRecursionLoops"] + 1) * dxConfig["uMaxStackRecursionLoopSize"];
     # If this exception was not caused by the application, but by cdb itself, None is return. This is not a bug.
     # Create a preliminary error report.
-    oBugReport = cBugReport(
+    o0BugReport = cBugReport.foCreate(
       oCdbWrapper = oCdbWrapper,
       oProcess = oProcess,
       oWindowsAPIThread = oWindowsAPIThread,
       s0BugTypeId = oException.sTypeId,
       s0BugDescription = oException.sDescription,
       s0SecurityImpact = oException.s0SecurityImpact,
-      uStackFramesCount = uStackFramesCount,
+      uzStackFramesCount = uStackFramesCount,
     );
-    # Apply the first round of translations
-    fApplyBugTranslationsToBugReport(oCdbWrapper, oBugReport);
-    if oBugReport.s0BugTypeId is None:
+    if o0BugReport is None:
       return None;
     # Perform exception specific analysis:
     if oException.uCode in dfoAnalyzeException_by_uExceptionCode:
-      oBugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](oBugReport, oProcess, oWindowsAPIThread, oException);
-      if oBugReport is None:
+      o0BugReport = dfoAnalyzeException_by_uExceptionCode[oException.uCode](o0BugReport, oProcess, oWindowsAPIThread, oException);
+      if o0BugReport is None:
         return None;
       # Apply another round of translations
-      fApplyBugTranslationsToBugReport(oCdbWrapper, oBugReport);
-      if oBugReport.s0BugTypeId is None:
+      fApplyBugTranslationsToBugReport(oCdbWrapper, o0BugReport);
+      if o0BugReport.s0BugTypeId is None:
         return None;
-    return oBugReport;
+    return o0BugReport;
   
   @classmethod
-  def foCreate(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact):
-    uStackFramesCount = dxConfig["uMaxStackFramesCount"];
+  def foCreate(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact, uzStackFramesCount = zNotProvided):
+    uStackFramesCount = fxGetFirstProvidedValue(uzStackFramesCount, dxConfig["uMaxStackFramesCount"]);
     # Create a preliminary error report.
     oBugReport = cBugReport(
       oCdbWrapper = oCdbWrapper,
