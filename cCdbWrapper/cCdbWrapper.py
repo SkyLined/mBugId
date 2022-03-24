@@ -325,7 +325,7 @@ class cCdbWrapper(cWithCallbacks):
       oCdbWrapper.auProcessIdsPendingAttach = [oCdbWrapper.oUtilityProcess.uId] + oCdbWrapper.auApplicationProcessIds;
     else:
       # If we are JIT debugging: attach to the process in which an exception
-      # happend and queue attaching to the utility process.
+      # happened and queue attaching to the utility process.
       assert len(oCdbWrapper.auApplicationProcessIds) == 1, \
           "Cannot attach to multiple processes while JIT debugging!";
       asAttachAndOptionallyHandleExceptionArguments = [
