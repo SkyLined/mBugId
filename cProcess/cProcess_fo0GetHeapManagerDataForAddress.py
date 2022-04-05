@@ -127,6 +127,10 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType 
     if o0PageHeapManagerData:
       # The address appears to point near a valid page heap block.
       return o0PageHeapManagerData;
+  ######################################################################
+  # To get proper details, we should run the code below this but this will take way
+  if not dxConfig["bDebugPageHeap"]:
+    return None;
   # At this point I expect the memory to either point to a regular windows heap, or
   # non-free, non-heap memory. Let's ask cdb.exe what it thinks we are looking at:
   asbCdbHeapOutput = [
@@ -193,10 +197,8 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType 
   # |<<<snip>>>
   # |unable to resolve ntdll!RtlpStackTraceDataBase
   
-  if len(asbCdbHeapOutput) < 4:
-    # That didn't work; we have no information about a heap block at this address.
-    if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: Unrecognized !heap output: %s" % repr(asbCdbHeapOutput));
-    return None;
+  assert len(asbCdbHeapOutput) >= 4, \
+      "cProcess.fo0GetHeapManagerDataForAddress: Unrecognized !heap output: %s" % repr(asbCdbHeapOutput);
   assert grbHeapOutputFirstLine.match(asbCdbHeapOutput[0]), \
       "Unrecognized page heap report first line:\r\n%s" % \
       "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCdbHeapOutput);
@@ -311,6 +313,7 @@ def cProcess_fo0GetHeapManagerDataForAddress(oProcess, uAddress, s0ExpectedType 
         "Page heap block size (0x%X) is different than reported by cdb (@ 0x%X)" % \
         (oHeapManagerData.uHeapBlockSize, u0HeapBlockSize);
   if gbDebugOutput: print("cProcess.fo0GetHeapManagerDataForAddress: returning %s" % repr(oHeapManagerData));
+  raise AssertionError("cdb.exe reports heap block at 0x%X as %s" % (uAddress, oHeapManagerData));
   return oHeapManagerData;
 
 from ..cWindowsHeapManagerData import cWindowsHeapManagerData;

@@ -174,6 +174,10 @@ dxConfig = {
                                         # If page heap is not enabled as expected, an error is reported through the
                                         # error callback. If False, BugId will only make sure page heap is enabled
                                         # when a bug is detected.
+  "bDebugPageHeap": False,              # If set to True and the custom code for BugId cannot find page heap information
+                                        # it'll ask the (slooooooow) cdb.exe code to look for it. If that returns
+                                        # anything, an internal exception is raised. I hope to use this to find out
+                                        # what my code is missing, so I can improve it and no longer need this check.
   ### UWP applications
   "nUWPApplicationAttachTimeoutInSeconds": 10,   # The number of seconds to wait for an UWP application to start.
   ### cdb limits
