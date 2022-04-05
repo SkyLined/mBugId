@@ -146,6 +146,7 @@ class cModule(object):
       sb0BinaryPath = obFirstLineMatch.group(1);
       oSelf.__s0BinaryPath = str(sb0BinaryPath, "ascii", "replace");
       return oSelf.__s0BinaryPath;
+    input("*** cModule.s0BinaryPath == NONE ***");
     return None;
   
   @property
