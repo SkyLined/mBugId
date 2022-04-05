@@ -582,3 +582,11 @@ class cPageHeapManagerData(cHeapManagerData):
         print("└─ × Corruption detected in range 0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress));
       else:
         print("└─ √ No corruption detected.");
+
+  def __str__(oSelf):
+    return "Page heap block: %s" % (
+      ", ".join(
+        "%s=0x%X" % (sName, uValue)
+        for (sName, uValue, xIgnored) in oSelf.fatxMemoryRemarks()
+      )
+    );
