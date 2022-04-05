@@ -74,6 +74,8 @@ rbOSThreadInitialisationSymbols = re.compile(
   rb"\A("
     rb"kernel32\.dll!BaseThreadInitThunk"
   rb"|"
+    rb"kernel32\.dll!BaseThreadInitXfgThunk" # New in Windows 11
+  rb"|"
     rb"ntdll\.dll!_*RtlUserThreadStart"
   rb")\Z"
 );
