@@ -1,4 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 
 def fbUpdateReportForCollateralPoisonPointer(
@@ -15,7 +14,9 @@ def fbUpdateReportForCollateralPoisonPointer(
     (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress);
   oBugReport.s0SecurityImpact = "Highly likely to be an exploitable security issue if your exploit can poison this value.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
+    oCollateralBugHandler.fbIgnoreAccessViolationException(
+      oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
+    )
   );
   return True;
 

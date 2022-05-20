@@ -1,4 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
@@ -131,6 +130,8 @@ def fbUpdateReportForHeapManagerPointer(
   else:
     u0PointerSizedOriginalValue = None;
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId, u0PointerSizedOriginalValue)
+    oCollateralBugHandler.fbIgnoreAccessViolationException(
+      oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, u0PointerSizedOriginalValue,
+    )
   );
   return True;

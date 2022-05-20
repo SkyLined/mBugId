@@ -1,5 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
-
 def fbUpdateReportForUnallocatedPointer(
   oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
 ):
@@ -11,6 +9,8 @@ def fbUpdateReportForUnallocatedPointer(
       (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress);
   oBugReport.s0SecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or memory be allocated at the address.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
+    oCollateralBugHandler.fbIgnoreAccessViolationException(
+      oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
+    )
   );
   return True;

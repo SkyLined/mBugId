@@ -1,4 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import oSystemInfo, cVirtualAllocation;
 
@@ -14,7 +13,7 @@ def fbUpdateReportForStackPointer(
   oStackVirtualAllocation = cVirtualAllocation(oProcess.uId, oThread.u0StackTopAddress - 1);
   assert oStackVirtualAllocation.uEndAddress == uStackTopAddress, \
       "Memory for the stack should be allocated between 0x%X and 0x%X, but the allocation is from 0x%X to 0x%X" % \
-      (uStackBottomAddress, uStackTopAddress, oStackVirtualAllocationuStartAddress, oStackVirtualAllocation.uEndAddress);
+      (uStackBottomAddress, uStackTopAddress, oStackVirtualAllocation.uStartAddress, oStackVirtualAllocation.uEndAddress);
   # See if the address is near the stack for the current thread:
   uOffsetFromTopOfStack = uAccessViolationAddress - oStackVirtualAllocation.uEndAddress;
   uOffsetFromBottomOfStack = oStackVirtualAllocation.uEndAddress - uAccessViolationAddress;
@@ -30,6 +29,8 @@ def fbUpdateReportForStackPointer(
     return False;
   oBugReport.s0SecurityImpact = "Potentially exploitable security issue.";
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
+    oCollateralBugHandler.fbIgnoreAccessViolationException(
+      oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress
+    )
   );
   return True;

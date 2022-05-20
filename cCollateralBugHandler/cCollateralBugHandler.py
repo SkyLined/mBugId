@@ -3,8 +3,13 @@ import re;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 from mWindowsSDK import *;
 
-from .dxConfig import dxConfig;
-from .mCP437 import fsCP437FromBytesString;
+from ..dxConfig import dxConfig;
+from ..mCP437 import fsCP437FromBytesString;
+
+from .cCollateralBugHandler_fbIgnoreAccessViolationException import \
+    cCollateralBugHandler_fbIgnoreAccessViolationException;
+from .cCollateralBugHandler_fbPoisonFlags import cCollateralBugHandler_fbPoisonFlags;
+from .cCollateralBugHandler_fbPoisonRegister import cCollateralBugHandler_fbPoisonRegister;
 
 duPoisonValue_by_sISA = {
   "x86": 0x41414141,
@@ -67,7 +72,7 @@ class cCollateralBugHandler(object):
         # explain why this bug was not handled.
         oSelf.__oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 
-          "BugId does not know how to ignore this bug." if oSelf.__f0bIgnoreException is None else \
+          "This bug cannot currently be ignored." if oSelf.__f0bIgnoreException is None else \
               "The maximum number of bugs has been reached.",
         );
       return False;
@@ -132,3 +137,6 @@ class cCollateralBugHandler(object):
           );
       return iUserProvidedValue & uMaxValue;
 
+  fbIgnoreAccessViolationException = cCollateralBugHandler_fbIgnoreAccessViolationException;
+  fbPoisonFlags = cCollateralBugHandler_fbPoisonFlags;
+  fbPoisonRegister = cCollateralBugHandler_fbPoisonRegister;

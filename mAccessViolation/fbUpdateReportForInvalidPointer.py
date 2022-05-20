@@ -1,4 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 
 def fbUpdateReportForInvalidPointer(
   oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
@@ -13,6 +12,8 @@ def fbUpdateReportForInvalidPointer(
   # You normally cannot allocate memory at an invalid address, but the address may be based on controlled data, so we'll
   # try to continue running after this exception just in case.
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-    fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
+    oCollateralBugHandler.fbIgnoreAccessViolationException(
+      oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
+    )
   );
   return True;

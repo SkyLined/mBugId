@@ -140,7 +140,7 @@ class cCdbWrapper(cWithCallbacks):
       "Application suspended", # (str sReason)
       "ASan detected", # ()
       "Bug cannot be ignored", # (str sReason)
-      "Bug ignored", # (str sReason)
+      "Bug ignored", # (str, sInstruction, str[] asActions)
       "Bug report", # (cBugReport oBugReport)
       "Cdb command started executing", # (sbCommand, uAttempt, uTries, sb0Comment)
       "Cdb command finished executing", # (sbCommand, uAttempt, uTries, sb0Comment)

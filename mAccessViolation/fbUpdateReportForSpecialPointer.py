@@ -1,4 +1,3 @@
-from .fbIgnoreAccessViolationException import fbIgnoreAccessViolationException;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..dxConfig import dxConfig;
 
@@ -72,7 +71,9 @@ def fbUpdateReportForSpecialPointer(
         (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress, sAddressDescription);
       oBugReport.s0SecurityImpact = sSecurityImpact;
       oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
-        fbIgnoreAccessViolationException(oCollateralBugHandler, oCdbWrapper, oProcess, oThread, sViolationTypeId)
+        oCollateralBugHandler.fbIgnoreAccessViolationException(
+          oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
+        )
       );
       return True;
   return False;
