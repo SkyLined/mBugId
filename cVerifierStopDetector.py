@@ -1,11 +1,19 @@
 import re;
 
-from mWindowsAPI import *;
-
 # local imports are at the end of this file to avoid import loops.
 
-gbDebugOutput = False;
-
+gbDebugOutput = True;
+grbVerifierStopMessage = re.compile(
+  rb"^VERIFIER STOP "
+  rb"([0-9A-F]+)"
+  rb": "
+  rb"pid "
+  rb"0x" rb"([0-9A-F]+)"
+  rb": "
+  rb"(.*?)"
+  rb"\s*"
+  rb"$"
+);
 class cVerifierStopDetector(object):
   def __init__(oSelf, oCdbWrapper):
     # Hook application debug output events to detect VERIFIER STOP messages
@@ -17,9 +25,12 @@ class cVerifierStopDetector(object):
     # Detect VERIFIER STOP messages, create a cBugReport and report them before stopping cdb.
     if len(asbDebugOutput) == 0:
       return;
-    obVerifierStopHeaderMatch = re.match(rb"^VERIFIER STOP ([0-9A-F]+): pid 0x([0-9A-F]+): (.*?)\s*$", asbDebugOutput[0]);
+    obVerifierStopHeaderMatch = grbVerifierStopMessage.match(asbDebugOutput[0]);
     if not obVerifierStopHeaderMatch:
       return;
+    if gbDebugOutput:
+      for sbLine in asbDebugOutput:
+        print("cVerifierStopDetector: %s" % str(sbLine, "cp437", "replace"));
     (sbErrorNumber, sbProcessId, sbMessage) = obVerifierStopHeaderMatch.groups();
     uErrorNumber = fu0ValueFromCdbHexOutput(sbErrorNumber);
     uProcessId = fu0ValueFromCdbHexOutput(sbProcessId);
@@ -47,26 +58,26 @@ class cVerifierStopDetector(object):
           (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput));
       (sbValue, sbDescription) = obInformationMatch.groups();
       uValue = fu0ValueFromCdbHexOutput(sbValue);
-      sbDescription = sbDescription.lower(); # Both "Corruption address" and "corruption address" are used :(
-      if sbDescription == b"heap block":
+      sbLowerDescription = sbDescription.lower(); # Both "Corruption address" and "corruption address" are used :(
+      if sbLowerDescription == b"heap block":
         u0VerifierStopHeapBlockAddress = uValue;
-      elif sbDescription == b"block size":
+      elif sbLowerDescription == b"block size":
         u0VerifierStopHeapBlockSize = uValue;
-      elif sbDescription == b"corrupted stamp":
+      elif sbLowerDescription == b"corrupted stamp":
         u0CorruptedStamp = uValue;
-      elif sbDescription == b"corruption address":
+      elif sbLowerDescription == b"corruption address":
         u0CorruptionAddress = uValue;
-      elif sbDescription == b"heap handle":
+      elif sbLowerDescription == b"heap handle":
         u0VerifierStopHeapBlockHandle = uValue;
         u0VerifierStopHeapHandle = uValue;
-      elif sbDescription == b"heap used in the call":
+      elif sbLowerDescription == b"heap used in the call":
         u0VerifierStopHeapHandle = uValue;
-      elif sbDescription == b"heap owning the block":
+      elif sbLowerDescription == b"heap owning the block":
         u0VerifierStopHeapBlockHandle = uValue;
       else:
         # There are always exactly four values, not all of which are used to store information. Those that are not have
         # an empty or "Not used." description to indicates this.
-        assert sbDescription in [b"", b"Not used."] and uValue == 0, \
+        assert sbLowerDescription in [b"", b"not used."] and uValue == 0, \
             "Unhandled VERIFIER STOP message line: %s\r\n%s" % \
             (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput));
     if uErrorNumber == 0x303:
@@ -77,6 +88,7 @@ class cVerifierStopDetector(object):
       # |0000000000000000 : Not used.
       # |0000000000000000 : Not used.
       # |
+      if gbDebugOutput: print("cVerifierStopDetector: ignored")
       return; # This is a VERIFIER STOP, but not an interesting one and we can continue the application.
     
     if gbDebugOutput:
@@ -100,27 +112,63 @@ class cVerifierStopDetector(object):
         "The heap block size was not found in the verifier stop message.\r\n%s" % \
         "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDebugOutput);
     
-    o0PageHeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(
-      uAddress = u0VerifierStopHeapBlockAddress,
-      s0ExpectedType = "page heap",
-      bMayNotBeParseable = b"corrupted" in sbMessage,
-    );
-    if o0PageHeapManagerData is None and sbMessage == b"block already freed":
-      if gbDebugOutput: print("VERIFIER STOP: freed block bug work around needed");
-      # There is a bug in application verifier where it reports the address of the DPH_HEAP_BLOCK structure instead of
-      # the heap block in certain situations. In this case, "!heap" will not return any information and
-      # oPageHeapManagerData will be None. We can still find the correct information though:
-      o0PageHeapManagerData = cPageHeapManagerData.fo0GetForProcessAndAllocationInformationStartAddress(
-        oProcess,
-        u0VerifierStopHeapBlockAddress,
+    # Sometimes application verifier reports the address of the page heap header structure instead of
+    # the heap block. As far as I know this happens only when a block has already been freed.
+    bVerifierStopHeapBlockAddressPointsToPageHeapBlock = False;
+    o0PageHeapManagerData = None;
+    if sbMessage in [b"block already freed"]:
+      o0PageHeapManagerData = oProcess.fo0GetPageHeapManagerDataForPageHeapBlockStartAddress(
+        uPageHeapHeaderStartAddress = u0VerifierStopHeapBlockAddress,
       );
       if o0PageHeapManagerData:
-        # Adjust the address accordingly.
-        u0VerifierStopHeapBlockAddress = o0PageHeapManagerData.uHeapBlockStartAddress;
-    
+        if gbDebugOutput:
+          print("VERIFIER: address 0x%X`%X %s to a page heap block that references a 0x%X bytes heap block at 0x%X`%X." % (
+            u0VerifierStopHeapBlockAddress >> 32,
+            u0VerifierStopHeapBlockAddress & 0xFFFFFFFF,
+            "points" if o0PageHeapManagerData else "does not point",
+            o0PageHeapManagerData.uHeapBlockSize,
+            o0PageHeapManagerData.uHeapBlockStartAddress >> 32,
+            o0PageHeapManagerData.uHeapBlockStartAddress & 0xFFFFFFFF,
+          ));
+          print("VERIFIER:   %s" % o0PageHeapManagerData);
+        bVerifierStopHeapBlockAddressPointsToPageHeapBlock = True;
+    if o0PageHeapManagerData is None:
+      # We have either not attempted to get the page heap data yet, or we tried to
+      # see if the address specified by application verifier pointed to a page heap header
+      # and it did not appear that it does. Let's try to see if the address points to the
+      # heap block itself:
+      o0PageHeapManagerData = oProcess.fo0GetPageHeapManagerDataForAddressNearHeapBlock(
+        uAddressNearHeapBlock = u0VerifierStopHeapBlockAddress,
+        u0HeapBlockSize = u0VerifierStopHeapBlockSize,
+      );
+      if gbDebugOutput:
+        print("VERIFIER: address 0x%X`%X %s %s a %sheap block%s." % (
+          u0VerifierStopHeapBlockAddress >> 32,
+          u0VerifierStopHeapBlockAddress & 0xFFFFFFFF,
+          "points" if o0PageHeapManagerData else "does not point",
+          "to" if o0PageHeapManagerData and o0PageHeapManagerData.uHeapBlockStartAddress == u0VerifierStopHeapBlockAddress
+              else "near",
+          "0x%X bytes " % o0PageHeapManagerData.uHeapBlockSize if o0PageHeapManagerData
+              else "",
+          " at 0x%X`%X" % (
+            o0PageHeapManagerData.uHeapBlockStartAddress >> 32,
+            o0PageHeapManagerData.uHeapBlockStartAddress & 0xFFFFFFFF,
+          ) if o0PageHeapManagerData and o0PageHeapManagerData.uHeapBlockStartAddress != u0VerifierStopHeapBlockAddress
+              else "",
+        ));
+        if o0PageHeapManagerData:
+          print("VERIFIER:   %s" % o0PageHeapManagerData);
     uMemoryDumpStartAddress = None;
     atxMemoryRemarks = [];
     if o0PageHeapManagerData:
+      if b"corrupted" not in sbMessage and not bVerifierStopHeapBlockAddressPointsToPageHeapBlock:
+        assert (
+            o0PageHeapManagerData.uHeapBlockStartAddress == u0VerifierStopHeapBlockAddress
+            and o0PageHeapManagerData.uHeapBlockSize == u0VerifierStopHeapBlockSize
+        ), \
+            "Heap block deails reported by verifier differ from details found in real life.\r\n" + \
+            "\r\n".join(str(sb, "cp437", "replace") for sb in asbDebugOutput) + \
+            "\r\n" + str(o0PageHeapManagerData);
       if gbDebugOutput: print("VERIFIER STOP: page heap manager data found.", {
         "uHeapBlockStartAddress": o0PageHeapManagerData.uHeapBlockStartAddress,
         "uHeapBlockSize": o0PageHeapManagerData.uHeapBlockSize,
@@ -129,7 +177,11 @@ class cVerifierStopDetector(object):
           o0PageHeapManagerData.ftsGetIdAndDescriptionForAddress(u0VerifierStopHeapBlockAddress);
     else:
       if gbDebugOutput: print("VERIFIER STOP: unable to get page heap manager data.");
-      sBlockSizeId = "[%s]" % (fsGetNumberDescription(u0VerifierStopHeapBlockSize),);
+      # Heap blocks can be 0 bytes but this is also returned if the size is not known:
+      if u0VerifierStopHeapBlockSize == 0:
+        sBlockSizeId = "[?]";
+      else:
+        sBlockSizeId = "[%s]" % (fsGetNumberDescription(u0VerifierStopHeapBlockSize),);
       sBlockOffsetId = "@?";
       sBlockOffsetDescription = "at address 0x%08X in" % (u0VerifierStopHeapBlockAddress,);
       sBlockSizeDescription = "a heap block of %s" % (fsNumberOfBytes(u0VerifierStopHeapBlockSize),);
@@ -203,7 +255,7 @@ class cVerifierStopDetector(object):
       sSecurityImpact = "Unknown: this type of bug has not been analyzed before";
     else:
       if oCdbWrapper.bGenerateReportHTML and o0PageHeapManagerData:
-        # Theoretically we could use the virtual allocation data in page heap manager data is missing, but that's a lot
+        # Theoretically we could use the virtual allocation data if page heap manager data is missing, but that's a lot
         # of work for a situation that should happen very little.
         uMemoryDumpStartAddress = o0PageHeapManagerData.uMemoryDumpStartAddress;
         uMemoryDumpEndAddress = o0PageHeapManagerData.uMemoryDumpEndAddress;
@@ -326,8 +378,6 @@ class cVerifierStopDetector(object):
     oCdbWrapper.fStop();
 
 from .cBugReport import cBugReport;
-from .cPageHeapManagerData import cPageHeapManagerData;
-from .dxConfig import dxConfig;
 from .fsGetNumberDescription import fsGetNumberDescription;
 from .fsNumberOfBytes import fsNumberOfBytes;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;

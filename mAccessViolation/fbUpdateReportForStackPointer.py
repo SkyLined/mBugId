@@ -2,7 +2,13 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from mWindowsAPI import oSystemInfo, cVirtualAllocation;
 
 def fbUpdateReportForStackPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
   u0StackTopAddress = oThread.u0StackTopAddress;
   u0StackBottomAddress = oThread.u0StackBottomAddress;

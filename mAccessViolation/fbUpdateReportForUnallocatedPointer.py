@@ -1,6 +1,15 @@
+from mWindowsAPI import cVirtualAllocation;
+
 def fbUpdateReportForUnallocatedPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   if not oVirtualAllocation.bFree:
     return False;
   # No memory is allocated in this area

@@ -1,6 +1,7 @@
-from .ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
+from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import \
+    ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
 
-class cHeapManagerData(object):
+class iHeapManagerData(object):
   def __init__(oSelf,
     oVirtualAllocation,
     uHeapBlockStartAddress,
@@ -19,7 +20,10 @@ class cHeapManagerData(object):
     oSelf.bCorruptionDetected = False;
     
     oSelf.uMemoryDumpStartAddress = uHeapBlockStartAddress - oSelf.uHeapBlockHeaderSize;
-    oSelf.uMemoryDumpEndAddress = oSelf.uAllocationEndPaddingSize and oSelf.uAllocationEndPaddingEndAddress or oSelf.uHeapBlockEndAddress;
+    oSelf.uMemoryDumpEndAddress = (
+      oSelf.uAllocationEndPaddingEndAddress if oSelf.uAllocationEndPaddingSize
+      else oSelf.uHeapBlockEndAddress
+    );
     oSelf.uMemoryDumpSize = oSelf.uMemoryDumpEndAddress - oSelf.uMemoryDumpStartAddress;
   
   def ftsGetIdAndDescriptionForAddress(oSelf, uAddress):

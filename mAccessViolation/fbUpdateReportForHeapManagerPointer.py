@@ -1,12 +1,19 @@
-from ..fsGetNumberDescription import fsGetNumberDescription;
+from mWindowsSDK import PAGE_NOACCESS, PAGE_READWRITE;
+
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
   # This is not a special marker or NULL, so it must be some corrupt pointer
   # Get information about the memory region:
-  o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddress(uAccessViolationAddress);
+  o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddressNearHeapBlock(uAccessViolationAddress);
   if not o0HeapManagerData:
     return False;
   oHeapManagerData = o0HeapManagerData;
@@ -94,7 +101,7 @@ def fbUpdateReportForHeapManagerPointer(
         ):
           sBugAccessTypeId = "BOF";
           oBugReport.s0BugDescription += " This appears to be a classic linear buffer-overrun vulnerability.";
-          s0SecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
+          oBugReport.s0SecurityImpact = "Potentially highly exploitable security issue that might allow arbitrary code execution.";
       sCorruptionId = "{%s}" % oHeapManagerData.sCorruptionId;
     else:
       sCorruptionId = "";
@@ -106,7 +113,7 @@ def fbUpdateReportForHeapManagerPointer(
         and oHeapManagerData.bAllocated \
         and oHeapManagerData.uHeapBlockEndPaddingSize \
         and uAccessViolationAddress >= oHeapManagerData.uHeapBlockEndAddress \
-        and uAccessViolationAddress <= oHeapManagerData.oVirtualAllocation.uEndAddress:
+        and uAccessViolationAddress <= oHeapManagerData.oHeapBlockVirtualAllocation.uEndAddress:
         oBugReport.s0BugDescription += " An earlier out-of-bounds read before this address may have happened without " \
               "having triggered an access violation.";
   oBugReport.s0BugTypeId = "".join([
@@ -118,12 +125,12 @@ def fbUpdateReportForHeapManagerPointer(
   # case we may be able to read a pointer sized value from this memory for use with collateral later:
   if (
     sViolationTypeId == "R" and \
-    oHeapManagerData.oVirtualAllocation and \
-    oHeapManagerData.oVirtualAllocation.bAllocated and \
+    oHeapManagerData.oHeapBlockVirtualAllocation and \
+    oHeapManagerData.oHeapBlockVirtualAllocation.bAllocated and \
     uAccessViolationAddress >= oHeapManagerData.uHeapBlockStartAddress and \
     uAccessViolationAddress + oProcess.uPointerSize < oHeapManagerData.uHeapBlockEndAddress
   ):
-    u0PointerSizedOriginalValue = oHeapManagerData.oVirtualAllocation.fuReadValueForOffsetAndSize(
+    u0PointerSizedOriginalValue = oHeapManagerData.oHeapBlockVirtualAllocation.fuReadValueForOffsetAndSize(
       uAccessViolationAddress - oHeapManagerData.uHeapBlockStartAddress,
       oProcess.uPointerSize,
     );

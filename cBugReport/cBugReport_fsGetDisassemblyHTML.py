@@ -59,7 +59,6 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
         sb0Comment = b"Disassemble up to address 0x%X" % uAddress,
         bOutputIsInformative = True,
         bRetryOnTruncatedOutput = True,
-        rb0IgnoredErrors = grbIgnoredMemoryAccessError,
       );
       if grbIgnoredMemoryAccessError.match(asbDisassemblyBeforeAddress[-1]):
         # If the virtual memory allocation ends shortly after the address, we could see this error:
@@ -88,12 +87,11 @@ def cBugReport_fsGetDisassemblyHTML(oBugReport, oCdbWrapper, oProcess, uAddress,
       sb0Comment = b"Disassemble starting at address 0x%X" % uAddress, 
       bOutputIsInformative = True,
       bRetryOnTruncatedOutput = True,
-      rb0IgnoredErrors = grbIgnoredMemoryAccessError,
     );
     assert len(asbDisassemblyAtAndAfterAddress) >= 2, \
         "Unexpectedly short disassembly output:\r\n%s" % \
         "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDisassemblyAtAndAfterAddress);
-    # The first line copntains the symbol at the address where we started disassembly, which we do not want in the
+    # The first line contains the symbol at the address where we started disassembly, which we do not want in the
     # output:
     asbDisassemblyAtAndAfterAddress.pop(0);
     if grbIgnoredMemoryAccessError.match(asbDisassemblyAtAndAfterAddress[-1]):

@@ -1,7 +1,13 @@
 from ..fsGetNumberDescription import fsGetNumberDescription;
 
 def fbUpdateReportForCollateralPoisonPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
   iOffset = oCdbWrapper.oCollateralBugHandler.fiGetOffsetForPoisonedAddress(oProcess, uAccessViolationAddress);
   if iOffset is None:

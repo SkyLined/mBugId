@@ -12,7 +12,6 @@ from mWindowsAPI import cVirtualAllocation;
 def fUpdateReportForProcessThreadTypeIdAndAddress(oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress):
   
   sViolationVerb = {"R":"read", "W":"write", "E":"execute"}.get(sViolationTypeId, "access");
-  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   
   # Handling this AV as the appropriate type of pointer:
   for fbUpdateReportForSpecificPointerType in [
@@ -27,8 +26,13 @@ def fUpdateReportForProcessThreadTypeIdAndAddress(oCdbWrapper, oBugReport, oProc
     fbUpdateReportForInvalidPointer,
   ]:
     if fbUpdateReportForSpecificPointerType(
-      oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,
-      sViolationVerb, oVirtualAllocation
+      oCdbWrapper,
+      oBugReport,
+      oProcess,
+      oThread,
+      sViolationTypeId,
+      uAccessViolationAddress,
+      sViolationVerb,
     ):
       # We handled the pointer as this type, and it can be only one type, so stop trying other types:
       return;

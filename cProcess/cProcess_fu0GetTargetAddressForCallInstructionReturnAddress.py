@@ -102,17 +102,11 @@ def cProcess_fu0GetTargetAddressForCallInstructionReturnAddress(oProcess, uRetur
     return u0CallTargetAddress;
   
   if gbDebugOutput:
-    rbIgnoredMemoryAccessError = re.compile(
-      rb"\A"
-      rb"\s*\^ Memory access error in '.+'"
-      rb"\Z"
-    );
     asbDisassemblyBeforeAddress = oProcess.fasbExecuteCdbCommand(
       sbCommand = b"u 0x%X 0x%X;" % (uReturnAddress - 32, uReturnAddress),
       sb0Comment = b"Disassemble up to address 0x%X" % uReturnAddress,
       bOutputIsInformative = False,
       bRetryOnTruncatedOutput = True,
-      rb0IgnoredErrors = rbIgnoredMemoryAccessError,
     );
     for sbLine in asbDisassemblyBeforeAddress[-8:]:
       print ("  %s" % fsCP437FromBytesString(sbLine));

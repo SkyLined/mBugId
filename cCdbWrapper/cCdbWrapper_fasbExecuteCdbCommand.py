@@ -13,12 +13,12 @@ gbDebugIO = False; # Used for debugging cdb I/O issues
 # don't handle such situations. The solutions I employ is to add two commands before and after the actual command that
 # output markers that we can detect. These markers can be used to ignore output that is not part of the output for the
 # command.
-gsbStartOfCommandOutputMarker = b"<\x01[\x02{";
-gsbEndOfCommandOutputMarker = b"}\x02]\x01>";
+gsbStartOfCommandOutputMarker = b"=<[{START}]>=";
+gsbEndOfCommandOutputMarker = b"=<[{END}]>=";
 # The command that outputs the marker should not contain the marker itself: any cdb output that echos the command would
 # otherwise output the marker and may lead to incorrect parsing of data. This encodes the marker in the command:
 def fsbCreatePrintMarkerCommand(sbMarker):
-  return b'.printf "%s\\r\\n", %s;' % (
+  return b'.printf "%s", %s;' % (
     b"%c" * len(sbMarker),
     b", ".join([b"0x%X" % uByte for uByte in sbMarker])
   );
@@ -31,9 +31,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
     bOutputIsInformative = False,
     bShowOutputButNotCommandInHTMLReport = False, # Hide the command, but not its output
     bApplicationWillBeRun = False,
-    bHandleSymbolLoadErrors = True,
     bIgnoreOutput = False,
-    rb0IgnoredErrors = None,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
@@ -91,9 +89,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       return oCdbWrapper.fasbReadOutput(
         bOutputIsInformative = bOutputIsInformative,
         bApplicationWillBeRun = bApplicationWillBeRun,
-        bHandleSymbolLoadErrors = bHandleSymbolLoadErrors,
         bIgnoreOutput = bIgnoreOutput,
-        rb0IgnoredErrors = rb0IgnoredErrors if uAttempt < uTries else None, # Only ignore errors the last try.
         sb0StartOfCommandOutputMarker = bUseMarkers and gsbStartOfCommandOutputMarker or None,
         sb0EndOfCommandOutputMarker = bUseMarkers and gsbEndOfCommandOutputMarker or None,
       );

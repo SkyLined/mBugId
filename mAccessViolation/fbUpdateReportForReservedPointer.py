@@ -1,8 +1,17 @@
+from mWindowsAPI import cVirtualAllocation;
+
 from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
 
 def fbUpdateReportForReservedPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   if not oVirtualAllocation.bReserved:
     return False;
   # No memory is allocated in this area, but is is reserved

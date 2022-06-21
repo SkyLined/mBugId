@@ -51,7 +51,13 @@ gddtsDetails_uSpecialAddress_sISA = {
 };
 
 def fbUpdateReportForSpecialPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
   dtsDetails_uSpecialAddress = gddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():

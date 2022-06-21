@@ -1,7 +1,16 @@
+from mWindowsAPI import cVirtualAllocation;
 
 def fbUpdateReportForInvalidPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
+  oVirtualAllocation,
 ):
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   # See if the address is valid:
   if not oVirtualAllocation.bInvalid:
     return False;

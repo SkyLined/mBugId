@@ -1,10 +1,18 @@
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
+from mWindowsAPI import cVirtualAllocation;
 from mWindowsSDK import *;
 
 def fbUpdateReportForAllocatedPointer(
-  oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, sViolationVerb, oVirtualAllocation
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress,
+  sViolationVerb,
 ):
+  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   if not oVirtualAllocation.bAllocated:
     return False;
   # Memory is allocated in this area, but apparantly not accessible in the way the code tried to.

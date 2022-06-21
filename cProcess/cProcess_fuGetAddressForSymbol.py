@@ -10,7 +10,6 @@ def cProcess_fuGetAddressForSymbol(oProcess, sbSymbol):
   asbCommandOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = b'.printf "%%p\\n", @!"%s";' % sbSymbol,
     sb0Comment = b"Get address for symbol",
-    rb0IgnoredErrors = grbIgnoredErrors,
   );
   uValueAtIndex = 0;
   if len(asbCommandOutput) == 2 and asbCommandOutput[0].startswith(b"Unable to read dynamic function table entry at "):

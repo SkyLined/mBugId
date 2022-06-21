@@ -1,6 +1,6 @@
-from .cHeapManagerData import cHeapManagerData;
+from .iHeapManagerData import iHeapManagerData;
 
-class cWindowsHeapManagerData(cHeapManagerData):
+class cWindowsHeapManagerData(iHeapManagerData):
   def __init__(oSelf,
     oVirtualAllocation,
     uHeapEntryStartAddress,

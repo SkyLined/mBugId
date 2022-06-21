@@ -1,17 +1,25 @@
 import os, re;
 
-from mWindowsAPI import cProcess as cWindowsAPIProcess, oSystemInfo;
+from mWindowsAPI import cProcess as cWindowsAPIProcess;
 
 from ..cModule import cModule;
 
 from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress;
-from .cProcess_fo0GetHeapManagerDataForAddress import cProcess_fo0GetHeapManagerDataForAddress;
+from .cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock import \
+    cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock;
+from .cProcess_fo0GetPageHeapManagerDataForPageHeapBlockStartAddress import \
+    cProcess_fo0GetPageHeapManagerDataForPageHeapBlockStartAddress;
 from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
-from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
+from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import \
+    cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
 from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
+from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
+    cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
+from .cProcess_fo0GetVirtualAllocationForAddressNearHeapBlock import \
+    cProcess_fo0GetVirtualAllocationForAddressNearHeapBlock;
 
 class cProcess(object):
   def __init__(oProcess, oCdbWrapper, uId):
@@ -42,7 +50,7 @@ class cProcess(object):
   
     # Symbols and heap manager data for addressess will be cached here. They are discarded whenever the application is resumed.
     oProcess.__dsb0Symbol_by_uAddress = {};
-    oProcess.__do0HeapManagerData_by_uAddress = {};
+    oProcess.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
     
   @property
   def oWindowsAPIProcess(oProcess):
@@ -98,7 +106,7 @@ class cProcess(object):
     oProcess.__oMainModule = None;
     oProcess.__bAllModulesEnumerated = False;
     oProcess.__dsb0Symbol_by_uAddress = {};
-    oProcess.__do0HeapManagerData_by_uAddress = {};
+    oProcess.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
   
   def fSelectInCdb(oProcess):
     oProcess.oCdbWrapper.fSelectProcessId(oProcess.uId);
@@ -168,16 +176,27 @@ class cProcess(object):
   def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.fs0GetBinaryPathForModuleAddress(uAddress);
   
-  def fo0GetHeapManagerDataForAddress(oSelf, uAddress, s0ExpectedType = None, bMayNotBeParseable = False):
+  def fo0GetHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock):
     # Wrap this in a bit of caching for speed.
-    if uAddress in oSelf.__do0HeapManagerData_by_uAddress:
-      return oSelf.__do0HeapManagerData_by_uAddress[uAddress];
-    o0HeapManagerData = cProcess_fo0GetHeapManagerDataForAddress(
-      oSelf, uAddress, s0ExpectedType, bMayNotBeParseable
-    );
-    oSelf.__do0HeapManagerData_by_uAddress[uAddress] = o0HeapManagerData;
-    return o0HeapManagerData;
-  
+    if uAddressNearHeapBlock in oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock:
+      return oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock[uAddressNearHeapBlock];
+    if oSelf.bPageHeapEnabled:
+      return oSelf.fo0GetPageHeapManagerDataForAddressNearHeapBlock(uAddressNearHeapBlock);
+    else:
+      return oSelf.fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(uAddressNearHeapBlock);
+  def fo0GetPageHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock, u0HeapBlockSize = None):
+    # Wrap this in a bit of caching for speed.
+    if uAddressNearHeapBlock not in oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock:
+      oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock[uAddressNearHeapBlock] = \
+          cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock, u0HeapBlockSize = u0HeapBlockSize);
+    return oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock[uAddressNearHeapBlock];
+  def fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock):
+    # Wrap this in a bit of caching for speed.
+    if uAddressNearHeapBlock not in oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock:
+      oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock[uAddressNearHeapBlock] = \
+          cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock);
+    return oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock[uAddressNearHeapBlock];
+
   def fsb0GetSymbolForAddress(oSelf, uAddress, sbAddressDescription):
     # Wrap this in a bit of caching for speed.
     if uAddress in oSelf.__dsb0Symbol_by_uAddress:
@@ -189,6 +208,9 @@ class cProcess(object):
   fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
-  fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
+  fo0GetPageHeapManagerDataForPageHeapBlockStartAddress = cProcess_fo0GetPageHeapManagerDataForPageHeapBlockStartAddress;
+  fo0GetVirtualAllocationForAddressNearHeapBlock = cProcess_fo0GetVirtualAllocationForAddressNearHeapBlock;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
+  fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
   fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
+
