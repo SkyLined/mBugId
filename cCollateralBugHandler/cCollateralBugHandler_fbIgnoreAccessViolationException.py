@@ -336,7 +336,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       if sSource != sDestination:
         sSource = "%s and %s" % (sDestination, sSource);
     bSourceCausedBug = u0SourceArgumentPointerSizeInBits is not None;
-    bDestinationCausedBug = u0DestinationArgumentPointerSizeInBits is None;
+    bDestinationCausedBug = u0DestinationArgumentPointerSizeInBits is not None;
     if bSourceCausedBug and bDestinationCausedBug:
       ############################################################################
       # Handle instructions that attempted to modify invalid memory.
