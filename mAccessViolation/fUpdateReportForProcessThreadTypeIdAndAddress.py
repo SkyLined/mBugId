@@ -9,7 +9,14 @@ from .fbUpdateReportForSpecialPointer import fbUpdateReportForSpecialPointer;
 from .fbUpdateReportForStackPointer import fbUpdateReportForStackPointer;
 from mWindowsAPI import cVirtualAllocation;
 
-def fUpdateReportForProcessThreadTypeIdAndAddress(oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress):
+def fUpdateReportForProcessThreadTypeIdAndAddress(
+  oCdbWrapper,
+  oBugReport,
+  oProcess,
+  oThread,
+  sViolationTypeId,
+  uAccessViolationAddress
+):
   
   sViolationVerb = {"R":"read", "W":"write", "E":"execute"}.get(sViolationTypeId, "access");
   
