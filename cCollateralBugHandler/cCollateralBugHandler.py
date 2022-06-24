@@ -61,20 +61,15 @@ class cCollateralBugHandler(object):
     # Try to handle this exception to allow the application to continue in order to find out what collateral bugs
     # we can find.
     oSelf.__uBugCount += 1;
-    if (
-      oSelf.__u0MaximumNumberOfBugs is not None and oSelf.__uBugCount >= oSelf.__u0MaximumNumberOfBugs
-    ) or (
-      not oSelf.__f0bIgnoreException
-    ):
+    bMaximumNumberOfBugsReached = oSelf.__u0MaximumNumberOfBugs is not None and oSelf.__uBugCount >= oSelf.__u0MaximumNumberOfBugs;
+    if bMaximumNumberOfBugsReached or not oSelf.__f0bIgnoreException:
       # Don't handle any more bugs, or don't handle this particular bug.
-      if oSelf.__u0MaximumNumberOfBugs != 1:
-        # If collateral bug handling is enabled, we should fire a callback to
-        # explain why this bug was not handled.
-        oSelf.__oCdbWrapper.fFireCallbacks(
-          "Bug cannot be ignored", 
-          "This bug cannot currently be ignored." if oSelf.__f0bIgnoreException is None else \
-              "The maximum number of bugs has been reached.",
-        );
+      sMessage = "The %s." % " and the ".join(s for s in [
+        "last detected bug cannot currently be ignored" if oSelf.__f0bIgnoreException is None else None,
+        "maximum number of bugs has been reached" if bMaximumNumberOfBugsReached else None,
+      ] if s);
+      oSelf.__oCdbWrapper.fLogMessage(sMessage);
+      oSelf.__oCdbWrapper.fFireCallbacks("Bug cannot be ignored", sMessage);
       return False;
     fbIgnoreException = oSelf.__f0bIgnoreException;
     oSelf.__f0bIgnoreException = None;
