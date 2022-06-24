@@ -1,5 +1,3 @@
-from mWindowsSDK import PAGE_NOACCESS, PAGE_READWRITE;
-
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(

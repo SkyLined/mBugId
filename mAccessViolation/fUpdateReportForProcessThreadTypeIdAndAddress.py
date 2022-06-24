@@ -7,7 +7,6 @@ from .fbUpdateReportForNULLPointer import fbUpdateReportForNULLPointer;
 from .fbUpdateReportForReservedPointer import fbUpdateReportForReservedPointer;
 from .fbUpdateReportForSpecialPointer import fbUpdateReportForSpecialPointer;
 from .fbUpdateReportForStackPointer import fbUpdateReportForStackPointer;
-from mWindowsAPI import cVirtualAllocation;
 
 def fUpdateReportForProcessThreadTypeIdAndAddress(
   oCdbWrapper,
