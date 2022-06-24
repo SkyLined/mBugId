@@ -2,7 +2,7 @@ from mWindowsAPI import cVirtualAllocation;
 
 from ..dxConfig import dxConfig;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 def cProcess_fo0GetVirtualAllocationForAddressNearHeapBlock(oProcess, uAddressNearHeapBlock):
   if uAddressNearHeapBlock < dxConfig["uMaxAddressOffset"]:
