@@ -8,7 +8,6 @@ def fbUpdateReportForInvalidPointer(
   sViolationTypeId,
   uAccessViolationAddress,
   sViolationVerb,
-  oVirtualAllocation,
 ):
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   # See if the address is valid:
