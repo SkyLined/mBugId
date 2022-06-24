@@ -25,12 +25,15 @@ def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
       o0HeapBlockVirtualAllocation.uStartAddress - 1,
     );
     if not o0PreviousHeapBlockVirtualAllocation:
-      if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: No virtual allocation before %s\r\n  expected heap block size 0x%X is assumed to be incorrect." % (
+      if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: " \
+        "No virtual allocation before %s\r\n  expected heap block size 0x%X is assumed to be incorrect." % (
         o0HeapBlockVirtualAllocation,
         u0HeapBlockSize,
       ));
     elif o0PreviousHeapBlockVirtualAllocation.uEndAddress < o0HeapBlockVirtualAllocation.uEndAddress:
-      if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: Virtual allocation %s does not wrap %s\r\n  expected heap block size 0x%X is assumed to be incorrect." % (
+      if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: "\
+        "Virtual allocation %s does not wrap %s\r\n  expected heap block size 0x%X is assumed to be incorrect." % (
+        o0PreviousHeapBlockVirtualAllocation,
         o0HeapBlockVirtualAllocation,
         u0HeapBlockSize,
       ));
@@ -40,13 +43,15 @@ def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
         oProcess.uPointerSize,
       );
       if o0AllocationHeader:
-        if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: Virtual allocation %s wraps %s and contains page heap header" % (
+        if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: " \
+          "Virtual allocation %s wraps %s and contains page heap header" % (
           o0PreviousHeapBlockVirtualAllocation,
           o0HeapBlockVirtualAllocation,
         ));
         o0HeapBlockVirtualAllocation = o0PreviousHeapBlockVirtualAllocation;
       else:
-        if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: Virtual allocation %s wraps %s but does not contain page heap header" % (
+        if gbDebugOutput: print("cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: " \
+          "Virtual allocation %s wraps %s but does not contain page heap header" % (
           o0PreviousHeapBlockVirtualAllocation,
           o0HeapBlockVirtualAllocation,
         ));
