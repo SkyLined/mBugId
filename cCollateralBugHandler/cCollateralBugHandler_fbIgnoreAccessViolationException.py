@@ -106,6 +106,8 @@ grbNumberArgument = re.compile(
       rb"`[0-9a-f]+"          #      "`" hex digits
     rb")?"                    #    }
   rb"|"                       # } or {
+    rb"[0-9a-f]+h"            #   hex digits "h"
+  rb"|"                       # } or {
     rb"[0-9]+"                #   digits
   rb")"                       # } >>>
   rb"$"                       #
@@ -313,8 +315,15 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
         u0SourceValue,
       );
     elif grbNumberArgument.match(sbSourceArgument):
-      u0SourceValue = int(sbSourceArgument.replace(b"`", b""));
-      sSource = "0x%X" % u0SourceValue;
+      if sbSourceArgument.startswith(b"0x"):
+        u0SourceValue = int(sbSourceArgument[2:].replace(b"`", b""), 16);
+        sSource = "0x%X" % u0SourceValue;
+      elif sbSourceArgument.endswith(b"h"):
+        u0SourceValue = int(sbSourceArgument[:1], 16);
+        sSource = "0x%X" % u0SourceValue;
+      else:
+        u0SourceValue = int(sbSourceArgument);
+        sSource = "%d" % u0SourceValue;
     else:
       u0SourceArgumentPointerSizeInBits = fu0GetSizeInBitsOfMemoryPointerArgument("source", sbSourceArgument);
       if u0SourceArgumentPointerSizeInBits is None:
