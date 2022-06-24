@@ -260,7 +260,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
     else:
       oCdbWrapper.fFireCallbacks(
         "Bug cannot be ignored", 
-        "Instruction %s has too many arguments" % (
+        "instruction %s has too many arguments" % (
           sCurrentInstruction,
         ),
       );
@@ -271,7 +271,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       if not ob0ArgumentTargetSizeMatch:
         oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 
-          "Instruction %s %s argument %s cannot be decoded" % (
+          "instruction %s %s argument %s cannot be decoded" % (
             sCurrentInstruction,
             sArgumentType,
             str(sbArgument, "ascii", "strict"),
