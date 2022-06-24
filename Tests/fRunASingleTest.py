@@ -40,7 +40,8 @@ def fRunASingleTest(
   s0ApplicationBinaryPath = None,
   bASan = False,
   uMaximumNumberOfBugs = 2,
-  bExcessiveCPUUsageChecks = False
+  bExcessiveCPUUsageChecks = False,
+  bEnableVerboseOutput = False,
 ):
   asApplicationArguments = axCommandLineArguments and [
     isinstance(x, str) and x
@@ -55,8 +56,6 @@ def fRunASingleTest(
     mGlobals.dsASanTestsBinaries_by_sISA[sISA] if bASan else
     mGlobals.dsTestsBinaries_by_sISA[sISA]
   );
-  asCommandLine = [sApplicationBinaryPath] + asApplicationArguments;
-  sFailedToDebugApplicationErrorMessage = None;
   if sExpectedFailedToDebugApplicationErrorMessage:
     sTestDescription = "%s => %s" % (
       "Running %s" % sApplicationBinaryPath,
@@ -86,15 +85,15 @@ def fRunASingleTest(
   asLog = [];
   def fCdbStdInInputCallback(oBugId, sbInput):
     sInput = fsCP437FromBytesString(sbInput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("  stdin<%s" % sInput);
+    if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stdin<%s" % sInput);
     asLog.append("stdin<%s" % sInput);
   def fCdbStdOutOutputCallback(oBugId, sbOutput):
     sOutput = fsCP437FromBytesString(sbOutput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("  stdout>%s" % sOutput);
+    if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stdout>%s" % sOutput);
     asLog.append("stdout>%s" % sOutput);
   def fCdbStdErrOutputCallback(oBugId, sbOutput):
     sOutput = fsCP437FromBytesString(sbOutput);
-    if mGlobals.bShowCdbIO: oConsole.fOutput("  stderr>%s" % sOutput);
+    if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
 #    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
   def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asOutput):
@@ -107,7 +106,7 @@ def fRunASingleTest(
         bFirstLine and "debug" or "     ",
         sOutput
       );
-      if mGlobals.bShowApplicationIO: oConsole.fOutput(sLogLine);
+      if mGlobals.bShowApplicationIO or bEnableVerboseOutput: oConsole.fOutput(sLogLine);
       asLog.append(sLogLine);
       bFirstLine = False;
   def fApplicationStdErrOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
@@ -118,7 +117,7 @@ def fRunASingleTest(
       oConsoleProcess.sCommandLine,
       sOutput
     );
-    if mGlobals.bShowApplicationIO: oConsole.fOutput(sLogLine);
+    if mGlobals.bShowApplicationIO or bEnableVerboseOutput: oConsole.fOutput(sLogLine);
     asLog.append(sLogLine);
   def fApplicationStdOutOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
     # This is always a main process
@@ -128,7 +127,7 @@ def fRunASingleTest(
       oConsoleProcess.sCommandLine,
       sOutput
     )
-    if mGlobals.bShowApplicationIO: oConsole.fOutput(sLogLine);
+    if mGlobals.bShowApplicationIO or bEnableVerboseOutput: oConsole.fOutput(sLogLine);
     asLog.append(sLogLine);
   def fApplicationSuspendedCallback(oBugId, sReason):
     asLog.append("Application suspended (%s)" % sReason);
@@ -211,12 +210,15 @@ def fRunASingleTest(
   def fLogMessageCallback(oBugId, sMessage, dsData = None):
     sData = dsData and ", ".join(["%s: %s" % (sName, sValue) for (sName, sValue) in dsData.items()]);
     sLogLine = "log>%s%s" % (sMessage, sData and " (%s)" % sData or "");
-    if mGlobals.bShowCdbIO: oConsole.fOutput(sLogLine);
+    if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput(sLogLine);
     asLog.append(sLogLine);
   
   aoBugReports = [];
   def fBugReportCallback(oBugId, oBugReport):
+    if bEnableVerboseOutput: oConsole.fOutput("Bug reported: %s" % oBugReport);
     aoBugReports.append(oBugReport);
+  def fBugCannotBeIgnoreCallback(oBugId, sMessage):
+    if bEnableVerboseOutput: oConsole.fOutput("Bug cannot be ignored: %s" % sMessage);
   
   if mGlobals.bShowCdbIO:
     oConsole.fOutput();
@@ -245,6 +247,7 @@ def fRunASingleTest(
     oBugId.fAddCallback("Application stdout output", fApplicationStdOutOutputCallback);
     oBugId.fAddCallback("Application suspended", fApplicationSuspendedCallback);
     oBugId.fAddCallback("Bug report", fBugReportCallback);
+    oBugId.fAddCallback("Bug cannot be ignored", fBugCannotBeIgnoreCallback);
     oBugId.fAddCallback("Cdb stderr output", fCdbStdErrOutputCallback);
     oBugId.fAddCallback("Cdb stdin input", fCdbStdInInputCallback);
     oBugId.fAddCallback("Cdb stdout output", fCdbStdOutOutputCallback);
