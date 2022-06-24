@@ -5,7 +5,7 @@ from .fo0GetAllocationHeaderForVirtualAllocationAndPointerSize import \
 from .fo0GetPageHeapBlockForProcessAndAddress import \
     fo0GetPageHeapBlockForProcessAndAddress;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
   cClass,

@@ -3,7 +3,7 @@ from mWindowsSDK import PAGE_NOACCESS, PAGE_READWRITE;
 from .mPageHeapStructuresAndStaticValues import \
   DPH_BLOCK_INFORMATION32, DPH_BLOCK_INFORMATION64;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 def cPageHeapManagerData_fo0CreateHelper(
   cClass,

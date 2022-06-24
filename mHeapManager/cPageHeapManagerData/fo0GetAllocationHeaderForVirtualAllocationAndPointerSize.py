@@ -2,7 +2,7 @@ from .mPageHeapStructuresAndStaticValues import \
   DPH_ALLOCATION_HEADER32, DPH_ALLOCATION_HEADER64, \
   auValidPageHeapAllocationHeaderMarkers;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAllocation, uPointerSize):
   assert oHeapBlockVirtualAllocation.bAllocated, \

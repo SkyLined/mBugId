@@ -23,7 +23,7 @@ from .cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock import \
 from .cPageHeapManagerData_fo0GetForProcessAndPageHeapBlockStartAddress import \
     cPageHeapManagerData_fo0GetForProcessAndPageHeapBlockStartAddress;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 class cPageHeapManagerData(iHeapManagerData):
   sType = "page heap";
