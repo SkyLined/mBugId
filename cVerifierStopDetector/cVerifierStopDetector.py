@@ -2,7 +2,7 @@ import re;
 
 # local imports are at the end of this file to avoid import loops.
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 grbVerifierStopMessage = re.compile(
   rb"^VERIFIER STOP "
   rb"([0-9A-F]+)"
@@ -377,10 +377,10 @@ class cVerifierStopDetector(object):
     oBugReport.fReport();
     oCdbWrapper.fStop();
 
-from .cBugReport import cBugReport;
-from .fsGetNumberDescription import fsGetNumberDescription;
-from .fsNumberOfBytes import fsNumberOfBytes;
-from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from .sBlockHTMLTemplate import sBlockHTMLTemplate;
-from .mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
+from ..cBugReport import cBugReport;
+from ..fsGetNumberDescription import fsGetNumberDescription;
+from ..fsNumberOfBytes import fsNumberOfBytes;
+from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from ..sBlockHTMLTemplate import sBlockHTMLTemplate;
+from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
