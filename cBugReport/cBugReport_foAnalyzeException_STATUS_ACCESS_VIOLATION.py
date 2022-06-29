@@ -4,7 +4,7 @@ from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from ..mCP437 import fsCP437FromBytesString;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 grbInstructionPointerDoesNotPointToAllocatedMemory = re.compile(
   rb"^"
