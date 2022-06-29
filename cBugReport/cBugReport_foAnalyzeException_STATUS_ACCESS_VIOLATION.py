@@ -4,7 +4,9 @@ from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from ..mCP437 import fsCP437FromBytesString;
 
-grbEIPOutsideAllocatedMemory = re.compile(
+gbDebugOutput = True;
+
+grbInstructionPointerDoesNotPointToAllocatedMemory = re.compile(
   rb"^"
   rb"([0-9`a-f]+)"            # (address)
   rb"\s+"                     # whitespace
@@ -19,13 +21,9 @@ grbInstruction = re.compile(
   rb"\s+"                     # whitespace
   rb"[0-9`a-f]+"              # opcode
   rb"\s+"                     # whitespace
-  rb"\w+"                     # instruction
+  rb"(\w+)"                   # (instruction)
   rb"\s+"                     # whitespace
-  rb"(?:"                     # either{
-    rb"([^\[,]+,.+)"          #   (destination operand that does not reference memory "," source operand )
-  rb"|"                       # }or{
-    rb".*"                    #   any other combination of operands
-  rb")"                       # }
+  rb"(.*)?"                   # (operands)
   rb"(?:"                     # either{
     rb"\ws:"                  #   segment register ":"
     rb"(?:[0-9a-f`]{4}:)?"    #   optional { segment value ":" }
@@ -95,30 +93,53 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
     assert len(asbLastInstructionAndAddress) == 1, \
         "Unexpected last instruction output:\r\n%r" % \
         "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastInstructionAndAddress);
-    obEIPOutsideAllocatedMemoryMatch = grbEIPOutsideAllocatedMemory.match(asbLastInstructionAndAddress[0]);
-    if obEIPOutsideAllocatedMemoryMatch:
-      sbAddress = obEIPOutsideAllocatedMemoryMatch.group(1);
+    if gbDebugOutput: print("AV Instruction: %s" % str(asbLastInstructionAndAddress[0], "ascii", "replace"));
+    obInstructionPointerDoesNotPointToAllocatedMemoryMatch = \
+        grbInstructionPointerDoesNotPointToAllocatedMemory.match(asbLastInstructionAndAddress[0]);
+    if obInstructionPointerDoesNotPointToAllocatedMemoryMatch:
+      if gbDebugOutput: print("AV Instruction not in allocationed memory => AVE");
+      # "00000000`7fffffff ??              ???"
+      #  ^^^^^^^^^^^^^^^^^-- address
+      sbAddress = obInstructionPointerDoesNotPointToAllocatedMemoryMatch.group(1);
       sViolationTypeId = "E";
     else:
       obLastInstructionMatch = grbInstruction.match(asbLastInstructionAndAddress[0]);
       assert obLastInstructionMatch, \
           "Unexpected last instruction output:\r\n%s" % \
           "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastInstructionAndAddress);
-      (sbDestinationOperandThatDoesNotReferenceMemory, sbAddress1, sbValue, sbAddress2, sbAddress3) = \
+      (sbInstruction, sbOperands, sbAddress1, sbValue, sbAddress2, sbAddress3) = \
           obLastInstructionMatch.groups();
-      sbAddress = sbAddress1 or sbAddress2 or sbAddress3;
-      if sbAddress1:
-        if sbDestinationOperandThatDoesNotReferenceMemory:
-          # The destination operand does not reference memory, so this must be a read AV
-          sViolationTypeId = "R";
-        elif sbAddress1 and sbValue:
-          # The adress referenced can be read, so it must be write AV
+      asbOperands = sbOperands.split(b",");
+      if sbAddress3:
+        if gbDebugOutput: print("AV Instruction reports call/jmp destination not in allocationed memory => AVE");
+        sbAddress = sbAddress3;
+        sViolationTypeId = "E";
+      else:
+        sbAddress = sbAddress1 or sbAddress2;
+        if sbInstruction in [b"dec", b"inc", b"neg", b"not", b"shl", b"shr"]:
+          # These instructions always read and then write to memory. We clasify
+          # this as a write AV even if the address does not reference readable
+          # memory, in which case the AV was actually caused by the read.
           sViolationTypeId = "W";
+          if gbDebugOutput: print("AV Instruction always writes to memory => AVW");
+        elif sbInstruction in [b"call", b"cmp", b"idiv", b"imul", b"jmp", b"test"]:
+          # These instrtcutions cannot write to memory, so this must be a read AV.
+          sViolationTypeId = "R";
+          if gbDebugOutput: print("AV Instruction cannot write to memory => AVR");
+        elif sbInstruction in [b"add", b"and", b"mov", b"movsx", b"movzx", b"or", b"sub", b"xor"]:
+          # The first operand is the destination, if it references memory it must
+          # be a write AV, otherwise it must be a read AV.
+          sViolationTypeId = "W" if b"[" in asbOperands[0] else "R";
+          if gbDebugOutput: print("AV Instruction first/destination operand %s %s memory => AV%s" % (
+            str(asbOperands[0], "ascii", "replace"),
+            "references" if b"[" in asbOperands[0] else "does not reference",
+            sViolationTypeId,
+          ));
         else:
+          if gbDebugOutput: print("AV Instruction %s not handlded => AV?" % repr(sbInstruction));
+          # TODO: parse more instructions.
           sViolationTypeId = "?";
           sViolationTypeNotes = " (the type of accesss must be read or write, but cannot be determined)";
-      else:
-        sViolationTypeId = "E";
     uAccessViolationAddress = fu0ValueFromCdbHexOutput(sbAddress);
   oBugReport.atxMemoryRemarks.append(("Access violation", uAccessViolationAddress, None)); # TODO Find out size of access
   
