@@ -1,7 +1,7 @@
 from ..mHeapManager import cPageHeapManagerData;
 from ..dxConfig import dxConfig;
 
-def cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock(oProcess, uAddressNearHeapBlock, u0HeapBlockSize = None):
+def cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock(oProcess, uAddressNearHeapBlock):
   if uAddressNearHeapBlock <= dxConfig["uMaxAddressOffset"]:
     return None; # Considered a NULL pointer;
   if uAddressNearHeapBlock >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
@@ -9,5 +9,4 @@ def cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock(oProcess, uAddress
   return cPageHeapManagerData.fo0GetForProcessAndAddressNearHeapBlock(
     oProcess,
     uAddressNearHeapBlock = uAddressNearHeapBlock,
-    u0HeapBlockSize = u0HeapBlockSize,
   );
