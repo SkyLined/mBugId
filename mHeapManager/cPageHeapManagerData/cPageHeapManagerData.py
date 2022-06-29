@@ -1,6 +1,6 @@
 ﻿import hashlib;
 
-from mWindowsSDK import PAGE_NOACCESS, PAGE_READWRITE;
+from mWindowsAPI import fsHexNumber;
 
 from ...dxConfig import dxConfig;
 from ...fsGetNumberDescription import fsGetNumberDescription;
@@ -14,31 +14,17 @@ from .mPageHeapStructuresAndStaticValues import \
     uStartStampFreed, uEndStampFreed, \
     uFreedHeapBlockFillByte, \
     uHeapBlockEndPaddingFillByte;
-from .cPageHeapManagerData_fo0CreateHelper import \
-    cPageHeapManagerData_fo0CreateHelper;
-#from .cPageHeapManagerData_fo0GetForProcessAndAllocationInformationStartAddress import \
-#    cPageHeapManagerData_fo0GetForProcessAndAllocationInformationStartAddress;
 from .cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock import \
     cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock;
-from .cPageHeapManagerData_fo0GetForProcessAndPageHeapBlockStartAddress import \
-    cPageHeapManagerData_fo0GetForProcessAndPageHeapBlockStartAddress;
 
 gbDebugOutput = False;
 
 class cPageHeapManagerData(iHeapManagerData):
+  bDebugOutput = gbDebugOutput;
   sType = "page heap";
-  @classmethod
-  def fo0CreateHelper(cClass, *txArguments, **dxArguments):
-    return cPageHeapManagerData_fo0CreateHelper(cClass, *txArguments, **dxArguments);
-#  @classmethod
-#  def fo0GetForProcessAndAllocationInformationStartAddress(cClass, *txArguments, **dxArguments):
-#    return cPageHeapManagerData_fo0GetForProcessAndAllocationInformationStartAddress(cClass, *txArguments, **dxArguments);
   @classmethod
   def fo0GetForProcessAndAddressNearHeapBlock(cClass, *txArguments, **dxArguments):
     return cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(cClass, *txArguments, **dxArguments);
-  @classmethod
-  def fo0GetForProcessAndPageHeapBlockStartAddress(cClass, *txArguments, **dxArguments):
-    return cPageHeapManagerData_fo0GetForProcessAndPageHeapBlockStartAddress(cClass, *txArguments, **dxArguments);
   
   def __init__(oSelf,
     uPointerSize,
@@ -46,6 +32,7 @@ class cPageHeapManagerData(iHeapManagerData):
     oPageHeapBlock,
     oHeapBlockVirtualAllocation,
     o0AllocationHeader,
+    o0AllocationHeaderVirtualAllocation,
     uHeapBlockHeaderStartAddress,
     o0HeapBlockHeader,
     uHeapBlockEndPaddingSize,
@@ -70,6 +57,7 @@ class cPageHeapManagerData(iHeapManagerData):
     oSelf.uHeapBlockSize = oPageHeapBlock.nUserRequestedSize.fuGetValue();
     
     oSelf.o0AllocationHeader = o0AllocationHeader;
+    oSelf.o0AllocationHeaderVirtualAllocation = o0AllocationHeaderVirtualAllocation;
     if o0AllocationHeader:
       oSelf.uAllocationHeaderStartAddress = oHeapBlockVirtualAllocation.uStartAddress;
       oSelf.uAllocationHeaderEndAddress = oHeapBlockVirtualAllocation.uStartAddress + o0AllocationHeader.fuGetSize();
@@ -113,8 +101,10 @@ class cPageHeapManagerData(iHeapManagerData):
       oSelf.uHeapBlockEndPaddingSize = uHeapBlockEndPaddingSize;
       oSelf.uHeapBlockEndPaddingEndAddress = oSelf.uHeapBlockEndAddress + uHeapBlockEndPaddingSize;
       assert oSelf.uHeapBlockEndPaddingEndAddress == oHeapBlockVirtualAllocation.uEndAddress, \
-          "Page heap block end padding end address 0x%X should be the same as the allocation end address 0x%X" % \
-          (oSelf.uHeapBlockEndPaddingEndAddress, oHeapBlockVirtualAllocation.uEndAddress);
+          "Page heap block end padding end address %s should be the same as the allocation end address %s" % (
+            fsHexNumber(oSelf.uHeapBlockEndPaddingEndAddress),
+            fsHexNumber(oHeapBlockVirtualAllocation.uEndAddress),
+          );
     else:
       oSelf.uHeapBlockEndPaddingStartAddress = None;
       oSelf.uHeapBlockEndPaddingSize = None;
@@ -214,6 +204,24 @@ class cPageHeapManagerData(iHeapManagerData):
         ("Allocation header start",         oSelf.uAllocationHeaderStartAddress, None),
         ("Allocation header end",           oSelf.uAllocationHeaderEndAddress, None),
       ];
+    if not oSelf.o0AllocationHeaderVirtualAllocation:
+      atxMemoryRemarks += [
+        ("Heap block allocation start", oSelf.oHeapBlockVirtualAllocation.uStartAddress, None),
+        ("Heap block allocation size", oSelf.oHeapBlockVirtualAllocation.uSize, None),
+      ];
+    elif oSelf.o0AllocationHeaderVirtualAllocation.uStartAddress != oSelf.oHeapBlockVirtualAllocation.uStartAddress:
+      atxMemoryRemarks += [
+        ("Allocation header allocation start", oSelf.o0AllocationHeaderVirtualAllocation.uStartAddress, None),
+        ("Allocation header allocation size", oSelf.o0AllocationHeaderVirtualAllocation.uSize, None),
+        ("Heap block allocation start", oSelf.oHeapBlockVirtualAllocation.uStartAddress, None),
+        ("Heap block allocation size", oSelf.oHeapBlockVirtualAllocation.uSize, None),
+      ];
+    else:
+      atxMemoryRemarks += [
+        ("Page Heap allocation start", oSelf.oHeapBlockVirtualAllocation.uStartAddress, None),
+        ("Page Heap allocation size", oSelf.oHeapBlockVirtualAllocation.uSize, None),
+      ];
+
     if oSelf.o0HeapBlockHeader:
       atxMemoryRemarks += [
         ("Page heap StartStamp",            oSelf.fuHeapBlockHeaderFieldAddress("StartStamp"), None),
@@ -235,7 +243,10 @@ class cPageHeapManagerData(iHeapManagerData):
   
   def __fDetectCorruptionHelper(oSelf, uStartAddress, sbExpectedBytes, sbActualBytes, sDebugName):
     assert len(sbExpectedBytes) == len(sbActualBytes), \
-        "Cannot compare %d expected bytes to %d actual bytes" % (len(sbExpectedBytes), len(sbActualBytes));
+        "Cannot compare %s expected bytes to %s actual bytes" % (
+          fsHexNumber(len(sbExpectedBytes)),
+          fsHexNumber(len(sbActualBytes))
+        );
     au0ModifiedBytes = [];
     u0FirstDetectedCorruptionAddress = None;
     u0LastDetectedCorruptionAddress = None;
@@ -259,12 +270,23 @@ class cPageHeapManagerData(iHeapManagerData):
         au0ModifiedBytes.append(None);
     if gbDebugOutput:
       if u0FirstDetectedCorruptionAddress is not None:
-        print("│ × Corruption detected in %s [0x%X] @ 0x%X" % (sDebugName, len(sbExpectedBytes), uStartAddress));
+        print("│ × Corruption detected in %s [%s] @ %s" % (
+          sDebugName,
+          fsHexNumber(len(sbExpectedBytes)),
+          fsHexNumber(uStartAddress),
+        ));
         print("│   Expected:  %s" % " ".join(["%02X" % uByte for uByte in sbExpectedBytes]));
         print("│   Corrupt:   %s" % " ".join(["··" if u0Byte is None else ("%02X" % u0Byte) for u0Byte in au0ModifiedBytes]));
-        print("│   Range:     0x%X-0x%X" % (u0FirstDetectedCorruptionAddress, u0LastDetectedCorruptionAddress + 1));
+        print("│   Range:     %s-%s" % (
+          fsHexNumber(u0FirstDetectedCorruptionAddress),
+          fsHexNumber(u0LastDetectedCorruptionAddress + 1)
+        ));
       else:
-        print("│ √ No corruption in %s [0x%X] @ 0x%X" % (sDebugName, len(sbExpectedBytes), uStartAddress));
+        print("│ √ No corruption in %s [%s] @ %s" % (
+          sDebugName,
+          fsHexNumber(len(sbExpectedBytes)),
+          fsHexNumber(uStartAddress),
+        ));
   
   def __fDetectCorruption(oSelf):
     oSelf.__d0uCorruptedByte_by_uAddress = {};
@@ -293,19 +315,51 @@ class cPageHeapManagerData(iHeapManagerData):
     ] if tx]));
     sbExpectedBytes = oExpectedHeapBlockHeader.fsbGetValue();
     sbActualBytes = oSelf.o0HeapBlockHeader.fsbGetValue();
-    oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockHeaderStartAddress, sbExpectedBytes, sbActualBytes, "page heap block header");
-    # Check the empty space between the allocation header and the heap block header; it should contain nothing but "\0"s
-    uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset = oSelf.uAllocationHeaderEndAddress - oSelf.oHeapBlockVirtualAllocation.uStartAddress;
-    uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize = oSelf.uHeapBlockHeaderStartAddress - oSelf.uAllocationHeaderEndAddress;
-    sbExpectedBytes = b"\0" * uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize;
-    
-    sb0ActualBytes = oSelf.oHeapBlockVirtualAllocation.fsbReadBytesStringForOffsetAndSize(
-      uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset,
-      uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize,
+    oSelf.__fDetectCorruptionHelper(
+      oSelf.uHeapBlockHeaderStartAddress,
+      sbExpectedBytes,
+      sbActualBytes,
+      "page heap block header",
     );
-    assert sb0ActualBytes, \
-        "Cannot read page heap data";
-    oSelf.__fDetectCorruptionHelper(oSelf.uAllocationHeaderEndAddress, sbExpectedBytes, sb0ActualBytes, "padding after page heap block header")
+    if oSelf.o0AllocationHeaderVirtualAllocation.fbContainsAddress(oSelf.oHeapBlockVirtualAllocation.uStartAddress):
+      # The allocation header and the heap block header are in continuous memory.
+      # We will check the bytes between the allocation header and the heap block
+      # header; it should contain nothing but "\0"-s.
+      uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset = oSelf.uAllocationHeaderEndAddress - oSelf.oHeapBlockVirtualAllocation.uStartAddress;
+      uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize = oSelf.uHeapBlockHeaderStartAddress - oSelf.uAllocationHeaderEndAddress;
+      sbExpectedBytes = b"\0" * uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize;
+      
+      sb0ActualBytes = oSelf.oHeapBlockVirtualAllocation.fsbReadBytesStringForOffsetAndSize(
+        uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderOffset,
+        uEmptySpaceBetweenAllocationHeaderAndHeapBlockHeaderSize,
+      );
+      assert sb0ActualBytes, \
+          "Cannot read page heap data";
+      oSelf.__fDetectCorruptionHelper(
+        oSelf.uAllocationHeaderEndAddress,
+        sbExpectedBytes,
+        sb0ActualBytes,
+        "padding between page heap allocation header and page heap block header",
+      );
+    else:
+      # The allocation header and the heap block header are in different allocations.
+      # We will check the empty space before the heap block header; it should contain
+      # nothing but "\0"s
+      uEmptySpaceBeforeHeapBlockHeaderSize = oSelf.uHeapBlockHeaderStartAddress - oSelf.oHeapBlockVirtualAllocation.uStartAddress;
+      sbExpectedBytes = b"\0" * uEmptySpaceBeforeHeapBlockHeaderSize;
+      
+      sb0ActualBytes = oSelf.oHeapBlockVirtualAllocation.fsbReadBytesStringForOffsetAndSize(
+        0,
+        uEmptySpaceBeforeHeapBlockHeaderSize,
+      );
+      assert sb0ActualBytes, \
+          "Cannot read page heap data";
+      oSelf.__fDetectCorruptionHelper(
+        oSelf.oHeapBlockVirtualAllocation.uStartAddress,
+        sbExpectedBytes,
+        sb0ActualBytes,
+        "padding before page heap block header",
+      );
     # Check the heap block if it is freed
     if not bUseNewPageHeapStructures and oSelf.bFreed:
       sbExpectedBytes = bytes((uFreedHeapBlockFillByte,)) * oSelf.uHeapBlockSize;
@@ -315,7 +369,12 @@ class cPageHeapManagerData(iHeapManagerData):
       );
       assert sb0ActualBytes, \
           "Cannot read page heap data";
-      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockStartAddress, sbExpectedBytes, sb0ActualBytes, "heap block");
+      oSelf.__fDetectCorruptionHelper(
+        oSelf.uHeapBlockStartAddress,
+        sbExpectedBytes,
+        sb0ActualBytes,
+        "heap block",
+      );
     # Check the allocation end padding
     if oSelf.uHeapBlockEndPaddingSize:
       sbExpectedBytes = bytes((uHeapBlockEndPaddingFillByte,)) * oSelf.uHeapBlockEndPaddingSize;
@@ -325,17 +384,25 @@ class cPageHeapManagerData(iHeapManagerData):
       );
       assert sb0ActualBytes, \
           "Cannot read page heap data";
-      oSelf.__fDetectCorruptionHelper(oSelf.uHeapBlockEndPaddingStartAddress, sbExpectedBytes, sb0ActualBytes, "padding after heap block");
+      oSelf.__fDetectCorruptionHelper(
+        oSelf.uHeapBlockEndPaddingStartAddress,
+        sbExpectedBytes,
+        sb0ActualBytes,
+        "padding after heap block",
+      );
     if gbDebugOutput:
       if oSelf.__uCorruptionStartAddress:
-        print("└─ × Corruption detected in range 0x%X-0x%X" % (oSelf.__uCorruptionStartAddress, oSelf.__uCorruptionEndAddress));
+        print("└─ × Corruption detected in range %s-%s" % (
+          fsHexNumber(oSelf.__uCorruptionStartAddress),
+          fsHexNumber(oSelf.__uCorruptionEndAddress),
+        ));
       else:
         print("└─ √ No corruption detected.");
 
   def __str__(oSelf):
     return "Page heap block: %s" % (
       ", ".join(
-        "%s=0x%X" % (sName, uValue)
+        "%s=%s" % (sName, fsHexNumber(uValue))
         for (sName, uValue, xIgnored) in oSelf.fatxMemoryRemarks()
       )
     );

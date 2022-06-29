@@ -1,6 +1,6 @@
 import re;
 
-from mWindowsAPI import cVirtualAllocation;
+from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 from ..mHeapManager import cWindowsHeapManagerData;
 from ..dxConfig import dxConfig;
@@ -66,15 +66,40 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
     return None; # Considered a NULL pointer;
   if uAddressNearHeapBlock >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
     return None; # Value is not in the valid address range
-  o0VitualAllocation = oProcess.fo0GetVirtualAllocationForAddressNearHeapBlock(uAddressNearHeapBlock);
-  if not o0VitualAllocation:
-    return None;
-  # In case of a buffer overrun, the virtual allocation is before the address, and
-  # the heap block will be in there as well. In this case we adjust the address to
-  # the last byte in the allocation, as that is close to the heap block than what
-  # we started with (but still unlikely to yield good results).
-  if not o0VitualAllocation.fbContainsAdress(uAddressNearHeapBlock):
-    uAddressNearHeapBlock = o0VitualAllocation.uEndAddress - 1;
+  oVitualAllocation = cVirtualAllocation(
+    oProcess.uId,
+    uAddressNearHeapBlock,
+  );
+  if oVitualAllocation.bFree or oVitualAllocation.bReserved:
+    # The virtual allocation at the provdided address is free or reserved.
+    # in case of an out-of-bounds access that causes an access violation,
+    # this is to be expected. If the offset from the start of the allocation
+    # is less than one page, let's look at the previous allocation:
+    uOffsetFromStartOfVirtualAllocation = uAddressNearHeapBlock - oVitualAllocation.uStartAddress;
+    if uOffsetFromStartOfVirtualAllocation < oSystemInfo.uPageSize:
+      oPreviousVitualAllocation = cVirtualAllocation(
+        oProcess.uId,
+        oVitualAllocation.uStartAddress - 1,
+      );
+      if oPreviousVitualAllocation.bAllocated:
+        # Let's assume this is the allocation we are looking for:
+        oVitualAllocation = oPreviousVitualAllocation;
+        uAddressNearHeapBlock = oVitualAllocation.uEndAddress - 1;
+      else:
+        # This could also be an out-of-bounds access _before_ the allocation
+        # if the offset from the end of the allocation is less than one page.
+        uOffsetFromEndOfVirtualAllocation = oVitualAllocation.uEndAddress - uAddressNearHeapBlock;
+        if uOffsetFromEndOfVirtualAllocation < oSystemInfo.uPageSize:
+          oNextVitualAllocation = cVirtualAllocation(
+            oProcess.uId,
+            oVitualAllocation.uEndAddress,
+          );
+          if oNextVitualAllocation.bAllocated:
+            # Let's assume this is the allocation we are looking for:
+            oVitualAllocation = oNextVitualAllocation;
+            uAddressNearHeapBlock = oVitualAllocation.uStartAddress;
+          else:
+            return None;
   # At this point I expect the memory to either point to a regular windows heap, or
   # non-free, non-heap memory. Let's ask cdb.exe what it thinks we are looking at:
   asbCdbHeapOutput = [

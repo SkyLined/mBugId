@@ -3,6 +3,7 @@ import re;
 # local imports are at the end of this file to avoid import loops.
 
 gbDebugOutput = False;
+
 grbVerifierStopMessage = re.compile(
   rb"^VERIFIER STOP "
   rb"([0-9A-F]+)"
@@ -14,6 +15,7 @@ grbVerifierStopMessage = re.compile(
   rb"\s*"
   rb"$"
 );
+
 class cVerifierStopDetector(object):
   def __init__(oSelf, oCdbWrapper):
     # Hook application debug output events to detect VERIFIER STOP messages
@@ -117,8 +119,8 @@ class cVerifierStopDetector(object):
     bVerifierStopHeapBlockAddressPointsToPageHeapBlock = False;
     o0PageHeapManagerData = None;
     if sbMessage in [b"block already freed"]:
-      o0PageHeapManagerData = oProcess.fo0GetPageHeapManagerDataForPageHeapBlockStartAddress(
-        uPageHeapHeaderStartAddress = u0VerifierStopHeapBlockAddress,
+      o0PageHeapManagerData = oProcess.fo0GetPageHeapManagerDataForAddressNearHeapBlock(
+        uAddressNearHeapBlock = u0VerifierStopHeapBlockAddress,
       );
       if o0PageHeapManagerData:
         if gbDebugOutput:
@@ -139,7 +141,6 @@ class cVerifierStopDetector(object):
       # heap block itself:
       o0PageHeapManagerData = oProcess.fo0GetPageHeapManagerDataForAddressNearHeapBlock(
         uAddressNearHeapBlock = u0VerifierStopHeapBlockAddress,
-        u0HeapBlockSize = u0VerifierStopHeapBlockSize,
       );
       if gbDebugOutput:
         print("VERIFIER: address 0x%X`%X %s %s a %sheap block%s." % (

@@ -1,10 +1,10 @@
+from mWindowsAPI import fsHexNumber;
+
 from .mPageHeapStructuresAndStaticValues import \
   DPH_ALLOCATION_HEADER32, DPH_ALLOCATION_HEADER64, \
   auValidPageHeapAllocationHeaderMarkers;
 
-gbDebugOutput = False;
-
-def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAllocation, uPointerSize):
+def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAllocation, uPointerSize, bDebugOutput):
   assert oHeapBlockVirtualAllocation.bAllocated, \
       "Please check oHeapBlockVirtualAllocation.bAllocated == True before making this call\r\n%s" % \
       str(oHeapBlockVirtualAllocation);
@@ -15,9 +15,9 @@ def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAl
     uOffset = 0,
   );
   if not oAllocationHeader.uMarker in auValidPageHeapAllocationHeaderMarkers:
-    if gbDebugOutput:
-      print("cPageHeapManagerData: Allocation Header marker 0x%X not valid in %s => None\r\n%s" %  (
-        oAllocationHeader.uMarker.fuGetValue(),
+    if bDebugOutput:
+      print("cPageHeapManagerData: Allocation Header marker %s not valid in %s => None\r\n%s" %  (
+        fsHexNumber(oAllocationHeader.uMarker.fuGetValue()),
         oHeapBlockVirtualAllocation,
         "\r\n".join(oAllocationHeader.fasDump()),
       ));
@@ -29,7 +29,7 @@ def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAl
 #          "Page heap allocation header padding has unhandled value 0x%X (expected %s):\r\n%s" % \
 #          (oAllocationHeader.uPadding, " or ".join(["0x%X" % uValidMarker for uValidMarker in auValidPageHeapAllocationHeaderPaddings]),
 #          "\r\n".join(oAllocationHeader.fasDump()));
-  if gbDebugOutput:
+  if bDebugOutput:
     print(("┌─ oAllocationHeader ").ljust(80, "─"));
     for sLine in oAllocationHeader.fasDump():
       print("│ %s" % sLine);
