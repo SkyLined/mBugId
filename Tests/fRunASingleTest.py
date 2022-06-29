@@ -44,9 +44,8 @@ def fRunASingleTest(
   bEnableVerboseOutput = False,
 ):
   asApplicationArguments = axCommandLineArguments and [
-    isinstance(x, str) and x
-             or x < 10 and ("%d" % x)
-                        or ("0x%X" % x)
+    x if isinstance(x, str) else
+    ("%d" if x < 10 else "0x%X") % x
     for x in axCommandLineArguments
   ] or [];
   assert s0ApplicationBinaryPath is None or not bASan, \
