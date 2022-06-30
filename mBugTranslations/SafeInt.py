@@ -47,6 +47,20 @@ aoBugTranslations = [
   cBugTranslation(
     srzOriginalBugTypeId = r"SafeInt",
     azs0rbAppliesOnlyToTopStackFrame = [
+      rb".*!msl::utilities::details::LargeIntRegMultiply<.+>::RegMultiply",
+    ],
+    azs0rbAdditionalIrrelevantStackFrameSymbols = [
+      rb".*!msl::utilities::details::LargeIntRegMultiply<.*>::.*",
+      rb".*!msl::utilities::details::MultiplicationHelper<.*>::.*",
+      rb".*!msl::utilities::SafeInt<...>::operator\*=<.+>",
+    ],
+    s0zTranslatedBugTypeId = "IntegerTruncation",
+    s0zTranslatedBugDescription = "The application attempted to store the result of a multiplication in an integer that cannot contain this value.",
+    s0zTranslatedSecurityImpact = None,
+  ),
+  cBugTranslation(
+    srzOriginalBugTypeId = r"SafeInt",
+    azs0rbAppliesOnlyToTopStackFrame = [
       rb".*!msl::utilities::details::SafeCastHelper<.+>::Cast",
     ],
     azs0rbAdditionalIrrelevantStackFrameSymbols = [
