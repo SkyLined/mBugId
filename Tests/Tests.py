@@ -129,48 +129,24 @@ try:
       # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
       # Disabling symbols should speed things up considerably.
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
-    if bTestFull:
-      for sISA in asTestISAs:
-        # This test will run in a cmd shell, so the exception happens in a child process.
-        # This test makes sure that this does not affect the outcome.
-        fRunASingleTest(
-          sISA,
-          ["Breakpoint"],
-          [r"Breakpoint (540|80a) @ <binary>!wmain"],
-          bASan = False,
-          bEnableVerboseOutput = bEnableVerboseOutput,
-          bRunInShell = True,
-        );
-        # This will try to debug a non-existing application and check that the error thrown
-        # matches the expected value.
-        fRunASingleTest(
-          sISA,
-          [],
-          [],
-          s0ApplicationBinaryPath = "<invalid>",
-          s0ExpectedFailedToDebugApplicationErrorMessage = \
-            "Unable to start a new process for binary path \"<invalid>\": Win32 error 0x7B (ERROR_INVALID_NAME).",
-        );
-        fRunASingleTest(
-          sISA,
-          [],
-          [],
-          s0ApplicationBinaryPath = "does not exist",
-          s0ExpectedFailedToDebugApplicationErrorMessage = \
-            "Unable to start a new process for binary path \"does not exist\": Win32 error 0x2 (ERROR_FILE_NOT_FOUND).",
-        );
-        fRunASingleTest(
-          sISA,
-          ["CPUUsage"],
-          ["CPUUsage (540|80a) @ <binary>!wmain"],
-          bExcessiveCPUUsageChecks = True,
-        );
     dxTests = {
-      "Nop": [
-        (QUICK,  [], []), # No exceptions, just a clean program exit.
+      "BinaryIssues": [
+        (FULL, [], [], {
+          "s0ApplicationBinaryPath": "<invalid>",
+          "s0ExpectedFailedToDebugApplicationErrorMessage": \
+              "Unable to start a new process for binary path \"<invalid>\": Win32 error 0x7B (ERROR_INVALID_NAME)."
+        }),
+        (FULL, [], [], {
+          "s0ApplicationBinaryPath": "does not exist",
+          "s0ExpectedFailedToDebugApplicationErrorMessage": \
+              "Unable to start a new process for binary path \"does not exist\": Win32 error 0x2 (ERROR_FILE_NOT_FOUND).",
+        }),
       ],
       "Breakpoint": [
-        (QUICK, [], [r"Breakpoint (540|80a) @ <binary>!wmain"]),
+        (QUICK, [], [r"Breakpoint (540|80a) @ <binary>!wmain"], {"bRunInShell": bTestFull}),
+      ],
+      "Nop": [
+        (FULL, [], []), # No exceptions, just a clean program exit.
       ],
       "C++": [
         (NORMAL, [], [r"C\+\+:cException (540|80a) @ <binary>!wmain"]),
@@ -219,6 +195,9 @@ try:
       "WRTLanguage": [
         (NORMAL, [0x87654321, "message"], [r"Stowed\[0x87654321:WRTLanguage@cIUnknown\] (540|80a) @ <binary>!wmain"]),
       ],
+      "CPUUsage": [
+        (FULL, [], ["CPUUsage (540|80a) @ <binary>!wmain"], {"bExcessiveCPUUsageChecks": True}),
+      ],
     };
     ###################################################
     from fAddDoubleFreeTests import fAddDoubleFreeTests;
@@ -236,42 +215,62 @@ try:
     from fAddSafeIntTests import fAddSafeIntTests;
     fAddSafeIntTests(dxTests);
     ###################################################
-    def fatxProcessTests(xTests, asArguments = []):
+    def fatxProcessTests(xTests, asTestsSharedArguments = []):
       if isinstance(xTests, dict):
         dxTests = xTests;
         atxTests = [];
         for (sArgument, xSubTests) in dxTests.items():
-          atxTests += fatxProcessTests(xSubTests, asArguments + [sArgument]);
+          atxTests += fatxProcessTests(xSubTests, asTestsSharedArguments + [sArgument]);
       else:
         assert isinstance(xTests, list), \
             "Invalid test data %s" % repr(atxTests);
         atxTests = [];
         for txTest in xTests:
-          assert isinstance(txTest, tuple) and len(txTest) == 3, \
+          assert isinstance(txTest, tuple) and len(txTest) in (3, 4), \
               "Invalid test data  %s" % repr(xTests);
-          (uTestLevel, asMoreArguments, asrBugIds) = txTest;
-          atxTests.append((uTestLevel, asArguments + asMoreArguments, asrBugIds));
+          if len(txTest) == 3:
+            (uTestLevel, axTestSpecificArguments, asrBugIds) = txTest;
+            dxOptions = {};
+          else:
+            (uTestLevel, axTestSpecificArguments, asrBugIds, dxOptions) = txTest;
+          for sISA in asTestISAs:
+            if (
+              uTestLevel == QUICK
+              or (uTestLevel == NORMAL and not bTestQuick)
+              or (uTestLevel == FULL and bTestFull)
+              or (uTestLevel == x86 and sISA == "x86")
+              or (uTestLevel == x64 and sISA == "x64")
+              or (uTestLevel == FULL_x86 and bTestFull and sISA == "x86")
+              or (uTestLevel == FULL_x64 and bTestFull and sISA == "x64")
+            ):
+              asTestArguments = asTestsSharedArguments + [
+                x if isinstance(x, str) else
+                ("%d" if x < 10 else "0x%X") % x
+                for x in axTestSpecificArguments
+              ] or [];
+              atxTests.append((sISA, asTestArguments, asrBugIds, dxOptions));
       return atxTests;
     
     atxTests = fatxProcessTests(dxTests);
-    for (uTestLevel, asArguments, asrBugIds) in atxTests:
-      for sISA in asTestISAs:
-        if (
-          uTestLevel == QUICK
-          or (uTestLevel == NORMAL and not bTestQuick)
-          or (uTestLevel == FULL and bTestFull)
-          or (uTestLevel == x86 and sISA == "x86")
-          or (uTestLevel == x64 and sISA == "x64")
-          or (uTestLevel == FULL_x86 and bTestFull and sISA == "x86")
-          or (uTestLevel == FULL_x64 and bTestFull and sISA == "x64")
-        ):
-          fRunASingleTest(
-            sISA,
-            asArguments,
-            asrBugIds,
-            bASan = False,
-            bEnableVerboseOutput = bEnableVerboseOutput,
-          );
+    uProgressCounter = 0;
+    uNumberOfTests = len(atxTests); 
+    for (sISA, asTestArguments, asrBugIds, dxOptions) in atxTests:
+        uProgressCounter += 1;
+        oConsole.fProgressBar(
+          uProgressCounter / len(atxTests),
+          sISA, " ",
+          " ".join(asTestArguments),
+#          " ASan" if bASan else "",
+          " (", str(uProgressCounter), " / ", str(len(atxTests)), ")",
+        );
+        fRunASingleTest(
+          sISA,
+          asTestArguments,
+          asrBugIds,
+          bASan = False,
+          bEnableVerboseOutput = bEnableVerboseOutput,
+          **dxOptions,
+        );
   nTestTimeInSeconds = time.time() - nStartTimeInSeconds;
   oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
 except Exception as oException:

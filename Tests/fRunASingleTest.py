@@ -36,7 +36,7 @@ def fOutputStack(oStack):
 guExitCodeInternalError = 1; # Use standard value;
 def fRunASingleTest(
   sISA,
-  axCommandLineArguments,
+  asApplicationArguments,
   a0sExpectedBugIdAndLocations,
   s0ExpectedFailedToDebugApplicationErrorMessage = None,
   bRunInShell = False,
@@ -46,11 +46,6 @@ def fRunASingleTest(
   bExcessiveCPUUsageChecks = False,
   bEnableVerboseOutput = False,
 ):
-  asApplicationArguments = axCommandLineArguments and [
-    x if isinstance(x, str) else
-    ("%d" if x < 10 else "0x%X") % x
-    for x in axCommandLineArguments
-  ] or [];
   assert s0ApplicationBinaryPath is None or not bASan, \
       "Setting bASan when supplying an application binary path makes no sense";
   sApplicationBinaryPath = (
@@ -102,13 +97,6 @@ def fRunASingleTest(
     oConsole.fOutput(
       STATUS, "→",
       NORMAL, " Started ",
-      axTestDescription,
-      NORMAL, ".",
-    );
-  else:
-    oConsole.fStatus(
-      STATUS, "►",
-      NORMAL, " ",
       axTestDescription,
       NORMAL, ".",
     );
