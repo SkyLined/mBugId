@@ -13,20 +13,23 @@ except ModuleNotFoundError as oException:
   m0DebugOutput = None;
 
 NORMAL = 0x0F07;
-HILITE = 0x0F0F;
+INFO = 0x0F0F;
+STATUS = 0x0F0B;
+OK = 0x0F0A;
 ERROR = 0x0F0C;
 WARN = 0x0F06;
 WARN_INFO = 0x0F0E;
+ERROR_INFO = 0x0F0F;
 
 mGlobals.bLicenseWarningsShown = False;
 
 def fOutputStack(oStack):
-  oConsole.fOutput(HILITE, "  Stack:");
+  oConsole.fOutput(INFO, "  Stack:");
   for oStackFrame in oStack.aoFrames:
     oConsole.fOutput(
       NORMAL, "  \u2022 ",
-      NORMAL if oStackFrame.bHidden else HILITE, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
-      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else HILITE, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), NORMAL, ")",
+      NORMAL if oStackFrame.bHidden else INFO, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
+      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else INFO, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), NORMAL, ")",
       [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
     );
 
@@ -35,7 +38,7 @@ def fRunASingleTest(
   sISA,
   axCommandLineArguments,
   a0sExpectedBugIdAndLocations,
-  sExpectedFailedToDebugApplicationErrorMessage = None,
+  s0ExpectedFailedToDebugApplicationErrorMessage = None,
   bRunInShell = False,
   s0ApplicationBinaryPath = None,
   bASan = False,
@@ -55,19 +58,38 @@ def fRunASingleTest(
     mGlobals.dsASanTestsBinaries_by_sISA[sISA] if bASan else
     mGlobals.dsTestsBinaries_by_sISA[sISA]
   );
-  if sExpectedFailedToDebugApplicationErrorMessage:
-    sTestDescription = "%s => %s" % (
-      "Running %s" % sApplicationBinaryPath,
-      repr(sExpectedFailedToDebugApplicationErrorMessage)
-    );
+  if s0ExpectedFailedToDebugApplicationErrorMessage:
+    axTestDescription = [
+      INFO, sISA,
+      NORMAL, " Run ",
+      INFO, " ".join([sApplicationBinaryPath] + asApplicationArguments),
+      NORMAL, " => ",
+      INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
+    ];
   else:
-    sTestDescription = "%s%s %s%s => %s" % (
-      sISA,
-      " ASan" if bASan else "",
-      " ".join(asApplicationArguments), \
-      bRunInShell and " (in child process)" or "",
-      a0sExpectedBugIdAndLocations and " => ".join(a0sExpectedBugIdAndLocations) or "no bugs"
-    );
+    axTestDescription = [
+      INFO, sISA,
+      NORMAL, " ",
+      [
+        INFO, "ASan",
+        NORMAL, " ",
+      ] if bASan else [],
+      INFO, " ".join(asApplicationArguments),
+      [
+        NORMAL, " (in ",
+        INFO, "child",
+        NORMAL, " process)"
+      ] if bRunInShell else [],
+      [
+        [
+          NORMAL, " => ",
+          INFO, sExpectedBugIdAndLocation,
+        ] for sExpectedBugIdAndLocation in a0sExpectedBugIdAndLocations
+      ] if a0sExpectedBugIdAndLocations else [
+        NORMAL, " => ",
+        INFO, "no bugs",
+      ],
+    ];
   
   sTestBinaryName = os.path.basename(sApplicationBinaryPath).lower();
   
@@ -75,13 +97,28 @@ def fRunASingleTest(
     asApplicationArguments = ["/C", sApplicationBinaryPath] + asApplicationArguments; 
     sApplicationBinaryPath = mGlobals.dsComSpec_by_sISA[sISA];
   
-  oConsole.fSetTitle(sTestDescription);
+  oConsole.fSetTitle(axTestDescription);
   if mGlobals.bDebugStartFinish:
-    oConsole.fOutput("→ Started %s" % sTestDescription);
+    oConsole.fOutput(
+      STATUS, "→",
+      NORMAL, " Started ",
+      axTestDescription,
+      NORMAL, ".",
+    );
   else:
-    oConsole.fStatus("► %s" % sTestDescription);
+    oConsole.fStatus(
+      STATUS, "►",
+      NORMAL, " ",
+      axTestDescription,
+      NORMAL, ".",
+    );
   
   asLog = [];
+  def fDumpLog():
+    oConsole.fOutput("\u2554\u2550\u2550[ CDB LOG ", sPadding = "\u2550");
+    for sLine in asLog:
+      oConsole.fOutput("\u2551 ", sLine);
+    oConsole.fOutput("\u255A", sPadding = "\u2550");
   def fCdbStdInInputCallback(oBugId, sbInput):
     sInput = fsCP437FromBytesString(sbInput);
     if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stdin<%s" % sInput);
@@ -94,7 +131,6 @@ def fRunASingleTest(
     sOutput = fsCP437FromBytesString(sbOutput);
     if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
-#    asLog.append("log>%s%s" % (sMessage, sData and " (%s)" % sData or ""));
   def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asOutput):
     bFirstLine = True;
     for sOutput in asOutput:
@@ -135,28 +171,51 @@ def fRunASingleTest(
   def fApplicationRunningCallback(oBugId):
     asLog.append("Application running");
   def fFailedToDebugApplicationCallback(oBugId, sErrorMessage):
-    if sExpectedFailedToDebugApplicationErrorMessage == sErrorMessage:
+    if s0ExpectedFailedToDebugApplicationErrorMessage == sErrorMessage:
       return;
     if not mGlobals.bShowCdbIO: 
-      for sLine in asLog:
-        oConsole.fOutput(sLine);
-    oConsole.fOutput(ERROR, "- Failed test: %s" % sTestDescription);
-    if sExpectedFailedToDebugApplicationErrorMessage:
-      oConsole.fOutput(ERROR, "  Expected:    %s" % repr(sExpectedFailedToDebugApplicationErrorMessage));
+      fDumpLog();
+    oConsole.fOutput(
+      ERROR, "×",
+      NORMAL, " Failed test: ",
+      axTestDescription,
+      NORMAL, ":",
+    );
+    oConsole.fOutput(
+      "  BugId failed to debug the application.",
+    );
+    if s0ExpectedFailedToDebugApplicationErrorMessage:
+      oConsole.fOutput(
+        "  Expected error: ",
+        INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
+        NORMAL, ".",
+      );
+      oConsole.fOutput(
+        "  Actual error:    ",
+        INFO, repr(sErrorMessage),
+        NORMAL, ".",
+      );
     else:
-      oConsole.fOutput(ERROR, "  BugId unexpectedly failed to debug the application");
-    oConsole.fOutput(ERROR, "  Error:       %s" % repr(sErrorMessage));
+      oConsole.fOutput(
+        "  Error: ",
+        INFO, repr(sErrorMessage),
+        NORMAL, ".",
+      );
     oBugId.fStop();
     raise AssertionError(sErrorMessage);
   def fFailedToApplyMemoryLimitsCallback(oBugId, oProcess):
     if not mGlobals.bShowCdbIO: 
-      for sLine in asLog:
-        oConsole.fOutput(ERROR, sLine);
-    oConsole.fOutput(ERROR, "- Failed to apply memory limits to process 0x%X (%s) for test: %s" % (
-      oProcess.uId,
-      oProcess.sCommandLine,
-      sTestDescription
-    ));
+      fDumpLog();
+    oConsole.fOutput(
+      ERROR, "×",
+      NORMAL, " Failed to apply memory limits to process ",
+      INFO, "0x%X" % oProcess.uId,
+      NORMAL, " (",
+      INFO, oProcess.sCommandLine,
+      NORMAL, ") for test: ",
+      axTestDescription,
+      NORMAL, ".",
+    );
     oBugId.fStop();
     raise AssertionError("Failed to apply memory limits to process");
   def fFinishedCallback(oBugId):
@@ -178,8 +237,7 @@ def fRunASingleTest(
   
   def fInternalExceptionCallback(oBugId, oThread, oException, oTraceBack):
     if not mGlobals.bShowCdbIO: 
-      for sLine in asLog:
-        oConsole.fOutput(sLine);
+      fDumpLog();
     oBugId.fStop();
     if m0DebugOutput:
       m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
@@ -221,12 +279,21 @@ def fRunASingleTest(
   
   if mGlobals.bShowCdbIO:
     oConsole.fOutput();
-    oConsole.fOutput("=" * 80);
-    oConsole.fOutput("%s %s" % (sApplicationBinaryPath, " ".join(asApplicationArguments)));
+    oConsole.fOutput(
+      INFO, "=" * 80,
+    );
+    oConsole.fOutput(
+      INFO, sApplicationBinaryPath, " ".join(asApplicationArguments),
+    );
     if a0sExpectedBugIdAndLocations:
       for sExpectedBugIdAndLocation in a0sExpectedBugIdAndLocations:
-        oConsole.fOutput("  => %s" % sExpectedBugIdAndLocation);
-    oConsole.fOutput("-" * 80);
+        oConsole.fOutput(
+          "  => ",
+          INFO, sExpectedBugIdAndLocation,
+        );
+    oConsole.fOutput(
+      INFO, "-" * 80,
+    );
   bBugIdStarted = False;
   bBugIdStopped = False;
   try:
@@ -275,7 +342,9 @@ def fRunASingleTest(
     bBugIdStarted = True;
     oBugId.fWait();
     bBugIdStopped = True;
-    if mGlobals.bShowCdbIO: oConsole.fOutput("= Finished ".ljust(80, "="));
+    if mGlobals.bShowCdbIO: oConsole.fOutput(
+      "= Finished ".ljust(80, "="),
+    );
     def fDumpExpectedAndReported():
       uCounter = 0;
       while 1:
@@ -297,33 +366,60 @@ def fRunASingleTest(
             "has an unexpected bug id/location"
           ),
         ));
-        if s0ExpectedBugIdAndLocation:
-          oConsole.fOutput("  Expected: %s" % (repr(s0ExpectedBugIdAndLocation)));
-        else:
-          oConsole.fOutput("  Expected: no bug.");
+        oConsole.fOutput(
+          "  Expected: ",
+          INFO, repr(s0ExpectedBugIdAndLocation) if s0ExpectedBugIdAndLocation else "no bug",
+          NORMAL, ".",
+        );
+        oConsole.fOutput(
+          "  Detected: ",
+          INFO, repr(s0DetectedBugIdAndLocation) if o0BugReport else "no bug",
+          NORMAL, ".",
+        );
         if o0BugReport:
-          oConsole.fOutput("  Detected: %ss" % repr(s0DetectedBugIdAndLocation));
-          oConsole.fOutput("            (Description: %s)" % repr(o0BugReport.s0BugDescription));
-        else:
-          oConsole.fOutput("  Detected: no bug.");
-    if sExpectedFailedToDebugApplicationErrorMessage:
+          oConsole.fOutput(
+            "            (Description: ",
+            INFO, repr(o0BugReport.s0BugDescription),
+            NORMAL, ")",
+          );
+    if s0ExpectedFailedToDebugApplicationErrorMessage:
       pass;
     elif a0sExpectedBugIdAndLocations is None:
       uCounter = 0;
-      oConsole.fOutput("→ Test results for: %s" % sTestDescription);
+      oConsole.fOutput(
+        "→ Test results for ",
+        axTestDescription,
+        NORMAL, ".",
+      );
       for oBugReport in aoBugReports:
         uCounter += 1;
         sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
-        oConsole.fOutput("  Test bug #%d: %s." % (uCounter, repr(sBugIdAndLocation)));
+        oConsole.fOutput(
+          "  Test bug #",
+          INFO, str(uCounter),
+          NORMAL, ": ",
+          INFO, repr(sBugIdAndLocation),
+          NORMAL, ".",
+        );
         if oBugReport.o0Stack:
           fOutputStack(oBugReport.o0Stack);
     else:
       if len(aoBugReports) != len(a0sExpectedBugIdAndLocations):
         if not mGlobals.bShowCdbIO: 
-          for sLine in asLog:
-            oConsole.fOutput(sLine);
-        oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
-        oConsole.fOutput(ERROR, "  Test reported %d instead of %d bugs in the application." % (len(aoBugReports), len(a0sExpectedBugIdAndLocations)));
+          fDumpLog();
+        oConsole.fOutput(
+          ERROR, "×",
+          NORMAL, " Failed test ",
+          axTestDescription,
+          NORMAL, ":",
+        );
+        oConsole.fOutput(
+          "  Test reported ",
+          INFO, str(len(aoBugReports)),
+          NORMAL, " instead of ",
+          INFO, str(len(a0sExpectedBugIdAndLocations)),
+          NORMAL, " bugs in the application."
+        );
         fDumpExpectedAndReported();
         raise AssertionError("Test reported different number of bugs than was expected");
       else:
@@ -334,11 +430,21 @@ def fRunASingleTest(
           oBugReport = aoBugReports[uCounter];
           s0DetectedBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
           if not rExpectedBugIdAndLocation.match(s0DetectedBugIdAndLocation):
-            if not mGlobals.bShowCdbIO: 
-              for sLine in asLog:
-                oConsole.fOutput(ERROR, sLine);
-            oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
-            oConsole.fOutput(ERROR, "  Test bug #%d does not match %s." % (uCounter, repr(sExpectedBugIdAndLocation)));
+            if not mGlobals.bShowCdbIO:
+              fDumpLog();
+            oConsole.fOutput(
+              ERROR, "×",
+              NORMAL, " Failed test ",
+              axTestDescription,
+              NORMAL, ":",
+            );
+            oConsole.fOutput(
+              "  Test bug #",
+              INFO, str(uCounter),
+              NORMAL, " does not match ",
+              INFO, repr(sExpectedBugIdAndLocation),
+              NORMAL, ".",
+            );
             fDumpExpectedAndReported()
             if oBugReport.o0Stack:
               fOutputStack(oBugReport.o0Stack);
@@ -360,11 +466,30 @@ def fRunASingleTest(
   except Exception as oException:
     if bBugIdStarted and not bBugIdStopped:
       oBugId.fTerminate();
-    oConsole.fOutput(ERROR, "× Failed test: %s" % sTestDescription);
-    oConsole.fOutput(ERROR, "  Exception:   %s" % repr(oException));
+    oConsole.fOutput(
+      ERROR, "×",
+      NORMAL, " Failed test: ",
+      axTestDescription,
+      NORMAL, ".",
+    );
+    oConsole.fOutput(
+      "  Exception:   ",
+      INFO, repr(oException),
+    );
     raise;
   finally:
     if mGlobals.bDebugStartFinish:
-      oConsole.fOutput("  √ Finished %s" % sTestDescription);
+      oConsole.fOutput(
+        NORMAL, "  ",
+        OK, "√",
+        NORMAL, " Finished, ",
+        axTestDescription,
+        NORMAL, ".",
+      );
     elif a0sExpectedBugIdAndLocations is not None:
-      oConsole.fOutput("√ %s" % sTestDescription);
+      oConsole.fOutput(
+        OK, "√",
+        NORMAL, " ",
+        axTestDescription,
+        NORMAL, ".",
+      );
