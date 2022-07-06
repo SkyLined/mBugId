@@ -136,7 +136,7 @@ class cStack(object):
         oStackFrame.s0IsHiddenBecause = "Part of OS thread initialization code";
       elif rbMitigationFunctionSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
         oStackFrame.s0IsHiddenBecause = "Part of OS vulnerability mitigation code";
-      elif oStackFrame.o0Function.oModule.sbCdbId == oProcess.oMainModule.sbCdbId and rbCRTThreadInitialisationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
+      elif oStackFrame.o0Function.oModule == oProcess.oMainModule and rbCRTThreadInitialisationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
         oStackFrame.s0IsHiddenBecause = "Part of CRT thread initialization code";
     oSelf.aoFrames.append(oStackFrame);
     return oStackFrame;

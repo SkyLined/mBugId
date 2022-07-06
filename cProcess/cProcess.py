@@ -1,6 +1,8 @@
 import os, re;
 
-from mWindowsAPI import cProcess as cWindowsAPIProcess;
+from mWindowsAPI import \
+  cProcess as cWindowsAPIProcess, \
+  cModule as cWindowsAPIModule;
 
 from ..cModule import cModule;
 
@@ -18,135 +20,124 @@ from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
 
 class cProcess(object):
-  def __init__(oProcess, oCdbWrapper, uId):
-    oProcess.oCdbWrapper = oCdbWrapper;
-    oProcess.uId = uId;
-    oProcess.bTerminated = False; # Will be set to True by `cCdbWrapper_fHandleCurrentApplicationProcessTermination` once terminated
+  def __init__(oSelf, oCdbWrapper, uId):
+    oSelf.oCdbWrapper = oCdbWrapper;
+    oSelf.uId = uId;
+    oSelf.bTerminated = False; # Will be set to True by `cCdbWrapper_fHandleCurrentApplicationProcessTermination` once terminated
     
     # Modules will be cached here. They are discarded whenever the application is resumed.
-    oProcess.__doModules_by_sbCdbId = {};
+    oSelf.__d0oModule_by_uStartAddress = None;
     
     # We'll try to determine if page heap is enabled for every process. However, this may not always work. So until
     # we've successfully found out, the following value will be None. Once we know, it is set to True or False.
-    oProcess.bPageHeapEnabled = None;
+    oSelf.bPageHeapEnabled = None;
     
     # Process Information is only determined when needed and cached.
-    oProcess.__oWindowsAPIProcess = None; 
+    oSelf.__oWindowsAPIProcess = None; 
     
-    # oProcess.__uIntegrityLevel is only determined when needed and cached
-    oProcess.__uIntegrityLevel = None;
-    
-    # oProcess.oMainModule is only determined when needed and cached
-    oProcess.__oMainModule = None; # .oMainModule is JIT
-    
-    # oProcess.aoModules is only determined when needed; it creates an entry in __doModules_by_sbCdbId for every loaded
-    # module and returns all the values in the first dict. Since this dict is cached, this only needs to be done once
-    # until the cache is invalidated.
-    oProcess.__bAllModulesEnumerated = False;
-  
     # Symbols and heap manager data for addressess will be cached here. They are discarded whenever the application is resumed.
-    oProcess.__dsb0Symbol_by_uAddress = {};
-    oProcess.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
+    oSelf.__dsb0Symbol_by_uAddress = {};
+    oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
     
   @property
-  def oWindowsAPIProcess(oProcess):
-    if oProcess.__oWindowsAPIProcess is None:
-      oProcess.__oWindowsAPIProcess = cWindowsAPIProcess(oProcess.uId);
-    return oProcess.__oWindowsAPIProcess;
+  def oWindowsAPIProcess(oSelf):
+    if oSelf.__oWindowsAPIProcess is None:
+      oSelf.__oWindowsAPIProcess = cWindowsAPIProcess(oSelf.uId);
+    return oSelf.__oWindowsAPIProcess;
   
-  def foGetWindowsAPIThreadForId(oProcess, uThreadId):
-    return oProcess.oWindowsAPIProcess.foGetThreadForId(uThreadId);
+  def foGetWindowsAPIThreadForId(oSelf, uThreadId):
+    return oSelf.oWindowsAPIProcess.foGetThreadForId(uThreadId);
   
   @property
-  def sSimplifiedBinaryName(oProcess):
+  def sSimplifiedBinaryName(oSelf):
     # Windows filesystems are case-insensitive and the casing of the binary name may change between versions.
     # Lowercasing the name prevents this from resulting in location ids that differ in casing while still returning
     # a name that can be used to access the file.
-    return oProcess.sBinaryName.lower();
+    return oSelf.sBinaryName.lower();
   
   @property
-  def oMainModule(oProcess):
-    if oProcess.__oMainModule is None:
-      uMainModuleStartAddress = oProcess.oWindowsAPIProcess.uBinaryStartAddress;
-      oProcess.__oMainModule = oProcess.fo0GetOrCreateModuleForStartAddress(uMainModuleStartAddress);
-      assert oProcess.__oMainModule, \
+  def oMainModule(oSelf):
+    uMainModuleStartAddress = oSelf.oWindowsAPIProcess.uBinaryStartAddress;
+    o0MainModule = oSelf.doModule_by_uStartAddress.get(uMainModuleStartAddress);
+    assert o0MainModule, \
           "Cannot find main module for binary start address 0x%X!?" % uMainModuleStartAddress;
-    return oProcess.__oMainModule;
+    return o0MainModule;
   
-  def fo0GetOrCreateModuleForStartAddress(oProcess, uStartAddress):
-    for oModule in oProcess.__doModules_by_sbCdbId.values():
-      if oModule.uStartAddress == uStartAddress:
-        return oModule;
-    return cModule.fo0CreateForStartAddress(oProcess, uStartAddress);
+  def fo0GetModuleForStartAddress(oSelf, uStartAddress):
+    return oSelf.doModule_by_uStartAddress.get(uStartAddress);
   
-  def fo0GetOrCreateModuleForCdbId(oProcess, sbCdbId):
-    if sbCdbId not in oProcess.__doModules_by_sbCdbId:
-      return cModule.fo0CreateForCdbId(oProcess, sbCdbId);
-    return oProcess.__doModules_by_sbCdbId[sbCdbId];
-  
-  def foGetOrCreateModule(oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus):
-    if sbCdbId not in oProcess.__doModules_by_sbCdbId:
-      oProcess.__doModules_by_sbCdbId[sbCdbId] = cModule(oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
-    return oProcess.__doModules_by_sbCdbId[sbCdbId];
+  def fo0GetModuleForCdbId(oSelf, sbCdbId):
+    u0StartAddress = oSelf.fu0GetAddressForSymbol(sbCdbId);
+    if u0StartAddress is None:
+      return None;
+    return oSelf.fo0GetModuleForStartAddress(u0StartAddress);
   
   @property
-  def aoModules(oProcess):
-    if not oProcess.__bAllModulesEnumerated:
-      oProcess.__bAllModulesEnumerated = True;
-      return cModule.faoGetOrCreateAll(oProcess);
-    return list(oProcess.__doModules_by_sbCdbId.values());
+  def doModule_by_uStartAddress(oSelf):
+    if oSelf.__d0oModule_by_uStartAddress is None:
+      oSelf.__d0oModule_by_uStartAddress = {};
+      for oWindowsAPIModule in cWindowsAPIModule.faoGetForProcessId(oSelf.uId):
+        # This list contains all modules, even 64-bit WoW64 modules loaded in
+        # a 32-bit process. cdb.exe does not process these, so we'll ignore them
+        # too (until we've gotten rid of cdb.exe entirely).
+        o0Module = cModule.fo0CreateForWindowsAPIModule(oSelf, oWindowsAPIModule);
+        if o0Module:
+          oSelf.__d0oModule_by_uStartAddress[oWindowsAPIModule.uStartAddress] = o0Module;
+    return oSelf.__d0oModule_by_uStartAddress;
   
-  def fClearCache(oProcess):
+  @property
+  def aoModules(oSelf):
+    return list(oSelf.doModule_by_uStartAddress.values());
+  
+  def fClearCache(oSelf):
     # Assume that all modules can be unloaded, except the main module.
-    oProcess.__doModules_by_sbCdbId = {};
-    oProcess.__oMainModule = None;
-    oProcess.__bAllModulesEnumerated = False;
-    oProcess.__dsb0Symbol_by_uAddress = {};
-    oProcess.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
+    oSelf.__d0oModule_by_uStartAddress = None;
+    oSelf.__dsb0Symbol_by_uAddress = {};
+    oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
   
-  def fSelectInCdb(oProcess):
-    oProcess.oCdbWrapper.fSelectProcessId(oProcess.uId);
+  def fSelectInCdb(oSelf):
+    oSelf.oCdbWrapper.fSelectProcessId(oSelf.uId);
   
-  def __str__(oProcess):
-    return 'Process(%s %s #%d)' % (oProcess.sBinaryName, oProcess.sISA, oProcess.uProcessId);
+  def __str__(oSelf):
+    return 'Process(%s %s #%d)' % (oSelf.sBinaryName, oSelf.sISA, oSelf.uProcessId);
   
-  def fuAddBreakpointForAddress(oProcess, uAddress, fCallback, u0ThreadId = None, sb0Command = None):
-    return oProcess.oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
-      uProcessId = oProcess.uId,
+  def fuAddBreakpointForAddress(oSelf, uAddress, fCallback, u0ThreadId = None, sb0Command = None):
+    return oSelf.oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
+      uProcessId = oSelf.uId,
       uAddress = uAddress,
       fCallback = fCallback,
       u0ThreadId = u0ThreadId,
       sb0Command = sb0Command,
     );
   
-  def fasbExecuteCdbCommand(oProcess, sbCommand, sb0Comment, **dxArguments):
+  def fasbExecuteCdbCommand(oSelf, sbCommand, sb0Comment, **dxArguments):
     # Make sure all commands send to cdb are send in the context of this process.
-    oProcess.fSelectInCdb();
-    return oProcess.oCdbWrapper.fasbExecuteCdbCommand(sbCommand, sb0Comment, **dxArguments);
+    oSelf.fSelectInCdb();
+    return oSelf.oCdbWrapper.fasbExecuteCdbCommand(sbCommand, sb0Comment, **dxArguments);
   
-  def fuGetValueForRegister(oProcess, sbRegister, sb0Comment):
-    oProcess.fSelectInCdb();
-    return oProcess.oCdbWrapper.fuGetValueForRegister(sbRegister, sb0Comment);
+  def fuGetValueForRegister(oSelf, sbRegister, sb0Comment):
+    oSelf.fSelectInCdb();
+    return oSelf.oCdbWrapper.fuGetValueForRegister(sbRegister, sb0Comment);
   
   # Proxy properties and methods to oWindowsAPIProcess
   @property
-  def sISA(oProcess):
-    return oProcess.oWindowsAPIProcess.sISA;
+  def sISA(oSelf):
+    return oSelf.oWindowsAPIProcess.sISA;
   @property
-  def uPointerSize(oProcess):
-    return oProcess.oWindowsAPIProcess.uPointerSize;
+  def uPointerSize(oSelf):
+    return oSelf.oWindowsAPIProcess.uPointerSize;
   @property
-  def sBinaryPath(oProcess):
-    return oProcess.oWindowsAPIProcess.sBinaryPath;
+  def sBinaryPath(oSelf):
+    return oSelf.oWindowsAPIProcess.sBinaryPath;
   @property
-  def sBinaryName(oProcess):
-    return oProcess.oWindowsAPIProcess.sBinaryName;
+  def sBinaryName(oSelf):
+    return oSelf.oWindowsAPIProcess.sBinaryName;
   @property
-  def sCommandLine(oProcess):
-    return oProcess.oWindowsAPIProcess.sCommandLine;
+  def sCommandLine(oSelf):
+    return oSelf.oWindowsAPIProcess.sCommandLine;
   @property
-  def uIntegrityLevel(oProcess):
-    return oProcess.oWindowsAPIProcess.uIntegrityLevel;
+  def uIntegrityLevel(oSelf):
+    return oSelf.oWindowsAPIProcess.uIntegrityLevel;
   def fo0GetVirtualAllocationForAddress(oSelf, uAddress):
     return oSelf.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uAddress);  
   def fs0ReadStringForAddressAndLength(oSelf, uAddress, uSize, bUnicode = False):
@@ -169,8 +160,6 @@ class cProcess(object):
     return oSelf.oWindowsAPIProcess.fWriteBytesForAddress(oSelf, sData, uAddress);
   def fWriteStringForAddress(oSelf, sData, uAddress, bUnicode = False):
     return oSelf.oWindowsAPIProcess.fWriteStringForAddress(oSelf, sData, uAddress, bUnicode);
-  def fs0GetBinaryPathForModuleAddress(oSelf, uAddress):
-    return oSelf.oWindowsAPIProcess.fs0GetBinaryPathForModuleAddress(uAddress);
   
   def fo0GetHeapManagerDataForAddressNearHeapBlock(oSelf, uAddressNearHeapBlock):
     # Wrap this in a bit of caching for speed.

@@ -45,20 +45,15 @@ def ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sb_lm_OutputLine):
   return (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
 
 class cModule(object):
-  def __init__(oSelf, oProcess, uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus):
+  def __init__(oSelf, oProcess, oWindowsAPIModule, uEndAddress, sbCdbId, sbSymbolStatus):
     oSelf.oProcess = oProcess;
-    oSelf.uStartAddress = uStartAddress;
+    oSelf.oWindowsAPIModule = oWindowsAPIModule;
     oSelf.uEndAddress = uEndAddress;
     oSelf.sbCdbId = sbCdbId;
     oSelf.__sbSymbolStatus = sbSymbolStatus; # Not exposed; use bSymbolsAvailable
     oSelf.__bSymbolLoadingFailed = False;
     # __fzGetModuleSymbolAndVersionInformation needs only be called once:
     oSelf.__bModuleSymbolAndVersionInformationAvailable = False; # set to false when __fzGetModuleSymbolAndVersionInformation is called.
-    oSelf.__bBinaryPathSet = False;
-    oSelf.__s0BinaryPath = None;
-# We no longer track the ASCII version of binary path and name
-#    oSelf.__sb0BinaryPath = None;
-#    oSelf.__sb0BinaryName = None;
     oSelf.__sb0FileVersion = None;
     oSelf.__sb0Timestamp = None;
     oSelf.__doFunction_by_sbSymbol = {};
@@ -66,12 +61,13 @@ class cModule(object):
     oSelf.sISA = oProcess.sISA; # x86/x64 processes are assumed to only load x86/x64 modules respectively.
   
   def __repr__(oSelf):
-    return "<cBugId.cModule (process 0x%X, address=%X-%X, cdb id=%s, symbols=%s, binary=%s)>(#%X)" % (
+    return "<cBugId.cModule (process 0x%X, %s, end address=%X, cdb id=%s, symbols=%s, binary=%s)>(#%X)" % (
       oSelf.oProcess.uId,
-      oSelf.uStartAddress, oSelf.uEndAddress,
+      oSelf.oWindowsAPIModule,
+      oSelf.uEndAddress,
       oSelf.sbCdbId,
       oSelf.__sbSymbolStatus,
-      (oSelf.__s0BinaryPath or "<unknown>") if oSelf.__bBinaryPathSet else "<tbd>",
+      (oSelf.oWindowsAPIModule.s0BinaryPath or "<unknown>"),
       id(oSelf),
     );
   
@@ -121,33 +117,12 @@ class cModule(object):
     }[oSelf.__sbSymbolStatus];
   
   @property
+  def uStartAddress(oSelf):
+    return oSelf.oWindowsAPIModule.uStartAddress;
+  
+  @property
   def s0BinaryPath(oSelf):
-    if oSelf.__bBinaryPathSet:
-      return oSelf.__s0BinaryPath;
-    oSelf.__bBinaryPathSet = True; # At least, it will be below.
-    
-    oSelf.__s0BinaryPath = oSelf.oProcess.fs0GetBinaryPathForModuleAddress(oSelf.uStartAddress);
-    if oSelf.__s0BinaryPath:
-      return oSelf.__s0BinaryPath;
-    
-    asbDLLsOutput = oSelf.oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"!dlls -c 0x%X" % oSelf.uStartAddress,
-      sb0Comment = b"Get binary information for module %s@0x%X" % (oSelf.sbCdbId, oSelf.uStartAddress),
-      bRetryOnTruncatedOutput = True,
-      bOutputIsInformative = True,
-    );
-    while asbDLLsOutput and asbDLLsOutput[0] in [b"", b"This is Win8 with the loader DAG."]:
-      asbDLLsOutput.pop(0);
-    if asbDLLsOutput and not grb_dlls_ErrorHeader.match(asbDLLsOutput[0]):
-      obFirstLineMatch = grb_dlls_OutputLine.match(asbDLLsOutput[0]);
-      assert obFirstLineMatch, \
-          "Unrecognized !dlls output first line : %s\r\n%s" % \
-            (repr(asbDLLsOutput[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbDLLsOutput));
-      sb0BinaryPath = obFirstLineMatch.group(1);
-      oSelf.__s0BinaryPath = str(sb0BinaryPath, "ascii", "replace");
-      return oSelf.__s0BinaryPath;
-    input("*** cModule.s0BinaryPath == NONE ***");
-    return None;
+    return oSelf.oWindowsAPIModule.s0BinaryPath;
   
   @property
   def s0BinaryName(oSelf):
@@ -200,63 +175,39 @@ class cModule(object):
     ]);
   
   @staticmethod
-  def fo0CreateForStartAddress(oProcess, uStartAddress):
-    return cModule.__fo0GetOrCreateFrom_lmov(oProcess, b"a 0x%X;" % uStartAddress);
-    
-  @staticmethod
-  def fo0CreateForCdbId(oProcess, sbCdbId):
-    return cModule.__fo0GetOrCreateFrom_lmov(oProcess, b"m %s;" % sbCdbId);
-  
-  @staticmethod
-  def __fo0GetOrCreateFrom_lmov(oProcess, sb_lmov_Arguments):
+  def fo0CreateForWindowsAPIModule(oProcess, oWindowsAPIModule):
     asb_lmov_Output = oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"lmov %s" % sb_lmov_Arguments,
-      sb0Comment = b"Get module information",
+      sbCommand = b"lmov a 0x%X;" % oWindowsAPIModule.uStartAddress,
+      sb0Comment = b"Get module information for %s" % bytes(oWindowsAPIModule.s0Name or "<unknown>", "ascii", "replace"),
       bRetryOnTruncatedOutput = True,
       bOutputIsInformative = True,
     );
     assert len(asb_lmov_Output), \
-        "Got no \"lmov %s\" output!" % (
-          fsCP437FromBytesString(sb_lmov_Arguments),
-        );
+        "Got no \"lmov a 0x%X\" output!" % oWindowsAPIModule.uStartAddress;
     assert grb_lm_Header.match(asb_lmov_Output[0]), \
-        "Unrecognized \"lmov %s\" output first line:\r\n%s" % (
-          fsCP437FromBytesString(sb_lmov_Arguments),
+        "Unrecognized \"lmov a 0x%X\" output first line:\r\n%s" % (
+          oWindowsAPIModule.uStartAddress,
           "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output)
         );
     if len(asb_lmov_Output) == 1:
-      return None; # There is no module here.
+      # cdb does not know about a module at this location. This can happen when
+      # we're debugging a 32-bit process on 64-bit windows, as there are 64-bit
+      # modules loaded in the process' address space that cdb will not report.
+      # For now we will also not report these.
+      return None;
     assert len(asb_lmov_Output) > 2, \
-        "Expected at least three lines of \"lmov %s\" output, got %d:\r\n%s" % (
-          fsCP437FromBytesString(sb_lmov_Arguments),
+        "Expected at least three lines of \"lmov a 0x%X\" output, got %d:\r\n%s" % (
+          oWindowsAPIModule.uStartAddress,
           len(asb_lmov_Output),
           "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmov_Output)
         );
     (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(asb_lmov_Output[1]);
-    oModule = oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus);
+    assert uStartAddress == oWindowsAPIModule.uStartAddress, \
+        "Asked for module at 0x%X, got module at 0x%X" % (oWindowsAPIModule.uStartAddress, uStartAddress);
+    oModule = cModule(oProcess, oWindowsAPIModule, uEndAddress, sbCdbId, sbSymbolStatus);
     assert oModule.__fbProcess_lmov_Output(asb_lmov_Output), \
         "'lmov' output cannot be processed: %s" % repr(asb_lmov_Output);
     return oModule;
-  
-  @staticmethod
-  def faoGetOrCreateAll(oProcess):
-    asb_lmo_Output = oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"lmo;",
-      sb0Comment = b"Get basic information on all loaded modules",
-      bRetryOnTruncatedOutput = True,
-      bOutputIsInformative = True,
-    );
-    assert len(asb_lmo_Output) > 1, \
-        "Expected at least two lines of module information output, got %d:\r\n%s" % \
-        (len(asb_lmo_Output), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmo_Output));
-    assert grb_lm_Header.match(asb_lmo_Output[0]), \
-        "Unrecognized list modules output header: %s\r\n%s" % \
-        (repr(asb_lmo_Output[0]), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asb_lmo_Output));
-    aoModules = [];
-    for sbLine in asb_lmo_Output[1:]:
-      (uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus) = ftxParse_lm_OutputAddresssesCdbIdAndSymbolStatus(sbLine);
-      aoModules.append(oProcess.foGetOrCreateModule(uStartAddress, uEndAddress, sbCdbId, sbSymbolStatus));
-    return aoModules;
   
   def __fzGetModuleSymbolAndVersionInformation(oSelf):
     # Gather version information and optionally returns output for use in HTML report.
