@@ -68,7 +68,7 @@ try:
   sISA = None;
   bEnableDebugOutput = False;
   bEnableVerboseOutput = False;
-  asCommandLineArguments = [];
+  asApplicationArguments = [];
   for sArgument in sys.argv[1:]:
     if sArgument == "--full": 
       bTestQuick = False;
@@ -92,7 +92,7 @@ try:
     elif sISA is None:
       sISA = sArgument;
     else:
-      asCommandLineArguments.append(sArgument);
+      asApplicationArguments.append(sArgument);
   
   if sISA is not None:
     oConsole.fOutput("+ ISA = %s." % sISA);
@@ -108,11 +108,11 @@ try:
     m0DebugOutput.fEnableAllDebugOutput();
     oConsole.fOutput("+ Showing debug output.");
   
-  if len(asCommandLineArguments) > 0:
+  if len(asApplicationArguments) > 0:
     mGlobals.bShowApplicationIO = True;
     fRunASingleTest(
       sISA = sISA,
-      axCommandLineArguments = asCommandLineArguments,
+      asApplicationArguments = asApplicationArguments,
       a0sExpectedBugIdAndLocations = None, # Expect no exceptions.
       s0ExpectedFailedToDebugApplicationErrorMessage = None,
       bRunInShell = False,
