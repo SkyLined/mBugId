@@ -13,7 +13,7 @@ from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import \
     cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
-from .cProcess_fuGetAddressForSymbol import cProcess_fuGetAddressForSymbol;
+from .cProcess_fu0GetAddressForSymbol import cProcess_fu0GetAddressForSymbol;
 from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
 
@@ -206,5 +206,5 @@ class cProcess(object):
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
-  fuGetAddressForSymbol = cProcess_fuGetAddressForSymbol;
+  fu0GetAddressForSymbol = cProcess_fu0GetAddressForSymbol;
 

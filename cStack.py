@@ -312,13 +312,16 @@ class cStack(object):
             if gbDebugOutput: print("  -> Symbols are not available and function offset is suspicious; ignoring function name...");
             if u0FrameInstructionPointer:
               # Calculate the offset the easy way.
-              u0ModuleOffset = u0FrameInstructionPointer - o0Module.uStartAddress;
+              u0CodeAddress = u0FrameInstructionPointer;
             else:
               # Calculate the offset the harder way.
-              uFunctionAddress = oProcess.fuGetAddressForSymbol(o0Function.sbCdbId);
-              u0ModuleOffset = uFunctionAddress + (i0OffsetFromStartOfFunction or 0) - o0Module.uStartAddress;
-            o0Function = None;
-            i0OffsetFromStartOfFunction = None;
+              u0CodeAddress = oProcess.fu0GetAddressForSymbol(o0Function.sbCdbId);
+              if u0CodeAddress:
+                u0CodeAddress +=  (i0OffsetFromStartOfFunction or 0);
+            if u0CodeAddress:
+              u0ModuleOffset = u0CodeAddress - o0Module.uStartAddress;
+              o0Function = None;
+              i0OffsetFromStartOfFunction = None;
         oStackFrame = oStack.foCreateAndAddStackFrame(
           oProcess,
           sbCdbSymbolOrAddress = sbCdbSymbolOrAddress,

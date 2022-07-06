@@ -26,8 +26,8 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
   elif sb0ModuleCdbIdOrAddress == b"SharedUserData":
     # "ShareUserData" is a symbol outside of any module that gets used as a module name in cdb.
     # Any value referencing it will be converted to an address:
-    u0Address = oProcess.fuGetAddressForSymbol(b"%s!%s" % (sb0ModuleCdbIdOrAddress, sb0FunctionSymbol));
-    if u0ModuleOffset: uAddress += u0ModuleOffset;
+    u0Address = oProcess.fu0GetAddressForSymbol(b"%s!%s" % (sb0ModuleCdbIdOrAddress, sb0FunctionSymbol));
+    if u0Address and u0ModuleOffset: u0Address += u0ModuleOffset;
   else:
     # a module cdb id can be "cdb", which is aldo a valid address; let's try
     # to resolve it as a cdb id first:
