@@ -28,14 +28,19 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
     # Any value referencing it will be converted to an address:
     u0Address = oProcess.fu0GetAddressForSymbol(b"%s!%s" % (sb0ModuleCdbIdOrAddress, sb0FunctionSymbol));
     if u0Address and u0ModuleOffset: u0Address += u0ModuleOffset;
+  elif sb0ModuleCdbIdOrAddress[0] in b"0123456789":
+    # Address are hexadecimal (i.e. start with "0x"), or (unlikely) decimal.
+    # Either way they start with a digit. cdb ids for modules are assumed to
+    # never start with a digit, so if the first char is a digit, it must be
+    # and address.
+    # TODO: confirm this is true by loading a module "1test.dll"
+    # and find out what id cdb gives this module.
+    u0Address = fu0ValueFromCdbHexOutput(sb0ModuleCdbIdOrAddress);
   else:
-    # a module cdb id can be "cdb", which is aldo a valid address; let's try
-    # to resolve it as a cdb id first:
-    o0Module = oProcess.fo0GetOrCreateModuleForCdbId(sb0ModuleCdbIdOrAddress);
-    if o0Module is None:
-      # That failed; it is an address.
-     u0Address = fu0ValueFromCdbHexOutput(sb0ModuleCdbIdOrAddress);
-    elif sb0FunctionSymbol is not None:
+    o0Module = oProcess.fo0GetModuleForCdbId(sb0ModuleCdbIdOrAddress);
+    assert o0Module, \
+        "Cannot find module %s!?" % repr(sb0ModuleCdbIdOrAddress)[1:];
+    if sb0FunctionSymbol is not None:
       o0Function = o0Module.foGetOrCreateFunctionForSymbol(sb0FunctionSymbol);
       i0OffsetFromStartOfFunction = (
         0 if sb0OffsetInFunction is None else
