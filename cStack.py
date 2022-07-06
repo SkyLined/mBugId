@@ -1,6 +1,6 @@
 import re;
 
-from mNotProvided import *;
+from mNotProvided import fAssertType;
 
 # local imports are at the end of this file to avoid import loops.
 
@@ -180,7 +180,7 @@ class cStack(object):
       ob_dps_StackOutputLineMatch = grb_dps_StackOutputLine.match(sbLine, re.I);
       assert ob_dps_StackOutputLineMatch, \
             "Unknown stack output: %s\r\n%s" % \
-            (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbStackOutput));
+            (repr(sbLine), "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbStack));
       sbReturnAddress, sbCdbSymbolOrAddress, sb0SourceFilePath, sb0SourceFileLineNumber = \
           ob_dps_StackOutputLineMatch.groups();
       (
@@ -189,7 +189,7 @@ class cStack(object):
         o0Function, i0OffsetFromStartOfFunction
       ) = oProcess.ftxSplitSymbolOrAddress(sbCdbSymbolOrAddress);
       u0ReturnAddress = fu0ValueFromCdbHexOutput(sbReturnAddress);
-      oStackFrame = oStack.foCreateAndAddStackFrame(
+      oStack.foCreateAndAddStackFrame(
         oProcess,
         sbCdbSymbolOrAddress = sbCdbSymbolOrAddress, 
         u0InstructionPointer = u0InstructionPointer,
@@ -386,7 +386,6 @@ class cStack(object):
         break;
     return oStack;
 
-from .cModule import cModule;
 from .cStackFrame import cStackFrame;
 from .dxConfig import dxConfig;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
