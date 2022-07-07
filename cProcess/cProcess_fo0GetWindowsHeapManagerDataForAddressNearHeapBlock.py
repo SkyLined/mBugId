@@ -19,6 +19,7 @@ grbIgnoredHeapOutputLines = re.compile(
     rb"\*\*\*.*\*\*\*"
   rb"|"                                     # } or {
     rb"unable to resolve ntdll!RtlpStackTraceDataBase"
+  rb"|"                                     # } or { (nothing - empty line)
   rb")"                                     # }
   rb"\s*$"                                  # optional whitespace
 );
@@ -109,8 +110,10 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
       sb0Comment = b"Get heap information",
       bOutputIsInformative = True,
     )
-    if not grbIgnoredHeapOutputLines.match(sbLine)
+    if not grbIgnoredHeapOutputLines.match(sbLine.strip())
   ];
+  if len(asbCdbHeapOutput) == 0:
+    return None; # Not part of any heap.
   # Sample output:
   # Allocated memory on "normal" hreap
   # |    address 000001ec4e8cc790 found in
