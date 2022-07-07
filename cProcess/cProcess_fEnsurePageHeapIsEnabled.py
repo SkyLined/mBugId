@@ -34,7 +34,8 @@ def cProcess_fEnsurePageHeapIsEnabled(oProcess):
   # disabled; I believe whatever keeps cdb from determining the module binary's file name is also keeping page heap
   # from doing the same. In such cases, it appears that page heap cannot be enabled by the user, so we'll report it
   # with the second argument as "False" (not preventable).
-  # NOTE: DISABLED TO AVOID ACCESSING oMainModule before the process is fully loaded.
+  # NOTE: DISABLED TO AVOID ACCESSING oMainModule before the process is fully loaded and since `cModule.sbCdbId`
+  # has been removed.
   bPreventable = True;#re.match(rb"image[0-9a-f]{8}", oProcess.oMainModule.sbCdbId, re.I) is None;
   # Report it
   if not oProcess.oCdbWrapper.fbFireCallbacks("Page heap not enabled", oProcess, bPreventable):

@@ -151,20 +151,12 @@ class cBugReport(object):
           aoRelevantModules.append(oStackFrame.o0Module);
         break;
     # Add relevant binaries information to cBugReport and optionally to the HTML report.
-    if oCdbWrapper.bGenerateReportHTML:
-      # If a HTML report is requested, these will be used later on to construct it.
-      asBinaryInformationHTML = [];
-      asBinaryVersionHTML = [];
     oSelf.asVersionInformation = [];
     for oModule in aoRelevantModules:
       # This function populates the version properties of the oModule object and returns HTML if a report is needed.
       if oModule.s0BinaryName:
         sBinaryName = oModule.s0BinaryName;
-        sVersion = fsCP437FromBytesString(oModule.sb0FileVersion or oModule.sb0Timestamp or b"unknown");
-        oSelf.asVersionInformation.append("%s %s (%s)" % (sBinaryName, sVersion, oModule.sISA));
-        if oCdbWrapper.bGenerateReportHTML:
-          asBinaryInformationHTML.append(oModule.sInformationHTML);
-          asBinaryVersionHTML.append("<b>%s</b>: %s (%s)" % (sBinaryName, sVersion, oModule.sISA));
+        oSelf.asVersionInformation.append("%s (%s)" % (sBinaryName, oModule.sISA));
     
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
@@ -227,14 +219,6 @@ class cBugReport(object):
             });
       
       # Add relevant binaries information to cBugReport and HTML report.
-      sBinaryInformationHTML = "<br/>\n<br/>\n".join(asBinaryInformationHTML);
-      sBinaryVersionHTML = "<br/>\n".join(asBinaryVersionHTML) or "not available";
-      if sBinaryInformationHTML:
-        asBlocksHTML.append(sBlockHTMLTemplate % {
-          "sName": "Binary information",
-          "sCollapsed": "Collapsed",
-          "sContent": "<span class=\"BinaryInformation\">%s</span>" % sBinaryInformationHTML
-        });
 # Getting the integrity level has become error-prone and I don't care enough about it to find out what the issue is
 # so I have disabled it.
       sOptionalIntegrityLevelHTML = "";
@@ -278,7 +262,7 @@ class cBugReport(object):
         (sProductHeaderHTML, sProductFooterHTML) = ftsReportProductHeaderAndFooterHTML(o0ProductDetails);
         (sLicenseHeaderHTML, sLicenseFooterHTML) = ftsReportLicenseHeaderAndFooterHTML(o0ProductDetails);
       else:
-        sProductHeaderHTML = sProductFooter = sLicenseHeaderHTML = sLicenseFooterHTML = "";
+        sProductHeaderHTML = sProductFooterHTML = sLicenseHeaderHTML = sLicenseFooterHTML = "";
       while asBlocksHTML:
         bReportTruncated = False;
         try:
@@ -291,7 +275,6 @@ class cBugReport(object):
             ),
             "sBugLocation": fsCP437HTMLFromString(oSelf.s0BugLocation) if oSelf.s0BugLocation else "Unknown",
             "sBugDescription": fsCP437HTMLFromString(oSelf.s0BugDescription), # Cannot be None at this point
-            "sBinaryVersion": sBinaryVersionHTML,
             "sOptionalSource": oSelf.sBugSourceLocation and \
                 "<tr><td>Source: </td><td>%s</td></tr>" % oSelf.sBugSourceLocation or "",
             "sSecurityImpact": (

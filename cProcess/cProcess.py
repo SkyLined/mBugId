@@ -2,12 +2,15 @@ import os, re;
 
 from mWindowsAPI import \
   cProcess as cWindowsAPIProcess, \
-  cModule as cWindowsAPIModule;
+  cModule as cWindowsAPIModule, \
+  fsHexNumber;
 
 from ..cModule import cModule;
 
 from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
+from .cProcess_fasbGetStack import cProcess_fasbGetStack;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
+from .cProcess_fLoadSymbols import cProcess_fLoadSymbols;
 from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress;
 from .cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock;
@@ -18,6 +21,8 @@ from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import \
 from .cProcess_fu0GetAddressForSymbol import cProcess_fu0GetAddressForSymbol;
 from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
+
+gbDebugOutput = False;
 
 class cProcess(object):
   def __init__(oSelf, oCdbWrapper, uId):
@@ -67,10 +72,55 @@ class cProcess(object):
     return oSelf.doModule_by_uStartAddress.get(uStartAddress);
   
   def fo0GetModuleForCdbId(oSelf, sbCdbId):
+    # First check if we have cached this cdb id:
+    for oModule in oSelf.doModule_by_uStartAddress.values():
+      if oModule.fbIsCdbIdCached() and oModule.sbCdbId == sbCdbId:
+        return oModule;
+    if gbDebugOutput:
+      print("cdb loaded modules:");
+      for sbLine in oSelf.fasbExecuteCdbCommand(
+        b"lm;",
+        b"Get list of loaded modules for debugging"
+      ):
+        print(repr(sbLine)[1:]);
+      print("mWindowsAPI loaded modules:");
+      for oModule in oSelf.doModule_by_uStartAddress.values():
+        print("%s: %s (%s)" % (
+          oModule.uStartAddress,
+          oModule.s0BinaryName or "<name unknown>",
+          oModule.s0BinaryPath or "<path unknown>",
+        ));
+    # No; try to find the start address of the module for this cdb id:
     u0StartAddress = oSelf.fu0GetAddressForSymbol(sbCdbId);
     if u0StartAddress is None:
+      if gbDebugOutput: print("cdb id %s => None" % (repr(sbCdbId)[1:],));
       return None;
-    return oSelf.fo0GetModuleForStartAddress(u0StartAddress);
+    # No; try to get the module for the start address:
+    o0Module = oSelf.fo0GetModuleForStartAddress(u0StartAddress);
+    assert o0Module, \
+        "No module for cdb id %s (address = %s):\n%s" % (
+          repr(sbCdbId)[1:],
+          fsHexNumber(u0StartAddress),
+          ", ".join(
+            str(oModule)
+            for oModule in oSelf.doModule_by_uStartAddress.values()
+          ),
+        );
+    if gbDebugOutput:
+      print("cdb id %s (address %s) => %s" % (
+        repr(sbCdbId)[1:],
+        fsHexNumber(u0StartAddress),
+        o0Module,
+      ));
+      assert o0Module.sbCdbId == sbCdbId, \
+          "cdbid mismatch: %s => %s => %s" % (
+            repr(sbCdbId)[1:],
+            fsHexNumber(u0StartAddress),
+            o0Module,
+          );
+    # Cache the cdb id of the module:
+    o0Module.sbCdbId = sbCdbId;
+    return o0Module;
   
   @property
   def doModule_by_uStartAddress(oSelf):
@@ -80,9 +130,8 @@ class cProcess(object):
         # This list contains all modules, even 64-bit WoW64 modules loaded in
         # a 32-bit process. cdb.exe does not process these, so we'll ignore them
         # too (until we've gotten rid of cdb.exe entirely).
-        o0Module = cModule.fo0CreateForWindowsAPIModule(oSelf, oWindowsAPIModule);
-        if o0Module:
-          oSelf.__d0oModule_by_uStartAddress[oWindowsAPIModule.uStartAddress] = o0Module;
+        oSelf.__d0oModule_by_uStartAddress[oWindowsAPIModule.uStartAddress] = \
+            cModule(oSelf, oWindowsAPIModule);
     return oSelf.__d0oModule_by_uStartAddress;
   
   @property
@@ -191,7 +240,9 @@ class cProcess(object):
     return sb0Symbol;
   
   fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
+  fasbGetStack = cProcess_fasbGetStack;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
+  fLoadSymbols = cProcess_fLoadSymbols;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;

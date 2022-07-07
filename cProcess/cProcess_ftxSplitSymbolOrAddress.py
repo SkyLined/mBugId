@@ -1,5 +1,3 @@
-import re;
-
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..rbSymbolOrAddress import rbSymbolOrAddress;
 
@@ -35,11 +33,13 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
     # and address.
     # TODO: confirm this is true by loading a module "1test.dll"
     # and find out what id cdb gives this module.
-    u0Address = fu0ValueFromCdbHexOutput(sb0ModuleCdbIdOrAddress);
+    sbAddress = sb0ModuleCdbIdOrAddress;
+    u0Address = fu0ValueFromCdbHexOutput(sbAddress);
   else:
-    o0Module = oProcess.fo0GetModuleForCdbId(sb0ModuleCdbIdOrAddress);
+    sbModuleCdbId = sb0ModuleCdbIdOrAddress;
+    o0Module = oProcess.fo0GetModuleForCdbId(sbModuleCdbId);
     assert o0Module, \
-        "Cannot find module %s!?" % repr(sb0ModuleCdbIdOrAddress)[1:];
+        "Cannot find module %s!?" % repr(sbModuleCdbId)[1:];
     if sb0FunctionSymbol is not None:
       o0Function = o0Module.foGetOrCreateFunctionForSymbol(sb0FunctionSymbol);
       i0OffsetFromStartOfFunction = (

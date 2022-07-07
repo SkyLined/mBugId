@@ -294,7 +294,6 @@ sReportHTMLTemplate = ("""
           <tr><td>Location:        </td><td><span class="Important">%(sBugLocation)s</span></td></tr>
 %(sOptionalSource)s
           <tr><td>Description:     </td><td><span class="Important">%(sBugDescription)s</span></td></tr>
-          <tr><td>Version:         </td><td>%(sBinaryVersion)s</td></tr>
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
 %(sOptionalIntegrityLevel)s
 %(sOptionalMemoryUsage)s
