@@ -100,8 +100,8 @@ def cBugReport_foAnalyzeException_STATUS_STACK_BUFFER_OVERRUN(oBugReport, oProce
     ) = dtsFastFailErrorInformation_by_uCode[uFastFailCode];
   else:
     oBugReport.s0BugTypeId = fs0GetFastFailDefineName(uFastFailCode) or ("FailFast#%d" % uFastFailCode);
-    oBugReport.s0BugDescription = "A critical issue was detected (code %X, fail fast code %d: %s)." % \
-        (oException.uCode, uFastFailCode, sFastFailCodeDescription);
+    oBugReport.s0BugDescription = "A critical issue was detected (code %X, fail fast code %d)." % \
+        (oException.uCode, uFastFailCode);
     oBugReport.s0SecurityImpact = "Unknown";
   # Add any additional parameters (I have yet to find out what these mean)
   if len(oException.auParameters) == 2:
