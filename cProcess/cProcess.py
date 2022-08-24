@@ -6,6 +6,10 @@ from mWindowsAPI import \
   fsHexNumber;
 
 from ..cModule import cModule;
+from ..mDisassembler import \
+  fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes, \
+  fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions, \
+  fo0GetInstructionForProcessAndAddress;
 
 from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
 from .cProcess_fasbGetStack import cProcess_fasbGetStack;
@@ -239,6 +243,24 @@ class cProcess(object):
     oSelf.__dsb0Symbol_by_uAddress[uAddress] = sb0Symbol;
     return sb0Symbol;
   
+  def fo0GetDisassemblyForStartAddressAndNumberOfBytes(oSelf, uStartAddress, uNumberOfBytes):
+    return fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes(
+      oProcess = oSelf,
+      uStartAddress = uStartAddress,
+      uNumberOfBytes = uNumberOfBytes,
+    );
+  def fo0GetDisassemblyForStartAddressAndNumberOfInstructions(oSelf, uStartAddress, uNumberOfInstructions):
+    return fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions(
+      oProcess = oSelf,
+      uStartAddress = uStartAddress,
+      uNumberOfInstructions = uNumberOfInstructions,
+    );
+  def fo0GetInstructionForAddress(oSelf, uAddress):
+    return fo0GetInstructionForProcessAndAddress(
+      oProcess = oSelf,
+      uAddress = uAddress,
+    );
+
   fa0txGetRegistersForThreadId = cProcess_fa0txGetRegistersForThreadId;
   fasbGetStack = cProcess_fasbGetStack;
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
