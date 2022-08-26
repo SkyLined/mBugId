@@ -6,12 +6,12 @@ def ftsReportLicenseHeaderAndFooterHTML(oProductDetails):
   bLicensedForCommercialUse = o0License and o0License.sUsageTypeDescription == "commercial use";
   sLicenseHeaderHTML = " ".join([
     o0License and (
-      "Licensed to %s for %s." % (o0License.sLicenseeName, o0License.sUsageTypeDescription)
+      "<span class=\"LicenseInfo\">Licensed to %s for %s.<span>" % (o0License.sLicenseeName, o0License.sUsageTypeDescription)
     ) or "",
     not bLicensedForCommercialUse and (
-      "You may not use this version of " + oProductDetails.sProductName + " for commercial purposes. Please contact "
-      "the author if you wish to use " + oProductDetails.sProductName + " commercially. Contact and licensing "
-      "information can be found at the bottom of this report."
+      "<span class=\"LicenseWarning\">You may not use this version of " + oProductDetails.sProductName +
+      " for commercial purposes. Please contact the author if you wish to use " + oProductDetails.sProductName +
+      " commercially. Contact and licensing information can be found at the bottom of this report.</span>"
     ) or "",
   ]);
   if bLicensedForCommercialUse:

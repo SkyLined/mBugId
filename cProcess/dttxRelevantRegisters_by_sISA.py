@@ -1,6 +1,7 @@
 dttxRelevantRegisters_by_sISA = {
   #  NAME    SIZE   SYMBOL
   "x86": (
+    (b"eip",    32,  True),
     (b"eax",    32,  True),
     (b"ebx",    32,  True),
     (b"ecx",    32,  True),
@@ -19,6 +20,7 @@ dttxRelevantRegisters_by_sISA = {
     (b"xmm7",  128, False),
   ),
   "x64": (
+    (b"rip",    64, True),
     (b"rax",    64, True),
     (b"rbx",    64, True),
     (b"rcx",    64, True),

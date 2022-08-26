@@ -34,4 +34,4 @@ class cDisassembly(object):
     return "\r\n".join(
       str(oInstruction)
       for oInstruction in oSelf.__aoInstructions
-    ),
+    );

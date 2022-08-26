@@ -1,6 +1,8 @@
 from mNotProvided import fAssertTypes;
 
-from .fo0GetDisassemblyFromCdbOutput import fo0GetDisassemblyFromCdbOutput;
+from mWindowsAPI import fsHexNumber;
+
+from .fo0GetDisassemblyForProcessAndCdbCommand import fo0GetDisassemblyForProcessAndCdbCommand;
 
 def fo0GetInstructionForProcessAndAddress(
   oProcess,
@@ -9,10 +11,10 @@ def fo0GetInstructionForProcessAndAddress(
   fAssertTypes({
     "uAddress": (uAddress, int),
   });
-  asbDisassemblyOutput = oProcess.fasbExecuteCdbCommand(
+  o0Disassembly = fo0GetDisassemblyForProcessAndCdbCommand(
+    oProcess, 
     sbCommand = b"u 0x%X L%d" % (uAddress, 1), 
-    sb0Comment = b"Disassemble instruction at %d" % (uAddress,),
+    sbComment = b"Disassemble instruction at %s" % (bytes(fsHexNumber(uAddress), "ascii", "strict"),),
   );
-  o0Disassembly = fo0GetDisassemblyFromCdbOutput(asbDisassemblyOutput);
   return o0Disassembly.foGetInstruction(0) if o0Disassembly and len(o0Disassembly) == 1 else None;
 

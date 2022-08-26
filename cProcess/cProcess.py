@@ -9,7 +9,8 @@ from ..cModule import cModule;
 from ..mDisassembler import \
   fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes, \
   fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions, \
-  fo0GetInstructionForProcessAndAddress;
+  fo0GetInstructionForProcessAndAddress, \
+  fo0GetInstructionForProcessAndBeforeAddress;
 
 from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
 from .cProcess_fasbGetStack import cProcess_fasbGetStack;
@@ -257,6 +258,11 @@ class cProcess(object):
     );
   def fo0GetInstructionForAddress(oSelf, uAddress):
     return fo0GetInstructionForProcessAndAddress(
+      oProcess = oSelf,
+      uAddress = uAddress,
+    );
+  def fo0GetInstructionBeforeAddress(oSelf, uAddress):
+    return fo0GetInstructionForProcessAndBeforeAddress(
       oProcess = oSelf,
       uAddress = uAddress,
     );

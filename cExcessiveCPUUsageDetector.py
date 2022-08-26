@@ -457,11 +457,17 @@ class cExcessiveCPUUsageDetector(object):
       oCdbWrapper.fRemoveBreakpoint(oSelf.uBugBreakpointId);
       oSelf.uBugBreakpointId = None;
       # Report a bug
-      sBugTypeId = "CPUUsage";
       sBugDescription = "The application was using %d%% CPU for %d seconds, which is considered excessive." % \
           (oSelf.nTotalCPUUsagePercent, dxConfig["nExcessiveCPUUsageCheckIntervalInSeconds"]);
-      s0SecurityImpact = None;
-      oBugReport = cBugReport.foCreate(oCdbWrapper, oWormProcess, oWormWindowsAPIThread, sBugTypeId, sBugDescription, s0SecurityImpact);
+      oBugReport = cBugReport.foCreate(
+        oCdbWrapper = oCdbWrapper,
+        oProcess = oWormProcess,
+        oWindowsAPIThread = oWormWindowsAPIThread,
+        o0Exception = None,
+        s0BugTypeId = "CPUUsage",
+        s0BugDescription = sBugDescription,
+        s0SecurityImpact = None,
+      );
       oBugReport.bRegistersRelevant = False;
       oBugReport.fReport();
       oCdbWrapper.fStop();

@@ -1,6 +1,8 @@
 from mNotProvided import fAssertTypes;
 
-from .fo0GetDisassemblyFromCdbOutput import fo0GetDisassemblyFromCdbOutput;
+from mWindowsAPI import fsHexNumber;
+
+from .fo0GetDisassemblyForProcessAndCdbCommand import fo0GetDisassemblyForProcessAndCdbCommand;
 
 def fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions(
   oProcess,
@@ -13,9 +15,9 @@ def fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions(
   });
   assert 0 <= uNumberOfInstructions < 0x100, \
       "Request to disassemble %d instructions seems a little excessive!" % uNumberOfInstructions;
-  asbDisassemblyOutput = oProcess.fasbExecuteCdbCommand(
+  return fo0GetDisassemblyForProcessAndCdbCommand(
+    oProcess,
     sbCommand = b"u 0x%X L%d" % (uStartAddress, uNumberOfInstructions), 
-    sb0Comment = b"Disassemble %d instructions at %d" % (uNumberOfInstructions, uStartAddress),
+    sbComment = b"Disassemble %d instructions at %s" % (uNumberOfInstructions, bytes(fsHexNumber(uStartAddress), "ascii", "strict")),
   );
-  return fo0GetDisassemblyFromCdbOutput(asbDisassemblyOutput);
 

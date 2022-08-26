@@ -1,7 +1,5 @@
 import re;
 
-from mFileSystemItem import cFileSystemItem;
-
 from ..dxConfig import dxConfig;
 from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
 
@@ -191,17 +189,19 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
               if gbDebugIO: print("\r<stdout:END>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
               bEndOfCommandOutputMarkerFound = True;
               sbFilteredCurrentLine = sbFilteredCurrentLine[:-len(sb0EndOfCommandOutputMarker)];
-        if sb0EndOfCommandOutputMarker is None or bEndOfCommandOutputMarkerFound:
-          # Detect the prompt. The prompt must starts on a new line (but can be prefixed with the
-          # end of command output marker).
-          oPromptMatch = grbCdbPrompt.match(sbFilteredCurrentLine);
-          if oPromptMatch:
-            oCdbWrapper.sCdbCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
-            oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbCurrentLine);
-            if oCdbWrapper.bGenerateReportHTML:
-              # The prompt is always stored in a new block of I/O
-              oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % fsCP437HTMLFromBytesString(sbCurrentLine);
-            break;
+        # Detect the prompt. The prompt must starts on a new line (but can be prefixed with the
+        # end of command output marker).
+        oPromptMatch = grbCdbPrompt.match(sbFilteredCurrentLine);
+        if oPromptMatch:
+          oCdbWrapper.sCdbCurrentISA = oPromptMatch.group(1) and "x86" or oCdbWrapper.sCdbISA;
+          if oCdbWrapper.bGenerateReportHTML:
+            # The prompt is always stored in a new block of I/O
+            oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % fsCP437HTMLFromBytesString(sbCurrentLine);
+          oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbCurrentLine);
+          if not bIgnoreOutput:
+            if sb0EndOfCommandOutputMarker is not None and not bEndOfCommandOutputMarkerFound:
+              raise oCdbWrapper.cEndOfCommandOutputMarkerMissingException(asbFilteredLines);
+          break;
   finally:
     if bApplicationWillBeRun:
       # Signal that the application is no longer running and wait for the interrupt on timeout thread to stop.

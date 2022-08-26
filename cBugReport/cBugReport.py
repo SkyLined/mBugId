@@ -1,8 +1,24 @@
 import re;
 
-import mProductDetails;
-from mWindowsSDK import *;
-from mNotProvided import *;
+from mWindowsAPI import fsHexNumber;
+from mWindowsSDK import \
+  CPP_EXCEPTION_CODE, \
+  STATUS_ACCESS_VIOLATION, \
+  STATUS_BREAKPOINT, \
+  STATUS_FAIL_FAST_EXCEPTION, \
+  STATUS_FAILFAST_OOM_EXCEPTION, \
+  STATUS_GUARD_PAGE_VIOLATION, \
+  STATUS_ILLEGAL_INSTRUCTION, \
+  STATUS_INTEGER_DIVIDE_BY_ZERO, \
+  STATUS_INTEGER_OVERFLOW, \
+  STATUS_PRIVILEGED_INSTRUCTION, \
+  STATUS_SINGLE_STEP, \
+  STATUS_STACK_BUFFER_OVERRUN, \
+  STATUS_STACK_OVERFLOW, \
+  STATUS_STOWED_EXCEPTION, \
+  WRT_ORIGINATE_ERROR_EXCEPTION;
+
+from mNotProvided import fxGetFirstProvidedValue, zNotProvided;
 
 from .cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from .cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
@@ -15,7 +31,7 @@ from .cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION import cBugReport_fo
 from .cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION import cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION;
 
 from .cBugReport_fs0GetRegistersBlockHTML import cBugReport_fs0GetRegistersBlockHTML;
-from .cBugReport_fsGetDisassemblyHTML import cBugReport_fsGetDisassemblyHTML;
+from .cBugReport_fs0GetDisassemblyHTML import cBugReport_fs0GetDisassemblyHTML;
 from .cBugReport_fs0GetMemoryDumpBlockHTML import cBugReport_fs0GetMemoryDumpBlockHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
 # Remaining local imports are at the end of this file to avoid import loops.
@@ -32,13 +48,35 @@ dfoAnalyzeException_by_uExceptionCode = {
   STATUS_STOWED_EXCEPTION: cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION,
   WRT_ORIGINATE_ERROR_EXCEPTION: cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION,
 };
+auExceptionCodesThatHappenAtTheInstructionThatTriggeredThem = [
+  STATUS_ACCESS_VIOLATION,
+#  STATUS_BREAKPOINT, # this one is inconsistent :(
+  STATUS_ILLEGAL_INSTRUCTION,
+  STATUS_INTEGER_DIVIDE_BY_ZERO,
+  STATUS_INTEGER_OVERFLOW,
+  STATUS_PRIVILEGED_INSTRUCTION,
+  STATUS_SINGLE_STEP,
+  STATUS_STACK_BUFFER_OVERRUN,
+  STATUS_STACK_OVERFLOW,
+];
 
 class cBugReport(object):
   bIsInternalBug = False;
-  def __init__(oSelf, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact, uStackFramesCount):
+  def __init__(oSelf,
+    *,
+    oCdbWrapper,
+    oProcess,
+    oWindowsAPIThread,
+    o0Exception,
+    s0BugTypeId,
+    s0BugDescription,
+    s0SecurityImpact,
+    uStackFramesCount,
+  ):
     oSelf.__oCdbWrapper = oCdbWrapper;
     oSelf.__oProcess = oProcess;
     oSelf.__oWindowsAPIThread = oWindowsAPIThread;
+    oSelf.__o0Exception = o0Exception;
     oSelf.s0BugTypeId = s0BugTypeId;
     oSelf.s0BugDescription = s0BugDescription;
     oSelf.s0SecurityImpact = s0SecurityImpact;
@@ -97,6 +135,7 @@ class cBugReport(object):
       oCdbWrapper = oCdbWrapper,
       oProcess = oProcess,
       oWindowsAPIThread = oWindowsAPIThread,
+      o0Exception = oException,
       s0BugTypeId = oException.sTypeId,
       s0BugDescription = oException.sDescription,
       s0SecurityImpact = oException.s0SecurityImpact,
@@ -116,13 +155,24 @@ class cBugReport(object):
     return o0BugReport;
   
   @classmethod
-  def foCreate(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, s0BugTypeId, s0BugDescription, s0SecurityImpact, uzStackFramesCount = zNotProvided):
+  def foCreate(cClass,
+    *,
+    oCdbWrapper,
+    oProcess,
+    oWindowsAPIThread,
+    o0Exception,
+    s0BugTypeId,
+    s0BugDescription,
+    s0SecurityImpact,
+    uzStackFramesCount = zNotProvided,
+  ):
     uStackFramesCount = fxGetFirstProvidedValue(uzStackFramesCount, dxConfig["uMaxStackFramesCount"]);
     # Create a preliminary error report.
-    oBugReport = cBugReport(
+    oBugReport = cClass(
       oCdbWrapper = oCdbWrapper,
       oProcess = oProcess,
       oWindowsAPIThread = oWindowsAPIThread,
+      o0Exception = o0Exception,
       s0BugTypeId = s0BugTypeId,
       s0BugDescription = s0BugDescription,
       s0SecurityImpact = s0SecurityImpact,
@@ -135,13 +185,40 @@ class cBugReport(object):
   
   def fReport(oSelf):
     oCdbWrapper = oSelf.__oCdbWrapper
-    import mBugId;
     assert oSelf.s0BugTypeId, \
         "Cannot report a bug with no bug type id!";
     # Calculate Stack Id, determine s0BugLocation and optionally create and return sStackHTML.
     aoStackFramesPartOfId, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
     oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId);
     
+    (sbInstructionPointerName, u0InstructionPointerValue) = \
+        oSelf.__oWindowsAPIThread.ftxGetInstructionPointerRegisterNameAndValue();
+    if u0InstructionPointerValue is None:
+      oSelf.s0Instruction = "???????? | ?? | ??? // Cannot get instruction pointer %s value for unknown reasons" % (
+        str(sbInstructionPointerName, "ascii", "strict")
+      );
+    else:
+      if oSelf.__o0Exception and oSelf.__o0Exception.uCode in auExceptionCodesThatHappenAtTheInstructionThatTriggeredThem:
+        o0Instruction = oSelf.__oProcess.fo0GetInstructionForAddress(u0InstructionPointerValue);
+      else:
+        o0Instruction = oSelf.__oProcess.fo0GetInstructionBeforeAddress(u0InstructionPointerValue);
+      if o0Instruction is not None:
+        oSelf.s0Instruction = str(o0Instruction);
+      else:
+        o0VirtualAllocation = oSelf.__oProcess.fo0GetVirtualAllocationForAddress(u0InstructionPointerValue);
+        sRemark = (
+          "memory allocation information not available" if not o0VirtualAllocation else
+          "not a valid address" if not o0VirtualAllocation.bIsValid else
+          "no memory allocated" if o0VirtualAllocation.bFree else
+          "reserved but not allocated" if o0VirtualAllocation.bReserved else
+          "guard page" if o0VirtualAllocation.bGuard else
+          ("Cannot disassemble %s for unknown reasons" % str(o0VirtualAllocation))
+        );
+        oSelf.s0Instruction = "%s | ?? | ??? // %s" % (
+          fsHexNumber(u0InstructionPointerValue),
+          sRemark
+        );
+
     # If bug binary and main binary are not the same, gather information for both of them:
     aoRelevantModules = [oSelf.__oProcess.oMainModule];
     # Find the Module in which the bug is reported and add it to the relevant list if it's not there already.
@@ -194,28 +271,23 @@ class cBugReport(object):
           asBlocksHTML.append(s0MemoryDumpBlockHTML);
       
       # Create and add disassembly blocks if needed:
-      for oFrame in aoStackFramesPartOfId:
+      # We disassemble to top stack frame and all stack frames part of the id.
+      aoDisassembleStackFrames = aoStackFramesPartOfId[:];
+      if oSelf.__o0Stack.aoFrames and oSelf.__o0Stack.aoFrames[0] not in aoDisassembleStackFrames:
+        aoDisassembleStackFrames.insert(0, oSelf.__o0Stack.aoFrames[0]);
+      for oFrame in aoDisassembleStackFrames:
         if oFrame.u0InstructionPointer is not None:
-          if oFrame.uIndex == 0:
-            sFrameDisassemblyHTML = oSelf.fsGetDisassemblyHTML(
-              oCdbWrapper,
-              oSelf.__oProcess,
-              uAddress = oFrame.u0InstructionPointer,
-              sDescriptionOfInstructionAtAddress = "current instruction"
-            );
-          else:
-            sFrameDisassemblyHTML = oSelf.fsGetDisassemblyHTML(
-              oCdbWrapper, 
-              oSelf.__oProcess,
-              uAddress = oFrame.u0InstructionPointer,
-              sDescriptionOfInstructionBeforeAddress = "call",
-              sDescriptionOfInstructionAtAddress = "return address"
-            );
-          if sFrameDisassemblyHTML:
+          s0FrameDisassemblyHTML = oSelf.fs0GetDisassemblyHTML(
+            oSelf.__oProcess,
+            uAddress = oFrame.u0InstructionPointer,
+            s0DescriptionOfInstructionBeforeAddress = None if oFrame.uIndex == 0 else "call",
+            s0DescriptionOfInstructionAtAddress = "current instruction" if oFrame.uIndex == 0 else "return address",
+          );
+          if s0FrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, fsCP437HTMLFromBytesString(oFrame.sbAddress)),
               "sCollapsed": "Collapsed",
-              "sContent": "<span class=\"Disassembly\">%s</span>" % sFrameDisassemblyHTML,
+              "sContent": "<span class=\"Disassembly\">%s</span>" % s0FrameDisassemblyHTML,
             });
       
       # Add relevant binaries information to cBugReport and HTML report.
@@ -254,6 +326,7 @@ class cBugReport(object):
       });
       # Create the report using all available information, or a limit amount of information if there is not enough
       # memory to do that.
+      import mBugId, mProductDetails;
       o0ProductDetails = (
         mProductDetails.fo0GetProductDetailsForMainModule()
         or mProductDetails.fo0GetProductDetailsForModule(mBugId)
@@ -270,23 +343,43 @@ class cBugReport(object):
             "sId": fsCP437HTMLFromString(oSelf.sId),
             "sOptionalUniqueStackId": (
               "<tr><td>Full stack id:</td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.s0UniqueStackId)
-              if oSelf.s0UniqueStackId and oSelf.s0UniqueStackId != oSelf.s0StackId
-              else ""
+                  if oSelf.s0UniqueStackId and oSelf.s0UniqueStackId != oSelf.s0StackId else
+              "<!-- unique stack id not available -->" if not oSelf.s0UniqueStackId else
+              "<!-- unique stack id is the same as the regular stack id -->"
             ),
-            "sBugLocation": fsCP437HTMLFromString(oSelf.s0BugLocation) if oSelf.s0BugLocation else "Unknown",
+            "sBugLocation": (
+              fsCP437HTMLFromString(oSelf.s0BugLocation)
+                  if oSelf.s0BugLocation else
+              "Unknown"
+            ),
             "sBugDescription": fsCP437HTMLFromString(oSelf.s0BugDescription), # Cannot be None at this point
-            "sOptionalSource": oSelf.sBugSourceLocation and \
-                "<tr><td>Source: </td><td>%s</td></tr>" % oSelf.sBugSourceLocation or "",
+            "sOptionalSource": (
+              "<tr><td>Source: </td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.sBugSourceLocation)
+                  if oSelf.sBugSourceLocation else
+              "<!-- Source code informationn not available -->"
+             ),
+            "sOptionalInstruction": (
+              "<tr><td>Instruction: </td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.s0Instruction)
+                  if oSelf.s0Instruction else
+              "<!-- Instruction not applicable or not available -->"
+            ),
             "sSecurityImpact": (
-              "None" if oSelf.s0SecurityImpact is None
-              else ('<span class="SecurityImpact">%s</span>' % fsCP437HTMLFromString(oSelf.s0SecurityImpact))
+              '<span class="SecurityImpact">%s</span>' % fsCP437HTMLFromString(oSelf.s0SecurityImpact)
+                  if oSelf.s0SecurityImpact is not None else
+              "None"
             ),
             "sOptionalIntegrityLevel": sOptionalIntegrityLevelHTML,
             "sOptionalMemoryUsage": sOptionalMemoryUsageHTML or "",
-            "sOptionalApplicationArguments": oCdbWrapper.asApplicationArguments and \
-                "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments or "",
-            "sBlocks": "\n".join(asBlocksHTML) + 
-                (bReportTruncated and "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available." or ""),
+            "sOptionalApplicationArguments": (
+              "<tr><td>Arguments: </td><td>%s</td></tr>" % oCdbWrapper.asApplicationArguments
+                  if oCdbWrapper.asApplicationArguments else
+              "<!-- no application arguments given -->"
+            ),
+            "sBlocks": "\n".join(asBlocksHTML) + (
+              "\n<hr/>\nThe report was truncated because there was not enough memory available to add all information available."
+                  if bReportTruncated else
+                ""
+            ),
             "sProductHeader": sProductHeaderHTML,
             "sProductFooter": sProductFooterHTML,
             "sLicenseHeader": sLicenseHeaderHTML,
@@ -313,7 +406,7 @@ class cBugReport(object):
   
   fs0GetRegistersBlockHTML = cBugReport_fs0GetRegistersBlockHTML;
   fs0GetMemoryDumpBlockHTML = cBugReport_fs0GetMemoryDumpBlockHTML;
-  fsGetDisassemblyHTML = cBugReport_fsGetDisassemblyHTML;
+  fs0GetDisassemblyHTML = cBugReport_fs0GetDisassemblyHTML;
   fxProcessStack = cBugReport_fxProcessStack;
 
 from ..mBugTranslations import fApplyBugTranslationsToBugReport;

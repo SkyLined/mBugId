@@ -35,9 +35,8 @@ sReportHTMLTemplate = ("""
       }
       body {
         margin: auto;
-        max-width: 80em;
       }
-      h1, h2, h3, h4, h5 {
+      h2, h3, h4, h5 {
         font-weight: 700;
       }
       a {
@@ -46,13 +45,13 @@ sReportHTMLTemplate = ("""
         margin-bottom: -1px;
       }
       :link {
-        border-bottom: 1px dotted rgba(0,0, 238, 0.25);
+        border-bottom: 1px dotted rgba(0,0, 238, 0.5);
       }
       :link:hover, :link:active {
         border-bottom: 1px solid rgba(0,0, 238, 1);
       }
       :visited {
-        border-bottom: 1px dotted rgba(85, 26, 139, 0.25);
+        border-bottom: 1px dotted rgba(85, 26, 139, 0.5);
       }
       :visited:hover, :visited:active {
         border-bottom: 1px solid rgba(85, 26, 139, 1);
@@ -64,11 +63,12 @@ sReportHTMLTemplate = ("""
       ul, ol {
         padding-left: 2em;
       }
-      h1 {
+      .BlockHeader {
         padding: 0.5em 1em 0.5em 1em;
         color: rgba(255, 251, 247, 1);
         background-color: rgba(22, 19, 16, 1);
         font-size: 120%%;
+        font-weight: 700;
         margin-bottom: 0.5em;
       }
       h2 {
@@ -91,6 +91,7 @@ sReportHTMLTemplate = ("""
         opacity: 0.25;
       }
       .Block {
+        margin-bottom: 0.5em;
         padding: 1em;
         border: 1px solid rgba(22, 19, 16, 0.2);
         border-radius: 0.5em;
@@ -98,10 +99,10 @@ sReportHTMLTemplate = ("""
         box-shadow: 0 1em   2em rgba(22, 19, 16, 0.2),
                     0 1em   1em rgba(22, 19, 16, 0.05),
                     0 1em 0.5em rgba(22, 19, 16, 0.05);
-        margin-bottom: 1em;
         display: block;
       }
       .Content {
+        margin-top: 1em;
         overflow-x: auto;
       }
       .Collapsible > .Content,
@@ -170,15 +171,27 @@ sReportHTMLTemplate = ("""
       .BinaryInformation, .MemoryDump, .Registers, .Stack {
         white-space: pre;
       }
-      .DisassemblyInformation {
-      }
       .DisassemblyAddress {
         color: grey;
+        padding-right: 0.5em;
+        border-right: 1px solid silver;
       }
       .DisassemblyOpcode {
+        padding-left: 0.5em;
         color: grey;
+        padding-right: 0.5em;
+        border-right: 1px solid silver;
       }
-      .DisassemblyInstruction {
+      .DisassemblyInstructionName {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .DisassemblyInstructionArguments {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+      .DisassemblyInstructionRemark {
+        padding-left: 0.5em;
       }
       .MemoryAddress {
         color: grey;
@@ -286,17 +299,18 @@ sReportHTMLTemplate = ("""
   </head>
   <body>
     <div class="Block Collapsible">
-      <h1 class="BlockHeader">BugId %(sId)s @ %(sBugLocation)s summary<span class="BlockHeaderIcon"></span></h1>
+      <div class="BlockHeader">BugId %(sId)s @ %(sBugLocation)s summary<span class="BlockHeaderIcon"></span></div>
       <div class="Content">
         <table>
           <tr><td>BugId:           </td><td><span class="Important"><b>%(sId)s</b></span></td></tr>
 %(sOptionalUniqueStackId)s
-          <tr><td>Location:        </td><td><span class="Important">%(sBugLocation)s</span></td></tr>
-%(sOptionalSource)s
+%(sOptionalInstruction)s
           <tr><td>Description:     </td><td><span class="Important">%(sBugDescription)s</span></td></tr>
           <tr><td>Security impact: </td><td>%(sSecurityImpact)s</td></tr>
 %(sOptionalIntegrityLevel)s
 %(sOptionalMemoryUsage)s
+          <tr><td>Location:        </td><td><span class="Important">%(sBugLocation)s</span></td></tr>
+%(sOptionalSource)s
 %(sOptionalApplicationArguments)s
         </table>
         <br/>

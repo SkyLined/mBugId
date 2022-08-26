@@ -1,8 +1,4 @@
-import re;
-
-from mWindowsSDK import *;
-
-from ..mCP437 import fsCP437FromBytesString;
+from mWindowsSDK import iStructureType8, BYTE, INT32, UINT64;
 
 gbDebugOutput = False;
 
@@ -102,12 +98,10 @@ def cProcess_fu0GetTargetAddressForCallInstructionReturnAddress(oProcess, uRetur
     return u0CallTargetAddress;
   
   if gbDebugOutput:
-    asbDisassemblyBeforeAddress = oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"u 0x%X 0x%X;" % (uReturnAddress - 32, uReturnAddress),
-      sb0Comment = b"Disassemble up to address 0x%X" % uReturnAddress,
-      bOutputIsInformative = False,
-      bRetryOnTruncatedOutput = True,
+    o0DisassemblyBeforeAddress = oProcess.fo0GetDisassemblyForAddressAndNumberOfBytes(
+      uAddress = uReturnAddress - 32,
+      uNumberOfBytes = 32,
     );
-    for sbLine in asbDisassemblyBeforeAddress[-8:]:
-      print ("  %s" % fsCP437FromBytesString(sbLine));
+    for oInstruction in o0DisassemblyBeforeAddress:
+      print(oInstruction);
   return None; # This opcode is not for the CALL instruction we can parse.

@@ -1,15 +1,5 @@
 import re;
 
-from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-
-gsbInstructionPointerRegisterName_by_sISA = {
-  "x86": b"eip",
-  "x64": b"rip",
-}
-gsbStackPointerRegisterName_by_sISA = {
-  "x86": b"esp",
-  "x64": b"rsp",
-}
 # Any instructions in the below two arrays are handled. Anything else is not.
 gasbInstructionsThatModifyFlags = [
     b"add", b"addsd",
@@ -153,9 +143,8 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
     return False;
   # See if we can fake execution of the current instruction, so we can continue the application as if it had been
   # executed without actually executing it.
-  sbInstructionPointerRegisterName = gsbInstructionPointerRegisterName_by_sISA[oProcess.sISA];
-  u0InstructionPointer = oThread.fu0GetRegister(sbInstructionPointerRegisterName);
-  if u0InstructionPointer is None:
+  (sbInstructionPointerRegisterName, u0InstructionPointerValue) = oThread.ftxGetInstructionPointerRegisterNameAndValue();
+  if u0InstructionPointerValue is None:
     # We cannot get the instruction pointer for this thread; it must be terminated and cannot be continued.
 #    print "@@@ u0InstructionPointer == None";
     oCdbWrapper.fFireCallbacks(
@@ -163,8 +152,8 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       "the instruction pointer for this thread could not be retreived"
     );
     return False;
-  uInstructionPointer = u0InstructionPointer;
-  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uInstructionPointer);
+  uInstructionPointerValue = u0InstructionPointerValue;
+  o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uInstructionPointerValue);
   if not o0VirtualAllocation or not o0VirtualAllocation.bExecutable:
     # This can happen if a call/return sets the instruction pointer to a corrupted value; it may point to a region that
     # is not allocated, or contains non-executable data. (e.g. a poisoned value)
@@ -174,58 +163,37 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       "executing in un-executable memory is not handled"
     );
     return False; # This memory is not executable: we cannot continue execution.
-  asbDiassemblyOutput = oProcess.fasbExecuteCdbCommand(
-    sbCommand = b"u 0x%X L2" % uInstructionPointer, 
-    sb0Comment = b"Get information about the instruction that caused the AV",
+  o0CurrentInstruction = oProcess.fo0GetInstructionForAddress(
+    uAddress = uInstructionPointerValue,
   );
-  if len(asbDiassemblyOutput) == 0:
+  if o0CurrentInstruction is None:
     # The instruction pointer does not point to valid memory.
-#    print "@@@ asbDiassemblyOutput == []";
     oCdbWrapper.fFireCallbacks(
       "Bug cannot be ignored", 
       "the disassembly of the code being executed could not be retreived"
     );
     return False;
-  assert len(asbDiassemblyOutput) == 3, \
-      "Expected 3 lines of disassembly, got %d:\r\n%s" % (len(asbDiassemblyOutput), b"\r\n".join(asbDiassemblyOutput));
-  (sbSymbol_unused, sbCurrentInstructionDisassembly, sbNextInstructionDisassembly) = asbDiassemblyOutput;
-  obCurrentInstructionMatch = grbInstruction.match(sbCurrentInstructionDisassembly);
-  assert obCurrentInstructionMatch, \
-      "Unrecognised diassembly output second line:\r\n%s" % b"\r\n".join(asbDiassemblyOutput);
-  obNextInstructionMatch = grbInstruction.match(sbNextInstructionDisassembly);
-  assert obNextInstructionMatch, \
-      "Unrecognised diassembly output third line:\r\n%s" % b"\r\n".join(asbDiassemblyOutput);
-  # Grab info from current instruction (name and arguments):
-  (sbCurrentInstructionAddress_unused, sbCurrentInstructionName, sbCurrentInstructionArguments) = \
-      obCurrentInstructionMatch.groups();
-  asbCurrentInstructionArguments = [s.strip() for s in sbCurrentInstructionArguments.split(b",")];
-  sCurrentInstruction = str(b"%s %s" % (
-    sbCurrentInstructionName,
-    b", ".join(asbCurrentInstructionArguments)
-  ), "ascii", "strict");
+  oCurrentInstruction = o0CurrentInstruction;
   # Check if we can handle the instruction.
-  if sbCurrentInstructionName not in gasbInstructionsThatCanBeHandled:
+  if oCurrentInstruction.sbName not in gasbInstructionsThatCanBeHandled:
     oCdbWrapper.fFireCallbacks(
       "Bug cannot be ignored", 
-      "the instruction %s is not currently handled" % sCurrentInstruction
+      "the instruction %s is not currently handled" % str(oCurrentInstruction),
     );
     return False;
 
-  # Grab info from next instruction (its starting address):
-  (sbNextInstructionAddress, sbNextInstructionName_unused, sbNextInstructionArguments_unused) = \
-      obNextInstructionMatch.groups();
-  uNextInstructionAddress = fu0ValueFromCdbHexOutput(sbNextInstructionAddress); # Never returns None
+  uNextInstructionAddress = oCurrentInstruction.uAddress + oCurrentInstruction.uSize;
 
   # Decide what registers to modify (if any) and record what actions this represents.
   duNewRegisterValue_by_sbName = {};
   asActions = [];
   ############################################################################
   # Handle jumps/call instructions and advance to next instruction for others
-  if sbCurrentInstructionName in gasbInstructionsThatModifyInstructionPointer:
+  if oCurrentInstruction.sbName in gasbInstructionsThatModifyInstructionPointer:
     if not oSelf.fbPoisonRegister(
       oProcess = oProcess,
       oThread = oThread,
-      sInstruction = sCurrentInstruction,
+      sInstruction = str(oCurrentInstruction),
       duPoisonedRegisterValue_by_sbName = duNewRegisterValue_by_sbName,
       u0PointerSizedOriginalValue = u0PointerSizedOriginalValue,
       sbRegisterName = sbInstructionPointerRegisterName,
@@ -240,12 +208,12 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
     duNewRegisterValue_by_sbName[sbInstructionPointerRegisterName] = uNextInstructionAddress;
   ############################################################################
   # Handle instructions that modify flags
-  if sbCurrentInstructionName in gasbInstructionsThatModifyFlags:
+  if oCurrentInstruction.sbName in gasbInstructionsThatModifyFlags:
     if not oSelf.fbPoisonFlags(
       oCdbWrapper = oCdbWrapper,
       oProcess = oProcess,
       oThread = oThread,
-      sInstruction = sCurrentInstruction,
+      sInstruction = str(oCurrentInstruction),
       duPoisonedRegisterValue_by_sbName = duNewRegisterValue_by_sbName,
       u0PointerSizedOriginalValue = u0PointerSizedOriginalValue,
     ):
@@ -254,16 +222,16 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
 
   ############################################################################
   # Handle instructions that modify a destination register or memory.
-  if sbCurrentInstructionName in gasbInstructionsThatModifyDestination:
-    if len(asbCurrentInstructionArguments) == 1:
-      sbDestinationArgument = sbSourceArgument = asbCurrentInstructionArguments[0];
-    elif len(asbCurrentInstructionArguments) == 2:
-      (sbDestinationArgument, sbSourceArgument) = asbCurrentInstructionArguments;
+  if oCurrentInstruction.sbName in gasbInstructionsThatModifyDestination:
+    if len(oCurrentInstruction.tsbArguments) == 1:
+      sbDestinationArgument = sbSourceArgument = oCurrentInstruction.tsbArguments[0];
+    elif len(oCurrentInstruction.tsbArguments) == 2:
+      (sbDestinationArgument, sbSourceArgument) = oCurrentInstruction.tsbArguments;
     else:
       oCdbWrapper.fFireCallbacks(
         "Bug cannot be ignored", 
         "instruction %s has too many arguments" % (
-          sCurrentInstruction,
+          str(oCurrentInstruction),
         ),
       );
       return False;
@@ -274,7 +242,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
         oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 
           "instruction %s %s argument %s cannot be decoded" % (
-            sCurrentInstruction,
+            str(oCurrentInstruction),
             sArgumentType,
             str(sbArgument, "ascii", "strict"),
           ),
@@ -332,7 +300,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
         str(sbSourceArgument, "ascii", "strict"),
         uViolationAddress,
       );
-    if sbCurrentInstructionName in gasbInstructionsThatReadDestination:
+    if oCurrentInstruction.sbName in gasbInstructionsThatReadDestination:
       if sSource != sDestination:
         sSource = "%s and %s" % (sDestination, sSource);
     bSourceCausedBug = u0SourceArgumentPointerSizeInBits is not None;
@@ -349,7 +317,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
         oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 
           "Source and destination in %s instruction are two different pointers" % (
-            sCurrentInstruction,
+            str(oCurrentInstruction),
           ),
         );
         return False;
@@ -387,7 +355,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       oSelf.fbPoisonRegister(
         oProcess = oProcess,
         oThread = oThread,
-        sInstruction = sCurrentInstruction,
+        sInstruction = str(oCurrentInstruction),
         duPoisonedRegisterValue_by_sbName = duNewRegisterValue_by_sbName,
         u0PointerSizedOriginalValue = u0PointerSizedOriginalValue,
         sbRegisterName = sbDestinationArgument,
@@ -403,13 +371,12 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       oCdbWrapper.fFireCallbacks(
         "Bug cannot be ignored", 
         "Neither source nor destination in %s instruction appear to have caused this issue" % (
-          sCurrentInstruction,
+          str(oCurrentInstruction),
         ),
       );
       return False;
-  if sbCurrentInstructionName == "call":
-    sbStackPointerRegisterName = gsbStackPointerRegisterName_by_sISA[oProcess.sISA];
-    u0StackPointerValue = oThread.fu0GetRegister(sbStackPointerRegisterName);
+  if oCurrentInstruction.sbName == b"call":
+    (sbStackPointerRegisterName, u0StackPointerValue) = oThread.ftxGetStackPointerRegisterNameAndValue();
     if u0StackPointerValue is None:
       oCdbWrapper.fFireCallbacks(
         "Bug cannot be ignored", 
@@ -431,6 +398,6 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       ),
     );
     return False;
-  oCdbWrapper.fFireCallbacks("Bug ignored", sCurrentInstruction, asActions);
+  oCdbWrapper.fFireCallbacks("Bug ignored", str(oCurrentInstruction), asActions);
   return True;
 

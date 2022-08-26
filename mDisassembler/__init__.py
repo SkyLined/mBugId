@@ -3,6 +3,7 @@ from .cInstruction import cInstruction;
 from .fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes import fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes;
 from .fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions import fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions;
 from .fo0GetInstructionForProcessAndAddress import fo0GetInstructionForProcessAndAddress;
+from .fo0GetInstructionForProcessAndBeforeAddress import fo0GetInstructionForProcessAndBeforeAddress;
 
 __all__ = [
   "cDisassembly",
@@ -10,4 +11,5 @@ __all__ = [
   "fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes",
   "fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions",
   "fo0GetInstructionForProcessAndAddress",
+  "fo0GetInstructionForProcessAndBeforeAddress",
 ];

@@ -355,7 +355,15 @@ class cVerifierStopDetector(object):
           uMemoryDumpEndAddress - uMemoryDumpStartAddress
         );
     
-    oBugReport = cBugReport.foCreate(oCdbWrapper, oProcess, oWindowsAPIThread, sBugTypeId, sBugDescription, sSecurityImpact);
+    oBugReport = cBugReport.foCreate(
+      oCdbWrapper = oCdbWrapper,
+      oProcess = oProcess,
+      oWindowsAPIThread = oWindowsAPIThread,
+      o0Exception = None,
+      s0BugTypeId = sBugTypeId,
+      s0BugDescription = sBugDescription,
+      s0SecurityImpact = sSecurityImpact,
+    );
     if oCdbWrapper.bGenerateReportHTML:
       if uMemoryDumpStartAddress:
         oBugReport.fAddMemoryDump(

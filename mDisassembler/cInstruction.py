@@ -1,6 +1,7 @@
 import re;
 
 from mNotProvided import fAssertTypes;
+from mWindowsAPI import fsHexNumber;
 
 class cInstruction(object):
   def __init__(oSelf, uAddress, sbBytes, sbName, tsbArguments):
@@ -53,8 +54,8 @@ class cInstruction(object):
     return "%-7s %s" % (oSelf.sName, oSelf.sArguments);
 
   def __str__(oSelf):
-    return "%8s %-20s %s" % (
-      oSelf.uAddress,
+    return "%-10s | %-20s | %s" % (
+      fsHexNumber(oSelf.uAddress),
       oSelf.sBytes,
       oSelf.sInstruction,
     );
