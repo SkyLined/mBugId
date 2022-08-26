@@ -119,5 +119,5 @@ def fo0GetDisassemblyForProcessAndCdbCommand(
         else:
           tsbArguments = tuple();
         aoInstructions.append(cInstruction(uAddress, sbBytes, sbName, tsbArguments));
-  return cDisassembly(aoInstructions);
+  return cDisassembly(aoInstructions) if aoInstructions else None;
 
