@@ -65,8 +65,8 @@ def cBugReport_fs0GetDisassemblyHTML(
         uStartAddress = uStartAddress,
         uNumberOfBytes = uLastAddress - uStartAddress,
       );
-      assert o0DisassemblyBeforeAddress is not None, \
-          "Cannot diassemble at address %s" % fsHexNumber(uStartAddress);
+      if o0DisassemblyBeforeAddress is None:
+        return None;
       assert len(o0DisassemblyBeforeAddress) >= 2, \
           "Unexpectedly short disassembly output at address %s:\r\n%s" % (
             fsHexNumber(uStartAddress),
