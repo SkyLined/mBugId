@@ -93,21 +93,18 @@ def cBugReport_fs0GetDisassemblyHTML(
       uStartAddress = uAddress,
       uNumberOfInstructions = dxConfig["uDisassemblyInstructionsAfter"],
     );
-    assert o0DisassemblyAtAndAfterAddress is not None, \
-        "Cannot diassemble at address %s" % fsHexNumber(uAddress);
-    # The first line contains the symbol at the address where we started disassembly, which we do not want in the
-    # output:
-    asDisassemblyAtAndAfterAddressHTML = [
-      fsHTMLEncodeAndColorDisassemblyInstruction(
-        oInstruction = o0DisassemblyAtAndAfterAddress.foGetInstruction(uIndex),
-        bHighlightLine = uIndex == 0,
-        s0Remark = s0DescriptionOfInstructionAtAddress if (
-          s0DescriptionOfInstructionAtAddress is not None 
-          and uIndex == 0
-       ) else None,
-      )
-      for uIndex in range(len(o0DisassemblyAtAndAfterAddress))
-    ];
+    if o0DisassemblyAtAndAfterAddress is not None:
+      asDisassemblyAtAndAfterAddressHTML = [
+        fsHTMLEncodeAndColorDisassemblyInstruction(
+          oInstruction = o0DisassemblyAtAndAfterAddress.foGetInstruction(uIndex),
+          bHighlightLine = uIndex == 0,
+          s0Remark = s0DescriptionOfInstructionAtAddress if (
+            s0DescriptionOfInstructionAtAddress is not None 
+            and uIndex == 0
+        ) else None,
+        )
+        for uIndex in range(len(o0DisassemblyAtAndAfterAddress))
+      ];
   if not asDisassemblyBeforeAddressHTML:
     if not asDisassemblyAtAndAfterAddressHTML:
       return None;
