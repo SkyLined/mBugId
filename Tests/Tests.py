@@ -82,6 +82,8 @@ try:
     elif sArgument == "--quick": 
       bTestQuick = True;
       bTestFull = False;
+    elif sArgument == "--no-symbols": 
+      mGlobals.bDoNotLoadSymbols = True;
     elif sArgument == "--show-cdb-io": 
       mGlobals.bShowCdbIO = True;
     elif sArgument == "--debug": 

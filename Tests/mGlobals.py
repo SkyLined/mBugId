@@ -38,3 +38,5 @@ dsComSpec_by_sISA = {
 };
 if oSystemInfo.sOSISA == "x64":
   dsComSpec_by_sISA["x86"] = os.path.join(os.environ.get("WinDir"), "SysWOW64", "cmd.exe");
+
+bDoNotLoadSymbols = False;
