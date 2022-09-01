@@ -78,6 +78,10 @@ class cModule(object):
     oSelf.__sb0CdbId = sbCdbId;
 
   def fLoadSymbols(oSelf):
+    if oSelf.oProcess.oCdbWrapper.bDoNotLoadSymbols:
+      return;
+    if oSelf.s0BinaryPath and oSelf.oProcess.oCdbWrapper.fbHaveSymbolsBeenLoadedForBinaryPath(oSelf.s0BinaryPath):
+      return; # No need to do this again.
     if oSelf.sb0BinaryName:
       oSelf.oProcess.fasbExecuteCdbCommand(
         b"ld /f \"%s\"" % oSelf.sb0BinaryName,
@@ -88,6 +92,9 @@ class cModule(object):
         b"ld %s" % oSelf.sbCdbId,
         b"Load symbols for module @ 0x%X" % (oSelf.uStartAddress,),
       );
+    # Track for which binaries symbols have been loaded.
+    if oSelf.s0BinaryPath:
+      oSelf.oProcess.oCdbWrapper.fMarkSymbolsAsLoadedForBinaryPath(oSelf.s0BinaryPath);
 
   def __str__(oSelf):
     return "Module %s (%s) at %s" % (

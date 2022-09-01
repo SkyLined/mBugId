@@ -46,6 +46,7 @@ class cProcess(object):
     oSelf.__oWindowsAPIProcess = None; 
     
     # Symbols and heap manager data for addressess will be cached here. They are discarded whenever the application is resumed.
+    oSelf.bSymbolsLoaded = False;
     oSelf.__dsb0Symbol_by_uAddress = {};
     oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
     

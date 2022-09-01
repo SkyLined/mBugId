@@ -87,6 +87,7 @@ class cCdbWrapper(cWithCallbacks):
     u0JITDebuggerEventId,
     o0UWPApplication,
     asApplicationArguments,
+    bDoNotLoadSymbols,
     asLocalSymbolPaths,
     azsSymbolCachePaths, 
     azsSymbolServerURLs,
@@ -120,9 +121,11 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.bUWPApplicationStarted = False;
     oCdbWrapper.bStopping = False;
     oCdbWrapper.asApplicationArguments = asApplicationArguments;
+    oCdbWrapper.bDoNotLoadSymbols = bDoNotLoadSymbols;
     oCdbWrapper.asLocalSymbolPaths = asLocalSymbolPaths;
     oCdbWrapper.asSymbolCachePaths = fxGetFirstProvidedValue(azsSymbolCachePaths, dxConfig["asDefaultSymbolCachePaths"]);
     oCdbWrapper.asSymbolServerURLs = fxGetFirstProvidedValue(azsSymbolServerURLs, dxConfig["asDefaultSymbolServerURLs"]);
+    oCdbWrapper.asBinaryPathsForWhichSymbolsHaveBeenLoaded = []; # cache for which binaries symbols have been loaded.
     oCdbWrapper.dsURLTemplate_by_srSourceFilePath = d0sURLTemplate_by_srSourceFilePath or {};
     oCdbWrapper.bGenerateReportHTML = bGenerateReportHTML;
     oCdbWrapper.u0ProcessMaxMemoryUse = u0ProcessMaxMemoryUse;
@@ -236,6 +239,13 @@ class cCdbWrapper(cWithCallbacks):
           s0Data and " %s" % fsCP437HTMLFromString(s0Data) or "",
         );
       oCdbWrapper.fAddCallback("Log message", fWriteLogMessageToReport);
+  
+  def fbHaveSymbolsBeenLoadedForBinaryPath(oSelf, sBinaryPath):
+    return sBinaryPath in oSelf.asBinaryPathsForWhichSymbolsHaveBeenLoaded;
+  def fMarkSymbolsAsLoadedForBinaryPath(oSelf, sBinaryPath):
+    assert not oSelf.fbHaveSymbolsBeenLoadedForBinaryPath(sBinaryPath), \
+        "You are loading symbols for binary %s twice!" % sBinaryPath;
+    oSelf.asBinaryPathsForWhichSymbolsHaveBeenLoaded.append(sBinaryPath);
   
   def foCreateHelperThread(oSelf, *txArguments, **dxArguments):
     return cCdbWrapper_cHelperThread(oSelf, *txArguments, **dxArguments);
