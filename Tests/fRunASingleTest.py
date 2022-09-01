@@ -1,4 +1,4 @@
-﻿import os, re, traceback;
+﻿import os, re, time;
 from mBugId import cBugId;
 from mConsole import oConsole;
 from mFileSystemItem import cFileSystemItem;
@@ -43,9 +43,11 @@ def fRunASingleTest(
   s0ApplicationBinaryPath = None,
   bASan = False,
   uMaximumNumberOfBugs = 2,
+  nMaxTestTimeInSeconds = 2,
   bExcessiveCPUUsageChecks = False,
   bEnableVerboseOutput = False,
 ):
+  nStartTimeInSeconds = time.time();
   assert s0ApplicationBinaryPath is None or not bASan, \
       "Setting bASan when supplying an application binary path makes no sense";
   sApplicationBinaryPath = (
@@ -467,18 +469,23 @@ def fRunASingleTest(
     );
     raise;
   finally:
+    nTestTimeInSeconds = time.time() - nStartTimeInSeconds;
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput(
         NORMAL, "  ",
         OK, "√",
         NORMAL, " Finished, ",
         axTestDescription,
-        NORMAL, ".",
+        NORMAL, " in ",
+        ERROR if nTestTimeInSeconds > nMaxTestTimeInSeconds else NORMAL, "%f" % nTestTimeInSeconds,
+        NORMAL, " seconds.",
       );
     elif a0sExpectedBugIdAndLocations is not None:
       oConsole.fOutput(
         OK, "√",
         NORMAL, " ",
         axTestDescription,
-        NORMAL, ".",
+        NORMAL, " in ",
+        ERROR if nTestTimeInSeconds > nMaxTestTimeInSeconds else NORMAL, "%f" % nTestTimeInSeconds,
+        NORMAL, " seconds.",
       );

@@ -13,6 +13,8 @@ except ModuleNotFoundError as oException:
   m0DebugOutput = None;
 
 guExitCodeInternalError = 1; # Use standard value;
+gnMaxTestTimeInSeconds = 2; # Seems reasonable for most tests.
+gnMaxCPUUsageTestTimeInSeconds = 20; # This will take a bit of time to analyze.
 try:
   try:
     from mConsole import oConsole;
@@ -120,10 +122,12 @@ try:
       bRunInShell = False,
       s0ApplicationBinaryPath = None,
       bASan = False,
+      nMaxTestTimeInSeconds = gnMaxTestTimeInSeconds,
       uMaximumNumberOfBugs = 2,
       bExcessiveCPUUsageChecks = True,
       bEnableVerboseOutput = bEnableVerboseOutput,
     );
+    uNumberOfTests = 1;
   else:
     assert sISA is None, \
         "Unknown argument %s" % sISA;
@@ -271,6 +275,7 @@ try:
           asrBugIds,
           bASan = False,
           bEnableVerboseOutput = bEnableVerboseOutput,
+          nMaxTestTimeInSeconds = gnMaxCPUUsageTestTimeInSeconds if dxOptions.get("bExcessiveCPUUsageChecks", False) else gnMaxTestTimeInSeconds,
           **dxOptions,
         );
   nTestTimeInSeconds = time.time() - nStartTimeInSeconds;
