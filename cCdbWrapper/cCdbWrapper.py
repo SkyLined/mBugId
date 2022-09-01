@@ -52,7 +52,7 @@ from .cCdbWrapper_fUpdateCdbISA import cCdbWrapper_fUpdateCdbISA;
 
 gnDeadlockTimeoutInSeconds = 1;
 
-guSymbolOptions = sum([
+guDefaultSymbolOptions = sum([
   0x00000001, # SYMOPT_CASE_INSENSITIVE
   0x00000002, # SYMOPT_UNDNAME
   0x00000004 * (dxConfig["bDeferredSymbolLoads"] and 1 or 0), # SYMOPT_DEFERRED_LOAD
@@ -75,6 +75,30 @@ guSymbolOptions = sum([
   0x00080000, # SYMOPT_NO_PROMPTS
 # 0x80000000, # SYMOPT_DEBUG (don't set here: will be switched on and off later as needed)
 ]);
+guNoSymbolOptions = sum([
+# 0x00000001, # SYMOPT_CASE_INSENSITIVE
+  0x00000002, # SYMOPT_UNDNAME
+  0x00000004, # SYMOPT_DEFERRED_LOAD
+# 0x00000008, # SYMOPT_NO_CPP
+# 0x00000010, # SYMOPT_LOAD_LINES
+# 0x00000020, # SYMOPT_OMAP_FIND_NEAREST
+# 0x00000040, # SYMOPT_LOAD_ANYTHING
+  0x00000080, # SYMOPT_IGNORE_CVREC
+  0x00000100, # SYMOPT_NO_UNQUALIFIED_LOADS
+  0x00000200, # SYMOPT_FAIL_CRITICAL_ERRORS
+  0x00000400, # SYMOPT_EXACT_SYMBOLS
+# 0x00000800, # SYMOPT_ALLOW_ABSOLUTE_SYMBOLS
+  0x00001000, # SYMOPT_IGNORE_NT_SYMPATH
+# 0x00002000, # SYMOPT_INCLUDE_32BIT_MODULES 
+# 0x00004000, # SYMOPT_PUBLICS_ONLY
+  0x00008000, # SYMOPT_NO_PUBLICS
+# 0x00010000, # SYMOPT_AUTO_PUBLICS
+  0x00020000, # SYMOPT_NO_IMAGE_SEARCH
+# 0x00040000, # SYMOPT_SECURE
+  0x00080000, # SYMOPT_NO_PROMPTS
+# 0x80000000, # SYMOPT_DEBUG (don't set here: will be switched on and off later as needed)
+]);
+
 
 class cCdbWrapper(cWithCallbacks):
   cCdbStoppedException = cCdbWrapper_cCdbStoppedException;
@@ -252,7 +276,7 @@ class cCdbWrapper(cWithCallbacks):
   
   @property
   def bUsingSymbolServers(oSelf):
-    return len(oSelf.asSymbolServerURLs) > 0;
+    return (not oSelf.bDoNotLoadSymbols) and len(oSelf.asSymbolServerURLs) > 0;
   
   def fLogMessage(oSelf, sMessage, d0xData = None):
     oSelf.fbFireCallbacks("Log message", sMessage, d0xData);
@@ -320,11 +344,16 @@ class cCdbWrapper(cWithCallbacks):
           "Must start a process or attach to one";
     # Get the command line arguments for cdbe.exe
     # Construct the cdb symbol path if one is needed and add it as an argument.
-    sSymbolsPath = ";".join(
-      oCdbWrapper.asLocalSymbolPaths +
-      ["cache*%s" % x for x in oCdbWrapper.asSymbolCachePaths] +
-      ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
-    );
+    if oCdbWrapper.bDoNotLoadSymbols:
+      s0SymbolsPath = None;  
+      uSymbolOptions = guNoSymbolOptions;
+    else:
+      s0SymbolsPath = ";".join(
+        oCdbWrapper.asLocalSymbolPaths +
+        ["cache*%s" % x for x in oCdbWrapper.asSymbolCachePaths] +
+        ["srv*%s" % x for x in oCdbWrapper.asSymbolServerURLs]
+      );
+      uSymbolOptions = guDefaultSymbolOptions;
     
     if oCdbWrapper.u0JITDebuggerEventId is None:
       # Attach directly to the utility process and queue attaching to other
@@ -346,12 +375,12 @@ class cCdbWrapper(cWithCallbacks):
       # Debug any child processes spawned by the main processes as well.
       "-o", 
       # Set symbol loading options (See above for details)
-      "-sflags", "0x%08X" % guSymbolOptions, 
+      "-sflags", "0x%08X" % uSymbolOptions, 
 #      "-sxe", "ld:verifier", # Breakpoint when verifier is loaded, so we can set a breakpoint on VERIFIER STOPs.
     ] + (dxConfig["bEnableSourceCodeSupport"] and [
       "-lines",
-    ] or []) + (sSymbolsPath and [
-      "-y", sSymbolsPath,
+    ] or []) + ([
+      "-y", s0SymbolsPath or ";",
     ] or []) + (
       asAttachAndOptionallyHandleExceptionArguments
     );
