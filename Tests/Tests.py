@@ -272,7 +272,13 @@ try:
           **dxOptions,
         );
   nTestTimeInSeconds = time.time() - nStartTimeInSeconds;
-  oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
+  nTestTimePerTest = nTestTimeInSeconds / uNumberOfTests;
+  if (nTestTimePerTest > 1.5):
+    oConsole.fOutput("- Testing completed in %3.3f seconds, which is considered slow!" % nTestTimeInSeconds);
+    oConsole.fOutput("  Each test is expected to run for an average of 1.5 seconds.");
+  else:
+    oConsole.fOutput("+ Testing completed in %3.3f seconds" % nTestTimeInSeconds);
+  oConsole.fOutput("  The average test time was %f seconds." % nTestTimePerTest);
 except Exception as oException:
   if m0DebugOutput:
     m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
