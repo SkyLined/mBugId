@@ -74,7 +74,7 @@ class cStackFrame(object):
     elif oSelf.sb0UnloadedModuleFileName:
       sbModuleOffset = (b"0x%X" % oSelf.u0ModuleOffset) if oSelf.u0ModuleOffset is not None else b"???";
       oSelf.sbAddress = b"%s + %s" % (oSelf.sb0UnloadedModuleFileName, sbModuleOffset);
-      oSelf.sb0SimplifiedAddress = b"%s+%s" % (oSelf.sbUnloadedModuleFileName, sbModuleOffset);
+      oSelf.sb0SimplifiedAddress = b"%s+%s" % (oSelf.sb0UnloadedModuleFileName, sbModuleOffset);
       oSelf.sb0UniqueAddress = None;
     else:
       assert oSelf.u0Address is not None, \
