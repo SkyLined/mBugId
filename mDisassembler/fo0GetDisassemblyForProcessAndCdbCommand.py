@@ -21,6 +21,14 @@ grbSymbolLine = re.compile(
     rb"\]?"                   # "]"
   rb"|"
     rb"(\w+!.*)"              # <<<symbol [source]>>> 
+  rb"|"
+    rb"<Unloaded_"            # "<Unloaded_"
+    rb"([^<>\*\?\":]+)"       # <<<binary name>>>
+    rb">"                     # ">"
+    rb"\+(0x[0-9a-fA-F]+)"    # "+" <<<offset>>> 
+  rb"|"
+    rb"([^<>\*\?\":]*)"       # <<<binary name>>>
+    rb"\+(0x[0-9a-fA-F]+)"    # "+" <<<offset>>> 
   rb")"
   rb":"
   rb"\Z"
