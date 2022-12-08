@@ -104,7 +104,6 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
     oCdbWrapper.bApplicationIsRunning = True;
     oCdbWrapper.oInterruptOnTimeoutHelperThread.fStart();
   try: # "try:" because the oInterruptOnTimeoutHelperThread needs to be stopped in a "finally:" if there is an exception.
-    bConcatinateCurrentFilteredLineToNext = False;
     while 1:
       u0Byte = oCdbWrapper.oCdbConsoleProcess.oStdOutPipe.fu0ReadByte(); # returns None if pipe is closed.
       if u0Byte == 0x0D: # CR
@@ -113,9 +112,19 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
         pass; # ignored.
       elif u0Byte is None or u0Byte == 0x0A: # EOF or LF
         if gbDebugIO: print("\r<stdout>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
-        if u0Byte == 0x0A or sbFilteredCurrentLine:
-          assert u0Byte is None or not bEndOfCommandOutputMarkerFound, \
-              "LF after end of command output marker in %s!?" % repr(sbCurrentLine);
+        assert u0Byte is None or not bEndOfCommandOutputMarkerFound, \
+            "LF after end of command output marker in %s!?" % repr(sbCurrentLine);
+        o0LineInterruptedByCdbError = re.match(grbLineInterruptedByCdbError, sbFilteredCurrentLine);
+        if o0LineInterruptedByCdbError:
+          # Remove the error message from this line and pretend that it was output before this line:
+          sbFilteredCurrentLine, sbErrorMessage = o0LineInterruptedByCdbError.groups();
+          if bAddOutputToHTMLReport:
+            sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>\n" % \
+                (fsCP437HTMLFromBytesString(sbErrorMessage, u0TabStop = 8));
+            # Add the line to the current block of I/O
+            oCdbWrapper.sCdbIOHTML += sLineHTML;
+          # We will continue to append to the current line, now without the inject error message.
+        elif sbFilteredCurrentLine:
           oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbFilteredCurrentLine);
           # Failure to debug application must be special cased, for example:
           # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
@@ -129,7 +138,6 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
             assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sErrorReport), \
                 sErrorReport;
             oCdbWrapper.fStop();
-          bConcatinateCurrentFilteredLineToNext = False;
           if grbFirstChanceCPPException.match(sbFilteredCurrentLine):
             # I cannot figure out how to detect second chance C++ exceptions without cdb outputting a line every time a
             # first chance C++ exception happens. These lines are clutter and MSIE outputs a lot of them, so they are
@@ -137,58 +145,46 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
             # chance exceptions.
             pass;
           else:
-            # Strip cdb warnings and errors:
-            oLineInterruptedByCdbError = re.match(grbLineInterruptedByCdbError, sbFilteredCurrentLine);
-            if oLineInterruptedByCdbError:
-              # Remove the error message from this line and pretend that it was output before this line:
-              sbFilteredCurrentLine, sbErrorMessage = oLineInterruptedByCdbError.groups();
-              if bAddOutputToHTMLReport:
-                sLineHTML = "<span class=\"CDBStdOut\">%s</span><br/>\n" % \
-                    (fsCP437HTMLFromBytesString(sbErrorMessage, u0TabStop = 8));
-                # Add the line to the current block of I/O
-                oCdbWrapper.sCdbIOHTML += sLineHTML;
-              # Ignore this CRLF, as it was injected by the cruft, so we need to reconstruct the intended line from
-              # this line and the next line:
-              bConcatinateCurrentFilteredLineToNext = True;
-            elif sbFilteredCurrentLine:
-              if bAddOutputToHTMLReport:
-                sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
-                sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % \
-                    (sClass, fsCP437HTMLFromBytesString(sbFilteredCurrentLine, u0TabStop = 8));
-                # Add the line to the current block of I/O
-                oCdbWrapper.sCdbIOHTML += sLineHTML;
-              if bApplicationWillBeRun:
-                oCdbWrapper.fbFireCallbacks("Log message", "StdOut output", {
-                  "Line": sbFilteredCurrentLine,
-                });
-              asbFilteredLines.append(sbFilteredCurrentLine);
+            if bAddOutputToHTMLReport:
+              sClass = bApplicationWillBeRun and "CDBOrApplicationStdOut" or "CDBCommandResult";
+              sLineHTML = "<span class=\"%s\">%s</span><br/>\n" % \
+                  (sClass, fsCP437HTMLFromBytesString(sbFilteredCurrentLine, u0TabStop = 8));
+              # Add the line to the current block of I/O
+              oCdbWrapper.sCdbIOHTML += sLineHTML;
+            if bApplicationWillBeRun:
+              oCdbWrapper.fbFireCallbacks("Log message", "StdOut output", {
+                "Line": sbFilteredCurrentLine,
+              });
+            asbFilteredLines.append(sbFilteredCurrentLine);
+          sbFilteredCurrentLine = b"";
         if u0Byte is None:
           oCdbWrapper.bCdbIsRunning = False;
           if gbDebugIO: print("<stdout:EOF>");
           oCdbWrapper.fbFireCallbacks("Log message", "Failed to read from cdb.exe stdout");
           raise oCdbWrapper.cCdbStoppedException();
         sbCurrentLine = b"";
-        if not bConcatinateCurrentFilteredLineToNext:
-          sbFilteredCurrentLine = b"";
       else:
         sbCurrentLine += bytes((u0Byte,));
         sbFilteredCurrentLine += bytes((u0Byte,));
         if gbDebugIO: print("\r<stdout~%s" % str(sbFilteredCurrentLine, "cp437", "strict"), end = "\r");
         if not bIgnoreOutput:
-          if sb0StartOfCommandOutputMarker and not bStartOfCommandOutputMarkerFound:
-            if sbFilteredCurrentLine == sb0StartOfCommandOutputMarker:
-              if gbDebugIO: print("\r<stdout:START>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
-              bStartOfCommandOutputMarkerFound = True;
-              sbFilteredCurrentLine = b"";
-            else:
-              assert len(sbFilteredCurrentLine) < len(sb0StartOfCommandOutputMarker), \
-                  "Command output does not start with marker %s: %s" % \
-                  (repr(sb0StartOfCommandOutputMarker), repr(sbCurrentLine));
-          if sb0EndOfCommandOutputMarker and not bEndOfCommandOutputMarkerFound:
-            if sbFilteredCurrentLine.endswith(sb0EndOfCommandOutputMarker):
-              if gbDebugIO: print("\r<stdout:END>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
-              bEndOfCommandOutputMarkerFound = True;
-              sbFilteredCurrentLine = sbFilteredCurrentLine[:-len(sb0EndOfCommandOutputMarker)];
+          # Detect cdb warnings and errors:
+          o0LineInterruptedByCdbError = re.match(grbLineInterruptedByCdbError, sbFilteredCurrentLine);
+          if not o0LineInterruptedByCdbError:
+            if sb0StartOfCommandOutputMarker and not bStartOfCommandOutputMarkerFound:
+              if sbFilteredCurrentLine == sb0StartOfCommandOutputMarker:
+                if gbDebugIO: print("\r<stdout:START>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
+                bStartOfCommandOutputMarkerFound = True;
+                sbFilteredCurrentLine = b"";
+              else:
+                assert len(sbFilteredCurrentLine) < len(sb0StartOfCommandOutputMarker), \
+                    "Command output does not start with marker %s: %s" % \
+                    (repr(sb0StartOfCommandOutputMarker), repr(sbCurrentLine));
+            if sb0EndOfCommandOutputMarker and not bEndOfCommandOutputMarkerFound:
+              if sbFilteredCurrentLine.endswith(sb0EndOfCommandOutputMarker):
+                if gbDebugIO: print("\r<stdout:END>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
+                bEndOfCommandOutputMarkerFound = True;
+                sbFilteredCurrentLine = sbFilteredCurrentLine[:-len(sb0EndOfCommandOutputMarker)];
         # Detect the prompt. The prompt must starts on a new line (but can be prefixed with the
         # end of command output marker).
         oPromptMatch = grbCdbPrompt.match(sbFilteredCurrentLine);
