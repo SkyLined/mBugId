@@ -21,7 +21,6 @@ linecache
 locale
 lzma
 math
-msvcrt
 nturl2path
 opcode
 platform
@@ -37,14 +36,13 @@ socket
 ssl
 string
 struct
-subprocess
 tempfile
+textwrap
 threading
 token
 tokenize
 traceback
 urllib
-uu
 uuid
 warnings
 weakref
