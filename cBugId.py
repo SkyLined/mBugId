@@ -24,10 +24,12 @@ from mNotProvided import *;
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
+from .mExceptions import cNoAccessToProcessException;
 
 class cBugId(object):
   # This is not much more than a wrapper for cCdbWrapper which hides internal
   # functions and only exposes those things that should be exposed:
+  cNoAccessToProcessException = cNoAccessToProcessException;
   sOSISA = oSystemInfo.sOSISA;
   dxConfig = dxConfig; # Expose so external scripts can modify
   

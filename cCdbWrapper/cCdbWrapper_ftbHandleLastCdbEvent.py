@@ -9,6 +9,7 @@ from ..cProcess import cProcess;
 from ..fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString;
+from ..mExceptions import cNoAccessToProcessException;
 
 # Return (bEventIsFatal, bEventHasBeenHandled)
 HIDE_EVENT_FROM_APPLICATION = (False, True);
@@ -120,7 +121,16 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
     oCdbWrapper.oCdbCurrentProcess = oCdbWrapper.doProcess_by_uId[uProcessId] = cProcess(oCdbWrapper, uProcessId);
     if bAttachedToProcess:
       oCdbWrapper.auProcessIdsPendingAttach.pop(0);
-  oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);
+  try:
+    oCdbWrapper.oCdbCurrentWindowsAPIThread = oCdbWrapper.oCdbCurrentProcess.foGetWindowsAPIThreadForId(uThreadId);
+  except cNoAccessToProcessException:
+    if bNewProcess:
+      # We cannot access this process, so we should not try to terminate it.
+      sMessage = "Unable to access process %d/0x%X because you do not have the required access rights." % (uProcessId, uProcessId);
+      assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
+          sMessage;
+      return STOP_DEBUGGING;
+    raise;
   oCdbWrapper.fUpdateCdbISA();
   ### Handle new processes ##########################################################################################
   if bNewProcess:

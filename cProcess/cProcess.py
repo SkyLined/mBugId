@@ -4,6 +4,7 @@ from mWindowsAPI import \
   cProcess as cWindowsAPIProcess, \
   cModule as cWindowsAPIModule, \
   fsHexNumber;
+from mWindowsSDK import ERROR_ACCESS_DENIED;
 
 from ..cModule import cModule;
 from ..mDisassembler import \
@@ -11,6 +12,7 @@ from ..mDisassembler import \
   fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions, \
   fo0GetInstructionForProcessAndAddress, \
   fo0GetInstructionForProcessAndBeforeAddress;
+from ..mExceptions import cNoAccessToProcessException;
 
 from .cProcess_fa0txGetRegistersForThreadId import cProcess_fa0txGetRegistersForThreadId;
 from .cProcess_fasbGetStack import cProcess_fasbGetStack;
@@ -53,7 +55,13 @@ class cProcess(object):
   @property
   def oWindowsAPIProcess(oSelf):
     if oSelf.__oWindowsAPIProcess is None:
-      oSelf.__oWindowsAPIProcess = cWindowsAPIProcess(oSelf.uId);
+      try:
+        oSelf.__oWindowsAPIProcess = cWindowsAPIProcess(oSelf.uId);
+      except OSError as oError:
+        if oError.errno == ERROR_ACCESS_DENIED:
+          raise cNoAccessToProcessException(oSelf.uId);
+        else:
+          raise;
     return oSelf.__oWindowsAPIProcess;
   
   def foGetWindowsAPIThreadForId(oSelf, uThreadId):
