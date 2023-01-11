@@ -7,9 +7,8 @@ aoBugTranslations = [
   cBugTranslation(
     azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb".*!wil::details::DebugBreak",
-      rb".*!wil::details::in1diag3::Throw_Hr",
-      rb".*!wil::details::ReportFailure_NoReturn<.+>",
-      rb".*!wil::details::ReportFailure_Base<.+>",
+      rb".*!wil::details::in1diag3::Throw_.+",
+      rb".*!wil::details::ReportFailure_.+",
       rb".*!wil::details::ThrowResultExceptionInternal",
       rb".*!wil::details::WilDynamicLoadRaiseFailFastException",
       rb".*!wil::details::WilFailFast",
