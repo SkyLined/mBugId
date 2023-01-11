@@ -1,6 +1,6 @@
 import re;
 
-from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT;
+from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEBUGGER;
 
 from ..cBugReport import cBugReport;
 from ..cErrorDetails import cErrorDetails;
@@ -173,6 +173,11 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
   );
   oCdbWrapper.fbFireCallbacks("Application suspended", sDetails);
 
+  # Ignore STATUS_WAKE_SYSTEM_DEBUGGER events
+  if uExceptionCode == STATUS_WAKE_SYSTEM_DEBUGGER:  # User pressed CTRL+C event: terminate.
+    oCdbWrapper.fbFireCallbacks("Application suspended", "STATUS_WAKE_SYSTEM_DEBUGGER exception thrown.");
+    oCdbWrapper.fbFireCallbacks("Log message", "STATUS_WAKE_SYSTEM_DEBUGGER exception thrown.");
+    return REPORT_EVENT_TO_APPLICATION;
   # Handle user pressing CTRL+C
   if uExceptionCode == DBG_CONTROL_C:  # User pressed CTRL+C event: terminate.
     oCdbWrapper.fbFireCallbacks("Application suspended", "User pressed CTRL+C");
