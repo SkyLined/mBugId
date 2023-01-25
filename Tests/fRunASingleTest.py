@@ -2,8 +2,9 @@
 from mBugId import cBugId;
 from mConsole import oConsole;
 from mFileSystemItem import cFileSystemItem;
-import mGlobals;
 from mBugId.mCP437 import fsCP437FromBytesString;
+
+import mGlobals;
 
 try: # mDebugOutput use is Optional
   import mDebugOutput as m0DebugOutput;

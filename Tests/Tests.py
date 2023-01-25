@@ -43,8 +43,8 @@ try:
   import os, platform, sys, time;
   #Import the test subject
   from mBugId import cBugId;
-  from fShowHelp import fShowHelp;
   
+  from fShowHelp import fShowHelp;
   from fRunASingleTest import fRunASingleTest;
   import mGlobals;
   
