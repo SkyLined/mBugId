@@ -140,6 +140,7 @@ class cCdbWrapper(cWithCallbacks):
     # so we can make sure they are all terminated and closed respectively when cBugId
     # is terminated.
     oCdbWrapper.aoApplicationProcesses = [];
+    oCdbWrapper.oApplicationStdOutAndStdErrPipeLock = cLock(n0DeadlockTimeoutInSeconds = 1);
     oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId = {};
     oCdbWrapper.daoApplicationStdOutAndStdErrPipeThreads_by_uProcessId = {};
     oCdbWrapper.bUWPApplicationStarted = False;
