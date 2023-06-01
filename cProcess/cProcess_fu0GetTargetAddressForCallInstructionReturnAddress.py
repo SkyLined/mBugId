@@ -46,7 +46,7 @@ def cProcess_fu0GetTargetAddressForCallInstructionReturnAddress(oProcess, uRetur
   # Some CALL instructions reference an address in memory; we need to read that address to see what is ebing called.
   def fu0ReadAddressFromMemory(cAddressType, uMemoryAddress):
     o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uMemoryAddress);
-    if not o0VirtualAllocation.bAllocated:
+    if o0VirtualAllocation is None or not o0VirtualAllocation.bAllocated:
       if gbDebugOutput: print ("No %s address found for memory address 0x%X: no memory allocated" % \
             (cAddressType.__name__, uMemoryAddress, o0VirtualAllocation));
       return None;

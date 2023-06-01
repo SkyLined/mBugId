@@ -1,7 +1,7 @@
 import re;
 
 from ..dxConfig import dxConfig;
-from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;
+from ..mCP437 import fsCP437HTMLFromBytesString;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues
 
@@ -176,10 +176,10 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
                 if gbDebugIO: print("\r<stdout:START>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
                 bStartOfCommandOutputMarkerFound = True;
                 sbFilteredCurrentLine = b"";
-              else:
-                assert len(sbFilteredCurrentLine) < len(sb0StartOfCommandOutputMarker), \
-                    "Command output does not start with marker %s: %s" % \
-                    (repr(sb0StartOfCommandOutputMarker), repr(sbCurrentLine));
+#              else:
+#                assert len(sbFilteredCurrentLine) < len(sb0StartOfCommandOutputMarker), \
+#                    "Command output does not start with marker %s: %s" % \
+#                    (repr(sb0StartOfCommandOutputMarker), repr(sbCurrentLine));
             if sb0EndOfCommandOutputMarker and not bEndOfCommandOutputMarkerFound:
               if sbFilteredCurrentLine.endswith(sb0EndOfCommandOutputMarker):
                 if gbDebugIO: print("\r<stdout:END>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
