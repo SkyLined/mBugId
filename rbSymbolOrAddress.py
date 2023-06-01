@@ -3,6 +3,9 @@
 rbSymbolOrAddress = re.compile(
   rb"\A\s*"                                      # optional whitespace
   rb"(?:"                                       # either {
+    rb"(?:0x)?"                                 #   optional { "0x" }
+    rb"([0-9`a-f]+)"                            #   <<<address>>>
+  rb"|"                                         # } or {
     rb"<Unloaded_"                              #   "<Unloaded_"
     rb"(.*)"                                    #   <<<module file name>>>
     rb">"                                       #   ">"
@@ -19,9 +22,6 @@ rbSymbolOrAddress = re.compile(
       rb"([\+\-])" rb"0x0*" rb"([0-9`a-f]+?)"   #       ["+" or "-"] "0x" "0"... <<<hex offset in function>>>
       rb")?"                                    #     }
     rb")?"                                      #   }
-  rb"|"                                         # } or {
-    rb"(?:0x)?"                                 #   optional { "0x" }
-    rb"([0-9`a-f]+)"                            #   <<<address>>>
   rb")"                                         # }
   rb"\s*\Z"                                     # optional whitespace
 );

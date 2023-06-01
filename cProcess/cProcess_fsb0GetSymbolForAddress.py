@@ -58,9 +58,16 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
       "This should always match!"; # By design - something is very broken if not.
   # See if the output contains something we recognize as a symbol; return it.
   sbSymbol = oSymbolWithOrWithoutAddressMatch.group(1);
-  o0SymbolMatch = rbSymbolOrAddress.match(sbSymbol);
-  if o0SymbolMatch:
-    return sbSymbol;
+  obSymbolOrAddressMatch = rbSymbolOrAddress.match(sbSymbol);
+  if obSymbolOrAddressMatch:
+    (
+      sb0Address,
+      sb0UnloadedModuleFileName, sb0UnloadedModuleOffset,
+      sb0ModuleCdbIdOrAddress, sb0ModuleOffset,
+      sb0FunctionSymbol, sbPlusOrMinusOffset, sb0OffsetInFunction,
+    ) = obSymbolOrAddressMatch.groups();
+    if sb0Address is None:
+      return sbSymbol;
   raise AssertionError(
     "Cannot process get symbol output for address 0x%X:\r\n%s" % (
       uAddress,

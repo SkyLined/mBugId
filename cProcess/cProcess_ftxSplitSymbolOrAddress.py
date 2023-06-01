@@ -6,10 +6,10 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
   assert obSymbolOrAddressMatch, \
       "Symbol or address does not match a known format: %s" % repr(sbSymbolOrAddress);
   (
+    sb0Address,
     sb0UnloadedModuleFileName, sb0UnloadedModuleOffset,
     sb0ModuleCdbIdOrAddress, sb0ModuleOffset,
     sb0FunctionSymbol, sbPlusOrMinusOffset, sb0OffsetInFunction,
-    sb0Address,
   ) = obSymbolOrAddressMatch.groups();
   u0Address = None;
   o0Module = None;
@@ -26,15 +26,6 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
     # Any value referencing it will be converted to an address:
     u0Address = oProcess.fu0GetAddressForSymbol(b"%s!%s" % (sb0ModuleCdbIdOrAddress, sb0FunctionSymbol));
     if u0Address and u0ModuleOffset: u0Address += u0ModuleOffset;
-  elif sb0ModuleCdbIdOrAddress[0] in b"0123456789":
-    # Address are hexadecimal (i.e. start with "0x"), or (unlikely) decimal.
-    # Either way they start with a digit. cdb ids for modules are assumed to
-    # never start with a digit, so if the first char is a digit, it must be
-    # and address.
-    # TODO: confirm this is true by loading a module "1test.dll"
-    # and find out what id cdb gives this module.
-    sbAddress = sb0ModuleCdbIdOrAddress;
-    u0Address = fu0ValueFromCdbHexOutput(sbAddress);
   else:
     sbModuleCdbId = sb0ModuleCdbIdOrAddress;
     o0Module = oProcess.fo0GetModuleForCdbId(sbModuleCdbId);
