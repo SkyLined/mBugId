@@ -1,5 +1,12 @@
 ﻿def fInitializeProduct():
   import __main__, json, os, sys;
+  try:
+    from mStandardExitCodes import \
+        guExitCodeBadDependencyError, \
+        guExitCodeInternalError;
+  except ImportError:
+    raise AssertionError("Your application does not have a mStandardExitCodes module with standard error codes defined");
+
   bProductIsAnApplication = hasattr(__main__, "__file__") and os.path.dirname(__main__.__file__) == os.path.dirname(__file__);
   bDebugOutput = "@debug-product-initialization" in sys.argv[1:]; # This flag will be remove from the arguments at the end of this code.
   sProductFolderPath = os.path.normpath(os.path.dirname(__file__));
@@ -16,143 +23,59 @@
       os.path.join(sProductFolderPath, "modules"),
     ]
     sys.path = asModulesPaths + [sPath for sPath in sys.path if sPath not in asModulesPaths];
-    if bDebugOutput:
-      from foConsoleLoader import foConsoleLoader;
-      oConsole = foConsoleLoader();
-
-      from mExitCodes import guExitCodeInternalError, guExitCodeBadDependencyError;
-      from mColorsAndChars import \
-          COLOR_BUSY, CHAR_BUSY, \
-          COLOR_ERROR, CHAR_ERROR, \
-          COLOR_INFO, CHAR_INFO, \
-          COLOR_LIST, CHAR_LIST, \
-          COLOR_OK, CHAR_OK, \
-          COLOR_WARNING, CHAR_WARNING, \
-          COLOR_HILITE, COLOR_NORMAL;
-      oConsole.fOutput(
-        COLOR_INFO, CHAR_INFO,
-        COLOR_NORMAL, " Module search paths:",
-      );
+  if bDebugOutput:
+    if bProductIsAnApplication:
+      print(" Module search paths:");
       for sPath in sys.path:
-        oConsole.fOutput(
-          COLOR_NORMAL, "  ",
-          COLOR_LIST, CHAR_LIST,
-          COLOR_NORMAL, " ",
-          COLOR_INFO, sPath,
-          COLOR_NORMAL, ".",
-        );
+        print("  * %s." % sPath);
 
   def fo0LoadModule(sProductName, sModuleName, bOptional = False):
     if sModuleName in sys.modules:
       return sys.modules[sModuleName];
-    if bDebugOutput: oConsole.fStatus(
-      COLOR_BUSY, CHAR_BUSY,
-      COLOR_NORMAL, " Loading module ",
-      COLOR_HILITE, sModuleName,
-      COLOR_NORMAL, " for ",
-      COLOR_HILITE, sProductName,
-      COLOR_NORMAL, "...",
-    );
+    if bDebugOutput: print("* Loading module %s for %s..." % (
+      sModuleName,
+      sProductName,
+    ));
     try:
       oModule = __import__(sModuleName, dict(globals()), {}, [], 0);
     except Exception as oException:
       bModuleNotFound = isinstance(oException, ModuleNotFoundError) and oException.args[0] == "No module named '%s'" % sModuleName;
-      if bOptional:
-        if bDebugOutput:
-          if bModuleNotFound:
-            oConsole.fOutput(
-              COLOR_WARNING, CHAR_WARNING,
-              COLOR_NORMAL, " ", "Optional module" if bOptional else "Module", " ",
-              COLOR_HILITE, sModuleName,
-              COLOR_NORMAL, " is not available!",
-            );
-          else:
-            oConsole.fOutput(
-              COLOR_WARNING, CHAR_WARNING,
-              COLOR_NORMAL, " ", "Optional module" if bOptional else "Module", " ",
-              COLOR_HILITE, sModuleName,
-              COLOR_NORMAL, " can not be loaded!",
-            );
-            oConsole.fOutput(
-              COLOR_NORMAL, "  Exception: ",
-              COLOR_HILITE, oException.__class__.__name__,
-              COLOR_NORMAL, " - ",
-              COLOR_HILITE, str(oException),
-              COLOR_NORMAL, ".",
-            );
-        return None;
-      if bProductIsAnApplication:
+      if bProductIsAnApplication or bDebugOutput:
         if bModuleNotFound:
-          oConsole.fOutput(
-            COLOR_ERROR, CHAR_ERROR,
-            COLOR_NORMAL, " ", "Optional module" if bOptional else "Module", " ",
-            COLOR_HILITE, sModuleName,
-            COLOR_NORMAL, " is not available!",
-          );
+          print("- Optional module %s is not available!" % sModuleName);
         else:
-          oConsole.fOutput(
-            COLOR_ERROR, CHAR_ERROR,
-            COLOR_NORMAL, " ", "Optional module" if bOptional else "Module", " ",
-            COLOR_HILITE, sModuleName,
-            COLOR_NORMAL, " can not be loaded!",
-          );
-          oConsole.fOutput(
-            COLOR_NORMAL, "  Exception: ",
-            COLOR_HILITE, oException.__class__.__name__,
-            COLOR_NORMAL, " - ",
-            COLOR_HILITE, str(oException),
-            COLOR_NORMAL, ".",
-          );
+          print("- Optional module %s can not be loaded!" % sModuleName);
+          print(
+            "  Exception: %s -> %s" % (
+            oException.__class__.__name__,
+            str(oException),
+          ));
+      if bOptional:
+        return None;
       # Dump exception stack like Python would
       import traceback;
-      asExceptionReportLines = traceback.format_exc();
-      for sLines in asExceptionReportLines:
-        for sLine in sLines.rstrip("\n"):
-          oConsole.fOutput(sLine);
+      asExceptionReportLines = traceback.format_exc().split("\n");
+      for sLine in asExceptionReportLines:
+        print(sLine.rstrip("\r"));
       # Terminate with the appropriate exit code from mExitCodes (use standard values if it cannot be loaded).
       sys.exit(guExitCodeBadDependencyError if bModuleNotFound else guExitCodeInternalError);
-    if bDebugOutput: oConsole.fOutput(
-      COLOR_OK, CHAR_OK,
-      COLOR_NORMAL, " Module ",
-      COLOR_HILITE, sModuleName,
-      COLOR_NORMAL, " loaded at ",
-      COLOR_HILITE, os.path.dirname(oModule.__file__),
-      COLOR_NORMAL, ".",
-    );
+    if bDebugOutput: print(" Module %s loaded from %s." % (sModuleName, os.path.dirname(oModule.__file__)));
     return oModule;
   
   # Load the dxProductDetails.json file and extract dependencies:
   sProductDetailsFilePath = os.path.join(sProductFolderPath, "dxProductDetails.json");
-  if bDebugOutput:
-    oConsole.fStatus(
-      COLOR_BUSY, CHAR_BUSY,
-      COLOR_NORMAL, " Loading product details file ",
-      COLOR_HILITE, sProductDetailsFilePath,
-      "...",
-    );
+  if bDebugOutput: print("* Loading product details file %s..." % (sProductDetailsFilePath,));
   try:
     with open(sProductDetailsFilePath, "rb") as oProductDetailsFile:
       dxProductDetails = json.load(oProductDetailsFile);
   except Exception as oException:
-    if bDebugOutput:
-      oConsole.fOutput(
-        COLOR_ERROR, CHAR_ERROR,
-        COLOR_NORMAL, " Product details cannot be loaded from ",
-        COLOR_INFO, sProductDetailsFilePath,
-        COLOR_NORMAL, "!",
-      );
+    if bDebugOutput: print("- Product details cannot be loaded from %s!" % (sProductDetailsFilePath,));
     raise;
-  if bDebugOutput:
-    oConsole.fOutput(
-      COLOR_OK, CHAR_OK,
-      COLOR_NORMAL, " Product details for ",
-      COLOR_INFO, dxProductDetails["sProductName"],
-      COLOR_NORMAL, " by",
-      COLOR_INFO, dxProductDetails["sProductAuthor"],
-      COLOR_NORMAL, " loaded from ",
-      COLOR_INFO, sProductDetailsFilePath,
-      COLOR_NORMAL, ".",
-    );
+  if bDebugOutput: print("+ Product details for %s by %s loaded from %s." % (
+    dxProductDetails["sProductName"],
+    dxProductDetails["sProductAuthor"],
+    sProductDetailsFilePath,
+  ));
   for sModuleName in dxProductDetails.get("a0sDependentOnProductNames", []):
     fo0LoadModule(dxProductDetails["sProductName"], sModuleName, bOptional = False);
   for sModuleName in (
@@ -160,15 +83,10 @@
     dxProductDetails.get("a0sReleaseAdditionalProductNames", [])
   ):
     fo0LoadModule(dxProductDetails["sProductName"], sModuleName, bOptional = True);
-  if bDebugOutput:
-    oConsole.fOutput(
-      COLOR_OK, CHAR_OK,
-      COLOR_NORMAL, " Product ",
-      COLOR_INFO, dxProductDetails["sProductName"],
-      COLOR_NORMAL, " by",
-      COLOR_INFO, dxProductDetails["sProductAuthor"],
-      COLOR_NORMAL, " initialized.",
-    );
+  if bDebugOutput: print("+ Product %s by %s initialized." % (
+    dxProductDetails["sProductName"],
+    dxProductDetails["sProductAuthor"],
+  ));
   # Restore the original module search path
   if bProductIsAnApplication:
     sys.path = asOriginalSysPath;
