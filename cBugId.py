@@ -36,7 +36,8 @@ class cBugId(object):
   @classmethod
   def fbCdbFound(cClass, sCdbISA):
     # Returns True if cdb.exe is found in the path to the Debugging Tools for Windows as specified in dxConfig.
-    return os.path.isfile(cClass.fs0GetCdbBinaryPath(sCdbISA));
+    s0CdbBinaryPath = cClass.fs0GetCdbBinaryPath(sCdbISA);
+    return s0CdbBinaryPath and os.path.isfile(s0CdbBinaryPath);
   
   @classmethod
   def fs0GetCdbBinaryPath(cClass, sCdbISA):
