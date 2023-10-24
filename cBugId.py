@@ -18,7 +18,10 @@ import os;
 # Actually load the stuff from external modules that we need.
 from mWindowsAPI import oSystemInfo, cUWPApplication;
 from mMultiThreading import cLock;
-from mNotProvided import *;
+from mNotProvided import (
+  fAssertTypes,
+  zNotProvided,
+);
 
 from .cCdbWrapper import cCdbWrapper;
 from .dxConfig import dxConfig;
