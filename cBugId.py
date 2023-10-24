@@ -1,21 +1,19 @@
-import os, sys;
+import os;
 
-"""
-                          __                     _____________                  
-            ,,,     _,siSS**SSis,_        ,-.   /             |                 
-           :O()   ,SP*'`      `'*YS,     |   `-|  O    BugId  |                 
-            ```  dS'  _    |    _ 'Sb   ,'      \_____________|                 
-      ,,,       dP     \,-` `-<`    Yb _&/                                      
-     :O()      ,S`  \,' \      \    `Sis|ssssssssssssssssss,        ,,,         
-      ```      (S   (   | --====)    SSS|SSSSSSSSSSSSSSSSSSD        ()O:        
-               'S,  /', /      /    ,S?*/******************'        ```         
-                Yb    _/'-_ _-<._   dP `                                        
-  _______________YS,       |      ,SP_________________________________________  
-                  `Sbs,_      _,sdS`                                            
-                    `'*YSSssSSY*'`                   https://bugid.skylined.nl  
-                          ``                                                    
-                                                                                
-""";
+#                         __                     _____________                  
+#           ,,,     _,siSS**SSis,_        ,-.   /             |                 
+#          :O()   ,SP*'`      `'*YS,     |   `-|  O    BugId  |                 
+#           ```  dS'  _    |    _ 'Sb   ,'      \_____________|                 
+#     ,,,       dP     \,-` `-<`    Yb _&/                                      
+#    :O()      ,S`  \,' \      \    `Sis|ssssssssssssssssss,        ,,,         
+#     ```      (S   (   | --====)    SSS|SSSSSSSSSSSSSSSSSSD        ()O:        
+#              'S,  /', /      /    ,S?*/******************'        ```         
+#               Yb    _/'-_ _-<._   dP `                                        
+# _______________YS,       |      ,SP_________________________________________  
+#                 `Sbs,_      _,sdS`                                            
+#                   `'*YSSssSSY*'`                   https://bugid.skylined.nl  
+#                         ``                                                    
+#                                                                               
 
 # Actually load the stuff from external modules that we need.
 from mWindowsAPI import oSystemInfo, cUWPApplication;

@@ -351,7 +351,7 @@ class cASanErrorDetector(object):
             r"==(\d+)==AddressSanitizer's allocator is terminating the process instead of returning 0"
           r"|"
             r"==(\d+)==ERROR: AddressSanitizer failed to allocate( aligned)? 0x[0-9`a-f]+ \(\d+\) bytes "
-                "(at 0x[0-9`a-f]+|of( \w+)+) \(error code: 1455\)"
+                r"(at 0x[0-9`a-f]+|of( \w+)+) \(error code: 1455\)"
           r")\s*$",
           sLine,
           re.I,
