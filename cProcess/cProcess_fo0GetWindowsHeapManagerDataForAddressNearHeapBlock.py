@@ -106,7 +106,7 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
   asbCdbHeapOutput = [
     sbLine
     for sbLine in oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"!heap -p -a 0x%X;" % uAddressNearHeapBlock,
+      sbCommand = b"!ext.heap -p -a 0x%X;" % uAddressNearHeapBlock,
       sb0Comment = b"Get heap information",
       bOutputIsInformative = True,
     )
