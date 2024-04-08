@@ -1,6 +1,6 @@
 import re;
 
-from mNotProvided import fAssertTypes;
+from mNotProvided import fAssertType, fAssertTypes;
 from mWindowsAPI import fsHexNumber;
 
 class cInstruction(object):
@@ -9,13 +9,10 @@ class cInstruction(object):
       "uAddress": (uAddress, int),
       "sbBytes": (sbBytes, bytes),
       "sbName": (sbName, bytes),
-      "tsbArguments": (tsbArguments,
-        tuple(),
-        (bytes,),
-        (bytes, bytes),
-        (bytes, bytes, bytes), # Up to three arguments are expected.
-      ),
+      "tsbArguments": (tsbArguments, tuple),
     });
+    for uIndex in range(len(tsbArguments)):
+      fAssertType(f"tsbArguments[{uIndex}]", tsbArguments[uIndex], bytes);
     oSelf.__uAddress = uAddress;
     oSelf.__sbBytes = sbBytes;
     oSelf.__sbName = sbName;

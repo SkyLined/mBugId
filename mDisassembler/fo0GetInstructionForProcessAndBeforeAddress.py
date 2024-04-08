@@ -12,7 +12,7 @@ def fo0GetInstructionForProcessAndBeforeAddress(
     "uAddress": (uAddress, int),
   });
   # Disassemble the 32 bytes before the address; we're hoping that is enough to
-  # "align" the disasssembly by the time it gets to the instruction we want
+  # "align" the disassembly by the time it gets to the instruction we want
   # but this is not guaranteed.
   o0Disassembly = fo0GetDisassemblyForProcessAndCdbCommand(
     oProcess, 
