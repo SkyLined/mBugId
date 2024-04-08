@@ -62,60 +62,87 @@ grbWindowsHeapInformation = re.compile(     # line #4
   rb"\s*$"                                  # optional whitespace
 );
 
+
+# Sometimes we need to use "!heap", sometimes we need to use "!ext.heap"
+# I do not know how to determine which one to use. Luckily, if we use
+# "!heap" when we should be using "!ext.heap", cdb.ex will give us a
+# warning, which we can detect and try again. If this happens, we'll set
+# a global flag so we can skip trying "!heap" the next time:
+# we'll try the first
+gbUseExtHeap = False;
+
 def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddressNearHeapBlock):
+  global gbUseExtHeap;
   if uAddressNearHeapBlock <= dxConfig["uMaxAddressOffset"]:
     return None; # Considered a NULL pointer;
   if uAddressNearHeapBlock >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
     return None; # Value is not in the valid address range
-  oVitualAllocation = cVirtualAllocation(
+  oVirtualAllocation = cVirtualAllocation(
     oProcess.uId,
     uAddressNearHeapBlock,
   );
-  if oVitualAllocation.bFree or oVitualAllocation.bReserved:
+  if oVirtualAllocation.bFree or oVirtualAllocation.bReserved:
     # The virtual allocation at the provdided address is free or reserved.
     # in case of an out-of-bounds access that causes an access violation,
     # this is to be expected. If the offset from the start of the allocation
     # is less than one page, let's look at the previous allocation:
-    uOffsetFromStartOfVirtualAllocation = uAddressNearHeapBlock - oVitualAllocation.uStartAddress;
+    uOffsetFromStartOfVirtualAllocation = uAddressNearHeapBlock - oVirtualAllocation.uStartAddress;
     if uOffsetFromStartOfVirtualAllocation < oSystemInfo.uPageSize:
-      oPreviousVitualAllocation = cVirtualAllocation(
+      oPreviousVirtualAllocation = cVirtualAllocation(
         oProcess.uId,
-        oVitualAllocation.uStartAddress - 1,
+        oVirtualAllocation.uStartAddress - 1,
       );
-      if oPreviousVitualAllocation.bAllocated:
+      if oPreviousVirtualAllocation.bAllocated:
         # Let's assume this is the allocation we are looking for:
-        oVitualAllocation = oPreviousVitualAllocation;
-        uAddressNearHeapBlock = oVitualAllocation.uEndAddress - 1;
+        oVirtualAllocation = oPreviousVirtualAllocation;
+        uAddressNearHeapBlock = oVirtualAllocation.uEndAddress - 1;
       else:
         # This could also be an out-of-bounds access _before_ the allocation
         # if the offset from the end of the allocation is less than one page.
-        uOffsetFromEndOfVirtualAllocation = oVitualAllocation.uEndAddress - uAddressNearHeapBlock;
+        uOffsetFromEndOfVirtualAllocation = oVirtualAllocation.uEndAddress - uAddressNearHeapBlock;
         if uOffsetFromEndOfVirtualAllocation < oSystemInfo.uPageSize:
-          oNextVitualAllocation = cVirtualAllocation(
+          oNextVirtualAllocation = cVirtualAllocation(
             oProcess.uId,
-            oVitualAllocation.uEndAddress,
+            oVirtualAllocation.uEndAddress,
           );
-          if oNextVitualAllocation.bAllocated:
+          if oNextVirtualAllocation.bAllocated:
             # Let's assume this is the allocation we are looking for:
-            oVitualAllocation = oNextVitualAllocation;
-            uAddressNearHeapBlock = oVitualAllocation.uStartAddress;
+            oVirtualAllocation = oNextVirtualAllocation;
+            uAddressNearHeapBlock = oVirtualAllocation.uStartAddress;
           else:
             return None;
   # At this point I expect the memory to either point to a regular windows heap, or
   # non-free, non-heap memory. Let's ask cdb.exe what it thinks we are looking at:
-  asbCdbHeapOutput = [
-    sbLine
-    for sbLine in oProcess.fasbExecuteCdbCommand(
-      sbCommand = b"!ext.heap -p -a 0x%X;" % uAddressNearHeapBlock,
-      sb0Comment = b"Get heap information",
-      bOutputIsInformative = True,
-    )
-    if not grbIgnoredHeapOutputLines.match(sbLine.strip())
-  ];
+  if not gbUseExtHeap:
+    asbCdbHeapOutput = [
+      sbLine
+      for sbLine in oProcess.fasbExecuteCdbCommand(
+        sbCommand = b"!heap -p -a 0x%X;" % uAddressNearHeapBlock,
+        sb0Comment = b"Get heap information",
+        bOutputIsInformative = True,
+      )
+      if not grbIgnoredHeapOutputLines.match(sbLine.strip())
+    ];
+    if asbCdbHeapOutput == [
+      b"the `!heap -p' commands in exts.dll have been replaced",
+      b"with equivalent commands in ext.dll.",
+      b"If your are in a KD session, use `!ext.heap -p`",
+    ]:
+      gbUseExtHeap = True;
+  if gbUseExtHeap:
+    asbCdbHeapOutput = [
+      sbLine
+      for sbLine in oProcess.fasbExecuteCdbCommand(
+        sbCommand = b"!ext.heap -p -a 0x%X;" % uAddressNearHeapBlock,
+        sb0Comment = b"Get heap information",
+        bOutputIsInformative = True,
+      )
+      if not grbIgnoredHeapOutputLines.match(sbLine.strip())
+    ];
   if len(asbCdbHeapOutput) == 0:
     return None; # Not part of any heap.
   # Sample output:
-  # Allocated memory on "normal" hreap
+  # Allocated memory on "normal" heap
   # |    address 000001ec4e8cc790 found in
   # |    _HEAP @ 1ec4e8c0000
   # |              HEAP_ENTRY Size Prev Flags            UserPtr UserSize - state
