@@ -37,15 +37,7 @@ class cCdbWrapper_cHelperThread(object):
   def fStart(oSelf):
     if oSelf.bIsRunning:
       oSelf.__oThread.fStart(); # This should cause an exception.
-    try:
-      oSelf.__oThread = cThread(oSelf.__fRun);
-    except thread.error as oException:
-      # We cannot create another thread. The most obvious reason for this error is that there are too many threads
-      # already. This might be caused by our threads not terminating as expected. To debug this, we will dump the
-      # running threads, so we might detect any threads that should have terminated but haven't.
-      print("Threads:");
-      for oHelperThread in oSelf.__oCdbWrapper.aoActiveHelperThreads:
-        print(" + %s" % oHelperThread);
+    oSelf.__oThread = cThread(oSelf.__fRun);
     assert not oSelf.bIsRunning, \
         "Cannot start a thread while it is running";
     oSelf.__oCdbWrapper.aoActiveHelperThreads.append(oSelf);
