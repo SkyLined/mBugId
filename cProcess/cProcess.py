@@ -111,27 +111,29 @@ class cProcess(object):
       return None;
     # No; try to get the module for the start address:
     o0Module = oSelf.fo0GetModuleForStartAddress(u0StartAddress);
-    assert o0Module, \
-        "No module for cdb id %s (address = %s):\n%s" % (
-          repr(sbCdbId)[1:],
-          fsHexNumber(u0StartAddress),
-          ", ".join(
-            str(oModule)
-            for oModule in oSelf.doModule_by_uStartAddress.values()
-          ),
-        );
+    if o0Module is None:
+      # I believe this can happen if you are using a 64-bit version of Python
+      # and you are debugging a 32-bit process. I believe the mWindowsAPI
+      # code that gets called to get the module information doesn't handle
+      # this case correctly. We should try to handle this gracefully until
+      # the root cause is fixed (e.g. by improving the mWindowsAPI code).
+      if gbDebugOutput: print("cdb id %s => address %s => no module!?" % (
+        repr(sbCdbId)[1:],
+        fsHexNumber(u0StartAddress),
+      ));
+      return None;
     if gbDebugOutput:
       print("cdb id %s (address %s) => %s" % (
         repr(sbCdbId)[1:],
         fsHexNumber(u0StartAddress),
         o0Module,
       ));
-      assert o0Module.sbCdbId == sbCdbId, \
-          "cdbid mismatch: %s => %s => %s" % (
-            repr(sbCdbId)[1:],
-            fsHexNumber(u0StartAddress),
-            o0Module,
-          );
+    assert o0Module.sbCdbId == sbCdbId, \
+        "cdbid mismatch: %s => %s => %s" % (
+          repr(sbCdbId)[1:],
+          fsHexNumber(u0StartAddress),
+          o0Module,
+        );
     # Cache the cdb id of the module:
     o0Module.sbCdbId = sbCdbId;
     return o0Module;
