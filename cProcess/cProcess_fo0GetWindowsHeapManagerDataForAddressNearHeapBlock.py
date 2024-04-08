@@ -10,7 +10,7 @@ from ..mCP437 import fsCP437FromBytesString;
 gbDebugOutput = True;
 
 grbIgnoredHeapOutputLines = re.compile(
-  rb"^\s*"                                  # optional whitepsace
+  rb"^\s*"                                  # optional whitespace
   rb"(?:"                                   # either {
     rb"ReadMemory error for address [0-9`a-f]+"
   rb"|"                                     # } or {
@@ -27,14 +27,14 @@ grbIgnoredHeapOutputLines = re.compile(
 grbHeapOutputFirstLine = re.compile(
   rb"^\s+"                                  # whitespace
   rb"address [0-9`a-f]+ found in"           # "address " <address> " found in"
-  rb"\s*$"                                  # optional whitepsace
+  rb"\s*$"                                  # optional whitespace
 );
 grHeapOutputTypeAndRootAddressLine = re.compile(
   rb"^\s+"                                  #   whitespace
   rb"_HEAP"                                 #   "_HEAP"
   rb" @ "                                   #   " @ "
   rb"([0-9`a-f]+)"                          # * root-address
-  rb"\s*$"                                  #   optional whitepsace
+  rb"\s*$"                                  #   optional whitespace
 );
 grbWindowsHeapInformationHeader = re.compile( # line #3
   rb"^\s+"                                  # whitespace
@@ -82,7 +82,7 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
     uAddressNearHeapBlock,
   );
   if oVirtualAllocation.bFree or oVirtualAllocation.bReserved:
-    # The virtual allocation at the provdided address is free or reserved.
+    # The virtual allocation at the provided address is free or reserved.
     # in case of an out-of-bounds access that causes an access violation,
     # this is to be expected. If the offset from the start of the allocation
     # is less than one page, let's look at the previous allocation:

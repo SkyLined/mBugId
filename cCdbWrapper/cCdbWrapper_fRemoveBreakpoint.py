@@ -5,7 +5,7 @@ def cCdbWrapper_fRemoveBreakpoint(oCdbWrapper, uBreakpointId):
   # the original address later. To work around this, we add the address of the breakpoint to a list of old breakpoints
   # and ignore any STATUS_BREAKPOINT exception at this address. There is a chance that the original instruction at
   # the breakpoint address triggers a real STATUS_BREAKPOINT exception, which we would then ignore by mistake.
-  # However, I expect that chance of that happening to be negligable, so I make no attempts to address it.
+  # However, I expect that chance of that happening to be negligible, so I make no attempts to address it.
   oCdbWrapper.fasbExecuteCdbCommand(
     sbCommand = b'bc%d;' % uBreakpointId,
     sb0Comment = b'Remove breakpoint',

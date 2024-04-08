@@ -1,7 +1,7 @@
 from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # OOM -> hide irelevant frames
+  # OOM -> hide irrelevant frames
   cBugTranslation(
     srzOriginalBugTypeId = r"OOM",
     azs0rbAdditionalIrrelevantStackFrameSymbols = [

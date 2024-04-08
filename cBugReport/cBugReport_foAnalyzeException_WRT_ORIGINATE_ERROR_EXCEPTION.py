@@ -1,10 +1,7 @@
 import json;
 
-from ..cStack import cStack;
-from ..dxConfig import dxConfig;
-
 def cBugReport_foAnalyzeException_WRT_ORIGINATE_ERROR_EXCEPTION(oBugReport, oProcess, oWindowsAPIThread, oException):
-  # Seee documentation of RoOriginateError at https://msdn.microsoft.com/en-us/library/br224651(v=vs.85).aspx
+  # See documentation of RoOriginateError at https://msdn.microsoft.com/en-us/library/br224651(v=vs.85).aspx
   # Parameter[0] = HRESULT error;
   # Parameter[1] = length of HSTRING message;
   # Parameter[2] = pointer to HSTRING message;

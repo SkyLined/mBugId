@@ -41,6 +41,6 @@ def ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(uMostInterestingAddress, u
       "Math is wrong: 0x%X + 0x%X != 0x%X" % (uMemoryDumpStartAddress, uMemoryDumpSize, uMemoryDumpEndAddress);
   assert uMemoryDumpSize <= dxConfig["uMaxMemoryDumpSize"], \
       "Math is wrong: memory dump size (0x%X) is larger than the maximum (0x%X)" % (uMemoryDumpSize, dxConfig["uMaxMemoryDumpSize"]);
-  # return updated, aligned start address and limited, algned size
+  # return updated, aligned start address and limited, aligned size
   return uMemoryDumpStartAddress, uMemoryDumpSize;
 

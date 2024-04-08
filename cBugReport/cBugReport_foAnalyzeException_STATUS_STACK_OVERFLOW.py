@@ -1,4 +1,3 @@
-from mWindowsSDK import *;
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 from ..dxConfig import dxConfig;
@@ -62,7 +61,7 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oW
     # means there is no obvious way to decide which of the functions involved in the loop is the first or last.
     # In order to create a stack id and to compare two loops, a way to pick a frame as the "first" in the loop
     # is needed that will yield the same results every time. This is currently done by creating a strings
-    # concatinating the simplified addresses of all frames in order for each possible "first" frame.
+    # concatenating the simplified addresses of all frames in order for each possible "first" frame.
     duStartOffset_by_sbSimplifiedAddresses = {};
     for uStartOffset in range(uRecursionLoopSize):
       sbSimplifiedAddresses = b"".join([

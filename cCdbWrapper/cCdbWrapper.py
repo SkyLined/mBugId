@@ -4,7 +4,7 @@ import mProductDetails;
 from mWindowsAPI import cConsoleProcess, cProcess, fsGetPythonISA;
 from mMultiThreading import cLock, cWithCallbacks;
 from mFileSystemItem import cFileSystemItem;
-from mNotProvided import *;
+from mNotProvided import fxGetFirstProvidedValue;
 
 from ..cASanErrorDetector import cASanErrorDetector;
 from ..cCollateralBugHandler import cCollateralBugHandler;
@@ -206,7 +206,7 @@ class cCdbWrapper(cWithCallbacks):
     # Initialize some variables
     if bGenerateReportHTML:
       oCdbWrapper.sCdbIOHTML = ""; # Logs stdin/stdout/stderr for the cdb process, grouped by executed command.
-      oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be adde to CdbIOHTML if a command is added.
+      oCdbWrapper.sPromptHTML = None; # Logs cdb prompt to be added to CdbIOHTML if a command is added.
       if dxConfig["bLogInReport"]:
         oCdbWrapper.sLogHTML = ""; # Logs various events that may be relevant
     oCdbWrapper.bCdbIsRunning = True; # Set to False after cdb terminated, used to terminate the debugger thread.
@@ -249,7 +249,7 @@ class cCdbWrapper(cWithCallbacks):
     );
     
     # Create VERIFIER STOP and Asan ERROR detectors. The later also needs to be called when a Breakpoint exception
-    # happens in order to report it (the former reports the error as soon as it is detected in applicationm debug
+    # happens in order to report it (the former reports the error as soon as it is detected in application debug
     # output).
     cVerifierStopDetector(oCdbWrapper);
     oCdbWrapper.oASanErrorDetector = cASanErrorDetector(oCdbWrapper);
@@ -324,7 +324,7 @@ class cCdbWrapper(cWithCallbacks):
         "%s Debugging Tools for Windows cdb.exe file %s not found" % (oCdbWrapper.sCdbISA, oCdbBinaryFile.sPath);
     # We first start a utility process that we can use to trigger breakpoints in, so we can distinguish them from
     # breakpoints triggered in the target application. For this we'll start a copy of cdb.exe, suspended, since we
-    # alreadyknow the path to the binary. We do not need to provide any arguments since the application will be
+    # already know the path to the binary. We do not need to provide any arguments since the application will be
     # suspended and not do anything after initialization.
     oCdbWrapper.fLogMessage("Starting utility process...");
     oCdbWrapper.oUtilityProcess = cProcess.foCreateForBinaryPath(
@@ -343,7 +343,7 @@ class cCdbWrapper(cWithCallbacks):
     else:
       assert oCdbWrapper.auApplicationProcessIds, \
           "Must start a process or attach to one";
-    # Get the command line arguments for cdbe.exe
+    # Get the command line arguments for cdb.exe
     # Construct the cdb symbol path if one is needed and add it as an argument.
     if oCdbWrapper.bDoNotLoadSymbols:
       s0SymbolsPath = None;  

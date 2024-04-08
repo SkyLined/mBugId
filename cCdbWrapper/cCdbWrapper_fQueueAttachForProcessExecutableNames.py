@@ -1,5 +1,3 @@
-import re;
-
 from mWindowsAPI import fds0GetProcessesExecutableName_by_uId;
 
 def cCdbWrapper_fQueueAttachForProcessExecutableNames(oCdbWrapper, *asExecutableNames):

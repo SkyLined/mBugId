@@ -1,7 +1,16 @@
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
 from mWindowsAPI import cVirtualAllocation;
-from mWindowsSDK import *;
+from mWindowsSDK import (
+  PAGE_NOACCESS,
+  PAGE_READONLY,
+  PAGE_READWRITE,
+  PAGE_WRITECOPY,
+  PAGE_EXECUTE,
+  PAGE_EXECUTE_READ,
+  PAGE_EXECUTE_READWRITE,
+  PAGE_EXECUTE_WRITECOPY,
+);
 
 def fbUpdateReportForAllocatedPointer(
   oCdbWrapper,
@@ -15,7 +24,7 @@ def fbUpdateReportForAllocatedPointer(
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   if not oVirtualAllocation.bAllocated:
     return False;
-  # Memory is allocated in this area, but apparantly not accessible in the way the code tried to.
+  # Memory is allocated in this area, but apparently not accessible in the way the code tried to.
   if oCdbWrapper.bGenerateReportHTML:
     oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
     oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
@@ -44,10 +53,10 @@ def fbUpdateReportForAllocatedPointer(
         "A write access violation in writable memory should not be possible";
   elif sViolationTypeId == "R":
     assert not oVirtualAllocation.bReadable or oVirtualAllocation.bGuard, \
-        "A read access violation in readble memory should not be possible";
+        "A read access violation in readable memory should not be possible";
   elif sViolationTypeId == "E":
     assert not oVirtualAllocation.bExecutable or oVirtualAllocation.bGuard, \
-        "A read access violation in readble memory should not be possible";
+        "A read access violation in readable memory should not be possible";
   oBugReport.s0BugTypeId = "AV%s:%s%s%s" % (sViolationTypeId, sMemoryProtectionsId, sBlockSizeId, sBlockOffsetId);
   oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while attempting to %s %s %s." % \
       (uAccessViolationAddress, sViolationVerb, sBlockOffsetDescription, sBlockSizeDescription);

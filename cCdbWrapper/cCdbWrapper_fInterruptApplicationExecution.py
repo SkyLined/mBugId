@@ -1,5 +1,3 @@
-import signal, time;
-
 from mWindowsAPI import fuCreateThreadForProcessIdAndAddress;
 
 def cCdbWrapper_fInterruptApplicationExecution(oCdbWrapper):

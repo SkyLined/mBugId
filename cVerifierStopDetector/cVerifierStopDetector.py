@@ -47,7 +47,7 @@ class cVerifierStopDetector(object):
     u0CorruptionAddress = None;
     
     for sbLine in asbDebugOutput[1:]:
-      # Ignore exmpty lines
+      # Ignore empty lines
       if not sbLine:
         continue;
       # Look for the first VERIFIER STOP message and gather information
@@ -167,7 +167,7 @@ class cVerifierStopDetector(object):
             o0PageHeapManagerData.uHeapBlockStartAddress == u0VerifierStopHeapBlockAddress
             and o0PageHeapManagerData.uHeapBlockSize == u0VerifierStopHeapBlockSize
         ), \
-            "Heap block deails reported by verifier differ from details found in real life.\r\n" + \
+            "Heap block details reported by verifier differ from details found in real life.\r\n" + \
             "\r\n".join(str(sb, "cp437", "replace") for sb in asbDebugOutput) + \
             "\r\n" + str(o0PageHeapManagerData);
       if gbDebugOutput: print("VERIFIER STOP: page heap manager data found.", {
@@ -205,7 +205,7 @@ class cVerifierStopDetector(object):
       # do not know exactly what is going on and what to report...
       sBugTypeId = "UnknownVerifierError%s" % sBlockSizeAndOffsetId;
       sBugDescription = "Application verifier reported a corrupt memory block, but no memory is allocated at the " \
-          "address provided. This suggests that the verfier report is incorrect. However, it is likely that the " \
+          "address provided. This suggests that the verifier report is incorrect. However, it is likely that the " \
           "application does have some kind of memory corruption bug that triggers this report, but it is unknown " \
           "what kind of bug that might be. If you can reliably reproduce this, please contact the author of BugId " \
           "so this situation can be analyzed and BugId can be improved to report something more helpful here.";
@@ -215,7 +215,7 @@ class cVerifierStopDetector(object):
       and o0PageHeapManagerData
       and o0PageHeapManagerData.uHeapBlockStartAddress != u0VerifierStopHeapBlockAddress
     ):
-      if gbDebugOutput: print("VERIFIER STOP: corrupted stamp reported indicates a misalligned free.");
+      if gbDebugOutput: print("VERIFIER STOP: corrupted stamp reported indicates a misaligned free.");
       # When the application attempts to free (heap pointer + offset), Verifier does not detect this and will assume
       # the application provided pointer is correct. This causes it to look for the start and end stamp in the wrong
       # location and report this bug as memory corruption. When the page heap data shows no signs of corruption, we

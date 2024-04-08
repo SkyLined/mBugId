@@ -1,5 +1,12 @@
-from mWindowsSDK import *;
-from mWindowsAPI import cVirtualAllocation, mDbgHelp;
+from mWindowsSDK import (
+  CHAR,
+  DWORD,
+  iStructureType32,
+  iStructureType64,
+  P32VOID,
+  P64VOID,
+);
+from mWindowsAPI import mDbgHelp;
 
 EXCEPTION_OBJECT_DESCRIPTION_1 = iStructureType32.fcCreateClass("EXCEPTION_OBJECT_DESCRIPTION_1",
   (DWORD,           "dwUnknown_1"),

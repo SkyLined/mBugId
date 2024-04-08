@@ -1,4 +1,3 @@
-import re;
 from .cBugTranslation import cBugTranslation;
 
 def fDisableDetectionOfAccessViolations(oCdbWrapper, oBugReport):

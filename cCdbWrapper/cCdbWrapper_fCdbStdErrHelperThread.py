@@ -1,4 +1,3 @@
-from ..dxConfig import dxConfig;
 from ..mCP437 import fsCP437HTMLFromString;
 
 gbDebugIO = False; # Used for debugging cdb I/O issues

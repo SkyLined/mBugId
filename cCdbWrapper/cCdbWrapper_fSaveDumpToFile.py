@@ -1,6 +1,4 @@
-from mNotProvided import *;
-
-from ..mCP437 import fsCP437FromBytesString;
+from mNotProvided import fAssertType;
 
 def cCdbWrapper_fSaveDumpToFile(oCdbWrapper, sFilePath, bOverwrite, bFull):
   fAssertType("sFilePath", sFilePath, str);

@@ -50,7 +50,7 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # If the output contains more than one line, it must be caused by symbol loading; try again.
   assert len(asbSymbolOutput) == 1, \
       "Invalid symbol output:\n%s" % "\n".join(repr(sbLine) for sbLine in asbSymbolOutput);
-  # If there is no symbol at the addres, only the address will be output; return None:
+  # If there is no symbol at the address, only the address will be output; return None:
   if grbAddress.match(asbSymbolOutput[0]) and fu0ValueFromCdbHexOutput(asbSymbolOutput[0]) == uAddress:
     return None;
   oSymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);

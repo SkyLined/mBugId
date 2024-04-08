@@ -65,7 +65,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       sbCommand = b".prompt_allow +dis +ea;",
       sb0Comment = b"Enable disassembly and address in cdb prompt",
     );
-    # Do this twice in case the first time requires loading symbols, which can output junk that makes parsing ouput difficult.
+    # Do this twice in case the first time requires loading symbols, which can output junk that makes parsing output difficult.
     oProcess.fasbExecuteCdbCommand( \
       sbCommand = b"~s;",
       sb0Comment = b"Show disassembly and optional symbol loading stuff",
@@ -97,7 +97,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
     obInstructionPointerDoesNotPointToAllocatedMemoryMatch = \
         grbInstructionPointerDoesNotPointToAllocatedMemory.match(asbLastInstructionAndAddress[0]);
     if obInstructionPointerDoesNotPointToAllocatedMemoryMatch:
-      if gbDebugOutput: print("AV Instruction not in allocationed memory => AVE");
+      if gbDebugOutput: print("AV Instruction not in allocated memory => AVE");
       # "00000000`7fffffff ??              ???"
       #  ^^^^^^^^^^^^^^^^^-- address
       sbAddress = obInstructionPointerDoesNotPointToAllocatedMemoryMatch.group(1);
@@ -111,19 +111,19 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
           obLastInstructionMatch.groups();
       asbOperands = sbOperands.split(b",");
       if sbAddress3:
-        if gbDebugOutput: print("AV Instruction reports call/jmp destination not in allocationed memory => AVE");
+        if gbDebugOutput: print("AV Instruction reports call/jmp destination not in allocated memory => AVE");
         sbAddress = sbAddress3;
         sViolationTypeId = "E";
       else:
         sbAddress = sbAddress1 or sbAddress2;
         if sbInstruction in [b"dec", b"inc", b"neg", b"not", b"shl", b"shr"]:
-          # These instructions always read and then write to memory. We clasify
+          # These instructions always read and then write to memory. We classify
           # this as a write AV even if the address does not reference readable
           # memory, in which case the AV was actually caused by the read.
           sViolationTypeId = "W";
           if gbDebugOutput: print("AV Instruction always writes to memory => AVW");
         elif sbInstruction in [b"call", b"cmp", b"idiv", b"imul", b"jmp", b"test"]:
-          # These instrtcutions cannot write to memory, so this must be a read AV.
+          # These instructions cannot write to memory, so this must be a read AV.
           sViolationTypeId = "R";
           if gbDebugOutput: print("AV Instruction cannot write to memory => AVR");
         elif sbInstruction in [b"add", b"and", b"mov", b"movsx", b"movzx", b"or", b"sub", b"xor"]:
@@ -136,10 +136,10 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
             sViolationTypeId,
           ));
         else:
-          if gbDebugOutput: print("AV Instruction %s not handlded => AV?" % repr(sbInstruction));
+          if gbDebugOutput: print("AV Instruction %s not handled => AV?" % repr(sbInstruction));
           # TODO: parse more instructions.
           sViolationTypeId = "?";
-          sViolationTypeNotes = " (the type of accesss must be read or write, but cannot be determined)";
+          sViolationTypeNotes = " (the type of access must be read or write, but cannot be determined)";
     uAccessViolationAddress = fu0ValueFromCdbHexOutput(sbAddress);
   oBugReport.atxMemoryRemarks.append(("Access violation", uAccessViolationAddress, None)); # TODO Find out size of access
   

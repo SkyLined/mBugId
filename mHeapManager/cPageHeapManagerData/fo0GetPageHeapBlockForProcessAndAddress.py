@@ -1,7 +1,9 @@
 from mWindowsAPI import cVirtualAllocation, fsHexNumber;
 
-from .mPageHeapStructuresAndStaticValues import \
-  DPH_HEAP_BLOCK32, DPH_HEAP_BLOCK64;
+from .mPageHeapStructuresAndStaticValues import (
+  DPH_HEAP_BLOCK32,
+  DPH_HEAP_BLOCK64,
+);
 
 def fo0GetPageHeapBlockForProcessAndAddress(oProcess, uPageHeapBlockStartAddress, bDebugOutput = False):
   # DPH_HEAP_BLOCK structures are stored sequentially in a virtual allocation.

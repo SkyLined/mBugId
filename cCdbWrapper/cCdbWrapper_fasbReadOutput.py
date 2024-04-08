@@ -75,10 +75,10 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
   bIgnoreOutput = False,
   sb0StartOfCommandOutputMarker = None, # Every command is preceded and followed by commands that outputs marker strings.
   sb0EndOfCommandOutputMarker = None,   # These are used to detect where the output of the cdb command starts in cases
-                                       # where the application has output something out of sync. The applications output
-                                       # should either precede or follow the command output markers. This allowing us
-                                       # to ignore the application output and only return the command output to the
-                                       # caller.
+                                        # where the application has output something out of sync. The applications output
+                                        # should either precede or follow the command output markers. This allowing us
+                                        # to ignore the application output and only return the command output to the
+                                        # caller.
 ):
   if bIgnoreOutput:
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and dxConfig["bShowAllCdbCommandsInReport"];

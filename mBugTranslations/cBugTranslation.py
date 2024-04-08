@@ -1,6 +1,10 @@
 import re;
 
-from mNotProvided import *;
+from mNotProvided import (
+  fAssertType,
+  fbIsProvided,
+  zNotProvided,
+);
 
 # local imports are at the end of this file to avoid import loops.
 
@@ -198,9 +202,9 @@ class cBugTranslation(object):
     if oSelf.f0Callback:
       if oSelf.bDebug:
         oCdbWrapper.fbFireCallbacks("Log message", "Running bug call back %s @ %s line %s" % (
-          f0Callback.__code__.co_name,
-          f0Callback.__code__.co_filename,
-          f0Callback.__code__.co_firstlineno,
+          oSelf.f0Callback.__code__.co_name,
+          oSelf.f0Callback.__code__.co_filename,
+          oSelf.f0Callback.__code__.co_firstlineno,
         ));
       oSelf.f0Callback(oCdbWrapper, oBugReport);
     return bTranslated;

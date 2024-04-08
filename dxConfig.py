@@ -43,7 +43,7 @@ dxConfig = {
   "uDisassemblyInstructionsAfter": 0x20, # How many instructions to disassemble after the current instruction or the
                                         # return address of the stack frame.
   "uDisassemblyAlignmentBytes": 10,     # How many instructions to start disassembling before an address in order to
-                                        # make sure we don't start diassembling in the middle of the instruction that
+                                        # make sure we don't start disassembling in the middle of the instruction that
                                         # at that address.
   "uDisassemblyAverageInstructionSize": 4, # Use to guess how many bytes to disassemble to get the requested number of
                                         # instructions
@@ -52,7 +52,7 @@ dxConfig = {
                                         # is the average instruction size provided, and C is the number of alignment
                                         # bytes (only used for the "before" instructions, it's 0 for "after"). If
                                         # uDisassemblyAlignmentBytes is too small, the first instruction you see may
-                                        # not be an instruction that will ever get executed, as disassembly happed in
+                                        # not be an instruction that will ever get executed, as disassembly happened in
                                         # the middle of the "real" instruction. If uDisassemblyAverageInstructionSize
                                         # is too small, you may see less instructions than requested when not enough
                                         # bytes get disassembled to get the requested number of instructions. If the
@@ -67,7 +67,7 @@ dxConfig = {
                                         # large that it causes a "Range error" in cdb. e.g. attempting to dump 0x6034C
                                         # pointers will fail. I've set a reasonable default, feel free to experiment.
   ### HTML Report Stack settings
-  "uMaxStackFramesCount": 100,          # How many stack frames are retreived for analysis?
+  "uMaxStackFramesCount": 100,          # How many stack frames are retrieved for analysis?
   "uMinStackRecursionLoops": 3,         # How many recursive functions call loops are needed to assume a stack overflow
                                         # is caused by such a loop?
   "uMaxStackRecursionLoopSize": 100,    # The maximum number of functions expected to be in a loop (less increases
@@ -155,7 +155,7 @@ dxConfig = {
                                         # Only really useful when tracking down an internal BugId error.
   "bShowInformativeCdbCommandsInReport": False, # Set to True to see the most informative commands that are executed in
                                         # cdb by BugId and the output returned by them. This includes commands that are
-                                        # executed to gather information about exceptions, memory contents, disassebly,
+                                        # executed to gather information about exceptions, memory contents, disassembly,
                                         # the binaries, etc. This can be useful if you are not getting enough
                                         # information from the information BugId gathers in a report by default.
                                         # Set to False to see only cdb output returned while running the application
@@ -181,5 +181,5 @@ dxConfig = {
                                         # found to be a bug. If the memory limits applied to the application and/or
                                         # its processes do not prevent a system-wide low-memory situation, this may
                                         # allow BugId to continue operating as expected.
-  "auCollateralPoisonValues": [],       # Values to be used in fake "read" operations for colleteral bug reports.
+  "auCollateralPoisonValues": [],       # Values to be used in fake "read" operations for collateral bug reports.
 };

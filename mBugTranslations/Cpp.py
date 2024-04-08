@@ -1,4 +1,3 @@
-import re;
 from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
@@ -16,7 +15,7 @@ aoBugTranslations = [
       rb".*!malloc",
     ],
     s0zTranslatedBugTypeId = "OOM",
-    s0zTranslatedBugDescription = "The application triggered abreakpoint exception to indicate it was unable to allocate enough memory.",
+    s0zTranslatedBugDescription = "The application triggered a breakpoint exception to indicate it was unable to allocate enough memory.",
     s0zTranslatedSecurityImpact = None,
   ),
   # C++:std::bad_alloc -> OOM

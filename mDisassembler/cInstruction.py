@@ -1,5 +1,3 @@
-import re;
-
 from mNotProvided import fAssertType, fAssertTypes;
 from mWindowsAPI import fsHexNumber;
 

@@ -1,4 +1,4 @@
-import os, re;
+import os;
 
 from mWindowsAPI import fsHexNumber;
 
@@ -66,7 +66,7 @@ class cModule(object):
           "Cannot get any symbol for %s" % oSelf;
       asbModuleAndSymbol = sb0FirstSymbolInModule.split(b"!", 1);
       assert len(asbModuleAndSymbol) == 2, \
-          "Unepxected symbol format: %s for %s at 0x%X" % (
+          "Unexpected symbol format: %s for %s at 0x%X" % (
             repr(sb0FirstSymbolInModule)[1:],
             oSelf.s0BinaryPath or "<unknown>",
             oSelf.uStartAddress,

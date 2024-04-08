@@ -149,7 +149,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
 #    print "@@@ u0InstructionPointer == None";
     oCdbWrapper.fFireCallbacks(
       "Bug cannot be ignored", 
-      "the instruction pointer for this thread could not be retreived"
+      "the instruction pointer for this thread could not be retrieved"
     );
     return False;
   uInstructionPointerValue = u0InstructionPointerValue;
@@ -170,7 +170,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
     # The instruction pointer does not point to valid memory.
     oCdbWrapper.fFireCallbacks(
       "Bug cannot be ignored", 
-      "the disassembly of the code being executed could not be retreived"
+      "the disassembly of the code being executed could not be retrieved"
     );
     return False;
   oCurrentInstruction = o0CurrentInstruction;
@@ -312,7 +312,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
       # This is either a single argument instruction like inc, where source == destination
       # or an instruction that reads from and writes to memory. The last case means that
       # either the source, or the destination, or both could have cause the AV. That is a
-      # situation that we currenly do not handle:
+      # situation that we currently do not handle:
       if sbDestinationArgument != sbSourceArgument:
         oCdbWrapper.fFireCallbacks(
           "Bug cannot be ignored", 

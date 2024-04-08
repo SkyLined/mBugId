@@ -2,7 +2,6 @@ import re, time;
 
 from mWindowsAPI import cJobObject;
 
-from ..dxConfig import dxConfig;
 from ..fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from ..mCP437 import fsCP437FromBytesString;
 
@@ -140,5 +139,5 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     bIgnoreOutput = True,
     bUseMarkers = False
   );
-  # The above should raise a cCdbTerminedException, so the below should not be reached.
+  # The above should raise a cCdbTerminatedException, so the below should not be reached.
   raise AssertionError("Cdb failed to terminate after sending 'q' command");

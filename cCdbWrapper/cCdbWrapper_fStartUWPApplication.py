@@ -1,6 +1,4 @@
-from mNotProvided import *;
-
-from ..mCP437 import fsCP437FromBytesString;
+from mNotProvided import fAssertType;
 
 def cCdbWrapper_fStartUWPApplication(oCdbWrapper, oUWPApplication, sb0Argument):
   fAssertType("sb0Argument", sb0Argument, bytes, None);

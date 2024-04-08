@@ -77,7 +77,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   asStackIds = [oStackFrame.sId for oStackFrame in aoStackFramesPartOfId];
   oBugReport.s0UniqueStackId = ".".join(asStackIds);
   if len(asStackIds) > dxConfig["uStackHashFramesCount"]:
-    # There are too many stack hashes: concatinate all excessive hashes togerther with the last non-excessive one and
+    # There are too many stack hashes: concatenate all excessive hashes together with the last non-excessive one and
     # hash them again. This new has replaces them, bringing the number of hashes down to the maximum number. The last
     # hash is effectively a combination of all these hashes, guaranteeing a certain level of uniqueness.
     oHasher = hashlib.md5();
@@ -90,7 +90,7 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   if aoStackFramesPartOfId:
     oTopIdStackFrame = aoStackFramesPartOfId[0];
     if oTopIdStackFrame.sb0SimplifiedAddress:
-      # We can use the top stack frame for the bug locaiton.
+      # We can use the top stack frame for the bug location.
       oBugReport.s0BugLocation = "%s%s" % (
         # We need to add the process binary only if it is not the same as the module binary for the function in which
         # the bug happened (i.e. `binary.exe!kernel32.dll!function`)

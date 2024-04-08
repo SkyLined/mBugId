@@ -162,7 +162,7 @@ class cPageHeapManagerData(iHeapManagerData):
     uCorruptionLength = oSelf.__uCorruptionEndAddress - oSelf.__uCorruptionStartAddress;
     sId = "%s~%s" % (sCorruptionOffsetId, fsGetNumberDescription(uCorruptionLength));
     # Only hash the chars when the bugid is not architecture independent, as different architectures may result in
-    # different sixed corruptions, which we can compensate for in the length, but not in the hash.
+    # different sized corruptions, which we can compensate for in the length, but not in the hash.
     if dxConfig["uArchitectureIndependentBugIdBits"] == 0 and dxConfig["uHeapCorruptedBytesHashChars"]:
       oHasher = hashlib.md5();
       uAddress = oSelf.__uCorruptionStartAddress;
@@ -237,7 +237,7 @@ class cPageHeapManagerData(iHeapManagerData):
       ];
     for (uAddress, uCorruptedByte) in oSelf.__d0uCorruptedByte_by_uAddress.items():
       atxMemoryRemarks += [
-       ("Corrupted (should be %02X)" % uCorruptedByte, uAddress, None)
+        ("Corrupted (should be %02X)" % uCorruptedByte, uAddress, None)
       ];
     return atxMemoryRemarks;
   
@@ -291,7 +291,7 @@ class cPageHeapManagerData(iHeapManagerData):
   def __fDetectCorruption(oSelf):
     oSelf.__d0uCorruptedByte_by_uAddress = {};
     if not oSelf.oHeapBlockVirtualAllocation.bAllocated or oSelf.o0HeapBlockHeader is None:
-      if gbDebugOutput and oSelf.o0HeapBlockHeader is None: print("Corruption cannnot be detected because heap block header was not found");
+      if gbDebugOutput and oSelf.o0HeapBlockHeader is None: print("Corruption cannot be detected because heap block header was not found");
       # The heap block has been freed; we cannot detect corruption.
       oSelf.__uMemoryDumpStartAddress = None;
       oSelf.__uMemoryDumpEndAddress = None;

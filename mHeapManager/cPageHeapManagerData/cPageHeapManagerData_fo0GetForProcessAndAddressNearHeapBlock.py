@@ -6,8 +6,10 @@ from .fo0GetPageHeapBlockForProcessAndAddress import \
     fo0GetPageHeapBlockForProcessAndAddress;
 from .fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock import \
     fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock;
-from .mPageHeapStructuresAndStaticValues import \
-  DPH_BLOCK_INFORMATION32, DPH_BLOCK_INFORMATION64;
+from .mPageHeapStructuresAndStaticValues import (
+  DPH_BLOCK_INFORMATION32,
+  DPH_BLOCK_INFORMATION64,
+);
 
 def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
   cClass,
@@ -33,7 +35,7 @@ def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
         fsHexNumber(uAddressNearHeapBlock),
       ),
     );
-    return None; # Cannot find any cirtual allocation near the address.
+    return None; # Cannot find any virtual allocation near the address.
   oVirtualAllocationAtAddressNearHeapBlock = o0VirtualAllocationAtAddressNearHeapBlock;
   if oVirtualAllocationAtAddressNearHeapBlock.bReserved:
     # Let's assume this is an OOB read/write into a reserved allocation following a buffer.

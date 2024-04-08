@@ -1,4 +1,4 @@
-from mWindowsSDK import ERROR_INVALID_NAME, fsGetWin32ErrorCodeDescription;
+from mWindowsSDK import fsGetWin32ErrorCodeDescription;
 from mWindowsAPI import cConsoleProcess, fsGetISAForProcessId;
 
 __gauProcessesThatShouldBeResumedAfterAttaching = [];

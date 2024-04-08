@@ -281,7 +281,7 @@ class cExcessiveCPUUsageDetector(object):
     uInstructionPointer = u0InstructionPointer;
     uStackPointer = u0StackPointer;
 # Ideally, we'de use the return address here but for some unknown reason cdb may not give a valid value at this point.
-# However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return addres will be
+# However, we can use the instruction pointer to set our first breakpoint and when it is hit, the return address will be
 # correct... sigh.
 #    uReturnAddress = oSelf.oWormProcess.fuGetValueForRegister(b"$ra", b"Get return address");
     uBreakpointAddress = uInstructionPointer; # uReturnAddress would be preferred.
@@ -326,7 +326,7 @@ class cExcessiveCPUUsageDetector(object):
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
           (oSelf.uNextBreakpointAddress, uInstructionPointer);
       # The code we're expecting to return to may actually be *called* in recursive code. We can detect this by checking
-      # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
+      # if the stack pointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer <= oSelf.uLastStackPointer:
         oSelf.fWormDebugOutput(
           b"Ignored breakpoint at IP=%p, SP=%p: SP but must be >%p",
@@ -346,7 +346,7 @@ class cExcessiveCPUUsageDetector(object):
           b"Moving from IP=%p, SP=%p to IP=%p, SP=%p, by creating a new breakpoint...",
           uInstructionPointer, oSelf.uLastStackPointer, uReturnAddress, uStackPointer,
         );
-        # Try to move the breakpoint to the return addess:
+        # Try to move the breakpoint to the return address:
         uNewWormBreakpointId = oCdbWrapper.fuAddBreakpointForProcessIdAndAddress(
           uProcessId = oSelf.uProcessId,
           uAddress = uReturnAddress,
@@ -417,7 +417,7 @@ class cExcessiveCPUUsageDetector(object):
       );
       oSelf.uNextBreakpointAddress = oSelf.uLastInstructionPointer;
       assert oSelf.uBugBreakpointId is not None, \
-         "Could not set breakpoint at 0x%X" % oSelf.uLastInstructionPointer;
+          "Could not set breakpoint at 0x%X" % oSelf.uLastInstructionPointer;
     finally:
       oSelf.oLock.fRelease();
   
@@ -441,7 +441,7 @@ class cExcessiveCPUUsageDetector(object):
           "Expected to hit breakpoint at 0x%X, but got 0x%X instead !?" % \
           (oSelf.uNextBreakpointAddress, uInstructionPointer);
       # The code we're expecting to return to may actually be *called* in recursive code. We can detect this by checking
-      # if the stackpointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
+      # if the stack pointer has increased or not. If not, we have not yet returned and will ignore this breakpoint.
       if uStackPointer < oSelf.uLastStackPointer:
         oSelf.fWormDebugOutput(
           b"Ignored bug breakpoint at IP=%p, SP=%p: SP but must be >=%p",

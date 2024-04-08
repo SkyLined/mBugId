@@ -1,7 +1,4 @@
-import time, threading;
-
-from mWindowsAPI import *;
-from mWindowsSDK import *;
+from mWindowsSDK import STATUS_PROCESS_IS_TERMINATING;
 
 def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
   # wait for debugger thread to terminate.
@@ -18,7 +15,7 @@ def cCdbWrapper_fCleanupHelperThread(oCdbWrapper):
   if oCdbWrapper.oUtilityProcess and oCdbWrapper.oUtilityProcess.bIsRunning:
     oCdbWrapper.fbFireCallbacks("Log message", "Terminating utility process...");
     if oCdbWrapper.oUtilityProcess.fbTerminate():
-      oCdbWrapper.fbFireCallbacks("Log message", "Utility process termimated.");
+      oCdbWrapper.fbFireCallbacks("Log message", "Utility process terminated.");
   # wait for stderr thread to terminate.
   oCdbWrapper.oCdbStdErrHelperThread.fWait();
   oCdbWrapper.fbFireCallbacks("Log message", "cdb stderr closed");

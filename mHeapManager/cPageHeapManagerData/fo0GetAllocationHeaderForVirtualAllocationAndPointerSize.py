@@ -1,8 +1,10 @@
 from mWindowsAPI import fsHexNumber;
 
-from .mPageHeapStructuresAndStaticValues import \
-  DPH_ALLOCATION_HEADER32, DPH_ALLOCATION_HEADER64, \
-  auValidPageHeapAllocationHeaderMarkers;
+from .mPageHeapStructuresAndStaticValues import (
+  DPH_ALLOCATION_HEADER32,
+  DPH_ALLOCATION_HEADER64,
+  auValidPageHeapAllocationHeaderMarkers,
+);
 
 def fo0GetAllocationHeaderForVirtualAllocationAndPointerSize(oHeapBlockVirtualAllocation, uPointerSize, bDebugOutput):
   assert oHeapBlockVirtualAllocation.bAllocated, \

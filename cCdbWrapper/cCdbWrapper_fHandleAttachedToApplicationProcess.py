@@ -1,4 +1,3 @@
-from ..cProcess import cProcess;
 from ..dxConfig import dxConfig;
 
 def cCdbWrapper_fHandleAttachedToApplicationProcess(oCdbWrapper):

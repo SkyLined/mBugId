@@ -1,10 +1,8 @@
 import re;
 
 from mWindowsAPI import cVirtualAllocation, oSystemInfo;
-from mWindowsSDK import *;
 
 from ..dxConfig import dxConfig;
-from ..mCP437 import fsCP437FromBytesString;
 
 from .cCollateralBugHandler_fbIgnoreAccessViolationException import \
     cCollateralBugHandler_fbIgnoreAccessViolationException;

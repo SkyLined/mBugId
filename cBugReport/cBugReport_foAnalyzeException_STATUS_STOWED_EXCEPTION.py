@@ -1,5 +1,4 @@
 from ..cStowedException import cStowedException;
-#from cStack import cStack;
 
 def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, oWindowsAPIThread, oException):
   # Parameter[0] = paStowedExceptionInformationArray;

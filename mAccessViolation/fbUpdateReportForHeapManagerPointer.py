@@ -32,7 +32,7 @@ def fbUpdateReportForHeapManagerPointer(
       # if this does not cause the memory dump to become too large.
       if uMemoryDumpSize + uPostFix < 0x1000:
         uMemoryDumpSize += uPostFix;
-    # Check if we're not trying to dump a rediculous amount of memory:
+    # Check if we're not trying to dump a ridiculous amount of memory:
     # Clamp start and end address
     uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
       uAccessViolationAddress, oHeapManagerData.uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize
@@ -104,7 +104,7 @@ def fbUpdateReportForHeapManagerPointer(
     else:
       sCorruptionId = "";
       # --- OOB ---------------------------------------------------------------------
-      # An out-of-bounds read on a heap block that is allocated and has padding that happens in or immedaitely after this 
+      # An out-of-bounds read on a heap block that is allocated and has padding that happens in or immediately after this 
       # padding could be the result of a sequential read where earlier out-of-bound reads of (parts of) this padding did
       # not trigger an access violation:
       if sViolationTypeId == "R" \

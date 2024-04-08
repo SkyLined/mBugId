@@ -47,7 +47,7 @@ class cProcess(object):
     # Process Information is only determined when needed and cached.
     oSelf.__oWindowsAPIProcess = None; 
     
-    # Symbols and heap manager data for addressess will be cached here. They are discarded whenever the application is resumed.
+    # Symbols and heap manager data for addresses will be cached here. They are discarded whenever the application is resumed.
     oSelf.bSymbolsLoaded = False;
     oSelf.__dsb0Symbol_by_uAddress = {};
     oSelf.__do0HeapManagerData_by_uAddressNearHeapBlock = {};
@@ -129,7 +129,7 @@ class cProcess(object):
         o0Module,
       ));
     assert o0Module.sbCdbId == sbCdbId, \
-        "cdbid mismatch: %s => %s => %s" % (
+        "cdb id mismatch: %s => %s => %s" % (
           repr(sbCdbId)[1:],
           fsHexNumber(u0StartAddress),
           o0Module,

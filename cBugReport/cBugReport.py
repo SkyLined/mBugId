@@ -1,24 +1,28 @@
 import re;
 
 from mWindowsAPI import fsHexNumber;
-from mWindowsSDK import \
-  CPP_EXCEPTION_CODE, \
-  STATUS_ACCESS_VIOLATION, \
-  STATUS_BREAKPOINT, \
-  STATUS_FAIL_FAST_EXCEPTION, \
-  STATUS_FAILFAST_OOM_EXCEPTION, \
-  STATUS_GUARD_PAGE_VIOLATION, \
-  STATUS_ILLEGAL_INSTRUCTION, \
-  STATUS_INTEGER_DIVIDE_BY_ZERO, \
-  STATUS_INTEGER_OVERFLOW, \
-  STATUS_PRIVILEGED_INSTRUCTION, \
-  STATUS_SINGLE_STEP, \
-  STATUS_STACK_BUFFER_OVERRUN, \
-  STATUS_STACK_OVERFLOW, \
-  STATUS_STOWED_EXCEPTION, \
-  WRT_ORIGINATE_ERROR_EXCEPTION;
+from mWindowsSDK import (
+  CPP_EXCEPTION_CODE,
+  STATUS_ACCESS_VIOLATION,
+  STATUS_BREAKPOINT,
+  STATUS_FAIL_FAST_EXCEPTION,
+  STATUS_FAILFAST_OOM_EXCEPTION,
+  STATUS_GUARD_PAGE_VIOLATION,
+  STATUS_ILLEGAL_INSTRUCTION,
+  STATUS_INTEGER_DIVIDE_BY_ZERO,
+  STATUS_INTEGER_OVERFLOW,
+  STATUS_PRIVILEGED_INSTRUCTION,
+  STATUS_SINGLE_STEP,
+  STATUS_STACK_BUFFER_OVERRUN,
+  STATUS_STACK_OVERFLOW,
+  STATUS_STOWED_EXCEPTION,
+  WRT_ORIGINATE_ERROR_EXCEPTION,
+);
 
-from mNotProvided import fxGetFirstProvidedValue, zNotProvided;
+from mNotProvided import (
+  fxGetFirstProvidedValue,
+  zNotProvided,
+);
 
 from .cBugReport_foAnalyzeException_Cpp import cBugReport_foAnalyzeException_Cpp;
 from .cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION import cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION;
@@ -357,7 +361,7 @@ class cBugReport(object):
               "<tr><td>Source: </td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.sBugSourceLocation)
                   if oSelf.sBugSourceLocation else
               "<!-- Source code informationn not available -->"
-             ),
+            ),
             "sOptionalInstruction": (
               "<tr><td>Instruction: </td><td>%s</td></tr>" % fsCP437HTMLFromString(oSelf.s0Instruction)
                   if oSelf.s0Instruction else

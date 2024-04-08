@@ -2,9 +2,9 @@ from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..dxConfig import dxConfig;
 
 gddtsDetails_uSpecialAddress_sISA = {
-  # There are a number of values that are very close to eachother, and because an offset is likely to be added when
+  # There are a number of values that are very close to each other, and because an offset is likely to be added when
   # reading using a pointer, having all of them here does not offer extra information. So, I've limited it to values
-  # that are sufficiently far away from eachother to be recognisable after adding offsets.
+  # that are sufficiently far away from each other to be recognizable after adding offsets.
   "x86": {              # Id                      Description                                           Security impact
             # https://en.wikipedia.org/wiki/Magic_number_(programming)#Magic_debug_values
             0xA0A0A0A0: ("PoisonOOB",             "a pointer read from an out-of-bounds memory canary", "Potentially exploitable security issue"),

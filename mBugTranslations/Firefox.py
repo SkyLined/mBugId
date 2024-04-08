@@ -1,8 +1,7 @@
-import re;
 from .cBugTranslation import cBugTranslation;
 
 aoBugTranslations = [
-  # Breakpoint -> hide irrelevent stack frames
+  # Breakpoint -> hide irrelevant stack frames
   cBugTranslation(
     azs0rbAdditionalIrrelevantStackFrameSymbols = [
       rb"(mozglue|xul)\.dll!Abort",

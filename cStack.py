@@ -15,9 +15,9 @@ grbIgnoredWarningsAndErrors = re.compile(
 grb_dps_StackOutputLine = re.compile(
   rb"\A\s*"                                 # optional whitespace
   rb"[0-9A-F`]+"                            #   stack_address
-  rb"\s+"                                   # whilespace
+  rb"\s+"                                   # whitespace
   rb"([0-9A-F`]+)"                          #   **return_address**
-  rb"\s+"                                   # whilespace
+  rb"\s+"                                   # whitespace
   rb"(.+?)"                                 # **symbol_or_address**
   rb"(?:"                                   # optional {
     rb"\s+"                                 #   whitespace
@@ -32,12 +32,12 @@ grb_dps_StackOutputLine = re.compile(
 grb_kn_StackOutputHeaderLine = re.compile(
   rb"\A\s*"                                 # optional whitespace
   rb"#"                                     # "#"
-  rb"\s+"                                   # whilespace
+  rb"\s+"                                   # whitespace
   rb"Child(?:EBP|\-SP)"                     # "ChildEBP" or "Child-SP"
-  rb"\s+"                                   # whilespace
+  rb"\s+"                                   # whitespace
   rb"RetAddr"                               # "RetAddr"
   rb"(?:"                                    # optional {
-    rb"\s+"                                 #   whilespace
+    rb"\s+"                                 #   whitespace
     rb"Call Site"                           #   "Call Site"
   rb")?"                                    # }
   rb"\s*\Z"                                 # optional whitespace
@@ -45,7 +45,7 @@ grb_kn_StackOutputHeaderLine = re.compile(
 grb_kn_StackOutputLine = re.compile(
   rb"\A\s*"                                 # optional whitespace
   rb"[0-9a-f]+"                             # frame_number
-  rb"\s+"                                   # whilespace
+  rb"\s+"                                   # whitespace
   rb"(?:"                                   # either {
     rb"[0-9a-f`]+"                          #   **stack_address**
     rb"\s+"                                 #   whitespace
@@ -70,7 +70,7 @@ grb_kn_StackOutputLine = re.compile(
 
 # Windows loads kernel32 and ntdll and they do some thread initialization. These
 # functions are hidden on the stack because they are unlikely to be relevant:
-rbOSThreadInitialisationSymbols = re.compile(
+rbOSThreadInitializationSymbols = re.compile(
   rb"\A("
     rb"kernel32\.dll!BaseThreadInitThunk"
   rb"|"
@@ -83,7 +83,7 @@ rbOSThreadInitialisationSymbols = re.compile(
 # are implemented in the main binary for the process, so we check that first
 # and then match their function names. If found they are hidden on the stack
 # because they are unlikely to be relevant:
-rbCRTThreadInitialisationFunctionSymbols = re.compile(
+rbCRTThreadInitializationFunctionSymbols = re.compile(
   rb"\A("
     rb"__scrt_common_main_seh"
   rb"|"
@@ -132,11 +132,11 @@ class cStack(object):
         oStackFrame.s0IsHiddenBecause = "Address 0x%X is not in executable memory" % oStackFrame.u0Address;
     # Hide stack frames that are part of the thread initialization code.
     if oStackFrame.o0Function and oStackFrame.o0Function.oModule.sb0SimplifiedName:
-      if rbOSThreadInitialisationSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
+      if rbOSThreadInitializationSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
         oStackFrame.s0IsHiddenBecause = "Part of OS thread initialization code";
       elif rbMitigationFunctionSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
         oStackFrame.s0IsHiddenBecause = "Part of OS vulnerability mitigation code";
-      elif oStackFrame.o0Function.oModule == oProcess.oMainModule and rbCRTThreadInitialisationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
+      elif oStackFrame.o0Function.oModule == oProcess.oMainModule and rbCRTThreadInitializationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
         oStackFrame.s0IsHiddenBecause = "Part of CRT thread initialization code";
     oSelf.aoFrames.append(oStackFrame);
     return oStackFrame;
@@ -274,7 +274,7 @@ class cStack(object):
       # frame will have a function address that is the same as this return address. The bogus frame will have the
       # correct return address for the incorrect frame.
       # We will try to detect the bogus frame, then copy relevant information from the incorrect frame and delete it
-      # to create a new frame that hase the combined correct information from both.
+      # to create a new frame that has the combined correct information from both.
       if (
         u0Address # This frame's function does not point to a symbol, but an address (potentially the stack)
         and oStack.aoFrames # This is not the first frame.

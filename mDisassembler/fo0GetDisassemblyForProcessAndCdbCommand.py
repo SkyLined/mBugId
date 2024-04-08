@@ -99,7 +99,7 @@ def fo0GetDisassemblyForProcessAndCdbCommand(
       else:
         ob0InstructionMatch = grbInstructionDisassemblyLine.match(sbDisassemblyOutputLine);
         assert ob0InstructionMatch, \
-            "Unrecognised instruction disassembly line:\r\n%s" % sbDisassemblyOutputLine;
+            "Unrecognized instruction disassembly line:\r\n%s" % sbDisassemblyOutputLine;
         # Grab info from current instruction (name and arguments):
         (sbAddress, sbHexBytes, sbName, sb0Arguments) = ob0InstructionMatch.groups();
         uAddress = fu0ValueFromCdbHexOutput(sbAddress);
