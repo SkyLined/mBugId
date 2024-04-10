@@ -44,5 +44,4 @@ tokenize
 traceback
 urllib
 uuid
-warnings
 weakref
