@@ -9,10 +9,10 @@ def fShowHelp(oConsole):
   oConsole.fOutput(" ", "Select an Instruction Set Architecture to run tests for.");
   oConsole.fOutput(" ", "Valid values: ", INFO, "x86", NORMAL, " and ", INFO, "x64", NORMAL, ".");
   oConsole.fOutput(" ", INFO, "test command line arguments", NORMAL, " (optional)");
-  oConsole.fOutput(" ", "Provide command line arguments to pass to Tests\bin\Tests_*.exe.");
+  oConsole.fOutput(" ", "Provide command line arguments to pass to Tests\\bin\\Tests_*.exe.");
   oConsole.fOutput(" ", "If provided, a single test is run with the given command line arguments,");
   oConsole.fOutput(" ", "instead of the normal test suit.");
-  oConsole.fOutput(" ", "(Run ", INFO, "Tests\bin\Tests_*.exe --help", NORMAL, " for more details)");
+  oConsole.fOutput(" ", "(Run ", INFO, "Tests\\bin\\Tests_*.exe --help", NORMAL, " for more details)");
   oConsole.fOutput(" ", "Valid values: ", INFO, "x86", NORMAL, " and ", INFO, "x64", NORMAL, ".");
   oConsole.fOutput("Arguments:");
   oConsole.fOutput(" ", INFO, "--quick");
