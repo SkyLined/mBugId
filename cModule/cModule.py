@@ -64,13 +64,9 @@ class cModule(object):
       );
       assert sb0FirstSymbolInModule, \
           "Cannot get any symbol for %s" % oSelf;
+      # This could be "<cdbid>" or "<cdbid>!<symbol name>", split it and
+      # get only the cdbid.
       asbModuleAndSymbol = sb0FirstSymbolInModule.split(b"!", 1);
-      assert len(asbModuleAndSymbol) == 2, \
-          "Unexpected symbol format: %s for %s at 0x%X" % (
-            repr(sb0FirstSymbolInModule)[1:],
-            oSelf.s0BinaryPath or "<unknown>",
-            oSelf.uStartAddress,
-          );
       oSelf.__sb0CdbId = asbModuleAndSymbol[0];
     return oSelf.__sb0CdbId;
   @sbCdbId.setter
