@@ -3,22 +3,28 @@ import re;
 # Any instructions in the below two arrays are handled. Anything else is not.
 gasbInstructionsThatModifyFlags = [
     b"add", b"addsd",
-    b"cmp", b"test",
+    b"btc", b"btr", "bts",
+    b"cmp", b"cmpxchg", b"test",
     b"mulsd",
     b"sub", b"subsd",
     b"inc", b"dec",
+    b"and", b"or", b"xor",
 ];
 gasbInstructionsThatModifyDestination = [
     b"add", b"addsd",
+    b"btc", b"btr", "bts",
     b"mov", b"movzx", b"movsd",
     b"mulsd",
     b"sub", b"subsd",
     b"inc", b"dec",
+    b"and", b"or", b"xor",
 ];
-gasbInstructionsThatReadDestination = [
+gasbInstructionsThatReadMemoryFromSecondArgument = [
     b"add", b"addsd",
+    b"btc", b"btr", "bts",
     b"sub", b"subsd",
     b"inc", b"dec",
+    b"and", b"or", b"xor",
 ];
 gasbInstructionsThatModifyInstructionPointer = [
   b"call", b"jmp",
@@ -26,9 +32,12 @@ gasbInstructionsThatModifyInstructionPointer = [
 gasbInstructionsThatCanBeHandled = set(
   gasbInstructionsThatModifyFlags
   + gasbInstructionsThatModifyDestination
-  + gasbInstructionsThatReadDestination
+  + gasbInstructionsThatReadMemoryFromSecondArgument
   + gasbInstructionsThatModifyInstructionPointer
 );
+gasbPrefixesThatCanBeIgnored = [
+    b"lock",
+];
 
 gduSizeInBits_by_sbRegisterName = {
   b"rax":    64, b"eax":    32, b"ax":     16, b"al":      8, b"ah": 8,
@@ -74,29 +83,15 @@ gduSizeInBits_by_sbPointerTargetSize = {
   b"byte": 8, b"word": 16, b"dword": 32, b"qword": 64, b"mmword": 64, b"xmmword": 128, b"ymmword": 256,
 };
 
-grbInstruction = re.compile(
-  rb"^"
-  rb"([0-9`a-f]+)"            # <<<address>>>
-  rb"\s+"                     # whitespace
-  rb"[0-9`a-f]+"              # instruction bytes
-  rb"\s+"                     # whitespace
-  rb"(\w+)"                   # <<<opcode name>>>
-  rb"(?:"                     # optional {
-    rb"\s+"                   #   whitespace
-    rb"(.*)"                  #   <<<arguments>>>
-  rb")?"                      # }
-  rb"$"
-);
-
 grbNumberArgument = re.compile(
   rb"^"
   rb"("                       # <<< either {
-    rb"0x[0-9a-f]+"           #   "0x" hex digits
+    rb"0x[0-9a-fA-F]+"        #   "0x" hex digits
     rb"(?:"                   #    optional {
-      rb"`[0-9a-f]+"          #      "`" hex digits
+      rb"`[0-9a-fA-F]+"       #      "`" hex digits
     rb")?"                    #    }
   rb"|"                       # } or {
-    rb"[0-9a-f]+h"            #   hex digits "h"
+    rb"[0-9a-fA-F]+h"         #   hex digits "h"
   rb"|"                       # } or {
     rb"[0-9]+"                #   digits
   rb")"                       # } >>>
@@ -187,6 +182,18 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
   # Decide what registers to modify (if any) and record what actions this represents.
   duNewRegisterValue_by_sbName = {};
   asActions = [];
+  ############################################################################
+  # Handle prefixes
+  for sbPrefix in  oCurrentInstruction.tsbPrefixes:
+      if sbPrefix not in gasbPrefixesThatCanBeIgnored:
+        oCdbWrapper.fFireCallbacks(
+          "Bug cannot be ignored", 
+          "instruction '%s' an unhandled prefix '%s'" % (
+            str(oCurrentInstruction),
+            str(oCurrentInstruction.sPrefixes),
+          ),
+        );
+        return False;
   ############################################################################
   # Handle jumps/call instructions and advance to next instruction for others
   if oCurrentInstruction.sbName in gasbInstructionsThatModifyInstructionPointer:
@@ -300,7 +307,7 @@ def cCollateralBugHandler_fbIgnoreAccessViolationException(
         str(sbSourceArgument, "ascii", "strict"),
         uViolationAddress,
       );
-    if oCurrentInstruction.sbName in gasbInstructionsThatReadDestination:
+    if oCurrentInstruction.sbName in gasbInstructionsThatReadMemoryFromSecondArgument:
       if sSource != sDestination:
         sSource = "%s and %s" % (sDestination, sSource);
     bSourceCausedBug = u0SourceArgumentPointerSizeInBits is not None;
