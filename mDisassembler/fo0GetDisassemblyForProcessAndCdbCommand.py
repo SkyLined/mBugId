@@ -50,12 +50,21 @@ grbInvalidInstructionDisassemblyLine = re.compile(
   rb"\s+"                     # whitespace
   rb"\?\?\?"                  # "???"
 );
+gasbPrefixes = (
+  b"lock",
+  b"rep",
+  b"repe",
+  b"repne",
+  b"repnz",
+  b"repz",
+);
 grbInstructionDisassemblyLine = re.compile(
   rb"\A"
   rb"([0-9`a-f]+)"            # <<<address>>>
   rb"\s+"                     # whitespace
   rb"([0-9a-f]+)"             # <<<instruction bytes>>>
   rb"\s+"                     # whitespace
+  rb"(" + rb"|".join(re.escape(sbPrefix) + rb"\s+" for sbPrefix in gasbPrefixes) + rb")*"
   rb"(\w+)"                   # <<<instruction name>>>
   rb"(?:"                     # optional {
     rb"\s+"                   #   whitespace
@@ -95,15 +104,29 @@ def fo0GetDisassemblyForProcessAndCdbCommand(
         (sbAddress, sbHexBytes) = ob0InvalidInstructionMatch.groups();
         uAddress = fu0ValueFromCdbHexOutput(sbAddress);
         sbBytes = bytes.fromhex(str(sbHexBytes, "ascii", "strict")); # fromhex should just support bytes as input already.
-        aoInstructions.append(cInstruction(uAddress, sbBytes, b"???", tuple()));
+        aoInstructions.append(cInstruction(
+          uAddress = uAddress,
+          sbBytes = sbBytes,
+          tsbPrefixes = tuple(),
+          sbName = b"???",
+          tsbArguments = tuple(),
+        ));
       else:
         ob0InstructionMatch = grbInstructionDisassemblyLine.match(sbDisassemblyOutputLine);
         assert ob0InstructionMatch, \
             "Unrecognized instruction disassembly line:\r\n%s" % sbDisassemblyOutputLine;
         # Grab info from current instruction (name and arguments):
-        (sbAddress, sbHexBytes, sbName, sb0Arguments) = ob0InstructionMatch.groups();
+        (sbAddress, sbHexBytes, sb0Prefixes, sbName, sb0Arguments) = ob0InstructionMatch.groups();
         uAddress = fu0ValueFromCdbHexOutput(sbAddress);
         sbBytes = bytes.fromhex(str(sbHexBytes, "ascii", "strict")); # fromhex should just support bytes as input already.
+        if sb0Prefixes:
+          asbPrefixes = [];
+          for sbPrefix in sb0Prefixes.split(b" "):
+            if sbPrefix:
+              asbPrefixes.append(sbPrefix);
+          tsbPrefixes = tuple(asbPrefixes);
+        else:
+          tsbPrefixes = tuple();
         if sb0Arguments:
           # Arguments are separated by commas. Symbols in the arguments can
           # also contain commas. AFAICT symbols only contain commas inside
@@ -126,6 +149,12 @@ def fo0GetDisassemblyForProcessAndCdbCommand(
           tsbArguments = tuple(asbArguments);
         else:
           tsbArguments = tuple();
-        aoInstructions.append(cInstruction(uAddress, sbBytes, sbName, tsbArguments));
+        aoInstructions.append(cInstruction(
+          uAddress = uAddress,
+          sbBytes = sbBytes,
+          tsbPrefixes = tsbPrefixes,
+          sbName = sbName,
+          tsbArguments = tsbArguments,
+        ));
   return cDisassembly(aoInstructions) if aoInstructions else None;
 
