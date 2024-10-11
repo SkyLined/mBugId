@@ -14,6 +14,7 @@ aoBugTranslations = [
       rb"ntdll\.dll!LdrpHandleInvalidUserCallTarget",
       rb"ntdll\.dll!RtlDeleteCriticalSection",
       rb"ntdll\.dll!RtlDispatchException",
+      rb"ntdll\.dll!RtlEnterCriticalSection",
       rb"ntdll\.dll!RtlFailFast\d*",
       rb"ntdll\.dll!RtlInsertElementGenericTableAvl",
       rb"ntdll\.dll!Rtlp?(Debug)?(Allocate|Free)Heap\w*",
