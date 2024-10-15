@@ -5,7 +5,7 @@ from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEB
 from ..cBugReport import cBugReport;
 from ..cErrorDetails import cErrorDetails;
 from ..cException import cException;
-from ..cProcess import cProcess;
+from ..mProcess import cProcess;
 from ..fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString;
