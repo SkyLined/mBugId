@@ -189,6 +189,13 @@ class cProcess(object):
   def sISA(oSelf):
     return oSelf.oWindowsAPIProcess.sISA;
   @property
+  def uPointerSizeInBits(oSelf):
+    return oSelf.oWindowsAPIProcess.uPointerSizeInBits;
+  @property
+  def uPointerSizeInBytes(oSelf):
+    return oSelf.oWindowsAPIProcess.uPointerSizeInBytes;
+  # This one is to be deprecated because it is ambiguous about the unit.
+  @property
   def uPointerSize(oSelf):
     return oSelf.oWindowsAPIProcess.uPointerSize;
   @property
