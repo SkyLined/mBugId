@@ -423,8 +423,8 @@ class cBugReport(object):
 
 
 from ..mBugTranslations import fApplyBugTranslationsToBugReport;
+from ..mCP437 import fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
 from ..mStack import cStack;
 from ..dxConfig import dxConfig;
 from ..ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from ..ftsReportProductHeaderAndFooterHTML import ftsReportProductHeaderAndFooterHTML;
-from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
