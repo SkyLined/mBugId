@@ -1,5 +1,3 @@
-import os, re;
-
 from mWindowsAPI import \
   cProcess as cWindowsAPIProcess, \
   cModule as cWindowsAPIModule, \
