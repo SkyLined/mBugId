@@ -1,7 +1,5 @@
 from mNotProvided import fAssertTypes;
 
-from ..cProcess import cProcess;
-
 from .cInstruction import cInstruction;
 
 class cDisassembly(object):
