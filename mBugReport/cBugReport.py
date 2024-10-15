@@ -38,6 +38,7 @@ from .cBugReport_fs0GetRegistersBlockHTML import cBugReport_fs0GetRegistersBlock
 from .cBugReport_fs0GetDisassemblyHTML import cBugReport_fs0GetDisassemblyHTML;
 from .cBugReport_fs0GetMemoryDumpBlockHTML import cBugReport_fs0GetMemoryDumpBlockHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
+from .fsGetHTMLForValue import fsGetHTMLForValue;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
@@ -415,6 +416,11 @@ class cBugReport(object):
   fs0GetMemoryDumpBlockHTML = cBugReport_fs0GetMemoryDumpBlockHTML;
   fs0GetDisassemblyHTML = cBugReport_fs0GetDisassemblyHTML;
   fxProcessStack = cBugReport_fxProcessStack;
+  @staticmethod
+  def fsGetHTMLForValue(*txArguments, **dxArguments):
+    return fsGetHTMLForValue(*txArguments, **dxArguments);
+  sBlockHTMLTemplate = sBlockHTMLTemplate;
+
 
 from ..mBugTranslations import fApplyBugTranslationsToBugReport;
 from ..mStack import cStack;
