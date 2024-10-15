@@ -2,7 +2,6 @@ import re;
 
 from mWindowsSDK import *;
 
-from .cStack import cStack;
 from .cStowedException import cStowedException;
 from .cErrorDetails import cErrorDetails;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
