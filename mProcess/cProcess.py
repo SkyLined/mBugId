@@ -6,7 +6,7 @@ from mWindowsAPI import \
   fsHexNumber;
 from mWindowsSDK import ERROR_ACCESS_DENIED;
 
-from ..cModule import cModule;
+from ..mModule import cModule;
 from ..mDisassembler import \
   fo0GetDisassemblyForProcessStartAddressAndNumberOfBytes, \
   fo0GetDisassemblyForProcessStartAddressAndNumberOfInstructions, \

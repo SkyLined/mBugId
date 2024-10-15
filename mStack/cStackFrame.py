@@ -122,7 +122,7 @@ class cStackFrame(object):
     return "<cStackFrame %s>" % oSelf;
 
 from .cStack import cStack;
-from .cModule import cModule;
 from .cFunction import cFunction;
 from .dxConfig import dxConfig;
 from .mCP437 import fsCP437FromBytesString;
+from ..mModule import cModule;
