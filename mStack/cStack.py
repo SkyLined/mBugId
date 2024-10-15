@@ -360,7 +360,8 @@ class cStack(object):
         u0FrameInstructionPointer = u0ReturnAddress;
     return oStack;
 
+from ..dxConfig import dxConfig;
+from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
+from ..mCP437 import fsCP437FromBytesString;
+
 from .cStackFrame import cStackFrame;
-from .dxConfig import dxConfig;
-from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from .mCP437 import fsCP437FromBytesString;

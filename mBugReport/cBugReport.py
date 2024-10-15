@@ -414,7 +414,7 @@ class cBugReport(object):
   fxProcessStack = cBugReport_fxProcessStack;
 
 from ..mBugTranslations import fApplyBugTranslationsToBugReport;
-from ..cStack import cStack;
+from ..mStack import cStack;
 from ..dxConfig import dxConfig;
 from ..ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from ..ftsReportProductHeaderAndFooterHTML import ftsReportProductHeaderAndFooterHTML;
