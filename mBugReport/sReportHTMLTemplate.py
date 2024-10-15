@@ -194,8 +194,10 @@ sReportHTMLTemplate = ("""
         padding-left: 0.5em;
       }
       .MemoryAddress {
-        color: grey;
         padding-right: 0.5em;
+      }
+      .MemoryAddress.Important {
+        background-color: rgba(255,255,0,0.3);
       }
       .MemoryOffset {
         color: grey;
@@ -217,13 +219,16 @@ sReportHTMLTemplate = ("""
         padding-left: 0.5em;
         padding-right: 0.5em;
       }
+      .MemoryPointer.Important {
+        background-color: rgba(0,255,255,0.3);
+      }
       .MemoryDetails {
       }
-      .MemoryPointerSymbol {
+      .MemoryPointerRemarks {
         padding-left: 0.5em;
         background-color: rgba(0,255,255,0.3);
       }
-      .MemoryRemarks {
+      .MemoryAddressRemarks {
         padding-left: 0.5em;
         background-color: rgba(255,255,0,0.3);
       }
