@@ -17,6 +17,4 @@ def cBugReport_foAnalyzeException_STATUS_STOWED_EXCEPTION(oBugReport, oProcess, 
     for oStowedException in aoStowedExceptions
     if oStowedException.s0SecurityImpact
   ]) or None;
-#  for oStowedException in aoStowedExceptions:
-#    oStack = cStack.foCreateFromAddress(oProcess, oStowedExceptions.pStackTrace, oStowedExceptions.uStackTraceSize);
   return oBugReport;
