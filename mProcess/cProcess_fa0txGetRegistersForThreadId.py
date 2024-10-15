@@ -12,16 +12,6 @@ def cProcess_fa0txGetRegistersForThreadId(oProcess, uThreadId):
     uRegisterValue = duRegisterValue_by_sbName[sbRegisterName];
     s0Details = None;
     if bFindDetails:
-      sb0Symbol = oProcess.fsb0GetSymbolForAddress(uRegisterValue, b"register %s" % sbRegisterName);
-      if sb0Symbol:
-        s0Details = fsCP437FromBytesString(sb0Symbol);
-      else:
-        o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddressNearHeapBlock(
-          uAddressNearHeapBlock = uRegisterValue,
-        );
-        if o0HeapManagerData:
-          (sSizeId, sOffsetId, sOffsetDescription, sSizeDescription) = \
-              o0HeapManagerData.ftsGetIdAndDescriptionForAddress(uRegisterValue);
-          s0Details = "%s %s" % (sOffsetDescription, sSizeDescription);
+      s0Details = oProcess.fs0GetDetailsForAddress(uRegisterValue);
     atxRegisters.append((sbRegisterName, uRegisterValue, uBitSize, s0Details));
   return atxRegisters;

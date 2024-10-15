@@ -22,6 +22,8 @@ from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress
 from .cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock;
 from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
+from .cProcess_fs0GetDetailsForAddress import \
+    cProcess_fs0GetDetailsForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import \
     cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
@@ -286,4 +288,5 @@ class cProcess(object):
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
   fu0GetAddressForSymbol = cProcess_fu0GetAddressForSymbol;
+  fs0GetDetailsForAddress = cProcess_fs0GetDetailsForAddress;
 
