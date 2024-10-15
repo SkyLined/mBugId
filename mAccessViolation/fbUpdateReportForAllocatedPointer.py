@@ -26,8 +26,10 @@ def fbUpdateReportForAllocatedPointer(
     return False;
   # Memory is allocated in this area, but apparently not accessible in the way the code tried to.
   if oCdbWrapper.bGenerateReportHTML:
-    oBugReport.atxMemoryRemarks.append(("Memory allocation start", oVirtualAllocation.uStartAddress, None));
-    oBugReport.atxMemoryRemarks.append(("Memory allocation end", oVirtualAllocation.uEndAddress, None));
+    oBugReport.fAddMemoryRemarks([
+      ("Memory allocation start", oVirtualAllocation.uStartAddress, None),
+      ("Memory allocation end", oVirtualAllocation.uEndAddress, None)
+    ]);
   if oVirtualAllocation.bGuard:
     (sMemoryProtectionsId, sMemoryProtectionsDescription) = ("Guard", "guard page");
   else:
@@ -68,9 +70,9 @@ def fbUpdateReportForAllocatedPointer(
       uAccessViolationAddress, oProcess.uPointerSize, oVirtualAllocation.uStartAddress, oVirtualAllocation.uSize
     );
     oBugReport.fAddMemoryDump(
-      uMemoryDumpStartAddress,
-      uMemoryDumpStartAddress + uMemoryDumpSize,
-      "Memory near access violation at 0x%X" % uAccessViolationAddress,
+      uStartAddress = uMemoryDumpStartAddress,
+      uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
+      asAddressDetailsHTML = ["AV at 0x%X" % uAccessViolationAddress],
     );
   # You normally cannot modify the access rights of memory, so it is impossible for an exploit to avoid this exception.
   # Therefore there is no collateral bug handling. Note that if you can control the address you may be able to point

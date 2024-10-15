@@ -141,7 +141,7 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
           sViolationTypeId = "?";
           sViolationTypeNotes = " (the type of access must be read or write, but cannot be determined)";
     uAccessViolationAddress = fu0ValueFromCdbHexOutput(sbAddress);
-  oBugReport.atxMemoryRemarks.append(("Access violation", uAccessViolationAddress, None)); # TODO Find out size of access
+  oBugReport.fAddMemoryRemark("Access violation", uAccessViolationAddress, None); # TODO Find out size of access
   
   if sViolationTypeId == "E":
     # Hide the top stack frame if it is for the address at which the execute access violation happened:

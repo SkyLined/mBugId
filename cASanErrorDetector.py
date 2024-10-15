@@ -510,11 +510,11 @@ class cASanErrorDetector(object):
         );
       # Dump memory
       oBugReport.fAddMemoryDump(
-        uMemoryDumpStartAddress,
-        uMemoryDumpStartAddress + uMemoryDumpSize,
-        "Memory near heap block at 0x%X" % uMemoryDumpStartAddress,
+        uStartAddress = uMemoryDumpStartAddress,
+        uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
+        s0AddressDescriptionHTML = None,
       );
-      oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
+      oBugReport.fAddMemoryRemarks(atxMemoryRemarks);
       # Add ASan output to file
       sASanOutputHTML = cBugReport.sBlockHTMLTemplate % {
         "sName": "ASan bug report",

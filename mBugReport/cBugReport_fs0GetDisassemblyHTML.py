@@ -4,6 +4,8 @@ from mWindowsAPI import fsHexNumber;
 
 from ..dxConfig import dxConfig;
 
+from .fsGetHTMLForValue import fsGetHTMLForValue;
+
 grbAddressOpCodeInstruction = re.compile(
   rb"\A"
   rb"([0-9a-fA-F`]+\s+)"
@@ -12,12 +14,12 @@ grbAddressOpCodeInstruction = re.compile(
   rb"\Z"
 );
 
-def fsHTMLEncodeAndColorDisassemblyInstruction(oInstruction, bHighlightLine, s0Remark):
+def fsHTMLEncodeAndColorDisassemblyInstruction(oInstruction, uPointerSizeInBits, bHighlightLine, s0Remark):
   # If this line starts with an address and opcode, make those semi-transparent.
   return "<tr>%s</tr>" % "".join([
     "<td class=\"DisassemblyColumn DisassemblyAddress%s\">%s</td>" % (
       " Important" if bHighlightLine else "",
-      "%X" % oInstruction.uAddress,
+      fsGetHTMLForValue(oInstruction.uAddress, uPointerSizeInBits),
     ),
     "<td class=\"DisassemblyColumn DisassemblyOpcode%s\">%s</td>" % (
       " Important" if bHighlightLine else "",
@@ -78,6 +80,7 @@ def cBugReport_fs0GetDisassemblyHTML(
         asDisassemblyBeforeAddressHTML = [
           fsHTMLEncodeAndColorDisassemblyInstruction(
             oInstruction = o0DisassemblyBeforeAddress.foGetInstruction(uIndex),
+            uPointerSizeInBits = oProcess.uPointerSizeInBits,
             bHighlightLine = False,
             s0Remark = s0DescriptionOfInstructionBeforeAddress if (
               s0DescriptionOfInstructionBeforeAddress is not None
@@ -97,6 +100,7 @@ def cBugReport_fs0GetDisassemblyHTML(
       asDisassemblyAtAndAfterAddressHTML = [
         fsHTMLEncodeAndColorDisassemblyInstruction(
           oInstruction = o0DisassemblyAtAndAfterAddress.foGetInstruction(uIndex),
+          uPointerSizeInBits = oProcess.uPointerSizeInBits,
           bHighlightLine = uIndex == 0,
           s0Remark = s0DescriptionOfInstructionAtAddress if (
             s0DescriptionOfInstructionAtAddress is not None 

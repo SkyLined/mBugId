@@ -34,7 +34,7 @@ class iHeapManagerData(object):
       uAddress = uAddress,
     );
   
-  def fatxMemoryRemarks(oSelf):
+  def fatxGetMemoryRemarks(oSelf):
     return [tx for tx in [
       ("Allocation start", oSelf.oVirtualAllocation.uStartAddress, None),
       ("Heap block start", oSelf.uHeapBlockStartAddress, None),

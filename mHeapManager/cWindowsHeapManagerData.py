@@ -34,7 +34,7 @@ class cWindowsHeapManagerData(iHeapManagerData):
     # Convenience
     oSelf.uMemoryDumpSize = oSelf.uMemoryDumpEndAddress - oSelf.uMemoryDumpStartAddress;
   
-  def fatxMemoryRemarks(oSelf):
+  def fatxGetMemoryRemarks(oSelf):
     return [tx for tx in [
       ("Allocation start", oSelf.oVirtualAllocation.uStartAddress, None),
       oSelf.uHeapBlockHeaderSize and 

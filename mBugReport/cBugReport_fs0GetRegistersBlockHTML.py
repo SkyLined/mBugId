@@ -1,6 +1,9 @@
+from mWindowsAPI import oSystemInfo;
+
 from ..dxConfig import dxConfig;
 from ..mCP437 import fsCP437HTMLFromBytesString;
 
+from .fsGetHTMLForValue import fsGetHTMLForValue;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread):
@@ -12,24 +15,37 @@ def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread)
   asRegistersTableHTML = [];
   for (sbRegisterName, uRegisterValue, uBitSize, s0Details) in atxRegisters:
     sRegisterName = fsCP437HTMLFromBytesString(sbRegisterName);
-    sRegisterValue = "%X" % uRegisterValue;
-    sValuePadding = "0" * ((uBitSize >> 2) - len(sRegisterValue));
     asRegistersTableHTML.extend([
       '<tr>',
         '<td>', sRegisterName, '</td>',
         '<td> = </td>',
-        '<td><span class="HexNumberHeader">0x', sValuePadding, '</span>', sRegisterValue, '</td>',
+        '<td>', fsGetHTMLForValue(uRegisterValue, uBitSize), '</td>',
         '<td>', s0Details or "", '</td>',
       '</tr>\n',
     ]);
     if uRegisterValue < 1 << (oProcess.uPointerSize * 8):
       o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uRegisterValue);
       if o0VirtualAllocation and o0VirtualAllocation.bAllocated:
-        uStartAddress = uRegisterValue;
-        uEndAddress = uStartAddress + dxConfig["uRegisterPointerDumpSizeInPointers"];
-        sDescription = "Pointed to by register %s" % sRegisterName;
-        oBugReport.fAddMemoryDump(uStartAddress, uEndAddress, sDescription);
-        oBugReport.atxMemoryRemarks.append(("Register %s" % sRegisterName, uRegisterValue, None));
+        oBugReport.fAddMemoryDump(
+          uStartAddress = uRegisterValue - dxConfig["uRegisterPointerPreDumpSizeInPointers"] * oProcess.uPointerSizeInBytes,
+          uEndAddress = uRegisterValue + dxConfig["uRegisterPointerPostDumpSizeInPointers"] * oProcess.uPointerSizeInBytes,
+          asAddressDetailsHTML = ["%s = %s" % (sRegisterName, fsGetHTMLForValue(uRegisterValue, oProcess.uPointerSizeInBits))],
+        );
+      # Add memory remarks for anything that is not (close to) NULL.
+      # Calculate the positive equivalent of the signed value for the register.
+      uNegativeRegisterValue = {"x86": 1 << 32, "x64": 1 << 64}[oProcess.sISA] - uRegisterValue;
+      if (
+        uRegisterValue > oSystemInfo.uAllocationAddressGranularity
+        and uNegativeRegisterValue > oSystemInfo.uAllocationAddressGranularity
+      ):
+        oBugReport.fAddMemoryRemark(
+          "%s=%s" % (
+            sRegisterName,
+            fsGetHTMLForValue(uRegisterValue, oProcess.uPointerSizeInBits),
+          ),
+          uRegisterValue,
+          None,
+        );
   return sBlockHTMLTemplate % {
     "sName": "Registers",
     "sCollapsed": "Collapsed",

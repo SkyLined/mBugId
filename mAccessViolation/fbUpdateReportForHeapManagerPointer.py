@@ -15,7 +15,7 @@ def fbUpdateReportForHeapManagerPointer(
   if not o0HeapManagerData:
     return False;
   oHeapManagerData = o0HeapManagerData;
-  oBugReport.atxMemoryRemarks.extend(oHeapManagerData.fatxMemoryRemarks());
+  oBugReport.fAddMemoryRemarks(oHeapManagerData.fatxGetMemoryRemarks());
   if oProcess.oCdbWrapper.bGenerateReportHTML and oHeapManagerData.uMemoryDumpStartAddress:
     uMemoryDumpStartAddress = oHeapManagerData.uMemoryDumpStartAddress;
     uMemoryDumpSize = oHeapManagerData.uMemoryDumpSize;
@@ -38,9 +38,9 @@ def fbUpdateReportForHeapManagerPointer(
       uAccessViolationAddress, oHeapManagerData.uPointerSize, uMemoryDumpStartAddress, uMemoryDumpSize
     );
     oBugReport.fAddMemoryDump(
-      uMemoryDumpStartAddress,
-      uMemoryDumpStartAddress + uMemoryDumpSize,
-      "Memory near access violation at 0x%X" % uAccessViolationAddress,
+      uStartAddress = uMemoryDumpStartAddress,
+      uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
+      asAddressDetailsHTML = "AV at 0x%X" % uAccessViolationAddress,
     );
   bOutOfBounds = (uAccessViolationAddress < oHeapManagerData.uHeapBlockStartAddress) \
               or (uAccessViolationAddress >= oHeapManagerData.uHeapBlockEndAddress);

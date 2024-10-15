@@ -90,8 +90,8 @@ class cBugReport(object):
     oSelf.s0SecurityImpact = s0SecurityImpact;
     oSelf.uStackFramesCount = uStackFramesCount;
     oSelf.__o0Stack = None;
-    oSelf.atxMemoryRemarks = [];
     oSelf.__dtxMemoryDumps = {};
+    oSelf.__atxMemoryRemarks = [];
     oSelf.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
     oSelf.asExceptionSpecificBlocksHTML = [];
@@ -109,7 +109,7 @@ class cBugReport(object):
       oSelf.__o0Stack = cStack.foCreate(oSelf.__oProcess, oSelf.__oWindowsAPIThread, oSelf.uStackFramesCount);
     return oSelf.__o0Stack;
   
-  def fAddMemoryDump(oSelf, uStartAddress, uEndAddress, sDescription):
+  def fAddMemoryDump(oSelf, uStartAddress, uEndAddress, asAddressDetailsHTML):
 #    assert uStartAddress >=0 and uStartAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
 #        "Invalid uStartAddress 0x%X." % uStartAddress;
 #    assert uEndAddress >=0 and uEndAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
@@ -122,15 +122,83 @@ class cBugReport(object):
     if uStartAddress in oSelf.__dtxMemoryDumps:
       # If it already exists, expand it to the new end address if needed and
       # add the description if different.
-      (uPreviousEndAddress, asDescriptions) = oSelf.__dtxMemoryDumps[uStartAddress];
-      if sDescription not in asDescriptions:
-        asDescriptions.append(sDescription);
+      (uPreviousEndAddress, asPreviousAddressDetailsHTML) = oSelf.__dtxMemoryDumps[uStartAddress];
       if uPreviousEndAddress > uEndAddress:
         uEndAddress = uPreviousEndAddress;
+      # append only new details:
+      asAddressDetailsHTML = asPreviousAddressDetailsHTML + [sDetails for sDetails in asAddressDetailsHTML if sDetails not in asPreviousAddressDetailsHTML];
     else:
-      asDescriptions = [sDescription];
-    oSelf.__dtxMemoryDumps[uStartAddress] = (uEndAddress, asDescriptions);
+      asAddressDetailsHTML = [
+        "%s - %s" % (
+          fsGetHTMLForValue(uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
+          fsGetHTMLForValue(uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
+        )
+      ] + asAddressDetailsHTML;
+    oSelf.__dtxMemoryDumps[uStartAddress] = (uEndAddress, asAddressDetailsHTML);
   
+  def fAddMemoryRemark(oSelf, sRemark, uAddress, uSize):
+    for (sKnownRemark, uKnownAddress, uKnownSize) in oSelf.__atxMemoryRemarks:
+      if sRemark == sKnownRemark and uAddress == uKnownAddress and uSize == uKnownSize:
+        return;
+    oSelf.__atxMemoryRemarks.append((sRemark, uAddress, uSize));
+  def fAddMemoryRemarks(oSelf, atxMemoryRemarks):
+    for txMemoryRemark in atxMemoryRemarks:
+      oSelf.fAddMemoryRemark(*txMemoryRemark);
+  
+  def fbByteHasRemarks(oSelf, uAddress):
+    for (sRemark, uStartAddress, uSize) in oSelf.__atxMemoryRemarks:
+      if uSize is not None and uAddress >= uStartAddress and uAddress < uStartAddress + uSize:
+        return True;
+    return False;
+  
+  def fbAddressHasRemarks(oSelf, uAddress):
+    for (sRemark, uStartAddress, uSize) in oSelf.__atxMemoryRemarks:
+      if uSize is None and uAddress == uStartAddress:
+        return True;
+    return False;
+  
+  def fasGetRemarksForRange(oSelf, uAddress, uSize):
+    uRangeStartAddress = uAddress;
+    uRangeEndAddress = uAddress + uSize;
+    datsRemark_and_iEndOffset_by_iStartOffset = {};
+    for (sRemark, uRemarkStartAddress, uRemarkSize) in oSelf.__atxMemoryRemarks:
+      assert (
+        isinstance(sRemark, str)
+        and (isinstance(uRemarkStartAddress, int) or isinstance(uRemarkStartAddress, int))
+        and (isinstance(uRemarkSize, int) or isinstance(uRemarkSize, int) or uRemarkSize is None)
+      ), "Bad remark data: %s" % repr((sRemark, uRemarkStartAddress, uRemarkSize));
+      uRemarkEndAddress = uRemarkStartAddress + (uRemarkSize or 1);
+      if (
+        (uRemarkStartAddress >= uRangeStartAddress and uRemarkStartAddress < uRangeEndAddress) # Remarks starts inside memory range
+        or (uRemarkEndAddress > uRangeStartAddress and uRemarkEndAddress <= uRangeEndAddress) # or remark ends inside memory range
+      ):
+        iRemarkStartOffset = uRemarkStartAddress - uRangeStartAddress;
+        iRemarkEndOffset = iRemarkStartOffset + (uRemarkSize if uRemarkSize else 0);
+        datsRemark_and_iEndOffset_by_iStartOffset.setdefault(iRemarkStartOffset, []).append((sRemark, iRemarkEndOffset));
+    asRemarksForRange = [];
+    for iRemarkStartOffset in sorted(datsRemark_and_iEndOffset_by_iStartOffset.keys()):
+      for (sRemark, iRemarkEndOffset) in datsRemark_and_iEndOffset_by_iStartOffset[iRemarkStartOffset]:
+        # Create a range description for the remark, which contains any of the following
+        # [ start offset in range "~" end offset in range ] [ remark ] 
+        # End offsets, when shown cannot be larger than the size of a pointer, which is at most 8 on supported ISAs, so %d will do
+        sPrefix = "";
+        sRemarkStartOffset = (-9 < iRemarkStartOffset < 9 and "%d" or "0x%X") % iRemarkStartOffset;
+        sRemarkEndOffset = (-9 < iRemarkEndOffset < 9 and "%d" or "0x%X") % iRemarkEndOffset;
+        if iRemarkStartOffset < 0:
+          if iRemarkEndOffset == 1 and uSize != 1:
+            sPrefix = "1st byte:";
+          elif iRemarkEndOffset < uSize:
+            sPrefix = "first %s bytes:" % sRemarkEndOffset;
+        elif iRemarkStartOffset > 0:
+          if iRemarkEndOffset == iRemarkStartOffset:
+            sPrefix = "byte %s:" % (sRemarkStartOffset,);
+          elif iRemarkEndOffset <= uSize:
+            sPrefix = "bytes %s → %s:" % (sRemarkStartOffset, sRemarkEndOffset);
+          else:
+            sPrefix = "last %s bytes:" % (sRemarkStartOffset,);
+        asRemarksForRange.append(sPrefix + sRemark);
+    return asRemarksForRange;
+
   @classmethod
   def fo0CreateForException(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, oException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
@@ -196,7 +264,7 @@ class cBugReport(object):
     assert oSelf.s0BugTypeId, \
         "Cannot report a bug with no bug type id!";
     # Calculate Stack Id, determine s0BugLocation and optionally create and return sStackHTML.
-    aoStackFramesPartOfId, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
+    aoStackFramesToDisassemble, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
     oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId);
     
     (sbInstructionPointerName, u0InstructionPointerValue) = \
@@ -227,21 +295,17 @@ class cBugReport(object):
           sRemark
         );
 
-    # If bug binary and main binary are not the same, gather information for both of them:
-    aoRelevantModules = [oSelf.__oProcess.oMainModule];
-    # Find the Module in which the bug is reported and add it to the relevant list if it's not there already.
-    for oStackFrame in aoStackFramesPartOfId:
-      if oStackFrame.o0Module:
-        if oStackFrame.o0Module != oSelf.__oProcess.oMainModule:
-          aoRelevantModules.append(oStackFrame.o0Module);
-        break;
-    # Add relevant binaries information to cBugReport and optionally to the HTML report.
+    # Get version information on all binaries for relevant modules. This includes the main
+    # process module as well as all modules that are referenced in the stack frames we disassemble.
+    # We'll put the main process module first followed by the ones in the stack, in order:
     oSelf.asVersionInformation = [];
-    for oModule in aoRelevantModules:
-      # This function populates the version properties of the oModule object and returns HTML if a report is needed.
+    aoModulesToGetBinaryVersionInformationFor = [oSelf.__oProcess.oMainModule];
+    for oStackFrame in aoStackFramesToDisassemble:
+      if oStackFrame.o0Module and oStackFrame.o0Module not in aoModulesToGetBinaryVersionInformationFor:
+        aoModulesToGetBinaryVersionInformationFor.append(oStackFrame.o0Module);
+    for oModule in aoModulesToGetBinaryVersionInformationFor:
       if oModule.s0BinaryName:
-        sBinaryName = oModule.s0BinaryName;
-        oSelf.asVersionInformation.append("%s (%s)" % (sBinaryName, oModule.sISA));
+        oSelf.asVersionInformation.append("%s (%s)" % (oModule.s0BinaryName, oModule.sISA));
     
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
@@ -272,18 +336,20 @@ class cBugReport(object):
       
       # Add relevant memory blocks in order if needed
       for uStartAddress in sorted(oSelf.__dtxMemoryDumps.keys()):
-        (uEndAddress, asDescriptions) = oSelf.__dtxMemoryDumps[uStartAddress];
-        sDescription = " / ".join(asDescriptions);
-        s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(oCdbWrapper, oSelf.__oProcess, sDescription, uStartAddress, uEndAddress);
+        (uEndAddress, asAddressDescriptionsHTML) = oSelf.__dtxMemoryDumps[uStartAddress];
+        s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(
+          oCdbWrapper,
+          oSelf.__oProcess,
+          asAddressDescriptionsHTML,
+          uStartAddress,
+          uEndAddress
+        );
         if s0MemoryDumpBlockHTML:
           asBlocksHTML.append(s0MemoryDumpBlockHTML);
       
       # Create and add disassembly blocks if needed:
       # We disassemble to top stack frame and all stack frames part of the id.
-      aoDisassembleStackFrames = aoStackFramesPartOfId[:];
-      if oSelf.__o0Stack.aoFrames and oSelf.__o0Stack.aoFrames[0] not in aoDisassembleStackFrames:
-        aoDisassembleStackFrames.insert(0, oSelf.__o0Stack.aoFrames[0]);
-      for oFrame in aoDisassembleStackFrames:
+      for oFrame in aoStackFramesToDisassemble:
         if oFrame.u0InstructionPointer is not None:
           s0FrameDisassemblyHTML = oSelf.fs0GetDisassemblyHTML(
             oSelf.__oProcess,
@@ -294,7 +360,7 @@ class cBugReport(object):
           if s0FrameDisassemblyHTML:
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, fsCP437HTMLFromBytesString(oFrame.sbAddress)),
-              "sCollapsed": "Collapsed",
+              "sCollapsed": "Collapsible" if oFrame.bIsPartOfId else "Collapsed",
               "sContent": "<span class=\"Disassembly\">%s</span>" % s0FrameDisassemblyHTML,
             });
       

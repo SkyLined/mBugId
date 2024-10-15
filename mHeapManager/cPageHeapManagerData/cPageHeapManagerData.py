@@ -190,7 +190,7 @@ class cPageHeapManagerData(iHeapManagerData):
       oField = getattr(oField, sSubFieldName);
     return oField.fuGetSize();
   
-  def fatxMemoryRemarks(oSelf):
+  def fatxGetMemoryRemarks(oSelf):
     if oSelf.__d0uCorruptedByte_by_uAddress is None:
       oSelf.__fDetectCorruption();
     atxMemoryRemarks = [
@@ -403,6 +403,6 @@ class cPageHeapManagerData(iHeapManagerData):
     return "Page heap block: %s" % (
       ", ".join(
         "%s=%s" % (sName, fsHexNumber(uValue))
-        for (sName, uValue, xIgnored) in oSelf.fatxMemoryRemarks()
+        for (sName, uValue, xIgnored) in oSelf.fatxGetMemoryRemarks()
       )
     );
