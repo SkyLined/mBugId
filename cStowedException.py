@@ -126,30 +126,31 @@ class cStowedException(object):
     uExceptionForm = oStowedExceptionInformation.ExceptionForm_ThreadId & 3;
     uThreadId = (oStowedExceptionInformation.ExceptionForm_ThreadId & 0xfffffffc) << 2;
     # Handle structure
+    uNestExceptionType = oStowedExceptionInformation.NestedExceptionType.value;
     s0NestedExceptionTypeId = None;
     o0NestedException = None;
     sb0WRTLanguageExceptionIUnknownClassName = None;
     if (
       oStowedExceptionInformationHeader.Signature == STOWED_EXCEPTION_INFORMATION_V2_SIGNATURE
-      and oStowedExceptionInformation.NestedExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
+      and uNestExceptionType != STOWED_EXCEPTION_NESTED_TYPE_NONE
     ):
       uNestedExceptionAddress = oStowedExceptionInformation.NestedException.value;
-      if oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
+      if uNestExceptionType == STOWED_EXCEPTION_NESTED_TYPE_WIN32:
         s0NestedExceptionTypeId = "Win32";
         o0NestedException = cException.foCreateFromMemory(
           oProcess = oProcess,
           uExceptionRecordAddress = uNestedExceptionAddress,
         );
-      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_STOWED:
+      elif uNestExceptionType == STOWED_EXCEPTION_NESTED_TYPE_STOWED:
         s0NestedExceptionTypeId = "Stowed";
         o0NestedException = cStowedException.foCreate(
           oProcess = oProcess,
           uStowedExceptionAddress = uNestedExceptionAddress,
         );
-      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_CLR:
+      elif uNestExceptionType == STOWED_EXCEPTION_NESTED_TYPE_CLR:
         s0NestedExceptionTypeId = "CLR";
         # TODO: find out how to trigger these so I can find out how to handle them.
-      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LEO:
+      elif uNestExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LEO:
         s0NestedExceptionTypeId = "WRTLanguage";
         # These can be triggered using RoOriginateLanguageException. The "NestedException" contains a pointer to an
         # object that implements IUnknown. Apparently this object "contains all the information necessary recreate it
@@ -159,7 +160,7 @@ class cStowedException(object):
           oProcess = oProcess,
           uCPPObjectAddress = uNestedExceptionAddress,
         );
-#      elif oStowedExceptionInformation.NestedExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LMAX:
+#      elif uNestExceptionType == STOWED_EXCEPTION_NESTED_TYPE_LMAX:
       else:
         oDataVirtualAllocation = cVirtualAllocation(oProcess.uId, uNestedExceptionAddress);
         uDataOffset = uNestedExceptionAddress - oDataVirtualAllocation.uStartAddress;
@@ -170,7 +171,7 @@ class cStowedException(object):
         auBytes = oDataVirtualAllocation.fauReadBytesForOffsetAndSize(uDataOffset, uDataSize);
         sData = ",".join(["%02X" % uByte for uByte in auBytes]);
         s0NestedExceptionTypeId = "Type=0x%08X,Data@0x%08X:[%s]" % \
-            (oStowedExceptionInformation.NestedExceptionType, uNestedExceptionAddress, sData);
+            (uNestExceptionType, uNestedExceptionAddress, sData);
     # Handle the two different forms:
     if uExceptionForm == 1:
       oStowedException = cStowedException(
