@@ -463,7 +463,7 @@ class cASanErrorDetector(object):
         continue;
       oActionInfoMatch = re.match(r"^(READ|WRITE) of size (\d+) at 0x([0-9a-f]+) thread T\d+", sLine);
       if oActionInfoMatch:
-        sAction, sSize, sAddressHex = oHeapInfoMatch.groups();
+        sAction, sSize, sAddressHex = oActionInfoMatch.groups();
         uSize = int(sSize);
         uAddress = int(sAddressHex, 16);
         atxMemoryRemarks.append(
@@ -484,7 +484,7 @@ class cASanErrorDetector(object):
       # TODO: Maybe call fbAccessViolation_HandleNULLPointer, etc. from the file
       # cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION.py here?
       fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
-          oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress);
+          oSelf.oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress);
       
     else:
       oBugReport.s0BugTypeId = "ASan:%s" % sASanBugType;
