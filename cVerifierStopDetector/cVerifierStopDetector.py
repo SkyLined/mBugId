@@ -373,7 +373,7 @@ class cVerifierStopDetector(object):
         );
         oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
       # Output the VERIFIER STOP message for reference
-      sVerifierStopMessageHTML = sBlockHTMLTemplate % {
+      sVerifierStopMessageHTML = cBugReport.sBlockHTMLTemplate % {
         "sName": "VERIFIER STOP message",
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([
@@ -386,10 +386,8 @@ class cVerifierStopDetector(object):
     oBugReport.fReport();
     oCdbWrapper.fStop();
 
-from ..cBugReport import cBugReport;
 from ..fsGetNumberDescription import fsGetNumberDescription;
 from ..fsNumberOfBytes import fsNumberOfBytes;
 from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from ..sBlockHTMLTemplate import sBlockHTMLTemplate;
 from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString;

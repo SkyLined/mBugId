@@ -2,7 +2,7 @@ import re, threading;
 
 from mMultiThreading import cLock;
 
-from .cBugReport import cBugReport;
+from .mBugReport import cBugReport;
 from .dxConfig import dxConfig;
 from .fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 # local imports are at the end of this file to avoid import loops.

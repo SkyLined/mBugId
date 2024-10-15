@@ -1,5 +1,6 @@
 import re;
 
+from .mBugReport import cBugReport;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
@@ -515,7 +516,7 @@ class cASanErrorDetector(object):
       );
       oBugReport.atxMemoryRemarks.extend(atxMemoryRemarks);
       # Add ASan output to file
-      sASanOutputHTML = sBlockHTMLTemplate % {
+      sASanOutputHTML = cBugReport.sBlockHTMLTemplate % {
         "sName": "ASan bug report",
         "sCollapsed": "Collapsed",
         "sContent": "<pre>%s</pre>" % "\r\n".join([

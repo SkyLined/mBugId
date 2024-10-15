@@ -1,8 +1,9 @@
 import re;
 
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from ..sBlockHTMLTemplate import sBlockHTMLTemplate;
 from ..mCP437 import fsCP437HTMLFromBytesString;
+
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 grbMemoryDumpLine = re.compile(
   rb"^"

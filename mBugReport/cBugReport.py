@@ -38,6 +38,9 @@ from .cBugReport_fs0GetRegistersBlockHTML import cBugReport_fs0GetRegistersBlock
 from .cBugReport_fs0GetDisassemblyHTML import cBugReport_fs0GetDisassemblyHTML;
 from .cBugReport_fs0GetMemoryDumpBlockHTML import cBugReport_fs0GetMemoryDumpBlockHTML;
 from .cBugReport_fxProcessStack import cBugReport_fxProcessStack;
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
+from .sReportHTMLTemplate import sReportHTMLTemplate;
+
 # Remaining local imports are at the end of this file to avoid import loops.
 
 dfoAnalyzeException_by_uExceptionCode = {
@@ -419,5 +422,3 @@ from ..dxConfig import dxConfig;
 from ..ftsReportLicenseHeaderAndFooterHTML import ftsReportLicenseHeaderAndFooterHTML;
 from ..ftsReportProductHeaderAndFooterHTML import ftsReportProductHeaderAndFooterHTML;
 from ..mCP437 import fsCP437FromBytesString, fsCP437HTMLFromBytesString, fsCP437HTMLFromString;
-from ..sBlockHTMLTemplate import sBlockHTMLTemplate;
-from ..sReportHTMLTemplate import sReportHTMLTemplate;

@@ -2,7 +2,7 @@ import re;
 
 from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEBUGGER;
 
-from ..cBugReport import cBugReport;
+from ..mBugReport import cBugReport;
 from ..cErrorDetails import cErrorDetails;
 from ..cException import cException;
 from ..mProcess import cProcess;

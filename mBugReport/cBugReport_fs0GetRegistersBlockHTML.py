@@ -1,6 +1,7 @@
 from ..dxConfig import dxConfig;
 from ..mCP437 import fsCP437HTMLFromBytesString;
-from ..sBlockHTMLTemplate import sBlockHTMLTemplate;
+
+from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
 def cBugReport_fs0GetRegistersBlockHTML(oBugReport, oProcess, oWindowsAPIThread):
   # Create and add registers block
