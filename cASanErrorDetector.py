@@ -3,7 +3,6 @@ import re;
 from .mBugReport import cBugReport;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
-from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .mCP437 import fsCP437HTMLFromString;
 
 dsSecurityImpact_by_sASanBugType = {
