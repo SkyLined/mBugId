@@ -7,7 +7,7 @@ from ..dxConfig import dxConfig;
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString;
 
-gbDebugOutput = True;
+gbDebugOutput = False;
 
 grbIgnoredHeapOutputLines = re.compile(
   rb"^\s*"                                  # optional whitespace
