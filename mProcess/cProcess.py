@@ -109,8 +109,9 @@ class cProcess(object):
     if u0StartAddress is None:
       if gbDebugOutput: print("cdb id %s => None" % (repr(sbCdbId)[1:],));
       return None;
+    uStartAddress = u0StartAddress;
     # No; try to get the module for the start address:
-    o0Module = oSelf.fo0GetModuleForStartAddress(u0StartAddress);
+    o0Module = oSelf.fo0GetModuleForStartAddress(uStartAddress);
     if o0Module is None:
       # I believe this can happen if you are using a 64-bit version of Python
       # and you are debugging a 32-bit process. I believe the mWindowsAPI
@@ -119,24 +120,31 @@ class cProcess(object):
       # the root cause is fixed (e.g. by improving the mWindowsAPI code).
       if gbDebugOutput: print("cdb id %s => address %s => no module!?" % (
         repr(sbCdbId)[1:],
-        fsHexNumber(u0StartAddress),
+        fsHexNumber(uStartAddress),
       ));
       return None;
+    oModule = o0Module;
     if gbDebugOutput:
       print("cdb id %s (address %s) => %s" % (
         repr(sbCdbId)[1:],
-        fsHexNumber(u0StartAddress),
-        o0Module,
+        fsHexNumber(uStartAddress),
+        oModule,
       ));
-    assert o0Module.sbCdbId == sbCdbId, \
-        "cdb id mismatch: %s => %s => %s" % (
-          repr(sbCdbId)[1:],
-          fsHexNumber(u0StartAddress),
-          o0Module,
-        );
-    # Cache the cdb id of the module:
-    o0Module.sbCdbId = sbCdbId;
-    return o0Module;
+    
+    if oModule.sbCdbId != sbCdbId:
+      # cdb ids may have aliases because life isn't hard enough without them.
+      u0ModuleSymbolStartAddress = oSelf.fu0GetAddressForSymbol(oModule.sbCdbId);
+      assert uStartAddress == u0ModuleSymbolStartAddress, \
+          "got unexpected module cdb id and address: requested %s=>%s, got %s=>%s (module at %s)" % (
+            repr(sbCdbId)[1:],
+            fsHexNumber(uStartAddress),
+            oModule.sbCdbId,
+            fsHexNumber(u0ModuleSymbolStartAddress) if u0ModuleSymbolStartAddress is not None else "<no address>",
+            fsHexNumber(oModule.uStartAddress),
+          );
+      # Change the cdb id of the module to the one we were using already:
+      oModule.sbCdbId = sbCdbId;
+    return oModule;
   
   @property
   def doModule_by_uStartAddress(oSelf):
