@@ -58,8 +58,11 @@ grbWindowsHeapInformation = re.compile(     # line #4
   rb"([0-9`a-f]+)"                rb"\s+"   # * sBlockStartAddress
   rb"([0-9`a-f]+)"                rb"\s+"   # * sBlockSize
   rb"\-"                          rb"\s+"   #   "-"
-  rb"\(" rb"(busy|free|DelayedFree)" rb"\)" #* "(" state  ")"
-  rb"\s*$"                                  # optional whitespace
+  rb"\("                                    #   "("
+    rb"(busy|free|DelayedFree)"             # *   state
+    rb"( VirtualAlloc)?"                    # *   unknown
+  rb"\)"                                    #   ")"
+  rb"\s*$"                                  #   optional whitespace
 );
 
 
@@ -196,6 +199,7 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
     sbBlockStartAddress,
     sbBlockSize,
     sbState,
+    sbUnknown, # I've seen this but do not know what it means.
   ) = obBlockInformationMatch.groups();
   uHeapEntryStartAddress = fu0ValueFromCdbHexOutput(sbHeapEntryStartAddress);
   uHeapEntrySize = fu0ValueFromCdbHexOutput(sbHeapEntrySizeInPointers) * oProcess.uPointerSize;
