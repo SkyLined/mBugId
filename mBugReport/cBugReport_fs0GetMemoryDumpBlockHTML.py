@@ -24,7 +24,7 @@ grbMemoryDumpLine = re.compile(
 
 def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAddressDescriptionsHTML, uStartAddress, uEndAddress):
   o0VirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(uStartAddress);
-  if not o0VirtualAllocation:
+  if not o0VirtualAllocation or o0VirtualAllocation.bFree:
     return None;
   uPointerSizeInBits = oProcess.uPointerSizeInBits;
   uPointerSizeInBytes = oProcess.uPointerSizeInBytes;
