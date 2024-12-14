@@ -136,6 +136,8 @@ try:
       # When we're not running the full test suite, we're not saving reports, so we don't need symbols.
       # Disabling symbols should speed things up considerably.
       cBugId.dxConfig["asDefaultSymbolServerURLs"] = None;
+    # This is used quite often, so we create a variable to store it.
+    srMain = r"(540|80a(\.de9)?) @ <binary>!wmain";
     dxTests = {
       "BinaryIssues": [
         (FULL, [], [], {
@@ -150,22 +152,22 @@ try:
         }),
       ],
       "Breakpoint": [
-        (QUICK, [], [r"Breakpoint (540|80a) @ <binary>!wmain"], {"bRunInShell": bTestFull}),
+        (QUICK, [], [r"Breakpoint " + srMain], {"bRunInShell": bTestFull}),
       ],
       "Nop": [
         (FULL, [], []), # No exceptions, just a clean program exit.
       ],
       "C++": [
-        (NORMAL, [], [r"C\+\+:cException (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [], [r"C\+\+:cException " + srMain]),
       ],
       "IntegerDivideByZero": [
-        (NORMAL, [], [r"IntegerDivideByZero (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [], [r"IntegerDivideByZero " + srMain]),
       ],
       "IntegerOverflow": [
         (NORMAL, [], [r"IntegerOverflow (9b1\.540|a3a\.80a) @ <binary>!fIntegerOverflow"]),
       ],
       "Numbered": [
-        (NORMAL, [0x41414141, 0x42424242], [r"0x41414141 (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [0x41414141, 0x42424242], [r"0x41414141 " + srMain]),
       ],
       "IllegalInstruction": [
         (NORMAL, [], [r"IllegalInstruction (667\.540|cf3\.80a) @ <binary>!fIllegalInstruction"]),
@@ -174,7 +176,7 @@ try:
         (NORMAL, [], [r"PrivilegedInstruction (802\.540|df4\.80a) @ <binary>!fPrivilegedInstruction"]),
       ],
       "StackExhaustion": [
-        (NORMAL, [0x100], [r"StackExhaustion (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [0x100], [r"StackExhaustion " + srMain]),
       ],
       "RecursiveCall": [
         (FULL,   [ 1], [r"RecursiveCall\(1\) (785|1ce) @ <binary>!fStackRecursionFunction1"]),
@@ -189,21 +191,21 @@ try:
         (NORMAL, [], [r"PureCall (1b7\.a2a|640\.d7b) @ <binary>!fCallVirtual"]),
       ],
       "WrongHeapHandle": [
-        (NORMAL, [0x20], [r"WrongHeap\[4n\] (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [0x20], [r"WrongHeap\[4n\] " + srMain]),
       ],
       "OOM": [
-        (NORMAL, ["HeapAlloc", mGlobals.uOOMAllocationBlockSize], [r"OOM (540|80a) @ <binary>!wmain"]),
-        (FULL,   ["C++", mGlobals.uOOMAllocationBlockSize],       [r"OOM (540|80a) @ <binary>!wmain"]),
-        (NORMAL, ["Stack", mGlobals.uOOMAllocationBlockSize],     [r"OOM (540|80a) @ <binary>!wmain"]),
+        (NORMAL, ["HeapAlloc", mGlobals.uOOMAllocationBlockSize], [r"OOM " + srMain]),
+        (FULL,   ["C++", mGlobals.uOOMAllocationBlockSize],       [r"OOM " + srMain]),
+        (NORMAL, ["Stack", mGlobals.uOOMAllocationBlockSize],     [r"OOM " + srMain]),
       ],
       "WRTOriginate": [
-        (NORMAL, [0x87654321, "message"], [r"Stowed\[0x87654321\] (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [0x87654321, "message"], [r"Stowed\[0x87654321\] " + srMain]),
       ],
       "WRTLanguage": [
-        (NORMAL, [0x87654321, "message"], [r"Stowed\[0x87654321:WRTLanguage@cIUnknown\] (540|80a) @ <binary>!wmain"]),
+        (NORMAL, [0x87654321, "message"], [r"Stowed\[0x87654321:WRTLanguage@cIUnknown\] " + srMain]),
       ],
       "CPUUsage": [
-        (FULL, [], ["CPUUsage (540|80a) @ <binary>!wmain"], {"bExcessiveCPUUsageChecks": True}),
+        (FULL, [], ["CPUUsage " + srMain], {"bExcessiveCPUUsageChecks": True}),
       ],
     };
     ###################################################
