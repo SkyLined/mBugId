@@ -68,6 +68,7 @@ grb_kn_StackOutputLine = re.compile(
   rb"\s*\Z"                                 # optional whitespace
 );
 
+#################### THIS SHOULD BE MOVED TO mBugTranslations ##################
 # Windows loads kernel32 and ntdll and they do some thread initialization. These
 # functions are hidden on the stack because they are unlikely to be relevant:
 rbOSThreadInitializationSymbols = re.compile(
@@ -79,6 +80,16 @@ rbOSThreadInitializationSymbols = re.compile(
     rb"ntdll\.dll!_*RtlUserThreadStart"
   rb")\Z"
 );
+# Windows compile time mitigations add even more complexity:
+rbMitigationFunctionSymbols = re.compile(
+  rb"\A("
+    rb"ntdll\.dll!LdrpDispatchUserCallTarget"
+  rb"|"
+    rb".*!guard_dispatch_icall\$.*"
+  rb")\Z"
+);
+################ END THIS SHOULD BE MOVED TO mBugTranslations ##################
+
 # Windows Common RunTime does some thread initialization too. These functions
 # are implemented in the main binary for the process, so we check that first
 # and then match their function names. If found they are hidden on the stack
@@ -88,12 +99,6 @@ rbCRTThreadInitializationFunctionSymbols = re.compile(
     rb"__scrt_common_main_seh"
   rb"|"
     rb"invoke_main"
-  rb")\Z"
-);
-# Windows compile time mitigations add even more complexity:
-rbMitigationFunctionSymbols = re.compile(
-  rb"\A("
-    rb"ntdll\.dll!LdrpDispatchUserCallTarget"
   rb")\Z"
 );
 
@@ -132,11 +137,14 @@ class cStack(object):
         oStackFrame.s0IsHiddenBecause = "Address 0x%X is not in executable memory" % oStackFrame.u0Address;
     # Hide stack frames that are part of the thread initialization code.
     if oStackFrame.o0Function and oStackFrame.o0Function.oModule.sb0SimplifiedName:
-      if rbOSThreadInitializationSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
+      if rbOSThreadInitializationSymbols.match(oStackFrame.o0Function.sbSimplifiedName): # matched against module!function
         oStackFrame.s0IsHiddenBecause = "Part of OS thread initialization code";
-      elif rbMitigationFunctionSymbols.match(oStackFrame.o0Function.sbSimplifiedName):
+      elif rbMitigationFunctionSymbols.match(oStackFrame.o0Function.sbSimplifiedName): # matched against module!function
         oStackFrame.s0IsHiddenBecause = "Part of OS vulnerability mitigation code";
-      elif oStackFrame.o0Function.oModule == oProcess.oMainModule and rbCRTThreadInitializationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol):
+      elif (
+        oStackFrame.o0Function.oModule == oProcess.oMainModule and # module checked separately, as this changes
+        rbCRTThreadInitializationFunctionSymbols.match(oStackFrame.o0Function.sbSymbol)  # matched against function only
+      ):
         oStackFrame.s0IsHiddenBecause = "Part of CRT thread initialization code";
     oSelf.aoFrames.append(oStackFrame);
     return oStackFrame;
