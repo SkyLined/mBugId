@@ -50,9 +50,15 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   # If the output contains more than one line, it must be caused by symbol loading; try again.
   assert len(asbSymbolOutput) == 1, \
       "Invalid symbol output:\n%s" % "\n".join(repr(sbLine) for sbLine in asbSymbolOutput);
-  # If there is no symbol at the address, only the address will be output; return None:
-  if grbAddress.match(asbSymbolOutput[0]) and fu0ValueFromCdbHexOutput(asbSymbolOutput[0]) == uAddress:
-    return None;
+  # If there is no symbol at the address, cdb will output the address truncated
+  # to the size of a pointer for the ISA. If we detect this, we return None:
+  # (See https://github.com/SkyLined/BugId/issues/131)
+  bOutputLooksLikeANumber = grbAddress.match(asbSymbolOutput[0]);
+  if bOutputLooksLikeANumber:
+    uSymbolOutputValue = fu0ValueFromCdbHexOutput(asbSymbolOutput[0]);
+    uPointerSizeMask = (1 << uPointerSizeInBits) - 1
+    if uAddress & uPointerSizeMask == uSymbolOutputValue:
+      return None;
   oSymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);
   assert oSymbolWithOrWithoutAddressMatch, \
       "This should always match!"; # By design - something is very broken if not.
