@@ -44,7 +44,7 @@ def fRunASingleTest(
   s0ApplicationBinaryPath = None,
   bASan = False,
   uMaximumNumberOfBugs = 2,
-  nMaxTestTimeInSeconds = 2,
+  n0ExpectedMaximumTestTime = None,
   bExcessiveCPUUsageChecks = False,
   bEnableVerboseOutput = False,
 ):
@@ -478,7 +478,11 @@ def fRunASingleTest(
         NORMAL, " Finished, ",
         axTestDescription,
         NORMAL, " in ",
-        ERROR if nTestTimeInSeconds > nMaxTestTimeInSeconds else NORMAL, "%f" % nTestTimeInSeconds,
+        (
+          ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
+          NORMAL
+        ),
+        "%f" % nTestTimeInSeconds,
         NORMAL, " seconds.",
       );
     elif a0sExpectedBugIdAndLocations is not None:
@@ -487,6 +491,14 @@ def fRunASingleTest(
         NORMAL, " ",
         axTestDescription,
         NORMAL, " in ",
-        ERROR if nTestTimeInSeconds > nMaxTestTimeInSeconds else NORMAL, "%f" % nTestTimeInSeconds,
+        (
+          ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
+          NORMAL
+        ),
+        "%f" % nTestTimeInSeconds,
         NORMAL, " seconds.",
+      );
+    for oBugReport in aoBugReports:
+      oConsole.fOutput(
+        "  • %s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)")
       );
