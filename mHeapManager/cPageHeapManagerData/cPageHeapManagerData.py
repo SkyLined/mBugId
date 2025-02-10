@@ -37,7 +37,6 @@ class cPageHeapManagerData(iHeapManagerData):
     o0HeapBlockHeader,
     uHeapBlockEndPaddingSize,
   ):
-    oSelf.uHeapRootAddress = None;
     oSelf.uPointerSize = uPointerSize;
     
     oSelf.uPageHeapBlockAddress = uPageHeapBlockAddress;
@@ -65,6 +64,7 @@ class cPageHeapManagerData(iHeapManagerData):
     
     oSelf.o0HeapBlockHeader = o0HeapBlockHeader;
     if o0HeapBlockHeader:
+      oSelf.u0HeapRootAddress = o0HeapBlockHeader.Heap.fuGetValue();
       oSelf.uHeapBlockHeaderStartAddress = uHeapBlockHeaderStartAddress;
       oSelf.o0HeapBlockHeader = o0HeapBlockHeader;
       oSelf.uHeapBlockHeaderEndAddress = uHeapBlockHeaderStartAddress + o0HeapBlockHeader.fuGetSize();
@@ -72,6 +72,8 @@ class cPageHeapManagerData(iHeapManagerData):
       assert oSelf.uHeapBlockHeaderEndAddress == oSelf.uHeapBlockStartAddress, \
           "Page heap block header end address 0x%X should be the same as the heap block start address 0x%X" % \
           (oSelf.uHeapBlockHeaderEndAddress, oSelf.uHeapBlockStartAddress);
+    else:
+      oSelf.u0HeapRootAddress = None;
     if not bUseNewPageHeapStructures:
       oSelf.bAllocated = oPageHeapBlock.uState.fuGetValue() == DPH_STATE_ALLOCATED;
       oSelf.bFreed = oPageHeapBlock.uState.fuGetValue() == DPH_STATE_FREED;
@@ -305,7 +307,7 @@ class cPageHeapManagerData(iHeapManagerData):
     oExpectedHeapBlockHeader = DPH_BLOCK_INFORMATION(**dict([tx for tx in [
       ("StartStamp", uStartStampAllocated if oSelf.bAllocated else uStartStampFreed),
       ("PaddingStart", 0) if hasattr(oSelf.o0HeapBlockHeader, "PaddingStart") else None,
-      ("Heap", oSelf.uHeapRootAddress or oSelf.o0HeapBlockHeader.Heap), # We do not always know the correct value
+      ("Heap", oSelf.u0HeapRootAddress) if oSelf.u0HeapRootAddress is not None else None, # We do not always know the correct value
       ("RequestedSize", oSelf.oPageHeapBlock.nUserRequestedSize.fuGetValue()),
       ("ActualSize", oSelf.oHeapBlockVirtualAllocation.uSize),
       ("FreeQueue", oSelf.o0HeapBlockHeader.FreeQueue), # We do not know the correct value.
