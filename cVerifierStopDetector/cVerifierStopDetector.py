@@ -162,19 +162,22 @@ class cVerifierStopDetector(object):
         ));
         if o0PageHeapManagerData:
           print("VERIFIER:   %s" % o0PageHeapManagerData);
-    atxMemoryRemarks = [];
     if o0PageHeapManagerData:
       uMemoryDumpStartAddress = o0PageHeapManagerData.uMemoryDumpStartAddress;
       uMemoryDumpEndAddress = o0PageHeapManagerData.uMemoryDumpEndAddress
-      asAddressDetailsHTML = ["heap %s" % cBugReport.fsGetHTMLForValue(o0PageHeapManagerData.uHeapRootAddress)];
-      oBugReport.fAddMemoryRemarks(o0PageHeapManagerData.fatxGetMemoryRemarks());
+      if o0PageHeapManagerData.u0HeapRootAddress:
+        asAddressDetailsHTML = ["heap %s" % cBugReport.fsGetHTMLForValue(
+          o0PageHeapManagerData.u0HeapRootAddress,
+          oProcess.uPointerSizeInBits,
+        )];
+      atxMemoryRemarks = o0PageHeapManagerData.fatxGetMemoryRemarks();
     else:
       uMemoryDumpStartAddress = uVerifierStopHeapBlockAddress;
       uMemoryDumpEndAddress = uVerifierStopHeapBlockAddress + uVerifierStopHeapBlockSize;
-      oBugReport.fAddMemoryRemarks([
+      atxMemoryRemarks = [
         ("start 0x%X byte heap block" % uVerifierStopHeapBlockSize, uVerifierStopHeapBlockAddress, None),
         ("end 0x%X byte heap block" % uVerifierStopHeapBlockSize, uVerifierStopHeapBlockAddress + uVerifierStopHeapBlockSize, None),
-      ]);
+      ];
     if o0PageHeapManagerData:
       if b"corrupted" not in sbMessage and not bVerifierStopHeapBlockAddressPointsToPageHeapBlock:
         assert (
