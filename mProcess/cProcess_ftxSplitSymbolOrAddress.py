@@ -28,11 +28,9 @@ def cProcess_ftxSplitSymbolOrAddress(oProcess, sbSymbolOrAddress):
     if u0Address and u0ModuleOffset: u0Address += u0ModuleOffset;
   else:
     sbModuleCdbId = sb0ModuleCdbIdOrAddress;
-    o0Module = oProcess.fo0GetModuleForCdbId(sbModuleCdbId);
-    assert o0Module, \
-        "Cannot find module %s!?" % repr(sbModuleCdbId)[1:];
+    o0Module = oModule = oProcess.foGetModuleForCdbId(sbModuleCdbId);
     if sb0FunctionSymbol is not None:
-      o0Function = o0Module.foGetOrCreateFunctionForSymbol(sb0FunctionSymbol);
+      o0Function = oModule.foGetOrCreateFunctionForSymbol(sb0FunctionSymbol);
       i0OffsetFromStartOfFunction = (
         0 if sb0OffsetInFunction is None else
         fu0ValueFromCdbHexOutput(sb0OffsetInFunction) * (1 if sbPlusOrMinusOffset == b"+" else -1)

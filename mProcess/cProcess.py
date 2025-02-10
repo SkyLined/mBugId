@@ -17,17 +17,17 @@ from .cProcess_fasbGetStack import cProcess_fasbGetStack;
 from .cProcess_fEnsurePageHeapIsEnabled import cProcess_fEnsurePageHeapIsEnabled;
 from .cProcess_fLoadSymbols import cProcess_fLoadSymbols;
 from .cProcess_fo0GetFunctionForAddress import cProcess_fo0GetFunctionForAddress;
+from .cProcess_fo0GetModuleForCdbId import cProcess_fo0GetModuleForCdbId;
+from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
+    cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
 from .cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock import \
     cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock;
+from .cProcess_fs0GetDetailsForAddress import cProcess_fs0GetDetailsForAddress;
 from .cProcess_fsb0GetSymbolForAddress import cProcess_fsb0GetSymbolForAddress;
-from .cProcess_fs0GetDetailsForAddress import \
-    cProcess_fs0GetDetailsForAddress;
 from .cProcess_ftxSplitSymbolOrAddress import cProcess_ftxSplitSymbolOrAddress;
 from .cProcess_fu0GetTargetAddressForCallInstructionReturnAddress import \
     cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
 from .cProcess_fu0GetAddressForSymbol import cProcess_fu0GetAddressForSymbol;
-from .cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock import \
-    cProcess_fo0GetPageHeapManagerDataForAddressNearHeapBlock;
 
 gbDebugOutput = False;
 
@@ -84,67 +84,6 @@ class cProcess(object):
   
   def fo0GetModuleForStartAddress(oSelf, uStartAddress):
     return oSelf.doModule_by_uStartAddress.get(uStartAddress);
-  
-  def fo0GetModuleForCdbId(oSelf, sbCdbId):
-    # First check if we have cached this cdb id:
-    for oModule in oSelf.doModule_by_uStartAddress.values():
-      if oModule.fbIsCdbIdCached() and oModule.sbCdbId == sbCdbId:
-        return oModule;
-    if gbDebugOutput:
-      print("cdb loaded modules:");
-      for sbLine in oSelf.fasbExecuteCdbCommand(
-        b"lm;",
-        b"Get list of loaded modules for debugging"
-      ):
-        print(repr(sbLine)[1:]);
-      print("mWindowsAPI loaded modules:");
-      for oModule in oSelf.doModule_by_uStartAddress.values():
-        print("%s: %s (%s)" % (
-          oModule.uStartAddress,
-          oModule.s0BinaryName or "<name unknown>",
-          oModule.s0BinaryPath or "<path unknown>",
-        ));
-    # No; try to find the start address of the module for this cdb id:
-    u0StartAddress = oSelf.fu0GetAddressForSymbol(sbCdbId);
-    if u0StartAddress is None:
-      if gbDebugOutput: print("cdb id %s => None" % (repr(sbCdbId)[1:],));
-      return None;
-    uStartAddress = u0StartAddress;
-    # No; try to get the module for the start address:
-    o0Module = oSelf.fo0GetModuleForStartAddress(uStartAddress);
-    if o0Module is None:
-      # I believe this can happen if you are using a 64-bit version of Python
-      # and you are debugging a 32-bit process. I believe the mWindowsAPI
-      # code that gets called to get the module information doesn't handle
-      # this case correctly. We should try to handle this gracefully until
-      # the root cause is fixed (e.g. by improving the mWindowsAPI code).
-      if gbDebugOutput: print("cdb id %s => address %s => no module!?" % (
-        repr(sbCdbId)[1:],
-        fsHexNumber(uStartAddress),
-      ));
-      return None;
-    oModule = o0Module;
-    if gbDebugOutput:
-      print("cdb id %s (address %s) => %s" % (
-        repr(sbCdbId)[1:],
-        fsHexNumber(uStartAddress),
-        oModule,
-      ));
-    
-    if oModule.sbCdbId != sbCdbId:
-      # cdb ids may have aliases because life isn't hard enough without them.
-      u0ModuleSymbolStartAddress = oSelf.fu0GetAddressForSymbol(oModule.sbCdbId);
-      assert uStartAddress == u0ModuleSymbolStartAddress, \
-          "got unexpected module cdb id and address: requested %s=>%s, got %s=>%s (module at %s)" % (
-            repr(sbCdbId)[1:],
-            fsHexNumber(uStartAddress),
-            oModule.sbCdbId,
-            fsHexNumber(u0ModuleSymbolStartAddress) if u0ModuleSymbolStartAddress is not None else "<no address>",
-            fsHexNumber(oModule.uStartAddress),
-          );
-      # Change the cdb id of the module to the one we were using already:
-      oModule.sbCdbId = sbCdbId;
-    return oModule;
   
   @property
   def doModule_by_uStartAddress(oSelf):
@@ -298,6 +237,7 @@ class cProcess(object):
   fEnsurePageHeapIsEnabled = cProcess_fEnsurePageHeapIsEnabled;
   fLoadSymbols = cProcess_fLoadSymbols;
   fo0GetFunctionForAddress = cProcess_fo0GetFunctionForAddress;
+  fo0GetModuleForCdbId = cProcess_fo0GetModuleForCdbId;
   ftxSplitSymbolOrAddress = cProcess_ftxSplitSymbolOrAddress;
   fu0GetTargetAddressForCallInstructionReturnAddress = cProcess_fu0GetTargetAddressForCallInstructionReturnAddress;
   fu0GetAddressForSymbol = cProcess_fu0GetAddressForSymbol;
