@@ -365,6 +365,7 @@ class cVerifierStopDetector(object):
           uMemoryDumpStartAddress,
           uMemoryDumpEndAddress - uMemoryDumpStartAddress
         );
+        uMemoryDumpEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize;
     
     oBugReport = cBugReport.foCreate(
       oCdbWrapper = oCdbWrapper,
@@ -378,7 +379,7 @@ class cVerifierStopDetector(object):
     if oCdbWrapper.bGenerateReportHTML:
       oBugReport.fAddMemoryDump(
         uStartAddress = uMemoryDumpStartAddress,
-        uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
+        uEndAddress = uMemoryDumpEndAddress,
         asAddressDetailsHTML = asAddressDetailsHTML,
       );
       oBugReport.fAddMemoryRemarks(atxMemoryRemarks);
