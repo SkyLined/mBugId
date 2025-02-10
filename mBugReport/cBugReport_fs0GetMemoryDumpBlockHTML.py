@@ -2,6 +2,7 @@ import re;
 
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437HTMLFromBytesString;
+from ..dxConfig import dxConfig;
 
 from .fsGetHTMLForValue import fsGetHTMLForValue;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
@@ -87,10 +88,10 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAd
       bLastLineWasInaccessible = False;
       sbHexBytes = sbPointerAddress.replace(b"`", b"");
       uPointerAddress = fu0ValueFromCdbHexOutput(sbHexBytes);
-      asPointerRemarks += oBugReport.fasGetRemarksForRange(uPointerAddress, 1);
-      s0PointerAddressDetails = oProcess.fs0GetDetailsForAddress(uPointerAddress);
-      if s0PointerAddressDetails:
-        asPointerRemarks.append(s0PointerAddressDetails);
+      if dxConfig["bCollectInformationAboutPointersInMemoryDumps"]:
+        asPointerRemarks += oBugReport.fasGetRemarksForPointer(uPointerAddress);
+      else:
+        asPointerRemarks += oBugReport.fasGetRemarksForRange(uPointerAddress, 1);
       sMemoryBytesHTML = '';
       sMemoryCharsHTML = '';
       uOffset = 0;

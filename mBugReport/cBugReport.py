@@ -92,6 +92,7 @@ class cBugReport(object):
     oSelf.__o0Stack = None;
     oSelf.__dtxMemoryDumps = {};
     oSelf.__atxMemoryRemarks = [];
+    oSelf.__dasPointerRemarks_by_uAddress = {};
     oSelf.bRegistersRelevant = True; # Set to false if register contents are not relevant to the crash
     
     oSelf.asExceptionSpecificBlocksHTML = [];
@@ -198,7 +199,38 @@ class cBugReport(object):
             sPrefix = "last %s bytes:" % (sRemarkStartOffset,);
         asRemarksForRange.append(sPrefix + sRemark);
     return asRemarksForRange;
+  
+  def fasGetRemarksForPointer(oSelf, uPointerAddress):
+    if uPointerAddress not in oSelf.__dasPointerRemarks_by_uAddress:
+      asPointerRemarks = oSelf.fasGetRemarksForRange(uPointerAddress, 1);
+      o0VirtualAllocation = oSelf.__oProcess.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uPointerAddress);
+      if o0VirtualAllocation and o0VirtualAllocation.bIsValid and not o0VirtualAllocation.bIsFree:
+        s0PointerAddressDetails = oSelf.__oProcess.fs0GetDetailsForAddress(uPointerAddress);
+        if s0PointerAddressDetails:
+          asPointerRemarks.append(s0PointerAddressDetails);
+        else:
+          asPointerRemarks.append((
+            "Points to %s memory, base @ %s, [%s-%s] (%s bytes)" % (
+              o0VirtualAllocation.sState,
+              fsGetHTMLForValue(o0VirtualAllocation.uAllocationBaseAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uSize, oSelf.__oProcess.uPointerSizeInBits),
+            ) if o0VirtualAllocation.bReserved else
+            "Points to %s memory, base @ %s, [%s-%s] (%s bytes), uProtection = %s%s" % (
+              o0VirtualAllocation.sType,
+              fsGetHTMLForValue(o0VirtualAllocation.uAllocationBaseAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
+              fsGetHTMLForValue(o0VirtualAllocation.uSize, oSelf.__oProcess.uPointerSizeInBits),
+              "PAGE_GUARD | " if o0VirtualAllocation.bGuard else "",
+              o0VirtualAllocation.sProtection,
+            )
+          ));
+      oSelf.__dasPointerRemarks_by_uAddress[uPointerAddress] = asPointerRemarks;
+    return oSelf.__dasPointerRemarks_by_uAddress[uPointerAddress];
 
+  
   @classmethod
   def fo0CreateForException(cBugReport, oCdbWrapper, oProcess, oWindowsAPIThread, oException):
     uStackFramesCount = dxConfig["uMaxStackFramesCount"];
