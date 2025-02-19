@@ -7,6 +7,8 @@ from ..dxConfig import dxConfig;
 from .fsGetHTMLForValue import fsGetHTMLForValue;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 
+gbDebugOutput = False;
+
 grbMemoryDumpLine = re.compile(
   rb"^"
   rb"([0-9a-f`]+)"    # **address**
@@ -44,6 +46,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAd
   uAlignedEndAddress = uEndAddress + uPointerSizeInBytes - 1 - ((uEndAddress - 1) % uPointerSizeInBytes);
   uAlignedSize = uAlignedEndAddress - uAlignedStartAddress;
   asMemoryTableHTML = [];
+  if gbDebugOutput: print("* Asking cdb to dump 0x%X bytes of memory at 0x%X..." % (uAlignedSize, uAlignedStartAddress));
   asbMemoryDumpOutput = oProcess.fasbExecuteCdbCommand(
     sbCommand = b"dpp 0x%X L0x%X;" % (uAlignedStartAddress, uAlignedSize),
     sb0Comment = b"Get memory dump for 0x%X-0x%X" % (uStartAddress, uEndAddress),
@@ -51,6 +54,7 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAd
   );
   uMaxOffsetSizeInBits = len(bin(uAlignedSize)) - 2;
   bLastLineWasInaccessible = False;
+  if gbDebugOutput: print("* Processing cdb output of memory dump...");
   for sbLine in asbMemoryDumpOutput:
     obMemoryDumpLineMatch = re.match(grbMemoryDumpLine, sbLine);
     assert obMemoryDumpLineMatch, \
@@ -66,10 +70,12 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAd
       if sb0PointerSymbol:
         asPointerRemarks.append(fsCP437HTMLFromBytesString(sb0PointerSymbol));
     uAddress = fu0ValueFromCdbHexOutput(sbAddress);
+    if gbDebugOutput: print("* Getting remarks for address 0x%X..." % uAddress);
     asAddressRemarks = oBugReport.fasGetRemarksForRange(uAddress, uPointerSizeInBytes);
-    s0AddressDetails = oProcess.fs0GetDetailsForAddress(uAddress);
-    if s0AddressDetails:
-      asAddressRemarks.append(s0AddressDetails);
+    if dxConfig["bCollectInformationAboutAddressesInMemoryDumps"]:
+      s0AddressDetails = oProcess.fs0GetDetailsForAddress(uAddress);
+      if s0AddressDetails:
+        asAddressRemarks.append(s0AddressDetails);
     if sb0Inaccessible:
       if bLastLineWasInaccessible:
         if not asAddressRemarks:
@@ -85,18 +91,26 @@ def cBugReport_fs0GetMemoryDumpBlockHTML(oBugReport, oCdbWrapper, oProcess, asAd
         '</td>',
       ]);
     else:
+      if dxConfig["bCollectInformationAboutAddressesInMemoryDumps"]:
+        if gbDebugOutput: print("* Getting details for address 0x%X..." % uAddress);
+        s0AddressDetails = oProcess.fs0GetDetailsForAddress(uAddress);
+        if s0AddressDetails:
+          asAddressRemarks.append(s0AddressDetails);
       bLastLineWasInaccessible = False;
       sbHexBytes = sbPointerAddress.replace(b"`", b"");
       uPointerAddress = fu0ValueFromCdbHexOutput(sbHexBytes);
       if dxConfig["bCollectInformationAboutPointersInMemoryDumps"]:
+        if gbDebugOutput: print("* Getting remarks for pointer 0x%X..." % uPointerAddress);
         asPointerRemarks += oBugReport.fasGetRemarksForPointer(uPointerAddress);
       else:
+        if gbDebugOutput: print("* Getting remarks for range 0x%X+1..." % uPointerAddress);
         asPointerRemarks += oBugReport.fasGetRemarksForRange(uPointerAddress, 1);
       sMemoryBytesHTML = '';
       sMemoryCharsHTML = '';
       uOffset = 0;
       sCurrentByteClass = None;
       sCurrentCharClass = None;
+      if gbDebugOutput: print("* Processing bytes...");
       while sbHexBytes:
         # byte prefix/separator
         sBytePrefixHTML = oBugReport.fbByteHasRemarks(uAddress + uOffset) and "*" or " ";

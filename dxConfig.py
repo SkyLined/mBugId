@@ -165,9 +165,12 @@ dxConfig = {
                                         # need to switch this to True. If you do; you should consider contacting the
                                         # author to ask if the information you are looking for can be included in the
                                         # report by default, rather than having to flip this setting.
-  "bCollectInformationAboutPointersInMemoryDumps": False, # Set to True to have BugId collect information about
-                                        # everything that could be a pointers in memory dumps. This is very slow but
-                                        # often provides a lot of useful information.
+  "bCollectInformationAboutAddressesInMemoryDumps": True, # Set to False to stop BugId collecting information about
+                                        # every address in memory dumps. This speeds up report creation but doesn't
+                                        # provide as much (potentially useful) information.
+  "bCollectInformationAboutPointersInMemoryDumps": True, # Set to False to stop BugId collecting information about
+                                        # everything that could be a pointer in memory dumps. This speeds up report 
+                                        # creation but doesn't provide as much (potentially useful) information.
   ### Page heap
   "bEnsurePageHeap": True,              # If True, each process that BugId attaches to, creates, or which is created
                                         # during debugging will be checked to make sure page heap is enabled.
