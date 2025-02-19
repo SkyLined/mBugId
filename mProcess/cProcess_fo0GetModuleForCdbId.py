@@ -1,3 +1,6 @@
+
+gbDebugOutput = False;
+
 def cProcess_fo0GetModuleForCdbId(oProcess, sbCdbId):
   # First check if we have cached this cdb id:
   for oModule in oProcess.doModule_by_uStartAddress.values():
