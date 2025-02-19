@@ -2,6 +2,8 @@ from mWindowsAPI import cVirtualAllocation, oSystemInfo;
 
 from ..dxConfig import dxConfig;
 
+gbDebugOutput = False;
+
 def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oWindowsAPIThread, oException):
   assert oBugReport.o0Stack, \
       "Stack is missing!?";
@@ -46,49 +48,78 @@ def cBugReport_foAnalyzeException_STATUS_STACK_OVERFLOW(oBugReport, oProcess, oW
         # No more loops
         break;
       if uLoopCount < dxConfig["uMinStackRecursionLoops"]:
+        if gbDebugOutput: print ("Ignored %d loops of size %d at %d: not enough loops (min: %d)" % (
+          uLoopCount,
+          uLoopSize,
+          uFirstLoopStartIndex,
+          dxConfig["uMinStackRecursionLoops"]
+        ));
         pass;
       elif uRecursionLoopCount is not None and uLoopCount * uLoopSize <= uRecursionLoopCount * uRecursionLoopSize:
+        if gbDebugOutput: print ("Ignored %d loops of size %d at %d: less frames (%d) than previously found loop" % (
+          uLoopCount,
+          uLoopSize,
+          uFirstLoopStartIndex,
+          uLoopCount * uLoopSize
+        ));
         pass;
         # We found enough loops to assume this is a stack recursion issue and this loop includes more frames than
         # any loop we have found so far, so this is a better result.
       else:
+        if gbDebugOutput: print ("Found %d loops of size %d at %d." % (
+          uLoopCount,
+          uLoopSize,
+          uFirstLoopStartIndex,
+        ));
         uRecursionStartIndex = uFirstLoopStartIndex;
         uRecursionLoopSize = uLoopSize;
         uRecursionLoopCount = uLoopCount;
   if uRecursionStartIndex is not None:
-    # Enough loops were found in the stack to assume this is a recursive function call
-    # Obviously a loop has no end and the stack will not be complete so the start of the loop may be unknown. This
-    # means there is no obvious way to decide which of the functions involved in the loop is the first or last.
-    # In order to create a stack id and to compare two loops, a way to pick a frame as the "first" in the loop
-    # is needed that will yield the same results every time. This is currently done by creating a strings
-    # concatenating the simplified addresses of all frames in order for each possible "first" frame.
-    duStartOffset_by_sbSimplifiedAddresses = {};
-    for uStartOffset in range(uRecursionLoopSize):
-      sbSimplifiedAddresses = b"".join([
-        oStack.aoFrames[uRecursionStartIndex + uStartOffset + uIndex].sb0SimplifiedAddress or b"(unknown)"
-        for uIndex in range(0, uRecursionLoopSize)
-      ]);
-      duStartOffset_by_sbSimplifiedAddresses[sbSimplifiedAddresses] = uStartOffset;
-    # These strings are now sorted alphabetically and the first one is picked.
-    sbFirstSimplifiedAddresses = sorted(duStartOffset_by_sbSimplifiedAddresses.keys())[0];
-    # The associated start offset is added to the start index of the first loop.
-    uStartOffset = duStartOffset_by_sbSimplifiedAddresses[sbFirstSimplifiedAddresses];
-    uRecursionStartIndex += uStartOffset;
-    # Hide all frames at the top of the stack up until the first loop, and mark all frames in the loop as being
-    # part of the BugId:
-    for oFrame in oStack.aoFrames:
-      if oFrame.uIndex < uRecursionStartIndex:
-        # All top frames up until the "first" frame in the first loop are hidden:
-        oFrame.s0IsHiddenBecause = "This call is not part of the detected recursion loops";
-        oFrame.bIsPartOfId = False;
-      elif oFrame.uIndex < uRecursionStartIndex + uRecursionLoopSize:
-        # All frames in the loop are part of the hash if they have an id:
-        # This includes inline frames because they may not get inlined in a different build but the BugId should be
-        # the same for both builds.
-        oFrame.bIsPartOfId = oFrame.sId is not None;
-      else:
-        # All frames after the loop are not part of the hash.
-        oFrame.bIsPartOfId = False;
+    if gbDebugOutput: print ("Found recursion of %d loops of size %d at %d." % (
+      uRecursionLoopCount,
+      uRecursionLoopSize,
+      uRecursionStartIndex,
+    ));
+    # We'll go back up the stack until we've found the first loop.
+    # We'll hide all frames at the top of the stack up until the first loop:
+    asLog=[];
+    for uFrameIndex in range(uRecursionStartIndex):
+      oLoopTerminatingFrame = oStack.aoFrames[uFrameIndex];
+      oLoopTerminatingFrame.s0IsHiddenBecause = "This call is not part of the loop but happened to be involved in triggering the stack exhaustion exception";
+      oLoopTerminatingFrame.bIsPartOfId = False;
+      if gbDebugOutput: print("Hide: #%s %s (terminating frame)" % (
+        oLoopTerminatingFrame.uIndex,
+        oLoopTerminatingFrame.sb0SimplifiedAddress,
+      ));
+    while uRecursionStartIndex + uRecursionLoopSize < len(oStack.aoFrames):
+      oCurrentLoopStartFrame = oStack.aoFrames[uRecursionStartIndex];
+      oNextLoopStartFrame = oStack.aoFrames[uRecursionStartIndex + uRecursionLoopSize];
+      if oCurrentLoopStartFrame.sbAddress != oNextLoopStartFrame.sbAddress:
+        if gbDebugOutput: print("End of loops: #%s %s != #%s %s" % (
+          oCurrentLoopStartFrame.uIndex,
+          oCurrentLoopStartFrame.sb0SimplifiedAddress,
+          oNextLoopStartFrame.uIndex,
+          oNextLoopStartFrame.sb0SimplifiedAddress
+        ));
+        break;
+      oCurrentLoopStartFrame.s0IsHiddenBecause = "This call is part of a secondary recursion loop";
+      oCurrentLoopStartFrame.bIsPartOfId = False;
+      uRecursionStartIndex += 1;
+      if gbDebugOutput: print("Hide: #%s %s (secondary frame)" % (
+        oCurrentLoopStartFrame.uIndex,
+        oCurrentLoopStartFrame.sb0SimplifiedAddress,
+      ));
+    # Mark all frames in the first loop as part of the id:
+    for uLoopFrameIndex in range(uRecursionLoopSize):
+      oLoopFrame = oStack.aoFrames[uRecursionStartIndex + uLoopFrameIndex];
+      oLoopFrame.bIsPartOfId = True;
+      if gbDebugOutput: print("Id: #%s %s" % (
+        oLoopFrame.uIndex,
+        oLoopFrame.sb0SimplifiedAddress
+      ));
+    # Reverse the order of the stack frames in the id, so the first function
+    # called in the loop is the first one in the Id.
+    oBugReport.bTopDownStackInId = True;
     # The bug id and description are adjusted to explain the recursive function call as its cause.
     oBugReport.s0BugTypeId = "RecursiveCall(%d)" % uRecursionLoopSize;
     if uRecursionLoopSize == 1:
