@@ -56,7 +56,7 @@ def cProcess_fsb0GetSymbolForAddress(oProcess, uAddress, sbAddressDescription):
   bOutputLooksLikeANumber = grbAddress.match(asbSymbolOutput[0]);
   if bOutputLooksLikeANumber:
     uSymbolOutputValue = fu0ValueFromCdbHexOutput(asbSymbolOutput[0]);
-    uPointerSizeMask = (1 << uPointerSizeInBits) - 1
+    uPointerSizeMask = (1 << oProcess.uPointerSizeInBits) - 1
     if uAddress & uPointerSizeMask == uSymbolOutputValue:
       return None;
   oSymbolWithOrWithoutAddressMatch = grbSymbolWithOrWithoutAddress.match(asbSymbolOutput[0]);
