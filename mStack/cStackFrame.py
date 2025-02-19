@@ -4,9 +4,44 @@ from mNotProvided import *;
 
 # local imports are at the end of this file to avoid import loops.
 
+#################### THIS SHOULD BE MOVED TO mBugTranslations ##################
+# Windows loads kernel32 and ntdll and they do some thread initialization. These
+# functions are hidden on the stack because they are unlikely to be relevant:
+rbOSThreadInitializationSymbols = re.compile(
+  rb"\A("
+    rb"kernel32\.dll!BaseThreadInitThunk"
+  rb"|"
+    rb"kernel32\.dll!BaseThreadInitXfgThunk" # New in Windows 11
+  rb"|"
+    rb"ntdll\.dll!_*RtlUserThreadStart"
+  rb")\Z"
+);
+# Windows compile time mitigations add even more complexity:
+rbMitigationFunctionSymbols = re.compile(
+  rb"\A("
+    rb"ntdll\.dll!LdrpDispatchUserCallTarget"
+  rb"|"
+    rb".*!guard_dispatch_icall\$.*"
+  rb")\Z"
+);
+################ END THIS SHOULD BE MOVED TO mBugTranslations ##################
+
+# Windows Common RunTime does some thread initialization too. These functions
+# are implemented in the main binary for the process, so we check that first
+# and then match their function names. If found they are hidden on the stack
+# because they are unlikely to be relevant:
+rbCRTThreadInitializationFunctionSymbols = re.compile(
+  rb"\A("
+    rb"__scrt_common_main_seh"
+  rb"|"
+    rb"invoke_main"
+  rb")\Z"
+);
+
 class cStackFrame(object):
   def __init__(oSelf, 
     oStack,
+    oProcess,
     uIndex,
     sbCdbSymbolOrAddress,
     u0InstructionPointer, u0ReturnAddress,
@@ -49,9 +84,7 @@ class cStackFrame(object):
     oSelf.s0IsHiddenBecause = None;
     # Stack frames that are part of the BugId will be marked as such:
     oSelf.bIsPartOfId = False;
-    oSelf.fUpdateProperties();
-  
-  def fUpdateProperties(oSelf):
+
     if oSelf.o0Function:
       sbOffsetFromStartOfFunction = (
         (b" + ???") if oSelf.i0OffsetFromStartOfFunction is None else
@@ -92,6 +125,24 @@ class cStackFrame(object):
       oHasher = hashlib.md5();
       oHasher.update(oSelf.sb0UniqueAddress);
       oSelf.sId = oHasher.hexdigest()[:dxConfig["uMaxStackFrameHashChars"]];
+    # Hide stack frames that make no sense because they are not in executable memory.
+    if oSelf.s0IsHiddenBecause is None:
+      # Hide stack frames that are part of the thread initialization code.
+      if oSelf.o0Function and oSelf.o0Function.oModule.sb0SimplifiedName:
+        if rbOSThreadInitializationSymbols.match(oSelf.o0Function.sbSimplifiedName): # matched against module!function
+          oSelf.s0IsHiddenBecause = "Part of OS thread initialization code";
+        elif rbMitigationFunctionSymbols.match(oSelf.o0Function.sbSimplifiedName): # matched against module!function
+          oSelf.s0IsHiddenBecause = "Part of OS vulnerability mitigation code";
+        elif (
+          oSelf.o0Function.oModule == oProcess.oMainModule and # module checked separately, as this changes
+          rbCRTThreadInitializationFunctionSymbols.match(oSelf.o0Function.sbSymbol)  # matched against function only
+        ):
+          oSelf.s0IsHiddenBecause = "Part of CRT thread initialization code";
+      if oSelf.s0IsHiddenBecause is None and oSelf.u0Address:
+        o0FrameCodeVirtualAllocation = oProcess.fo0GetVirtualAllocationForAddress(oSelf.u0Address);
+        if not o0FrameCodeVirtualAllocation or not o0FrameCodeVirtualAllocation.bExecutable:
+          # This frame's instruction pointer does not point to executable memory; it is probably invalid.
+          oSelf.s0IsHiddenBecause = "Address 0x%X is not in executable memory" % oSelf.u0Address;
   
   @property
   def bHidden(oSelf):
