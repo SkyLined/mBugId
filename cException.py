@@ -99,6 +99,12 @@ class cException(object):
           uParameterIndex += 1;
         else:
           raise AssertionError("Unknown exception record value name %s:\r\n%s" % (repr(sbName), repr(asbExceptionRecord)));
+      elif sbLine in [
+        b"Failed to download extension ext for command cppexr",
+        b"No export cppexr found",
+      ]:
+        # These are warnings we can ignore:
+        pass;
       else:
         assert uLineIndex == len(asbExceptionRecord) - 1, \
             "Unrecognized exception record line %s: %s" % \
