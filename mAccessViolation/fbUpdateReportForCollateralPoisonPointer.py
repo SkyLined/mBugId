@@ -9,10 +9,11 @@ def fbUpdateReportForCollateralPoisonPointer(
   uAccessViolationAddress,
   sViolationVerb,
 ):
-  iOffset = oCdbWrapper.oCollateralBugHandler.fiGetOffsetForPoisonedAddress(oProcess, uAccessViolationAddress);
-  if iOffset is None:
+  i0Offset = oCdbWrapper.oCollateralBugHandler.fi0GetOffsetForPoisonedAddress(oProcess, uAccessViolationAddress);
+  if i0Offset is None:
     # This is not near the poisoned address used by collateral
     return False;
+  iOffset = i0Offset;
   sSign = iOffset < 0 and "-" or "+";
   sOffset = "%s%s" % (sSign, fsGetNumberDescription(abs(iOffset), sSign));
   oBugReport.s0BugTypeId = "AV%s:Poison%s" % (sViolationTypeId, sOffset);
