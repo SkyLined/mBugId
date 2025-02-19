@@ -334,7 +334,7 @@ class cBugReport(object):
         "Cannot report a bug with no bug type id!";
     # Calculate Stack Id, determine s0BugLocation and optionally create and return sStackHTML.
     aoStackFramesToDisassemble, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
-    oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId);
+    oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId or "XXX");
     
     (sbInstructionPointerName, u0InstructionPointerValue) = \
         oSelf.__oWindowsAPIThread.ftxGetInstructionPointerRegisterNameAndValue();
