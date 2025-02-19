@@ -229,7 +229,18 @@ class cBugReport(object):
   def fasGetRemarksForPointer(oSelf, uPointerAddress):
     if uPointerAddress not in oSelf.__dasPointerRemarks_by_uAddress:
       asPointerRemarks = oSelf.fasGetRemarksForRange(uPointerAddress, 1);
-      o0VirtualAllocation = oSelf.__oProcess.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uPointerAddress);
+      try:
+        o0VirtualAllocation = oSelf.__oProcess.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uPointerAddress);
+      except OSError as oException:
+        if (
+          oException.errno == 5 and # ERROR_ACCESS_DENIED
+          uPointerAddress >= 0x10000 * 0x10000 * 0x10000 # invalid address on current x64 systems
+        ):
+          # We tried to get a virtual allocation at an invalid address and this
+          # exception was the result.
+          o0VirtualAllocation = None;
+        else:
+          raise;
       if o0VirtualAllocation and o0VirtualAllocation.bIsValid and not o0VirtualAllocation.bIsFree:
         s0PointerAddressDetails = oSelf.__oProcess.fs0GetDetailsForAddress(uPointerAddress);
         if s0PointerAddressDetails:
