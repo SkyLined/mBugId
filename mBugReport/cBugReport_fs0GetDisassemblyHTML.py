@@ -69,11 +69,13 @@ def cBugReport_fs0GetDisassemblyHTML(
       );
       if o0DisassemblyBeforeAddress is None:
         return None;
-      assert len(o0DisassemblyBeforeAddress) >= 2, \
-          "Unexpectedly short disassembly output at address %s:\r\n%s" % (
-            fsHexNumber(uStartAddress),
-            o0DisassemblyBeforeAddress,
-          );
+# I totally forgot why I added this check and https://github.com/SkyLined/BugId/issues/133
+# reports that it was triggered. This seems to add no value and stop analysis, so I've disabled it:
+#      assert len(o0DisassemblyBeforeAddress) >= 2, \
+#          "Unexpectedly short disassembly output at address %s:\r\n%s" % (
+#            fsHexNumber(uStartAddress),
+#            o0DisassemblyBeforeAddress,
+#          );
       uStartIndex = max(0, len(o0DisassemblyBeforeAddress) - dxConfig["uDisassemblyInstructionsBefore"]);
       if uStartIndex < len(o0DisassemblyBeforeAddress):
         # Optionally highlight and describe instruction before the address:
