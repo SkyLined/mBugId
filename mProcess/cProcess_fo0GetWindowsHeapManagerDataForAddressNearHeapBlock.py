@@ -76,9 +76,10 @@ gbUseExtHeap = False;
 
 def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddressNearHeapBlock):
   global gbUseExtHeap;
+  uEndOfAddressSpace = (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])) - 1;
   if uAddressNearHeapBlock <= dxConfig["uMaxAddressOffset"]:
     return None; # Considered a NULL pointer;
-  if uAddressNearHeapBlock >= (1 << ({"x86": 32, "x64": 64}[oProcess.sISA])):
+  if uAddressNearHeapBlock > uEndOfAddressSpace:
     return None; # Value is not in the valid address range
   oVirtualAllocation = cVirtualAllocation(
     oProcess.uId,
@@ -104,6 +105,9 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
         # if the offset from the end of the allocation is less than one page.
         uOffsetFromEndOfVirtualAllocation = oVirtualAllocation.uEndAddress - uAddressNearHeapBlock;
         if uOffsetFromEndOfVirtualAllocation < oSystemInfo.uPageSize:
+          if oVirtualAllocation.uEndAddress == uEndOfAddressSpace:
+            # It cannot be after this virtual allocation, as it is at the end of address space.
+            return None;
           oNextVirtualAllocation = cVirtualAllocation(
             oProcess.uId,
             oVirtualAllocation.uEndAddress,
