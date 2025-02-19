@@ -130,6 +130,16 @@ class cProcess(object):
   def fuGetValueForRegister(oSelf, sbRegister, sb0Comment):
     oSelf.fSelectInCdb();
     return oSelf.oCdbWrapper.fuGetValueForRegister(sbRegister, sb0Comment);
+  def fuGetValueForStackPointer(oSelf):
+    return oSelf.fuGetValueForRegister(
+      {"x86": b"esp", "x64": b"rsp"}[oSelf.sISA],
+      b"Determining stack pointer value",
+  );
+  def fuGetValueForInstructionPointer(oSelf):
+    return oSelf.fuGetValueForRegister(
+      {"x86": b"eip", "x64": b"rip"}[oSelf.sISA],
+      b"Determining instruction pointer value",
+    );
   
   # Proxy properties and methods to oWindowsAPIProcess
   @property
