@@ -16,7 +16,8 @@ def fAddCorruptStackPointerTests(dxTests):
   # which ends up in the instruction pointer and results in one of these BugIds:
   # Weirdly, the exact BugId seems to vary between runs of the same test. TODO:
   # find out why and try to return a single BugId.
-  srExecPoison = r"AVE:Poison\+0 (XXX @ <binary>!\(unknown\)|db0.5b3 @ <binary>!fCallWithStackPointer)";
+  srExecPoisonAfterCallIdAndLocation = r"AVE:Poison\+0 (XXX @ <binary>!\(unknown\)|db0.5b3 @ <binary>!fCallWithStackPointer)";
+  srExecPoisonAfterRetIdAndLocation = r"AVE:Poison\+0 (XXX @ <binary>!\(unknown\)|2a6.5b3 @ bugidtests.exe!fRetWithStackPointer)";
   dxCorruptStackPointerTests = dxTests["CorruptStackPointer"] = {
     "Pop": [
       # NULL pointer,
@@ -59,28 +60,28 @@ def fAddCorruptStackPointerTests(dxTests):
     "Call": [
       (NORMAL,   [1],                   [r"AVW:NULL\+1 " + srCallIdAndLocation],                          nExpectedTestTimeOnX64),
       (NORMAL,   [-1],                  [r"AVW:NULL\-1 " + srCallIdAndLocation],                          nExpectedTestTimeOnX64),
-      (FULL,     ["Unallocated"],       [r"AVW:Unallocated " + srCallIdAndLocation,       srExecPoison],  nExpectedTestTimeOnX64),
+      (FULL,     ["Unallocated"],       [r"AVW:Unallocated " + srCallIdAndLocation,       srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
       (NORMAL,   ["NoAccess"],          [r"AVW:NoAccess\[4n\]@0 " + srCallIdAndLocation],                 nExpectedTestTimeOnX64),
-      (NORMAL,   ["Reserved"],          [r"AVW:Reserved\[4n\]@0 " + srCallIdAndLocation,  srExecPoison],  nExpectedTestTimeOnX64),
+      (NORMAL,   ["Reserved"],          [r"AVW:Reserved\[4n\]@0 " + srCallIdAndLocation,  srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
       (NORMAL,   ["GuardPage"],         [r"AVW:Guard\[4n\]@0 " + srCallIdAndLocation],                    nExpectedTestTimeOnX64),
-      (FULL_x64, [    0x7fffffff0000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [    0x7fffffffffff],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoison],  nExpectedTestTimeOnX64),
-      (x64,      [    0x800000000000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [0xffff7fffffffffff],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [0xffff800000000000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoison],  nExpectedTestTimeOnX64),
+      (FULL_x64, [    0x7fffffff0000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [    0x7fffffffffff],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
+      (x64,      [    0x800000000000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [0xffff7fffffffffff],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [0xffff800000000000],  [r"AVW:Invalid " + srCallIdAndLocation,           srExecPoisonAfterCallIdAndLocation],  nExpectedTestTimeOnX64),
     ],
     "Ret": [
       (NORMAL,   [1],                   [r"AVR:NULL\+1 " + srRetIdAndLocation],                            nExpectedTestTimeOnX64),
       (NORMAL,   [-1],                  [r"AVR:NULL\-1 " + srRetIdAndLocation],                            nExpectedTestTimeOnX64),
-      (FULL,     ["Unallocated"],       [r"AVR:Unallocated " + srRetIdAndLocation,         srExecPoison],  nExpectedTestTimeOnX64),
+      (FULL,     ["Unallocated"],       [r"AVR:Unallocated " + srRetIdAndLocation,         srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
       (NORMAL,   ["NoAccess"],          [r"AVR:NoAccess\[4n\]@0 " + srRetIdAndLocation],                   nExpectedTestTimeOnX64),
-      (NORMAL,   ["Reserved"],          [r"AVR:Reserved\[4n\]@0 " + srRetIdAndLocation,    srExecPoison],  nExpectedTestTimeOnX64),
+      (NORMAL,   ["Reserved"],          [r"AVR:Reserved\[4n\]@0 " + srRetIdAndLocation,    srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
       (NORMAL,   ["GuardPage"],         [r"AVR:Guard\[4n\]@0 " + srRetIdAndLocation],                      nExpectedTestTimeOnX64),
-      (FULL_x64, [    0x7fffffff0000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [    0x7fffffffffff],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoison],  nExpectedTestTimeOnX64),
-      (x64,      [    0x800000000000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [0xffff7fffffffffff],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoison],  nExpectedTestTimeOnX64),
-      (FULL_x64, [0xffff800000000000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoison],  nExpectedTestTimeOnX64),
+      (FULL_x64, [    0x7fffffff0000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [    0x7fffffffffff],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
+      (x64,      [    0x800000000000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [0xffff7fffffffffff],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
+      (FULL_x64, [0xffff800000000000],  [r"AVR:Invalid " + srRetIdAndLocation,             srExecPoisonAfterRetIdAndLocation],  nExpectedTestTimeOnX64),
     ],
   };
   # There is a large number of special addresses that we detect.
@@ -89,24 +90,19 @@ def fAddCorruptStackPointerTests(dxTests):
   # We will cut some corners and pick a different access type for each
   # special address so we cover various combinations both of them without
   # trying each and every combination. This should give decent test coverage.
-  ttsAccessType_and_srBugIdFormatString = (
-    ("Pop", r"AVR:%s " + srPopIdAndLocation),
-    ("Push", r"AVW:%s " + srPushIdAndLocation),
-    ("Call", r"AVW:%s " + srCallIdAndLocation),
-    ("Ret", r"AVR:%s " + srRetIdAndLocation),
+  ttsAccessType_and_asrBugIdFormatString = (
+    ("Pop", [r"AVR:%s " + srPopIdAndLocation]),
+    ("Push", [r"AVW:%s " + srPushIdAndLocation]),
+    ("Call", [r"AVW:%s " + srCallIdAndLocation, srExecPoisonAfterCallIdAndLocation]),
+    ("Ret", [r"AVR:%s " + srRetIdAndLocation, srExecPoisonAfterRetIdAndLocation]),
   );
   uAccessTypeIndex = 0;
   for (sISA, dtsDetails_uSpecialAddress) in gddtsDetails_uSpecialAddress_sISA.items():
     uTestLevel = FULL_x86 if sISA == "x86" else FULL_x64;
     for (uSpecialAddress, (sAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
-      (sAccessType, srBugIdFormatString) = ttsAccessType_and_srBugIdFormatString[uAccessTypeIndex];
-      uAccessTypeIndex = (uAccessTypeIndex + 1) % len(ttsAccessType_and_srBugIdFormatString);
-      asExpectedBugIds = [srBugIdFormatString % sAddressId];
-      if sAccessType in ["Call", "Ret"]:
-        # Collateral bug handling will result in a poisoned instruction pointer:
-        asExpectedBugIds.append(srExecPoison);
-      else:
-        continue;
+      (sAccessType, asrBugIdFormatString) = ttsAccessType_and_asrBugIdFormatString[uAccessTypeIndex];
+      uAccessTypeIndex = (uAccessTypeIndex + 1) % len(ttsAccessType_and_asrBugIdFormatString);
+      asExpectedBugIds = [asrBugIdFormatString[0] % sAddressId] + asrBugIdFormatString[1:];
       dxCorruptStackPointerTests[sAccessType].append(
         (uTestLevel, [uSpecialAddress], asExpectedBugIds,         nExpectedTestTimeOnX64),
       );
