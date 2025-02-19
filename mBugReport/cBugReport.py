@@ -42,6 +42,8 @@ from .fsGetHTMLForValue import fsGetHTMLForValue;
 from .sBlockHTMLTemplate import sBlockHTMLTemplate;
 from .sReportHTMLTemplate import sReportHTMLTemplate;
 
+gbDebugOutput = False;
+
 # Remaining local imports are at the end of this file to avoid import loops.
 
 dfoAnalyzeException_by_uExceptionCode = {
@@ -159,7 +161,7 @@ class cBugReport(object):
         "%s - %s" % (
           fsGetHTMLForValue(uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
           fsGetHTMLForValue(uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
-        )
+        ),
       ] + asAddressDetailsHTML;
     oSelf.__dtxMemoryDumps[uStartAddress] = (uEndAddress, asAddressDetailsHTML);
   
@@ -228,7 +230,9 @@ class cBugReport(object):
   
   def fasGetRemarksForPointer(oSelf, uPointerAddress):
     if uPointerAddress not in oSelf.__dasPointerRemarks_by_uAddress:
+      if gbDebugOutput: print("  * Get remarks for range ...");
       asPointerRemarks = oSelf.fasGetRemarksForRange(uPointerAddress, 1);
+      if gbDebugOutput: print("  * Get Virtual Allocation ...");
       try:
         o0VirtualAllocation = oSelf.__oProcess.oWindowsAPIProcess.fo0GetVirtualAllocationForAddress(uPointerAddress);
       except OSError as oException:
@@ -242,6 +246,7 @@ class cBugReport(object):
         else:
           raise;
       if o0VirtualAllocation and o0VirtualAllocation.bIsValid and not o0VirtualAllocation.bIsFree:
+        if gbDebugOutput: print("  * Get details for address ...");
         s0PointerAddressDetails = oSelf.__oProcess.fs0GetDetailsForAddress(uPointerAddress);
         if s0PointerAddressDetails:
           asPointerRemarks.append(s0PointerAddressDetails);
@@ -333,9 +338,12 @@ class cBugReport(object):
     assert oSelf.s0BugTypeId, \
         "Cannot report a bug with no bug type id!";
     # Calculate Stack Id, determine s0BugLocation and optionally create and return sStackHTML.
+    if gbDebugOutput: print("Processing stack...");
     aoStackFramesToDisassemble, sStackHTML = oSelf.fxProcessStack(oCdbWrapper, oSelf.__oProcess, oSelf.__o0Stack);
     oSelf.sId = "%s %s" % (oSelf.s0BugTypeId, oSelf.s0StackId or "XXX");
+    if gbDebugOutput: print("  sId: %s" % oSelf.sId);
     
+    if gbDebugOutput: print("Processing exception instruction...");
     (sbInstructionPointerName, u0InstructionPointerValue) = \
         oSelf.__oWindowsAPIThread.ftxGetInstructionPointerRegisterNameAndValue();
     if u0InstructionPointerValue is None:
@@ -363,7 +371,9 @@ class cBugReport(object):
           fsHexNumber(u0InstructionPointerValue),
           sRemark
         );
+    if gbDebugOutput: print("  s0Instruction: %s" % oSelf.s0Instruction);
 
+    if gbDebugOutput: print("Getting binary versions...");
     # Get version information on all binaries for relevant modules. This includes the main
     # process module as well as all modules that are referenced in the stack frames we disassemble.
     # We'll put the main process module first followed by the ones in the stack, in order:
@@ -375,12 +385,14 @@ class cBugReport(object):
     for oModule in aoModulesToGetBinaryVersionInformationFor:
       if oModule.s0BinaryName:
         oSelf.asVersionInformation.append("%s (%s)" % (oModule.s0BinaryName, oModule.sISA));
+    if gbDebugOutput: print("  %s (%s) " % (oModule.s0BinaryName, oModule.sISA));
     
     if oCdbWrapper.bGenerateReportHTML:
       # Create HTML details
       asBlocksHTML = [];
       # Create and add important output block if needed
       if oCdbWrapper.bGenerateReportHTML and dxConfig["bLogInReport"]:
+        if gbDebugOutput: print("Adding cdb log to report...");
         asBlocksHTML.append(sBlockHTMLTemplate % {
           "sName": "Application run log",
           "sCollapsed": "Collapsible", # ...but not Collapsed
@@ -388,6 +400,7 @@ class cBugReport(object):
         });
       
       # Add stack block
+      if gbDebugOutput: print("Adding stack to report...");
       asBlocksHTML.append(sBlockHTMLTemplate % {
         "sName": "Stack",
         "sCollapsed": "Collapsible", # ...but not Collapsed
@@ -395,10 +408,12 @@ class cBugReport(object):
       });
       
       # Add exception specific blocks if needed:
+      if gbDebugOutput: print("Adding exception specific blocks to report...");
       asBlocksHTML += oSelf.asExceptionSpecificBlocksHTML;
       
       # Add registers if needed
       if oSelf.bRegistersRelevant:
+        if gbDebugOutput: print("Adding registers to report...");
         s0RegistersBlockHTML = oSelf.fs0GetRegistersBlockHTML(oSelf.__oProcess, oSelf.__oWindowsAPIThread);
         if s0RegistersBlockHTML:
           asBlocksHTML.append(s0RegistersBlockHTML);
@@ -406,6 +421,7 @@ class cBugReport(object):
       # Add relevant memory blocks in order if needed
       for uStartAddress in sorted(oSelf.__dtxMemoryDumps.keys()):
         (uEndAddress, asAddressDescriptionsHTML) = oSelf.__dtxMemoryDumps[uStartAddress];
+        if gbDebugOutput: print("Adding memory at 0x%X-0x%X to report..." % (uStartAddress, uEndAddress));
         s0MemoryDumpBlockHTML = oSelf.fs0GetMemoryDumpBlockHTML(
           oCdbWrapper,
           oSelf.__oProcess,
@@ -414,12 +430,16 @@ class cBugReport(object):
           uEndAddress
         );
         if s0MemoryDumpBlockHTML:
+          if gbDebugOutput: print("  Memory dumped.");
           asBlocksHTML.append(s0MemoryDumpBlockHTML);
+        else:
+          if gbDebugOutput: print("  Unable to dump memory.");
       
       # Create and add disassembly blocks if needed:
       # We disassemble to top stack frame and all stack frames part of the id.
       for oFrame in aoStackFramesToDisassemble:
         if oFrame.u0InstructionPointer is not None:
+          if gbDebugOutput: print("Adding disassembly for frame #%d to report..." % (oFrame.uIndex,));
           s0FrameDisassemblyHTML = oSelf.fs0GetDisassemblyHTML(
             oSelf.__oProcess,
             uAddress = oFrame.u0InstructionPointer,
@@ -427,11 +447,13 @@ class cBugReport(object):
             s0DescriptionOfInstructionAtAddress = "current instruction" if oFrame.uIndex == 0 else "return address",
           );
           if s0FrameDisassemblyHTML:
+            if gbDebugOutput: print("  Code disassembled.");
             asBlocksHTML.append(sBlockHTMLTemplate % {
               "sName": "Disassembly of stack frame %d at %s" % (oFrame.uIndex + 1, fsCP437HTMLFromBytesString(oFrame.sbAddress)),
               "sCollapsed": "Collapsible" if oFrame.bIsPartOfId else "Collapsed",
               "sContent": "<span class=\"Disassembly\">%s</span>" % s0FrameDisassemblyHTML,
             });
+            if gbDebugOutput: print("  Unable to disassemble code.");
       
       # Add relevant binaries information to cBugReport and HTML report.
 # Getting the integrity level has become error-prone and I don't care enough about it to find out what the issue is
