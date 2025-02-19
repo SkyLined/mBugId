@@ -111,6 +111,9 @@ class cBugReport(object):
     return oSelf.__o0Stack;
   
   def fAddMemoryDump(oSelf, uStartAddress, uEndAddress, asAddressDetailsHTML):
+    if uEndAddress == uStartAddress:
+      # Block is 0 bytes long, so there is nothing to dump.
+      return;
 #    assert uStartAddress >=0 and uStartAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
 #        "Invalid uStartAddress 0x%X." % uStartAddress;
 #    assert uEndAddress >=0 and uEndAddress < 1 << (oSelf.__oProcess.uPointerSize * 8), \
