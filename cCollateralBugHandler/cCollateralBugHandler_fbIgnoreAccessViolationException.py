@@ -27,7 +27,7 @@ gasbInstructionsThatReadMemoryFromSecondArgument = [
     b"and", b"or", b"xor",
 ];
 gasbInstructionsThatModifyInstructionPointer = [
-  b"call", b"jmp",
+  b"call", b"jmp", b"ret",
 ];
 gasbInstructionsThatCanBeHandled = set(
   gasbInstructionsThatModifyFlags
