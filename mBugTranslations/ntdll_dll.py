@@ -24,6 +24,15 @@ aoBugTranslations = [
       rb"ntdll\.dll!v?DbgPrint.*",
     ],
   ),
+  cBugTranslation(
+    # Breakpoint when intializing process -> ignore.
+    srzOriginalBugTypeId = r"Breakpoint",
+    azs0rbAppliesOnlyToTopStackFrame = [
+      rb"ntdll\.dll!LdrpDoDebuggerBreak",
+      rb"ntdll\.dll!LdrpInitializeProcess",
+    ],
+    s0zTranslatedBugTypeId = None,
+  ),
   # Breakpoint -> HeapCorrupt
   cBugTranslation(
     srzOriginalBugTypeId = r"Breakpoint",
