@@ -55,7 +55,7 @@ def fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(oProcess, uAddressN
   # repeating this as often as possible, we can find the start of the reserved area
   # and return a virtual allocation that covers it completely.
   bAllocationExpanded = False;
-  while oVirtualAllocation.bReserved:
+  if oVirtualAllocation.bReserved:
     uAddressInPageBeforeCurrentVirtualAllocation = oVirtualAllocation.uStartAddress - 1;
     oVirtualAllocationBeforeCurrentVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInPageBeforeCurrentVirtualAllocation);
     if (
@@ -64,8 +64,6 @@ def fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(oProcess, uAddressN
     ):
       oVirtualAllocation = oVirtualAllocationBeforeCurrentVirtualAllocation;
       bAllocationExpanded = True;
-    else:
-      break;
   if bAllocationExpanded and bDebugOutput: print(
     "cPageHeapManagerData fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock: " \
         "reserved virtual allocation was expanded: %s" % (
