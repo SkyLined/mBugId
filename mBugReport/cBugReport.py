@@ -121,8 +121,31 @@ class cBugReport(object):
     assert uEndAddress > uStartAddress, \
         "Cannot dump a memory region with its start address 0x%X beyond its end address 0x%X" % (uStartAddress, uEndAddress);
     uSize = uEndAddress - uStartAddress;
-    assert uSize <= dxConfig["uMaxMemoryDumpSize"], \
-        "Cannot dump a memory region with its end address 0x%X %d bytes beyond its start address 0x%X" % (uEndAddress, uSize, uStartAddress);
+    if uSize > dxConfig["uMaxMemoryDumpSize"]:
+      # This is too big for a full dump: we'll dump the start and end of it:
+      uPartialDumpSize = (dxConfig["uMaxMemoryDumpSize"] >> 1);
+      oSelf.fAddMemoryDump(
+        uStartAddress,
+        uStartAddress + uPartialDumpSize,
+        asAddressDetailsHTML + [
+          "First 0x%X bytes of %s - %s" % (
+            uPartialDumpSize,
+            fsGetHTMLForValue(uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
+            fsGetHTMLForValue(uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
+          ),
+        ],
+      );
+      oSelf.fAddMemoryDump(
+        uEndAddress - (dxConfig["uMaxMemoryDumpSize"] >> 1),
+        uEndAddress,
+        asAddressDetailsHTML + [
+          "Last 0x%X bytes of %s - %s" % (
+            uPartialDumpSize,
+            fsGetHTMLForValue(uStartAddress, oSelf.__oProcess.uPointerSizeInBits),
+            fsGetHTMLForValue(uEndAddress, oSelf.__oProcess.uPointerSizeInBits),
+          ),
+        ]
+      );
     if uStartAddress in oSelf.__dtxMemoryDumps:
       # If it already exists, expand it to the new end address if needed and
       # add the description if different.
