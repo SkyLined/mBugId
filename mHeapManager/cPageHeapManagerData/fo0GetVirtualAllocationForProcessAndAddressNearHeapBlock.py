@@ -37,6 +37,12 @@ def fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(oProcess, uAddressN
 
   # Let's see if the virtual allocation at uAddress is valid (required), not free (required)
   # and not executable (heap memory is never executable)
+  if bDebugOutput: print(
+    "cPageHeapManagerData fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock: " \
+        "Getting virtual allocation at %s" % (
+      fsHexNumber(uAddressNearHeapBlock),
+    )
+  );
   oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressNearHeapBlock);
   if not oVirtualAllocation.bIsValid or oVirtualAllocation.bFree:
     if bDebugOutput: print(
@@ -57,6 +63,12 @@ def fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(oProcess, uAddressN
   bAllocationExpanded = False;
   if oVirtualAllocation.bReserved:
     uAddressInPageBeforeCurrentVirtualAllocation = oVirtualAllocation.uStartAddress - 1;
+    if bDebugOutput: print(
+      "cPageHeapManagerData fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock: " \
+          "Getting virtual allocation at %s" % (
+        fsHexNumber(uAddressInPageBeforeCurrentVirtualAllocation),
+      )
+    );
     oVirtualAllocationBeforeCurrentVirtualAllocation = cVirtualAllocation(oProcess.uId, uAddressInPageBeforeCurrentVirtualAllocation);
     if (
       oVirtualAllocationBeforeCurrentVirtualAllocation.bReserved
@@ -64,6 +76,10 @@ def fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(oProcess, uAddressN
     ):
       oVirtualAllocation = oVirtualAllocationBeforeCurrentVirtualAllocation;
       bAllocationExpanded = True;
+      if bDebugOutput: print(
+        "cPageHeapManagerData fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock: " \
+            "Virtual allocation expanded"
+      );
   if bAllocationExpanded and bDebugOutput: print(
     "cPageHeapManagerData fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock: " \
         "reserved virtual allocation was expanded: %s" % (
