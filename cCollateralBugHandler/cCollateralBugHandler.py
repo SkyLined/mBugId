@@ -87,12 +87,19 @@ class cCollateralBugHandler(object):
       # the root cause of this.
       return None;
     uPoisonedAddress = oSelf.__duPoisonedAddress_by_uProcessId[oProcess.uId];
-    iOffset = uAddress - uPoisonedAddress;
-    # Let's allow a full page of offset on either side.
-    if abs(iOffset) >= oSystemInfo.uPageSize:
-      # Too far: return None to indicate this is not near the poisoned address.
-      return None
-    return iOffset
+    # We want to handle truncated poisoned addresses, so we compare the lower
+    # X bits where X starts at the number of bits in a pointer and decreased
+    # by 16 until it is 32. (i.e. x64: [64, 48, 32] and x86: [32])
+    uMaskBits = oProcess.uPointerSizeInBits;
+    while uMaskBits >= 32:
+      uMask = (1 << uMaskBits) - 1;
+      iOffset = uAddress - (uPoisonedAddress & uMask);
+      # Let's allow a full page of offset on either side.
+      if abs(iOffset) < oSystemInfo.uPageSize:
+        return iOffset;
+      uMaskBits -= 16;
+    # Return None to indicate this is not near the poisoned address.
+    return None;
   
   def fuGetPoisonedValue(oSelf, oProcess, oWindowsAPIThread, sDestination, sInstruction, i0CurrentValue, uBits, u0PointerSizedOriginalValue):
     auCollateralValues = dxConfig["auCollateralPoisonValues"];
