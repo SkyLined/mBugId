@@ -71,6 +71,10 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
         asFrameNotesHTML and "<span class=\"StackFrameNotes\">(%s)</span>" % ", ".join(asFrameNotesHTML),
         sOptionalSourceHTML and "<span class=\"StackFrameSource\">[%s]</span>" % sOptionalSourceHTML,
       ] if s]));
+  # For some Bugs it makes sense to look at the stack top down, so we have to reverse the stack
+  # for these:
+  if oBugReport.bTopDownStackInId:
+    aoStackFramesThatArePartOfId.reverse();
   # Get the stack ids: one that contains all the ids for all stack frames, and one that merges stack ids to fit the
   # requested uStackHashFramesCount.
   asStackIds = [oStackFrame.sId for oStackFrame in aoStackFramesThatArePartOfId];
@@ -87,28 +91,31 @@ def cBugReport_fxProcessStack(oBugReport, oCdbWrapper, oProcess, oStack):
   # Get the bug location.
   oBugReport.s0BugLocation = "%s!(unknown)" % oProcess.sSimplifiedBinaryName;
   if aoStackFramesThatArePartOfId is None:
-    # disassemble everything
-    aoStackFramesToDisassemble = oStack.aoFrames;
+    # disassemble up to the first 5 frames
+    aoStackFramesToDisassemble = oStack.aoFrames[:5];
+  elif len(aoStackFramesThatArePartOfId) == 0:
+    # Nothing on the stack seems relevant (e.g. the entire stack was overwritten with garbage)
+    # don't disassemble anything.
+    aoStackFramesToDisassemble = [];
   else:
     # Disassemble all frames at the top of the stack that may be relevant.
     # This includes the stack frames that are part of the id and any frames
     # that were hidden before or between them.
-    oFirstIdStackFrame = aoStackFramesThatArePartOfId[0];
-    oLastIdStackFrame = aoStackFramesThatArePartOfId[-1];
-    aoStackFramesToDisassemble = oStack.aoFrames[:oLastIdStackFrame.uIndex];
-    if oFirstIdStackFrame.sb0SimplifiedAddress:
+    aoStackFramesToDisassemble = aoStackFramesThatArePartOfId;
+    oMostRelevantStackFrame = aoStackFramesThatArePartOfId[0];
+    if oMostRelevantStackFrame.sb0SimplifiedAddress:
       # We can use the top stack frame for the bug location.
       oBugReport.s0BugLocation = "%s%s" % (
         # We need to add the process binary only if it is not the same as the module binary for the function in which
         # the bug happened (i.e. `binary.exe!kernel32.dll!function`)
-        (oProcess.sSimplifiedBinaryName + "!") if oProcess and oFirstIdStackFrame.o0Module != oProcess.oMainModule
+        (oProcess.sSimplifiedBinaryName + "!") if oProcess and oMostRelevantStackFrame.o0Module != oProcess.oMainModule
             else "",
-        fsCP437FromBytesString(oFirstIdStackFrame.sb0SimplifiedAddress)
+        fsCP437FromBytesString(oMostRelevantStackFrame.sb0SimplifiedAddress)
       );
-    if oFirstIdStackFrame.sb0SourceFilePath:
+    if oMostRelevantStackFrame.sb0SourceFilePath:
       oBugReport.sBugSourceLocation = "%s%s" % (
-        fsCP437FromBytesString(oFirstIdStackFrame.sb0SourceFilePath),
-        "" if oFirstIdStackFrame.u0SourceFileLineNumber is None else " @ %d" % oFirstIdStackFrame.u0SourceFileLineNumber,
+        fsCP437FromBytesString(oMostRelevantStackFrame.sb0SourceFilePath),
+        "" if oMostRelevantStackFrame.u0SourceFileLineNumber is None else " @ %d" % oMostRelevantStackFrame.u0SourceFileLineNumber,
       );
   if oCdbWrapper.bGenerateReportHTML:
     if oStack.bPartialStack:

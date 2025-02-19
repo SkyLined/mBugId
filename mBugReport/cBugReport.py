@@ -99,6 +99,7 @@ class cBugReport(object):
     
     oSelf.asExceptionSpecificBlocksHTML = [];
     # This information is gathered later, when it turns out this bug needs to be reported:
+    oSelf.bTopDownStackInId = False; # set to true to reverse the order
     oSelf.s0StackId = None;
     oSelf.s0UniqueStackId = None;
     oSelf.sId = None;
