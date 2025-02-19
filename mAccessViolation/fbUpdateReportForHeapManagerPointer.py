@@ -40,7 +40,7 @@ def fbUpdateReportForHeapManagerPointer(
     oBugReport.fAddMemoryDump(
       uStartAddress = uMemoryDumpStartAddress,
       uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
-      asAddressDetailsHTML = "AV at 0x%X" % uAccessViolationAddress,
+      asAddressDetailsHTML = ["AV at 0x%X" % uAccessViolationAddress],
     );
   bOutOfBounds = (uAccessViolationAddress < oHeapManagerData.uHeapBlockStartAddress) \
               or (uAccessViolationAddress >= oHeapManagerData.uHeapBlockEndAddress);
