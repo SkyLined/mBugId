@@ -3,15 +3,16 @@ from mTestLevels import FULL, NOT_FULL, FULL_x64;
 nExpectedTestTimeOnX64 = 2;
 
 def fAddSafeIntTests(dxTests):
+  srSafeIntIdAndLocation = r"31c\.5b3 @ <binary>!fTestSafeInt";
   dxSafeIntTests = dxTests["SafeInt"] = [
     # A simple list of basic tests is run when not running full tests.
     # When running full tests, a comprehensive quit of tests is run that
     # is generated further down the code...
-    (NOT_FULL, ["++", "signed", 64],          [r"IntegerOverflow (540|80a) @ <binary>!wmain"],    nExpectedTestTimeOnX64),
-    (NOT_FULL, ["--", "unsigned", 32],        [r"IntegerUnderflow (540|80a) @ <binary>!wmain"],   nExpectedTestTimeOnX64),
-    (NOT_FULL, ["*", "signed", 16],           [r"IntegerTruncation (540|80a) @ <binary>!wmain"],  nExpectedTestTimeOnX64),
-    (NOT_FULL, ["truncate", "signed", 8],     [r"IntegerTruncation (540|80a) @ <binary>!wmain"],  nExpectedTestTimeOnX64),
-    (NOT_FULL, ["signedness", "signed", 16],  [r"IntegerTruncation (540|80a) @ <binary>!wmain"],  nExpectedTestTimeOnX64),
+    (NOT_FULL, ["++", "signed", 64],          [r"IntegerOverflow " + srSafeIntIdAndLocation],    nExpectedTestTimeOnX64),
+    (NOT_FULL, ["--", "unsigned", 32],        [r"IntegerUnderflow " + srSafeIntIdAndLocation],   nExpectedTestTimeOnX64),
+    (NOT_FULL, ["*", "signed", 16],           [r"IntegerTruncation " + srSafeIntIdAndLocation],  nExpectedTestTimeOnX64),
+    (NOT_FULL, ["truncate", "signed", 8],     [r"IntegerTruncation " + srSafeIntIdAndLocation],  nExpectedTestTimeOnX64),
+    (NOT_FULL, ["signedness", "signed", 16],  [r"IntegerTruncation " + srSafeIntIdAndLocation],  nExpectedTestTimeOnX64),
   ];
 
   for (sOperation, sBugTypeId) in {
@@ -31,5 +32,5 @@ def fAddSafeIntTests(dxTests):
           continue;
         uTestLevel = FULL if uBits < 64 else FULL_x64;
         dxSafeIntTests.append(
-          (uTestLevel, [sOperation, sSignedness, uBits], ["%s (540|80a) @ <binary>!wmain" % sBugTypeId], nExpectedTestTimeOnX64),
+          (uTestLevel, [sOperation, sSignedness, uBits], ["%s %s" % (sBugTypeId, srSafeIntIdAndLocation)], nExpectedTestTimeOnX64),
         );

@@ -1,12 +1,8 @@
 \#*
 *.filters
 *.pyc
-*.suo
-*.user
-*.VC.db
-*.VC.opendb
-*.vs
 Internal error reports/*
 releases
-Tests/tmp/
+Tests/BugIdTests/build/
+Tests/BugIdTests/.vs/
 Tests/Reports/

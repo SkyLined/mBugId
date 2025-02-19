@@ -25,12 +25,12 @@ uLargeHeapBlockSize = 0x00800000; # Should be large to detect potential issues w
                                   #   through the guTotalMaxMemoryUse variable.
 
 dsTestsBinaries_by_sISA = {
-  "x86": os.path.join(sTestsFolderPath, "bin", "Tests_x86.exe"),
-  "x64": os.path.join(sTestsFolderPath, "bin", "Tests_x64.exe"),
+  "x86": os.path.join(sTestsFolderPath, "BugIdTests", "bin", "x86", "BugIdTests.exe"),
+  "x64": os.path.join(sTestsFolderPath, "BugIdTests", "bin", "x64", "BugIdTests.exe"),
 };
 dsASanTestsBinaries_by_sISA = {
-  "x86": os.path.join(sTestsFolderPath, "bin", "Tests_x86d.exe"),
-  "x64": os.path.join(sTestsFolderPath, "bin", "Tests_x64d.exe"),
+  "x86": os.path.join(sTestsFolderPath, "BugIdTests", "bin", "x86d", "BugIdTests.exe"),
+  "x64": os.path.join(sTestsFolderPath, "BugIdTests", "bin", "x64d", "BugIdTests.exe"),
 };
 
 dsComSpec_by_sISA = {

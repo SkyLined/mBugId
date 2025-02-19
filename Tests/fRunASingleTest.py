@@ -28,7 +28,7 @@ def fOutputStack(oStack):
   oConsole.fOutput(INFO, "  Stack:");
   for oStackFrame in oStack.aoFrames:
     oConsole.fOutput(
-      NORMAL, "  \u2022 ",
+      NORMAL, "  • ",
       NORMAL if oStackFrame.bHidden else INFO, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
       NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else INFO, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), NORMAL, ")",
       [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
@@ -106,10 +106,10 @@ def fRunASingleTest(
   
   asLog = [];
   def fDumpLog():
-    oConsole.fOutput("\u2554\u2550\u2550[ CDB LOG ", sPadding = "\u2550");
+    oConsole.fOutput("┌──[ CDB LOG ", sPadding = "─");
     for sLine in asLog:
-      oConsole.fOutput("\u2551 ", sLine);
-    oConsole.fOutput("\u255A", sPadding = "\u2550");
+      oConsole.fOutput("│ ", sLine);
+    oConsole.fOutput("└", sPadding = "─");
   def fCdbStdInInputCallback(oBugId, sbInput):
     sInput = fsCP437FromBytesString(sbInput);
     if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stdin<%s" % sInput);
@@ -167,7 +167,7 @@ def fRunASingleTest(
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
     oConsole.fOutput(
-      ERROR, "×",
+      ERROR, "✘",
       NORMAL, " Failed test: ",
       axTestDescription,
       NORMAL, ":",
@@ -198,7 +198,13 @@ def fRunASingleTest(
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
     oConsole.fOutput(
-      ERROR, "×",
+      ERROR, "✘",
+      NORMAL, " Failed test: ",
+      axTestDescription,
+      NORMAL, ":",
+    );
+    oConsole.fOutput(
+      ERROR, "  ✘",
       NORMAL, " Failed to apply memory limits to process ",
       INFO, "0x%X" % oProcess.uId,
       NORMAL, " (",
@@ -214,21 +220,31 @@ def fRunASingleTest(
     asLog.append("Finished");
   def fLicenseWarningsCallback(oBugId, asLicenseWarnings):
     if not mGlobals.bLicenseWarningsShown:
-      oConsole.fOutput(WARN, "\u2554\u2550\u2550[ ", WARN_INFO, "License warning", WARN, " ]", sPadding = "\u2550");
+      oConsole.fOutput(WARN, "┌──[ ", WARN_INFO, "License warning", WARN, " ]", sPadding = "─");
       for sLicenseWarning in asLicenseWarnings:
-        oConsole.fOutput(WARN, "\u2551 ", WARN_INFO, sLicenseWarning);
-      oConsole.fOutput(WARN, "\u255A", sPadding = "\u2550");
+        oConsole.fOutput(WARN, "│ ", WARN_INFO, sLicenseWarning);
+      oConsole.fOutput(WARN, "└", sPadding = "─");
       mGlobals.bLicenseWarningsShown = True;
   def fLicenseErrorsCallback(oBugId, asLicenseErrors):
-    oConsole.fOutput(ERROR, "\u2554\u2550\u2550[ ", ERROR_INFO, "License warning", ERROR, " ]", sPadding = "\u2550");
+    oConsole.fOutput(ERROR, "┌──[ ", ERROR_INFO, "License warning", ERROR, " ]", sPadding = "─");
     for sLicenseError in asLicenseErrors:
-      oConsole.fOutput(ERROR, "\u2551 ", ERROR_INFO, sLicenseError);
-    oConsole.fOutput(ERROR, "\u255A", sPadding = "\u2550");
+      oConsole.fOutput(ERROR, "│ ", ERROR_INFO, sLicenseError);
+    oConsole.fOutput(ERROR, "└", sPadding = "─");
     os._exit(1);
   
   def fInternalExceptionCallback(oBugId, oThread, oException, oTraceBack):
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
+    oConsole.fOutput(
+      ERROR, "✘",
+      NORMAL, " Failed test: ",
+      axTestDescription,
+      NORMAL, ":",
+    );
+    oConsole.fOutput(
+      "  Exception:   ",
+      INFO, repr(oException),
+    );
     oBugId.fStop();
     if m0DebugOutput:
       m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
@@ -271,7 +287,7 @@ def fRunASingleTest(
   if mGlobals.bShowCdbIO:
     oConsole.fOutput();
     oConsole.fOutput(
-      INFO, "=" * 80,
+      INFO, "═" * 80,
     );
     oConsole.fOutput(
       INFO, sApplicationBinaryPath, " ".join(asApplicationArguments),
@@ -283,7 +299,7 @@ def fRunASingleTest(
           INFO, sExpectedBugIdAndLocation,
         );
     oConsole.fOutput(
-      INFO, "-" * 80,
+      INFO, "═" * 80,
     );
   bBugIdStarted = False;
   bBugIdStopped = False;
@@ -335,9 +351,9 @@ def fRunASingleTest(
     oBugId.fWait();
     bBugIdStopped = True;
     if mGlobals.bShowCdbIO: oConsole.fOutput(
-      "= Finished ".ljust(80, "="),
+      "═══[ Finished ]".ljust(80, "═"),
     );
-    def fDumpExpectedAndReported():
+    def fDumpExpectedAndReported(sTestBinaryName):
       uCounter = 0;
       while 1:
         s0ExpectedBugIdAndLocation = a0sExpectedBugIdAndLocations[uCounter] if uCounter < len(a0sExpectedBugIdAndLocations) else None;
@@ -360,7 +376,7 @@ def fRunASingleTest(
         ));
         oConsole.fOutput(
           "  Expected: ",
-          INFO, repr(s0ExpectedBugIdAndLocation) if s0ExpectedBugIdAndLocation else "no bug",
+          INFO, repr(s0ExpectedBugIdAndLocation.replace("<binary>", sTestBinaryName)) if s0ExpectedBugIdAndLocation else "no bug",
           NORMAL, ".",
         );
         oConsole.fOutput(
@@ -400,7 +416,7 @@ def fRunASingleTest(
         if not mGlobals.bShowCdbIO: 
           fDumpLog();
         oConsole.fOutput(
-          ERROR, "×",
+          ERROR, "✘",
           NORMAL, " Failed test ",
           axTestDescription,
           NORMAL, ":",
@@ -412,7 +428,7 @@ def fRunASingleTest(
           INFO, str(len(a0sExpectedBugIdAndLocations)),
           NORMAL, " bugs in the application."
         );
-        fDumpExpectedAndReported();
+        fDumpExpectedAndReported(sTestBinaryName);
         raise AssertionError("Test reported different number of bugs than was expected");
       else:
         uCounter = 0;
@@ -425,7 +441,7 @@ def fRunASingleTest(
             if not mGlobals.bShowCdbIO:
               fDumpLog();
             oConsole.fOutput(
-              ERROR, "×",
+              ERROR, "✘",
               NORMAL, " Failed test ",
               axTestDescription,
               NORMAL, ":",
@@ -437,7 +453,7 @@ def fRunASingleTest(
               INFO, repr(sExpectedBugIdAndLocation),
               NORMAL, ".",
             );
-            fDumpExpectedAndReported()
+            fDumpExpectedAndReported(sTestBinaryName)
             if oBugReport.o0Stack:
               fOutputStack(oBugReport.o0Stack);
             raise AssertionError("Test reported unexpected Bug Id and/or Location.");
@@ -459,7 +475,7 @@ def fRunASingleTest(
     if bBugIdStarted and not bBugIdStopped:
       oBugId.fTerminate();
     oConsole.fOutput(
-      ERROR, "×",
+      ERROR, "✘",
       NORMAL, " Failed test: ",
       axTestDescription,
       NORMAL, ".",
@@ -474,7 +490,7 @@ def fRunASingleTest(
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput(
         NORMAL, "  ",
-        OK, "√",
+        OK, "✓",
         NORMAL, " Finished, ",
         axTestDescription,
         NORMAL, " in ",
@@ -487,7 +503,7 @@ def fRunASingleTest(
       );
     elif a0sExpectedBugIdAndLocations is not None:
       oConsole.fOutput(
-        OK, "√",
+        OK, "✓",
         NORMAL, " ",
         axTestDescription,
         NORMAL, " in ",
@@ -498,7 +514,13 @@ def fRunASingleTest(
         "%f" % nTestTimeInSeconds,
         NORMAL, " seconds.",
       );
+    uCounter = 0;
     for oBugReport in aoBugReports:
+      
       oConsole.fOutput(
-        "  • %s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)")
+        "  %s─%s @ %s" % (
+          "└" if oBugReport == aoBugReports[-1] else "├",
+          oBugReport.sId,
+          oBugReport.s0BugLocation or "(unknown)"
+        )
       );
