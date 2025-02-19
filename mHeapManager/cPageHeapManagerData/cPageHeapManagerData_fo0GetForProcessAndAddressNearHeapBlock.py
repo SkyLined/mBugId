@@ -22,7 +22,7 @@ def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
       fsHexNumber(uAddressNearHeapBlock),
     ),
   );
-
+  
   o0VirtualAllocationAtAddressNearHeapBlock = fo0GetVirtualAllocationForProcessAndAddressNearHeapBlock(
     oProcess,
     uAddressNearHeapBlock,
@@ -37,6 +37,14 @@ def cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock(
     );
     return None; # Cannot find any virtual allocation near the address.
   oVirtualAllocationAtAddressNearHeapBlock = o0VirtualAllocationAtAddressNearHeapBlock;
+  if cClass.bDebugOutput: print(
+    "cPageHeapManagerData_fo0GetForProcessAndAddressNearHeapBlock: " \
+    "virtual allocation near address %s = %s..." % (
+      fsHexNumber(uAddressNearHeapBlock),
+      oVirtualAllocationAtAddressNearHeapBlock,
+    ),
+  );
+  
   if oVirtualAllocationAtAddressNearHeapBlock.bReserved:
     # Let's assume this is an OOB read/write into a reserved allocation following a buffer.
     # We'll assume that this is only true if the offset is less than one page from the
