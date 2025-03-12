@@ -130,11 +130,13 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
       )
       if not grbIgnoredHeapOutputLines.match(sbLine.strip())
     ];
-    if asbCdbHeapOutput == [
-      b"the `!heap -p' commands in exts.dll have been replaced",
+    if "|".join(asbCdbHeapOutput).lower() == "|".join([
+      # Checking case insensitive because the message originally started with a
+      # lowercase letter, but this has apparently changed in newer versions.
+      b"The `!heap -p' commands in exts.dll have been replaced",
       b"with equivalent commands in ext.dll.",
       b"If your are in a KD session, use `!ext.heap -p`",
-    ]:
+    ]).lower():
       gbUseExtHeap = True;
   if gbUseExtHeap:
     asbCdbHeapOutput = [
@@ -146,6 +148,15 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
       )
       if not grbIgnoredHeapOutputLines.match(sbLine.strip())
     ];
+    # I noticed this error myself when I had multiple copies of the SDK
+    # installed. Uninstalling them and reinstalling the latest version fixed
+    # the issue.
+    assert asbCdbHeapOutput[-1] != "Error: Failed to load extension ext", (
+        "It appears your Windows Debugging Tools are not installed correctly. " +
+        "If you have multiple different versions of the Windows SDK installed, " +
+        "please removed them and install the latest version, then try again. " +
+        "If you continue to see this error, please contact us."
+    );
   if len(asbCdbHeapOutput) == 0:
     return None; # Not part of any heap.
   # Sample output:
