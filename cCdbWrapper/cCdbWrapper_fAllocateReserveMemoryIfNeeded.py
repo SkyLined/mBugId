@@ -9,10 +9,11 @@ def cCdbWrapper_fAllocateReserveMemoryIfNeeded(oCdbWrapper):
   if dxConfig["uReservedMemory"]:
     if oCdbWrapper.o0ReservedMemoryVirtualAllocation is None:
       try:
-        oCdbWrapper.o0ReservedMemoryVirtualAllocation = cVirtualAllocation.fo0CreateForProcessId(
+        oCdbWrapper.o0ReservedMemoryVirtualAllocation = cVirtualAllocation.foCreateForProcessId(
           uProcessId = oCdbWrapper.oUtilityProcess.uId,
           uSize = dxConfig["uReservedMemory"],
         );
       except MemoryError:
         oCdbWrapper.fbFireCallbacks("Log message", "Could not allocate 0x%X bytes reserved memory." % dxConfig["uReservedMemory"]);
+        oCdbWrapper.o0ReservedMemoryVirtualAllocation = None;
         # If we cannot allocate memory, we'll just continue anyway.
