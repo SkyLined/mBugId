@@ -8,6 +8,11 @@ from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
 from ..mCP437 import fsCP437FromBytesString;
 
 gbDebugOutput = False;
+gsbMustUseExtHeapMessage = b"|".join([
+  b"the `!heap -p' commands in exts.dll have been replaced",
+  b"with equivalent commands in ext.dll.",
+  b"if you are in a kd session, use `!ext.heap -p`"
+]);
 
 grbIgnoredHeapOutputLines = re.compile(
   rb"^\s*"                                  # optional whitespace
@@ -130,14 +135,7 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
       )
       if not grbIgnoredHeapOutputLines.match(sbLine.strip())
     ];
-    if "|".join(asbCdbHeapOutput).lower() == "|".join([
-      # Checking case insensitive because the message originally started with a
-      # lowercase letter, but this has apparently changed in newer versions.
-      b"The `!heap -p' commands in exts.dll have been replaced",
-      b"with equivalent commands in ext.dll.",
-      b"If your are in a KD session, use `!ext.heap -p`",
-    ]).lower():
-      gbUseExtHeap = True;
+    gbUseExtHeap = b"|".join(asbCdbHeapOutput).lower() == gsbMustUseExtHeapMessage;
   if gbUseExtHeap:
     asbCdbHeapOutput = [
       sbLine
@@ -151,7 +149,7 @@ def cProcess_fo0GetWindowsHeapManagerDataForAddressNearHeapBlock(oProcess, uAddr
     # I noticed this error myself when I had multiple copies of the SDK
     # installed. Uninstalling them and reinstalling the latest version fixed
     # the issue.
-    assert asbCdbHeapOutput[-1] != "Error: Failed to load extension ext", (
+    assert asbCdbHeapOutput[-1:] != ["Error: Failed to load extension ext"], (
         "It appears your Windows Debugging Tools are not installed correctly. " +
         "If you have multiple different versions of the Windows SDK installed, " +
         "please removed them and install the latest version, then try again. " +
