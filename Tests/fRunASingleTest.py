@@ -13,24 +13,27 @@ except ModuleNotFoundError as oException:
     raise;
   m0DebugOutput = None;
 
-NORMAL = 0x0F07;
-INFO = 0x0F0F;
-STATUS = 0x0F0B;
-OK = 0x0F0A;
-ERROR = 0x0F0C;
-WARN = 0x0F06;
-WARN_INFO = 0x0F0E;
-ERROR_INFO = 0x0F0F;
+COLOR_NORMAL = 0x0F07;
+COLOR_INFO = 0x0F0F;
+COLOR_DIM = 0x0F08;
+COLOR_STATUS = 0x0F0B;
+COLOR_OK = 0x0F0A;
+COLOR_ERROR = 0x0F0C;
+COLOR_WARN = 0x0F06;
+COLOR_WARN_INFO = 0x0F0E;
+COLOR_ERROR_INFO = 0x0F0F;
 
 mGlobals.bLicenseWarningsShown = False;
 
+asActivityCharacters = ["⢎⠁", "⠎⠑", "⠊⠱", "⠈⡱", "⢀⡱", "⢄⡰", "⢆⡠", "⢎⡀"];
+
 def fOutputStack(oStack):
-  oConsole.fOutput(INFO, "  Stack:");
+  oConsole.fOutput(COLOR_INFO, "  Stack:");
   for oStackFrame in oStack.aoFrames:
     oConsole.fOutput(
-      NORMAL, "  • ",
-      NORMAL if oStackFrame.bHidden else INFO, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
-      NORMAL, " (cdb:", NORMAL if oStackFrame.sb0UniqueAddress else INFO, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), NORMAL, ")",
+      COLOR_NORMAL, "  • ",
+      COLOR_NORMAL if oStackFrame.bHidden else COLOR_INFO, fsCP437FromBytesString(oStackFrame.sb0UniqueAddress or b"---"),
+      COLOR_NORMAL, " (cdb:", COLOR_NORMAL if oStackFrame.sb0UniqueAddress else COLOR_INFO, fsCP437FromBytesString(oStackFrame.sbCdbSymbolOrAddress), COLOR_NORMAL, ")",
       [" => ", oStackFrame.s0IsHiddenBecause] if oStackFrame.s0IsHiddenBecause else [], 
     );
 
@@ -47,6 +50,7 @@ def fRunASingleTest(
   n0ExpectedMaximumTestTime = None,
   bExcessiveCPUUsageChecks = False,
   bEnableVerboseOutput = False,
+  bShowActivity = False,
 ):
   nStartTimeInSeconds = time.time();
   assert s0ApplicationBinaryPath is None or not bASan, \
@@ -58,34 +62,34 @@ def fRunASingleTest(
   );
   if s0ExpectedFailedToDebugApplicationErrorMessage:
     axTestDescription = [
-      INFO, sISA,
-      NORMAL, " Run ",
-      INFO, " ".join([sApplicationBinaryPath] + asApplicationArguments),
-      NORMAL, " => ",
-      INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
+      COLOR_INFO, sISA,
+      COLOR_NORMAL, " Run ",
+      COLOR_INFO, " ".join([sApplicationBinaryPath] + asApplicationArguments),
+      COLOR_NORMAL, " => ",
+      COLOR_INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
     ];
   else:
     axTestDescription = [
-      INFO, sISA,
-      NORMAL, " ",
+      COLOR_INFO, sISA,
+      COLOR_NORMAL, " ",
       [
-        INFO, "ASan",
-        NORMAL, " ",
+        COLOR_INFO, "ASan",
+        COLOR_NORMAL, " ",
       ] if bASan else [],
-      INFO, " ".join(asApplicationArguments),
+      COLOR_INFO, " ".join(asApplicationArguments),
       [
-        NORMAL, " (in ",
-        INFO, "child",
-        NORMAL, " process)"
+        COLOR_NORMAL, " (in ",
+        COLOR_INFO, "child",
+        COLOR_NORMAL, " process)"
       ] if bRunInShell else [],
       [
         [
-          NORMAL, " => ",
-          INFO, sExpectedBugIdAndLocation,
+          COLOR_NORMAL, " => ",
+          COLOR_INFO, sExpectedBugIdAndLocation,
         ] for sExpectedBugIdAndLocation in a0sExpectedBugIdAndLocations
       ] if a0sExpectedBugIdAndLocations else [
-        NORMAL, " => ",
-        INFO, "no bugs",
+        COLOR_NORMAL, " => ",
+        COLOR_INFO, "no bugs",
       ],
     ];
   
@@ -98,18 +102,29 @@ def fRunASingleTest(
   oConsole.fSetTitle(axTestDescription);
   if mGlobals.bDebugStartFinish:
     oConsole.fOutput(
-      STATUS, "→",
-      NORMAL, " Started ",
+      COLOR_STATUS, "→",
+      COLOR_NORMAL, " Started ",
       axTestDescription,
-      NORMAL, ".",
+      COLOR_NORMAL, ".",
     );
   
   asLog = [];
   def fDumpLog():
-    oConsole.fOutput("┌──[ CDB LOG ", sPadding = "─");
+    oConsole.fOutput("┌──[ CDB LOG ]", sPadding = "─");
     for sLine in asLog:
       oConsole.fOutput("│ ", sLine);
     oConsole.fOutput("└", sPadding = "─");
+  def fCdbActivityCallback(oBugId, nTimeSinceStartOfCdbActivityInSeconds):
+    uActivityIndex = int(time.time() * 10);
+    oConsole.fStatus(
+      COLOR_STATUS, asActivityCharacters[uActivityIndex % len(asActivityCharacters)],
+      axTestDescription,
+      COLOR_NORMAL, ": Process time: ",
+      COLOR_INFO, "%.2fs" % oBugId.fnApplicationRunTimeInSeconds(),
+      COLOR_NORMAL, ", current cdb command time: ",
+      COLOR_INFO, "%.2fs" % nTimeSinceStartOfCdbActivityInSeconds,
+      COLOR_NORMAL, ".",
+    );
   def fCdbStdInInputCallback(oBugId, sbInput):
     sInput = fsCP437FromBytesString(sbInput);
     if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stdin<%s" % sInput);
@@ -122,9 +137,11 @@ def fRunASingleTest(
     sOutput = fsCP437FromBytesString(sbOutput);
     if mGlobals.bShowCdbIO or bEnableVerboseOutput: oConsole.fOutput("  stderr>%s" % sOutput);
     asLog.append("stderr>%s" % sOutput);
-  def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asOutput):
+  def fApplicationDebugOutputCallback(oBugId, oProcess, bIsMainProcess, asbOutput):
     bFirstLine = True;
-    for sOutput in asOutput:
+    for sbOutput in asbOutput:
+      sOutput = fsCP437FromBytesString(sbOutput);
+      oConsole.fOutput(COLOR_DIM, f"debug> {sOutput}");
       sLogLine = "%s process 0x%X (%s): %s>%s" % (
         bIsMainProcess and "Main" or "Sub", \
         oProcess.uId,
@@ -136,6 +153,7 @@ def fRunASingleTest(
       asLog.append(sLogLine);
       bFirstLine = False;
   def fApplicationStdErrOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
+    oConsole.fOutput(COLOR_ERROR, f"stderr> {sOutput}");
     # This is always a main process
     sLogLine = "%s process 0x%X (%s): stderr> %s" % (
       bIsMainProcess and "Main" or "Sub",
@@ -146,6 +164,7 @@ def fRunASingleTest(
     if mGlobals.bShowApplicationIO or bEnableVerboseOutput: oConsole.fOutput(sLogLine);
     asLog.append(sLogLine);
   def fApplicationStdOutOutputCallback(oBugId, oConsoleProcess, bIsMainProcess, sOutput):
+    oConsole.fOutput(COLOR_INFO, f"stdout> {sOutput}");
     # This is always a main process
     sLogLine = "%s process 0x%X (%s): stdout> %s" % (
       bIsMainProcess and "Main" or "Sub",
@@ -164,54 +183,54 @@ def fRunASingleTest(
   def fFailedToDebugApplicationCallback(oBugId, sErrorMessage):
     if s0ExpectedFailedToDebugApplicationErrorMessage == sErrorMessage:
       return;
+    oConsole.fOutput(
+      COLOR_ERROR, "✘",
+      COLOR_NORMAL, " Failed to debug application in test: ",
+      axTestDescription,
+      COLOR_NORMAL, "!",
+    );
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
-    oConsole.fOutput(
-      ERROR, "✘",
-      NORMAL, " Failed test: ",
-      axTestDescription,
-      NORMAL, ":",
-    );
     oConsole.fOutput(
       "  BugId failed to debug the application.",
     );
     if s0ExpectedFailedToDebugApplicationErrorMessage:
       oConsole.fOutput(
         "  Expected error: ",
-        INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
-        NORMAL, ".",
+        COLOR_INFO, repr(s0ExpectedFailedToDebugApplicationErrorMessage),
+        COLOR_NORMAL, ".",
       );
       oConsole.fOutput(
         "  Actual error:    ",
-        INFO, repr(sErrorMessage),
-        NORMAL, ".",
+        COLOR_INFO, repr(sErrorMessage),
+        COLOR_NORMAL, ".",
       );
     else:
       oConsole.fOutput(
         "  Error: ",
-        INFO, repr(sErrorMessage),
-        NORMAL, ".",
+        COLOR_INFO, repr(sErrorMessage),
+        COLOR_NORMAL, ".",
       );
     oBugId.fStop();
     raise AssertionError(sErrorMessage);
   def fFailedToApplyMemoryLimitsCallback(oBugId, oProcess):
+    oConsole.fOutput(
+      COLOR_ERROR, "✘",
+      COLOR_NORMAL, " Failed to apply memory limits for test: ",
+      axTestDescription,
+      COLOR_NORMAL, "!",
+    );
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
     oConsole.fOutput(
-      ERROR, "✘",
-      NORMAL, " Failed test: ",
+      COLOR_ERROR, "  ✘",
+      COLOR_NORMAL, " Failed to apply memory limits to process ",
+      COLOR_INFO, "0x%X" % oProcess.uId,
+      COLOR_NORMAL, " (",
+      COLOR_INFO, oProcess.sCommandLine,
+      COLOR_NORMAL, ") for test: ",
       axTestDescription,
-      NORMAL, ":",
-    );
-    oConsole.fOutput(
-      ERROR, "  ✘",
-      NORMAL, " Failed to apply memory limits to process ",
-      INFO, "0x%X" % oProcess.uId,
-      NORMAL, " (",
-      INFO, oProcess.sCommandLine,
-      NORMAL, ") for test: ",
-      axTestDescription,
-      NORMAL, ".",
+      COLOR_NORMAL, ".",
     );
     oBugId.fStop();
     raise AssertionError("Failed to apply memory limits to process");
@@ -220,38 +239,44 @@ def fRunASingleTest(
     asLog.append("Finished");
   def fLicenseWarningsCallback(oBugId, asLicenseWarnings):
     if not mGlobals.bLicenseWarningsShown:
-      oConsole.fOutput(WARN, "┌──[ ", WARN_INFO, "License warning", WARN, " ]", sPadding = "─");
+      oConsole.fOutput(COLOR_WARN, "┌──[ ", COLOR_WARN_INFO, "License warning", COLOR_WARN, " ]", sPadding = "─");
       for sLicenseWarning in asLicenseWarnings:
-        oConsole.fOutput(WARN, "│ ", WARN_INFO, sLicenseWarning);
-      oConsole.fOutput(WARN, "└", sPadding = "─");
+        oConsole.fOutput(COLOR_WARN, "│ ", COLOR_WARN_INFO, sLicenseWarning);
+      oConsole.fOutput(COLOR_WARN, "└", sPadding = "─");
       mGlobals.bLicenseWarningsShown = True;
   def fLicenseErrorsCallback(oBugId, asLicenseErrors):
-    oConsole.fOutput(ERROR, "┌──[ ", ERROR_INFO, "License warning", ERROR, " ]", sPadding = "─");
+    oConsole.fOutput(COLOR_ERROR, "┌──[ ", COLOR_ERROR_INFO, "License warning", COLOR_ERROR, " ]", sPadding = "─");
     for sLicenseError in asLicenseErrors:
-      oConsole.fOutput(ERROR, "│ ", ERROR_INFO, sLicenseError);
-    oConsole.fOutput(ERROR, "└", sPadding = "─");
+      oConsole.fOutput(COLOR_ERROR, "│ ", COLOR_ERROR_INFO, sLicenseError);
+    oConsole.fOutput(COLOR_ERROR, "└", sPadding = "─");
     os._exit(1);
   
   def fInternalExceptionCallback(oBugId, oThread, oException, oTraceBack):
+    oConsole.fOutput(
+      COLOR_ERROR, "✘",
+      COLOR_NORMAL, " Internal exception while running test: ",
+      axTestDescription,
+      COLOR_NORMAL, "!",
+    );
     if not mGlobals.bShowCdbIO: 
       fDumpLog();
     oConsole.fOutput(
-      ERROR, "✘",
-      NORMAL, " Failed test: ",
-      axTestDescription,
-      NORMAL, ":",
-    );
-    oConsole.fOutput(
-      "  Exception:   ",
-      INFO, repr(oException),
+      "  Internal exception:   ",
+      COLOR_INFO, repr(oException),
     );
     oBugId.fStop();
     if m0DebugOutput:
       m0DebugOutput.fTerminateWithException(oException, guExitCodeInternalError, bShowStacksForAllThread = True);
     raise oException;
   def fPageHeapNotEnabledCallback(oBugId, oProcess, bIsMainProcess, bPreventable):
-    assert oProcess.sBinaryName == "cmd.exe", \
-        "It appears you have not enabled page heap for %s, which is required to run tests." % oProcess.sBinaryName;
+    oConsole.fOutput(
+      COLOR_ERROR,  "✘",
+      COLOR_NORMAL, " It appears you have not enabled page heap for ",
+      COLOR_INFO,   oProcess.sBinaryName,
+      COLOR_NORMAL, " which is required to run tests.",
+    );
+    oBugId.fStop();
+    os._exit(1);
   def fProcessAttachedCallback(oBugId, oProcess, bIsMainProcess):
     asLog.append("%s process 0x%X (%s): attached." % (
       bIsMainProcess and "Main" or "Sub",
@@ -287,19 +312,19 @@ def fRunASingleTest(
   if mGlobals.bShowCdbIO:
     oConsole.fOutput();
     oConsole.fOutput(
-      INFO, "═" * 80,
+      COLOR_INFO, "═" * 80,
     );
     oConsole.fOutput(
-      INFO, sApplicationBinaryPath, " ".join(asApplicationArguments),
+      COLOR_INFO, sApplicationBinaryPath, " ", " ".join(asApplicationArguments),
     );
     if a0sExpectedBugIdAndLocations:
       for sExpectedBugIdAndLocation in a0sExpectedBugIdAndLocations:
         oConsole.fOutput(
           "  => ",
-          INFO, sExpectedBugIdAndLocation,
+          COLOR_INFO, sExpectedBugIdAndLocation,
         );
     oConsole.fOutput(
-      INFO, "═" * 80,
+      COLOR_INFO, "═" * 80,
     );
   bBugIdStarted = False;
   bBugIdStopped = False;
@@ -322,6 +347,9 @@ def fRunASingleTest(
     oBugId.fAddCallback("Application suspended", fApplicationSuspendedCallback);
     oBugId.fAddCallback("Bug report", fBugReportCallback);
     oBugId.fAddCallback("Bug cannot be ignored", fBugCannotBeIgnoreCallback);
+    if bShowActivity:
+      oBugId.fAddCallback("Cdb activity", fCdbActivityCallback);
+      oBugId.fSetActivityReportInterval(0.1);
     oBugId.fAddCallback("Cdb stderr output", fCdbStdErrOutputCallback);
     oBugId.fAddCallback("Cdb stdin input", fCdbStdInInputCallback);
     oBugId.fAddCallback("Cdb stdout output", fCdbStdOutOutputCallback);
@@ -376,19 +404,19 @@ def fRunASingleTest(
         ));
         oConsole.fOutput(
           "  Expected: ",
-          INFO, repr(s0ExpectedBugIdAndLocation.replace("<binary>", sTestBinaryName)) if s0ExpectedBugIdAndLocation else "no bug",
-          NORMAL, ".",
+          COLOR_INFO, repr(s0ExpectedBugIdAndLocation.replace("<binary>", sTestBinaryName)) if s0ExpectedBugIdAndLocation else "no bug",
+          COLOR_NORMAL, ".",
         );
         oConsole.fOutput(
           "  Detected: ",
-          INFO, repr(s0DetectedBugIdAndLocation) if o0BugReport else "no bug",
-          NORMAL, ".",
+          COLOR_INFO, repr(s0DetectedBugIdAndLocation) if o0BugReport else "no bug",
+          COLOR_NORMAL, ".",
         );
         if o0BugReport:
           oConsole.fOutput(
             "            (Description: ",
-            INFO, repr(o0BugReport.s0BugDescription),
-            NORMAL, ")",
+            COLOR_INFO, repr(o0BugReport.s0BugDescription),
+            COLOR_NORMAL, ")",
           );
     if s0ExpectedFailedToDebugApplicationErrorMessage:
       pass;
@@ -397,36 +425,36 @@ def fRunASingleTest(
       oConsole.fOutput(
         "→ Test results for ",
         axTestDescription,
-        NORMAL, ".",
+        COLOR_NORMAL, ".",
       );
       for oBugReport in aoBugReports:
         uCounter += 1;
         sBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
         oConsole.fOutput(
           "  Test bug #",
-          INFO, str(uCounter),
-          NORMAL, ": ",
-          INFO, repr(sBugIdAndLocation),
-          NORMAL, ".",
+          COLOR_INFO, str(uCounter),
+          COLOR_NORMAL, ": ",
+          COLOR_INFO, repr(sBugIdAndLocation),
+          COLOR_NORMAL, ".",
         );
         if oBugReport.o0Stack:
           fOutputStack(oBugReport.o0Stack);
     else:
       if len(aoBugReports) != len(a0sExpectedBugIdAndLocations):
+        oConsole.fOutput(
+          COLOR_ERROR, "✘",
+          COLOR_NORMAL, " Unexpected number of bugs reported in test ",
+          axTestDescription,
+          COLOR_NORMAL, "!",
+        );
         if not mGlobals.bShowCdbIO: 
           fDumpLog();
         oConsole.fOutput(
-          ERROR, "✘",
-          NORMAL, " Failed test ",
-          axTestDescription,
-          NORMAL, ":",
-        );
-        oConsole.fOutput(
           "  Test reported ",
-          INFO, str(len(aoBugReports)),
-          NORMAL, " instead of ",
-          INFO, str(len(a0sExpectedBugIdAndLocations)),
-          NORMAL, " bugs in the application."
+          COLOR_INFO, str(len(aoBugReports)),
+          COLOR_NORMAL, " instead of ",
+          COLOR_INFO, str(len(a0sExpectedBugIdAndLocations)),
+          COLOR_NORMAL, " bugs in the application."
         );
         fDumpExpectedAndReported(sTestBinaryName);
         raise AssertionError("Test reported different number of bugs than was expected");
@@ -438,20 +466,20 @@ def fRunASingleTest(
           oBugReport = aoBugReports[uCounter];
           s0DetectedBugIdAndLocation = "%s @ %s" % (oBugReport.sId, oBugReport.s0BugLocation or "(unknown)");
           if not rExpectedBugIdAndLocation.match(s0DetectedBugIdAndLocation):
+            oConsole.fOutput(
+              COLOR_ERROR, "✘",
+              COLOR_NORMAL, " Unexpected BugId in test ",
+              axTestDescription,
+              COLOR_NORMAL, "!",
+            );
             if not mGlobals.bShowCdbIO:
               fDumpLog();
             oConsole.fOutput(
-              ERROR, "✘",
-              NORMAL, " Failed test ",
-              axTestDescription,
-              NORMAL, ":",
-            );
-            oConsole.fOutput(
               "  Test bug #",
-              INFO, str(uCounter),
-              NORMAL, " does not match ",
-              INFO, repr(sExpectedBugIdAndLocation),
-              NORMAL, ".",
+              COLOR_INFO, str(uCounter),
+              COLOR_NORMAL, " does not match ",
+              COLOR_INFO, repr(sExpectedBugIdAndLocation),
+              COLOR_NORMAL, ".",
             );
             fDumpExpectedAndReported(sTestBinaryName)
             if oBugReport.o0Stack:
@@ -475,44 +503,44 @@ def fRunASingleTest(
     if bBugIdStarted and not bBugIdStopped:
       oBugId.fTerminate();
     oConsole.fOutput(
-      ERROR, "✘",
-      NORMAL, " Failed test: ",
+      COLOR_ERROR, "✘",
+      COLOR_NORMAL, " Internal error in test: ",
       axTestDescription,
-      NORMAL, ".",
+      COLOR_NORMAL, ".",
     );
     oConsole.fOutput(
       "  Exception:   ",
-      INFO, repr(oException),
+      COLOR_INFO, repr(oException),
     );
     raise;
   finally:
     nTestTimeInSeconds = time.time() - nStartTimeInSeconds;
     if mGlobals.bDebugStartFinish:
       oConsole.fOutput(
-        NORMAL, "  ",
-        OK, "✓",
-        NORMAL, " Finished, ",
+        COLOR_NORMAL, "  ",
+        COLOR_OK, "✓",
+        COLOR_NORMAL, " Finished, ",
         axTestDescription,
-        NORMAL, " in ",
+        COLOR_NORMAL, " in ",
         (
-          ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
-          NORMAL
+          COLOR_ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
+          COLOR_NORMAL
         ),
         "%f" % nTestTimeInSeconds,
-        NORMAL, " seconds.",
+        COLOR_NORMAL, " seconds.",
       );
     elif a0sExpectedBugIdAndLocations is not None:
       oConsole.fOutput(
-        OK, "✓",
-        NORMAL, " ",
+        COLOR_OK, "✓",
+        COLOR_NORMAL, " ",
         axTestDescription,
-        NORMAL, " in ",
+        COLOR_NORMAL, " in ",
         (
-          ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
-          NORMAL
+          COLOR_ERROR if n0ExpectedMaximumTestTime is not None and nTestTimeInSeconds > n0ExpectedMaximumTestTime else
+          COLOR_NORMAL
         ),
         "%f" % nTestTimeInSeconds,
-        NORMAL, " seconds.",
+        COLOR_NORMAL, " seconds.",
       );
     uCounter = 0;
     for oBugReport in aoBugReports:

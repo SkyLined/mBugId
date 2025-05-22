@@ -23,7 +23,6 @@ COLOR_WARN_INFO = 0x0F0E;
 COLOR_ERROR_INFO = 0x0F0F;
 
 guExitCodeInternalError = 1; # Use standard value;
-gnMaxCPUUsageTestTimeInSeconds = 20; # This will take a bit of time to analyze.
 try:
   try:
     from mConsole import oConsole;
@@ -83,13 +82,14 @@ try:
   bTestRunInShell = False;
   bEnableDebugOutput = False;
   bEnableVerboseOutput = False;
+  bShowActivity = False;
   bUseOnlineSymbolPaths = False;
   bCollectInformationAboutPointersInMemoryDumps = False;
   asApplicationArguments = [];
   for sArgument in sys.argv[1:]:
     if sArgument == "--full": 
       uSelectedTestLevel = FULL;
-      bTestRunInShell = True;
+      #bTestRunInShell = True;
       mGlobals.bGenerateReportHTML = True;
       bCollectInformationAboutPointersInMemoryDumps = True;
     elif sArgument == "--all": 
@@ -109,10 +109,14 @@ try:
       bEnableDebugOutput = True;
     elif sArgument == "--online": 
       bUseOnlineSymbolPaths = True;
+    elif sArgument == "--in-shell":
+      bTestRunInShell = True;
+    elif sArgument == "--show-activity":
+      bShowActivity = True;
     elif sArgument in ["-?", "/?", "/h", "-h", "--help"]: 
       fShowHelp(oConsole);
       sys.exit(0);
-    elif sArgument in ["x86", "x64"] and s0SelectedISA is None and len(asApplicationArguments) == 0:
+    elif sArgument in ["x86", "x64"] and s0SelectedISA is None:
       s0SelectedISA = sArgument;
     else:
       asApplicationArguments.append(sArgument);
@@ -159,6 +163,9 @@ try:
   else:
     oConsole.fOutput("• Not collecting information about pointers in memory dumps.");
     oConsole.fOutput("  This provides less information but is much faster.");
+  if bTestRunInShell:
+    oConsole.fOutput("• Running some tests with the application being called through a shell to check");
+    oConsole.fOutput("  detection of bugs in child-processes.");
   cBugId.dxConfig["bCollectInformationAboutPointersInMemoryDumps"] = bCollectInformationAboutPointersInMemoryDumps;
   
   # These values are based on previous tests run on my machine and guessing.
@@ -187,13 +194,14 @@ try:
         asApplicationArguments = asApplicationArguments,
         a0sExpectedBugIdAndLocations = None, # Expect no exceptions.
         s0ExpectedFailedToDebugApplicationErrorMessage = None,
-        bRunInShell = False,
+        bRunInShell = bTestRunInShell,
         s0ApplicationBinaryPath = None,
         bASan = False,
         n0ExpectedMaximumTestTime = None,
         uMaximumNumberOfBugs = 2,
         bExcessiveCPUUsageChecks = True,
         bEnableVerboseOutput = bEnableVerboseOutput,
+        bShowActivity = bShowActivity,
       );
   else:
     # This is used quite often, so we create a variable to store it.
@@ -218,7 +226,10 @@ try:
         (FULL,   [],      [], nExpectedNormalTestTimeOnX64), # No exceptions, just a clean program exit.
       ],
       "Breakpoint": [
-        (QUICK,  [],      [r"Breakpoint " + srMain], {"bRunInShell": bTestRunInShell}, nExpectedNormalTestTimeOnX64),
+        (QUICK,  [],      [r"Breakpoint " + srMain], {"bRunInShell": False}, nExpectedNormalTestTimeOnX64),
+        (QUICK,  [],      [r"Breakpoint " + srMain], {"bRunInShell": True}, nExpectedNormalTestTimeOnX64),
+      ] if bTestRunInShell else [
+        (QUICK,  [],      [r"Breakpoint " + srMain], nExpectedNormalTestTimeOnX64),
       ],
       "C++Exception": [
         (NORMAL, [],      [r"C\+\+:cException " + srMain], nExpectedNormalTestTimeOnX64),
@@ -240,7 +251,6 @@ try:
       ],
       "OOM": [
         (NORMAL, ["HeapAlloc", mGlobals.uOOMAllocationBlockSize], [r"OOM " + srMain], nExpectedNormalTestTimeOnX64),
-# This appears to take forever!?
         (FULL,   ["C++", mGlobals.uOOMAllocationBlockSize],       [r"OOM " + srMain], nExpectedNormalTestTimeOnX64),
         (NORMAL, ["Stack", mGlobals.uOOMAllocationBlockSize],     [r"OOM " + srMain], nExpectedNormalTestTimeOnX64),
       ],
@@ -357,6 +367,7 @@ try:
           bASan = False,
           bEnableVerboseOutput = bEnableVerboseOutput,
           n0ExpectedMaximumTestTime = nExpectedMaximumTestTime,
+          bShowActivity = bShowActivity,
           **dxOptions,
         );
   nTotalTestTimeInSeconds = time.time() - nStartTimeInSeconds;
