@@ -262,23 +262,23 @@ int wmain(
       L"a UINT size of the memory blocks to repeatedly allocate",
       asArguments[3]
     );
-    wprintf(L"• Repeatedly allocating %Id/0x%IX bytes of heap memory using %s...\r\n", uBlockSize, uBlockSize, \
-        bCPP ? L"new BYTE[]" : L"HeapAlloc");
-    HANDLE hHeap = GetProcessHeap();
-    while (1) {
-      if (bHeapAlloc) {
-        (BYTE*)HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
-      } else if (bCPP) {
-        new BYTE[uBlockSize];
-      } else {
-        // Stack is a two step process: fill up heap first, then the stack
-        // I forgot why I do it this way but if it ain't broke...
-        BYTE* pMemory = (BYTE*)HeapAlloc(hHeap, 0, uBlockSize);
-        if (pMemory == NULL) {
-            wprintf(L"• Repeatedly allocating %Id/0x%IX bytes of stack memory...\r\n", uBlockSize, uBlockSize);
-          while (1) alloca(uBlockSize);
-        };
-      };
+    if (bHeapAlloc) {
+      wprintf(L"• Using HeapAlloc to allocate blocks of %Id/0x%IX bytes of heap memory...\r\n", uBlockSize, uBlockSize);
+      HANDLE hHeap = GetProcessHeap();
+      while (1) HeapAlloc(hHeap, HEAP_GENERATE_EXCEPTIONS, uBlockSize);
+    } else if (bCPP) {
+      wprintf(L"• Using new BYTE[...] to allocate blocks of %Id/0x%IX bytes of heap memory...\r\n", uBlockSize, uBlockSize);
+      while (1) new BYTE[uBlockSize];
+    } else {
+      // Stack is a two step process: we cannot use up all memory using
+      // the stack, so we use HeapAlloc to allocate memory until that is no
+      // longer possible. Once that happens, we use alloca to trigger an
+      // exception.
+      wprintf(L"• Using HeapAlloc to allocate blocks of %Id/0x%IX bytes of heap memory...\r\n", uBlockSize, uBlockSize);
+      HANDLE hHeap = GetProcessHeap();
+      while (HeapAlloc(hHeap, 0, uBlockSize));
+      wprintf(L"• Using alloca to allocate blocks of %Id/0x%IX bytes of stack memory...\r\n", uBlockSize, uBlockSize);
+      while (1) alloca(uBlockSize);
     };
   } else if (_wcsicmp(asArguments[1], L"NumberedException") == 0) {
     /************************************************************************/
