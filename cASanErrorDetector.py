@@ -2,7 +2,7 @@ import re;
 
 from .mBugReport import cBugReport;
 from .ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
-from .mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
+from .mBugReport.mAccessViolation import fUpdateReportForProcessThreadAccessViolationTypeIdAddressAndOptionalSize;
 from .mCP437 import fsCP437HTMLFromString;
 
 dsSecurityImpact_by_sASanBugType = {
@@ -388,18 +388,18 @@ class cASanErrorDetector(object):
     
     # Extract info from the summary
     (
-      sThreadId, # Optional, unfortunately
-      sASanBugType, sAddressHex,
+      s0ThreadId, # Optional, unfortunately
+      sASanBugType, sProblemAddressHex,
       sIPHex,
       sBPHex,
       sSPHex,
       sThreadIndex, # "Tnnn" - not much use to us.
     ) = oSummaryMatch.groups();
-    uThreadId = sThreadId and int(sThreadId) or None;
-    uProblemAddress = int(sAddressHex, 16);
+    u0ThreadId = s0ThreadId and int(s0ThreadId) or None;
+    uProblemAddress = int(sProblemAddressHex, 16);
     
     # Check if the end of the ERROR message is in the output:
-    sErrorMessageHeader = uThreadId and ("==%d:%d==" % (oProcess.uId, uThreadId)) or ("==%d==" % oProcess.uId);
+    sErrorMessageHeader = u0ThreadId and ("==%d:%d==" % (oProcess.uId, u0ThreadId)) or ("==%d==" % oProcess.uId);
     try:
       uEndIndex = asOutput.index(sErrorMessageHeader + "ABORTING", uStartIndex + 1) + 1;
     except ValueError:
@@ -412,11 +412,12 @@ class cASanErrorDetector(object):
       ("Address for which ASan reported this problem", uProblemAddress, None)
     ];
     
-    uMemoryDumpStartAddress = None;
-    uMemoryDumpEndAddress = None;
-    sAction = None;
+    u0MemoryDumpStartAddress = None;
+    u0MemoryDumpEndAddress = None;
+    s0Action = None;
+    u0AccessViolationSize = None;
     for sLine in asASanErrorMessage[1:-1]:
-      oAddressInfoMatch = re.match(
+      o0AddressInfoMatch = re.match(
         r"^%s$" % "".join([
           r"0x([0-9a-f]+) is located (\d+) bytes (?:inside|to the (?:left|right)) of ",
           r"(",
@@ -427,64 +428,71 @@ class cASanErrorDetector(object):
         ]),
         sLine,
       );
-      if oAddressInfoMatch:
+      if o0AddressInfoMatch:
         (
-          sAddressHex,
+          sProblemAddressHex,
           sOffset,
-          sBlockSize, sBlockStartAddressHex, sBlockEndAddressHex,
-          sVariableName, sVariableStartAddressHex, sVariableSize,
+          s0BlockSize, s0BlockStartAddressHex, s0BlockEndAddressHex,
+          s0VariableName, s0VariableStartAddressHex, s0VariableSize,
         ) = oAddressInfoMatch.groups();
-        assert uProblemAddress == int(sAddressHex, 16), \
-            "Problem reported at address 0x%X, but information provided for address 0x%s" % (uProblemAddress, sAddressHex);
-        if sBlockSize:
-          uBlockSize = int(sBlockSize);
-          uBlockStartAddress = int(sBlockStartAddressHex, 16);
-          uBlockEndAddress = int(sBlockEndAddressHex, 16);
+        assert uProblemAddress == int(sProblemAddressHex, 16), \
+            "Problem reported at address 0x%X, but information provided for address 0x%s" % (uProblemAddress, sProblemAddressHex);
+        if s0BlockSize:
+          uBlockSize = int(s0BlockSize);
+          uBlockStartAddress = int(s0BlockStartAddressHex, 16);
+          uBlockEndAddress = int(s0BlockEndAddressHex, 16);
           assert uBlockEndAddress - uBlockStartAddress == uBlockSize, \
               "The memory block start (0x%X) and end (0x%X) address suggest a size (0x%X) that do not agree with the reported size (0x%X)" % \
               (uBlockStartAddress, uBlockEndAddress, uBlockEndAddress - uBlockStartAddress, uBlockSize);
-          if uMemoryDumpStartAddress is None or uBlockStartAddress < uMemoryDumpStartAddress:
-            uMemoryDumpStartAddress = uBlockStartAddress;
-          if uMemoryDumpEndAddress is None or uBlockEndAddress > uMemoryDumpEndAddress:
-            uMemoryDumpEndAddress = uBlockEndAddress;
+          if u0MemoryDumpStartAddress is None or uBlockStartAddress < u0MemoryDumpStartAddress:
+            u0MemoryDumpStartAddress = uBlockStartAddress;
+          if u0MemoryDumpEndAddress is None or uBlockEndAddress > u0MemoryDumpEndAddress:
+            u0MemoryDumpEndAddress = uBlockEndAddress;
           atxMemoryRemarks.append(
             ("Memory block according to ASan", uBlockStartAddress, uBlockSize),
           );
         else:
-          uVariableStartAddress = int(sVariableStartAddressHex, 16);
-          uVariableSize = int(sVariableSize);
-          if uMemoryDumpStartAddress is None or uVariableStartAddress < uMemoryDumpStartAddress:
-            uMemoryDumpStartAddress = uVariableStartAddress;
-          if uMemoryDumpEndAddress is None or uVariableStartAddress + uVariableSize > uMemoryDumpEndAddress:
-            uMemoryDumpEndAddress = uVariableStartAddress + uVariableSize;
+          uVariableStartAddress = int(s0VariableStartAddressHex, 16);
+          uVariableSize = int(s0VariableSize);
+          if u0MemoryDumpStartAddress is None or uVariableStartAddress < u0MemoryDumpStartAddress:
+            u0MemoryDumpStartAddress = uVariableStartAddress;
+          if u0MemoryDumpEndAddress is None or uVariableStartAddress + uVariableSize > u0MemoryDumpEndAddress:
+            u0MemoryDumpEndAddress = uVariableStartAddress + uVariableSize;
           atxMemoryRemarks.append(
-            ("global variable %s" % sVariableName, uMemoryDumpStartAddress, uVariableSize),
+            ("global variable %s" % s0VariableName, u0MemoryDumpStartAddress, uVariableSize),
           );
         continue;
       oActionInfoMatch = re.match(r"^(READ|WRITE) of size (\d+) at 0x([0-9a-f]+) thread T\d+", sLine);
       if oActionInfoMatch:
-        sAction, sSize, sAddressHex = oActionInfoMatch.groups();
-        uSize = int(sSize);
+        s0Action, sSize, sAddressHex = oActionInfoMatch.groups();
+        u0AccessViolationSize = int(sSize);
         uAddress = int(sAddressHex, 16);
         atxMemoryRemarks.append(
-          ("Attempt to %s %d bytes from 0x%X" % (sAction.lower(), uSize, uAddress), uAddress, uSize),
+          ("Attempt to %s %d bytes from 0x%X" % (s0Action.lower(), u0AccessViolationSize, uAddress), uAddress, uSize),
         );
         continue;
       oActionMatch = re.match(r"^%sThe signal is caused by a (READ|WRITE) memory access\.$" % sErrorMessageHeader, sLine);
       if oActionMatch:
-        (sAction,) = oActionMatch.groups();
+        (s0Action,) = oActionMatch.groups();
         atxMemoryRemarks.append(
-          ("Attempt to %s bytes from 0x%X" % (sAction.lower(), uProblemAddress), uProblemAddress, None),
+          ("Attempt to %s bytes from 0x%X" % (s0Action.lower(), uProblemAddress), uProblemAddress, None),
         );
         continue;
       
     if sASanBugType == "access-violation":
-      sViolationTypeId = {"READ": "R", "WRITE": "W"}.get(sAction, "?");
+      sViolationTypeId = {"READ": "R", "WRITE": "W"}.get(s0Action, "?");
       uAccessViolationAddress = uProblemAddress;
       # TODO: Maybe call fbAccessViolation_HandleNULLPointer, etc. from the file
       # cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION.py here?
-      fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
-          oSelf.oCdbWrapper, oBugReport, oProcess, oThread, sViolationTypeId, uAccessViolationAddress);
+      fUpdateReportForProcessThreadAccessViolationTypeIdAddressAndOptionalSize(
+        oSelf.oCdbWrapper,
+        oBugReport,
+        oProcess,
+        oThread,
+        sViolationTypeId,
+        uAccessViolationAddress,
+        u0AccessViolationSize = u0AccessViolationSize,
+      );
       
     else:
       oBugReport.s0BugTypeId = "ASan:%s" % sASanBugType;
@@ -492,25 +500,25 @@ class cASanErrorDetector(object):
     oBugReport.s0BugDescription = "AddressSanitizer reported a %s on address 0x%X." % (sASanBugType, uProblemAddress);
     
     if oSelf.oCdbWrapper.bGenerateReportHTML:
-      if uMemoryDumpStartAddress is None:
+      if u0MemoryDumpStartAddress is None:
         # We know nothing about the layout of the memory region for which the problem was reported, but we do want to
         # dump it in the report, so we will output a region of a size that will hopefully be useful, but not too large
         # so as to bloat the report with irrelevant data.
-        uMemoryDumpStartAddress = uProblemAddress - 0x100;
+        u0MemoryDumpStartAddress = uProblemAddress - 0x100;
         uMemoryDumpSize = 0x200;
       else:
         # Make sure the problem address is in the memory dump
-        if uMemoryDumpStartAddress > uProblemAddress:
-          uMemoryDumpStartAddress = uProblemAddress;
-        elif uMemoryDumpEndAddress < uProblemAddress:
-          uMemoryDumpEndAddress = uProblemAddress;
-        uMemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
-          uProblemAddress, oProcess.uPointerSize, uMemoryDumpStartAddress, uMemoryDumpEndAddress - uMemoryDumpStartAddress,
+        if u0MemoryDumpStartAddress > uProblemAddress:
+          u0MemoryDumpStartAddress = uProblemAddress;
+        elif u0MemoryDumpEndAddress < uProblemAddress:
+          u0MemoryDumpEndAddress = uProblemAddress;
+        u0MemoryDumpStartAddress, uMemoryDumpSize = ftuLimitedAndAlignedMemoryDumpStartAddressAndSize(
+          uProblemAddress, oProcess.uPointerSize, u0MemoryDumpStartAddress, u0MemoryDumpEndAddress - u0MemoryDumpStartAddress,
         );
       # Dump memory
       oBugReport.fAddMemoryDump(
-        uStartAddress = uMemoryDumpStartAddress,
-        uEndAddress = uMemoryDumpStartAddress + uMemoryDumpSize,
+        uStartAddress = u0MemoryDumpStartAddress,
+        uEndAddress = u0MemoryDumpStartAddress + uMemoryDumpSize,
         s0AddressDescriptionHTML = None,
       );
       oBugReport.fAddMemoryRemarks(atxMemoryRemarks);
