@@ -5,6 +5,8 @@ from mWindowsAPI import cJobObject;
 from ..fnGetDebuggerTimeInSeconds import fnGetDebuggerTimeInSeconds;
 from ..mCP437 import fsCP437FromBytesString;
 
+gbDebugResumeStop = False;
+
 grbDebuggerTime = re.compile(
   rb"^"
   rb"Debug session time: (.*?)"
@@ -111,7 +113,10 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
     ### Resume application ###########################################################################################
-    if oCdbWrapper.bStopping: break; # Unless we have been requested to stop.
+    if oCdbWrapper.bStopping:
+      if gbDebugResumeStop: print("<STOPPING>");
+      break; # Unless we have been requested to stop.
+    if gbDebugResumeStop: print("<RESUMING>");
     asbOutputWhileRunningApplication = oCdbWrapper.fasbExecuteCdbCommand(
       sbCommand = b"g%s;" % (bEventHasBeenHandled and b"h" or b"n"), # If the event has not been handled, pass it to the application.
       sb0Comment = b"Running application",
@@ -119,16 +124,7 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
       bApplicationWillBeRun = True, # This command will cause the application to run.
       bUseMarkers = False, # This does not work with g commands: the end marker will never be shown.
     );
-    ### The debugger suspended the application #######################################################################
-    # Send a nop command to cdb in case the application being debugged is reading stdin as well: in that case it may
-    # eat the first char we try to send to cdb, which would otherwise cause a problem when cdb see only the part of
-    # the command after the first char.
-    oCdbWrapper.fasbExecuteCdbCommand(
-      sbCommand = b" ",
-      sb0Comment = None,
-      bIgnoreOutput = True,
-      bUseMarkers = False,
-    );
+    if gbDebugResumeStop: print("</RESUMING>");
   
   # Terminate cdb.
   oCdbWrapper.fbFireCallbacks("Log message", "Terminating cdb.exe");
