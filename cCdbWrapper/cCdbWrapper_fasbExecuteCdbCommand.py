@@ -35,9 +35,11 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
     bUseMarkers = True,
     bRetryOnTruncatedOutput = False,
 ):
+  assert sbCommand.strip(), \
+      "Empty command!?";
   fAssertType("sbCommand", sbCommand, bytes);
   fAssertType("sb0Comment", sb0Comment, bytes, None);
-  sCommand = fsCP437FromBytesString(sbCommand);
+  sCommandAndComment = fsCP437FromBytesString(sbCommand + (sb0Comment and (b" $$ %s" % sb0Comment) or b""));
   assert oCdbWrapper.oCdbStdInOutHelperThread.fbIsCurrentThread(), \
       "Commands can only be sent to cdb from within a cCdbWrapper.fCdbStdInOutHelperThread call.";
   if oCdbWrapper.bGenerateReportHTML:
@@ -73,8 +75,8 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
   s0Comment = fsCP437FromBytesString(sb0Comment) if sb0Comment else None;
   while 1:
     uAttempt += 1;
-    oCdbWrapper.fbFireCallbacks("Cdb command started executing", sCommand, uAttempt, uTries, s0Comment);
-    oCdbWrapper.fbFireCallbacks("Cdb stdin input", sbCommand);
+    oCdbWrapper.fbFireCallbacks("Cdb command started executing", sCommandAndComment, uAttempt, uTries, s0Comment);
+    oCdbWrapper.fbFireCallbacks("Cdb stdin input", sbCommand + b"\r\n");
     try:
       oCdbWrapper.oCdbConsoleProcess.oStdInPipe.fWriteBytes(sbCommand + b"\r\n");
     except IOError:
