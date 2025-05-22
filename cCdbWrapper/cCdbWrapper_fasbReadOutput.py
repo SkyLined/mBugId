@@ -1,4 +1,4 @@
-import re;
+import re, time;
 
 from ..dxConfig import dxConfig;
 from ..mCP437 import fsCP437HTMLFromBytesString;
@@ -12,7 +12,7 @@ gdsTips_by_sbErrorMessage = {
   b"Win32 error 0n5": "\r\n".join([
     "- You may have provided an incorrect path to the executable,"
     "- you may not have the required permissions to read and/or execute the executable,"
-    "- you may need to run as an administrator."
+    "- you may need to run BugId as an administrator."
   ]),
   b"NTSTATUS 0xC00000BB": "\r\n".join([
     "- You may be trying to debug a 64-bit process with a 64-bit debugger.",
@@ -40,7 +40,7 @@ grbLineInterruptedByCdbError = re.compile(
       rb"Unable to verify checksum for .*",
       rb"The debugger does not have a current process or thread",
       rb"Many commands will not work",
-      rb"(?:.+) (?:\- E_PDB_CORRUPT|dia error 0x[0-9a-f]+)"
+      rb"(?:.+) (?:\- E_PDB_CORRUPT|dia error 0x[0-9a-f]+)",
     ])) + rb")"
   rb")"
   rb"\s*\Z"
@@ -68,6 +68,7 @@ grbFirstChanceCPPException = re.compile(
   rb"\(\w+\.\w+\): C\+\+ EH exception \- code \w+ \(first chance\)"
   rb"\s*\Z"
 );
+gnNextActivityReportTime = time.time();
 
 def cCdbWrapper_fasbReadOutput(oCdbWrapper,
   bOutputIsInformative = False,
@@ -80,6 +81,8 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
                                         # to ignore the application output and only return the command output to the
                                         # caller.
 ):
+  global gnNextActivityReportTime;
+  if gbDebugIO: print("<fasbReadOutput>");
   if bIgnoreOutput:
     bAddOutputToHTMLReport = oCdbWrapper.bGenerateReportHTML and dxConfig["bShowAllCdbCommandsInReport"];
   else:
@@ -103,15 +106,20 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
     # Signal that the application is running and start the interrupt on timeout thread.
     oCdbWrapper.bApplicationIsRunning = True;
     oCdbWrapper.oInterruptOnTimeoutHelperThread.fStart();
+  nCommandStartTime = time.time();
   try: # "try:" because the oInterruptOnTimeoutHelperThread needs to be stopped in a "finally:" if there is an exception.
+    if gbDebugIO: print();
     while 1:
       u0Byte = oCdbWrapper.oCdbConsoleProcess.oStdOutPipe.fu0ReadByte(); # returns None if pipe is closed.
+      if oCdbWrapper.n0ActivityReportIntervalInSeconds is not None and time.time() >= gnNextActivityReportTime:
+        oCdbWrapper.fbFireCallbacks("Cdb activity", time.time() - nCommandStartTime);
+        gnNextActivityReportTime = time.time() + oCdbWrapper.n0ActivityReportIntervalInSeconds;
       if u0Byte == 0x0D: # CR
         assert not bEndOfCommandOutputMarkerFound, \
             "CR after end of command output marker in %s!?" % repr(sbCurrentLine);
         pass; # ignored.
       elif u0Byte is None or u0Byte == 0x0A: # EOF or LF
-        if gbDebugIO: print("\r<stdout>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
+        if gbDebugIO: print("\r  <stdout>%s↓" % str(sbFilteredCurrentLine, "cp437", "strict"));
         assert u0Byte is None or not bEndOfCommandOutputMarkerFound, \
             "LF after end of command output marker in %s!?" % repr(sbCurrentLine);
         o0LineInterruptedByCdbError = re.match(grbLineInterruptedByCdbError, sbFilteredCurrentLine);
@@ -129,6 +137,13 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           # Failure to debug application must be special cased, for example:
           # |ERROR: ContinueEvent failed, NTSTATUS 0xC000000D
           # |WaitForEvent failed, NTSTATUS 0xC000000D
+#          if sbFilteredCurrentLine == sbGetContextStateFailedError:
+#            sErrorReport = (
+#              "You do not appear to have sufficient access rights to debug the application.\r\n"
+#              "- you may need to run BugId as an administrator."
+#            );
+#            assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sErrorReport), \
+#                sErrorReport;
           oEventFailedMatch = grbEventFailedError.match(sbFilteredCurrentLine);
           if oEventFailedMatch:
             sEventName, sErrorMessage = oEventFailedMatch.groups();
@@ -159,21 +174,21 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           sbFilteredCurrentLine = b"";
         if u0Byte is None:
           oCdbWrapper.bCdbIsRunning = False;
-          if gbDebugIO: print("<stdout:EOF>");
+          if gbDebugIO: print("  <stdout>■ <= EOF");
           oCdbWrapper.fbFireCallbacks("Log message", "Failed to read from cdb.exe stdout");
           raise oCdbWrapper.cCdbStoppedException();
         sbCurrentLine = b"";
       else:
         sbCurrentLine += bytes((u0Byte,));
         sbFilteredCurrentLine += bytes((u0Byte,));
-        if gbDebugIO: print("\r<stdout~%s" % str(sbFilteredCurrentLine, "cp437", "strict"), end = "\r");
+        if gbDebugIO: print("\r  <stdout>%s■" % str(sbFilteredCurrentLine, "cp437", "strict"), end="\r");
         if not bIgnoreOutput:
           # Detect cdb warnings and errors:
           o0LineInterruptedByCdbError = re.match(grbLineInterruptedByCdbError, sbFilteredCurrentLine);
           if not o0LineInterruptedByCdbError:
             if sb0StartOfCommandOutputMarker and not bStartOfCommandOutputMarkerFound:
               if sbFilteredCurrentLine == sb0StartOfCommandOutputMarker:
-                if gbDebugIO: print("\r<stdout:START>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
+                if gbDebugIO: print("\r  <stdout>%s■ <= START" % str(sbFilteredCurrentLine, "cp437", "strict"));
                 bStartOfCommandOutputMarkerFound = True;
                 sbFilteredCurrentLine = b"";
 #              else:
@@ -182,7 +197,7 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
 #                    (repr(sb0StartOfCommandOutputMarker), repr(sbCurrentLine));
             if sb0EndOfCommandOutputMarker and not bEndOfCommandOutputMarkerFound:
               if sbFilteredCurrentLine.endswith(sb0EndOfCommandOutputMarker):
-                if gbDebugIO: print("\r<stdout:END>%s" % str(sbFilteredCurrentLine, "cp437", "strict"));
+                if gbDebugIO: print("\r  <stdout>%s■ <= END" % str(sbFilteredCurrentLine, "cp437", "strict"));
                 bEndOfCommandOutputMarkerFound = True;
                 sbFilteredCurrentLine = sbFilteredCurrentLine[:-len(sb0EndOfCommandOutputMarker)];
         # Detect the prompt. The prompt must starts on a new line (but can be prefixed with the
@@ -193,12 +208,14 @@ def cCdbWrapper_fasbReadOutput(oCdbWrapper,
           if oCdbWrapper.bGenerateReportHTML:
             # The prompt is always stored in a new block of I/O
             oCdbWrapper.sPromptHTML = "<span class=\"CDBPrompt\">%s</span>" % fsCP437HTMLFromBytesString(sbCurrentLine);
-          oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbCurrentLine);
+          oCdbWrapper.fbFireCallbacks("Cdb stdout output", sbFilteredCurrentLine);
           if not bIgnoreOutput:
             if sb0EndOfCommandOutputMarker is not None and not bEndOfCommandOutputMarkerFound:
               raise oCdbWrapper.cEndOfCommandOutputMarkerMissingException(asbFilteredLines);
+          if gbDebugIO: print("\r  <stdout>%s■ <= PROMPT" % str(sbFilteredCurrentLine, "cp437", "strict"));
           break;
   finally:
+    if gbDebugIO: print("</fasbReadOutput>");
     if bApplicationWillBeRun:
       # Signal that the application is no longer running and wait for the interrupt on timeout thread to stop.
       oCdbWrapper.bApplicationIsRunning = False;
