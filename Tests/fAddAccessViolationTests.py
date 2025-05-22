@@ -1,4 +1,4 @@
-from mBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
+from mBugId.mBugReport.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 
 from mTestLevels import NORMAL, x64, FULL, FULL_x86, FULL_x64;
 
@@ -8,6 +8,7 @@ def fAddAccessViolationTests(dxTests):
   srMainIdAndLocation = r"5b3 @ <binary>!wmain";
   srCallIdAndLocation = r"3e6\.5b3 @ <binary>!fCall";
   srJumpIdAndLocation = r"e8c\.5b3 @ <binary>!fJump";
+  srPoisonExecIdAndLocation = r"AVE:Poison+0 e8c.5b3 @ bugidtests.exe!fJump";
   dxAccessViolationTests = dxTests["AccessViolation"] = {
     "Read": [
       # NULL pointer,

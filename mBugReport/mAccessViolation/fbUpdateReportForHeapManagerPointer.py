@@ -1,4 +1,4 @@
-from ..ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
+from ...ftuLimitedAndAlignedMemoryDumpStartAddressAndSize import ftuLimitedAndAlignedMemoryDumpStartAddressAndSize;
 
 def fbUpdateReportForHeapManagerPointer(
   oCdbWrapper,
@@ -6,11 +6,10 @@ def fbUpdateReportForHeapManagerPointer(
   oProcess,
   oThread,
   sViolationTypeId,
-  uAccessViolationAddress,
   sViolationVerb,
+  uAccessViolationAddress,
 ):
-  # This is not a special marker or NULL, so it must be some corrupt pointer
-  # Get information about the memory region:
+  # Get information about the memory region from the heap manager:
   o0HeapManagerData = oProcess.fo0GetHeapManagerDataForAddressNearHeapBlock(uAccessViolationAddress);
   if not o0HeapManagerData:
     return False;
@@ -134,6 +133,8 @@ def fbUpdateReportForHeapManagerPointer(
     );
   else:
     u0PointerSizedOriginalValue = None;
+  # Attacker might be able to control the memory being accessed, so we can try
+  # to ignore the exception and see what happens next:
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
     oCollateralBugHandler.fbIgnoreAccessViolationException(
       oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress, u0PointerSizedOriginalValue,

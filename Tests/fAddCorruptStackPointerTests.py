@@ -1,4 +1,4 @@
-from mBugId.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
+from mBugId.mBugReport.mAccessViolation.fbUpdateReportForSpecialPointer import gddtsDetails_uSpecialAddress_sISA;
 
 from mTestLevels import NORMAL, x86, x64, FULL, FULL_x86, FULL_x64;
 

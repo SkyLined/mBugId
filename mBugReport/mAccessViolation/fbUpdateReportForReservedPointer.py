@@ -1,6 +1,4 @@
-from mWindowsAPI import cVirtualAllocation;
-
-from ..ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
+from ...ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress import ftsGetMemoryBlockSizeAndOffsetIdAndDescriptionForAddress;
 
 def fbUpdateReportForReservedPointer(
   oCdbWrapper,
@@ -8,10 +6,10 @@ def fbUpdateReportForReservedPointer(
   oProcess,
   oThread,
   sViolationTypeId,
-  uAccessViolationAddress,
   sViolationVerb,
+  uAccessViolationAddress,
+  oVirtualAllocation,
 ):
-  oVirtualAllocation = cVirtualAllocation(oProcess.uId, uAccessViolationAddress);
   if not oVirtualAllocation.bReserved:
     return False;
   # No memory is allocated in this area, but is is reserved
@@ -28,6 +26,8 @@ def fbUpdateReportForReservedPointer(
       oVirtualAllocation.uStartAddress + oVirtualAllocation.uSize);
   oBugReport.s0SecurityImpact = "Potentially exploitable security issue, if the address can be controlled, or " \
       "memory be allocated at the address rather than reserved.";
+  # Attacker might be able to get the application to allocate memory here, so we
+  # can try to ignore the exception and see what happens next:
   oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
     oCollateralBugHandler.fbIgnoreAccessViolationException(
       oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,

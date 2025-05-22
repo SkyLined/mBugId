@@ -1,5 +1,5 @@
-from ..fsGetNumberDescription import fsGetNumberDescription;
-from ..dxConfig import dxConfig;
+from ...fsGetNumberDescription import fsGetNumberDescription;
+from ...dxConfig import dxConfig;
 
 gddtsDetails_uSpecialAddress_sISA = {
   # There are a number of values that are very close to each other, and because an offset is likely to be added when
@@ -56,8 +56,8 @@ def fbUpdateReportForSpecialPointer(
   oProcess,
   oThread,
   sViolationTypeId,
-  uAccessViolationAddress,
   sViolationVerb,
+  uAccessViolationAddress,
 ):
   dtsDetails_uSpecialAddress = gddtsDetails_uSpecialAddress_sISA[oProcess.sISA];
   for (uSpecialAddress, (sSpecialAddressId, sAddressDescription, sSecurityImpact)) in dtsDetails_uSpecialAddress.items():
@@ -76,6 +76,8 @@ def fbUpdateReportForSpecialPointer(
       oBugReport.s0BugDescription = "An Access Violation exception happened at 0x%X while attempting to %s memory at 0x%X using %s." % \
         (uAccessViolationAddress, sViolationVerb, uAccessViolationAddress, sAddressDescription);
       oBugReport.s0SecurityImpact = sSecurityImpact;
+      # Attacker might be able to control the contents of the memory, so we can
+      # try to ignore the exception and see what happens next:
       oCdbWrapper.oCollateralBugHandler.fSetIgnoreExceptionFunction(lambda oCollateralBugHandler:
         oCollateralBugHandler.fbIgnoreAccessViolationException(
           oCdbWrapper, oProcess, oThread, sViolationTypeId, uAccessViolationAddress,

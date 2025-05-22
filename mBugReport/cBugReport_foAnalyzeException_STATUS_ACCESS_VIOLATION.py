@@ -1,9 +1,11 @@
 import re;
 
 from ..fu0ValueFromCdbHexOutput import fu0ValueFromCdbHexOutput;
-from ..mAccessViolation import fUpdateReportForProcessThreadTypeIdAndAddress as fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress;
 from ..mCP437 import fsCP437FromBytesString;
 
+from .mAccessViolation import fUpdateReportForProcessThreadAccessViolationTypeIdAddressAndOptionalSize;
+
+gbAssertOnUnhandledInstruction = True;
 gbDebugOutput = False;
 
 grbInstructionPointerDoesNotPointToAllocatedMemory = re.compile(
@@ -114,156 +116,164 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
       #  ^^^^^^^^^^^^^^^^^-- address
       sbAddress = obInstructionPointerDoesNotPointToAllocatedMemoryMatch.group(1);
       uAccessViolationAddress = fu0ValueFromCdbHexOutput(sbAddress);
+      assert uAccessViolationAddress, \
+          "Cannot convert address %s to a value (taken from %s)" % (repr(sbAddress)[1:], repr(asbLastInstructionAndAddress[0])[1:]);
       sViolationTypeId = "E";
       s0ViolationTypeNotes = "the instruction pointer points to unallocated memory";
     else:
       # Examples of output for various other situations:
-      #  Address           Opcode    sbInstruction asbOperands                       sb0Address1       sb0Value         sb0Address3 
+      #  Address           Opcode    sbInstruction asbOperands                       sb0AVAddress1     sb0Value         sb0AVAddress3 
       # |00007ffd`420b213e 488b14c2        mov     rdx,qword ptr [rdx+rax*8       ds:00007df5`ffb60000=????????????????
       # |60053594          ff7008          push    dword ptr [eax+8]         ds:002b:00000008=         ????????
       # |00007ff6`e7ab1204 ffe1            jmp     rcx                                                                  {c0c0c0c0`c0c0c0c0}
       # |00007ff9`b6f1a904 488b8d500d0000  mov     rcx,qword ptr [rbp+0D50h]      ss:00000244`4124f590=0000024441210240
       # |00007ffe`9f606c72 c3              ret
       # |00f986c8          5a              pop     edx
-      # TODO: Add example instruction with value for sb0Address2
+      # |00007ffc`f632ddcc c4a17e7f4c0980  vmovdqu ymmword ptr [rcx+r9-80h],ymm1  ds:0000015e`5e385ff2=61
+      # TODO: Add example instruction with value for sb0AVAddress2
       obLastInstructionMatch = grbInstruction.match(asbLastInstructionAndAddress[0]);
       # I'm tempted to assert here but I that may prevent analysis of issues and
       # getting some analysis, even if incorrect is better than getting none.
       if obLastInstructionMatch:
-        (sbInstruction, sb0Operands, sb0Address1, sb0Value, sb0Address2, sb0Address3) = \
+        (sbInstruction, sb0Operands, sb0AVAddress1, sb0Value, sb0AVAddress2, sb0AVAddress3) = \
             obLastInstructionMatch.groups();
         asbOperands = sb0Operands.split(b",") if sb0Operands else [];
-        if sb0Address1 or sb0Address2:
-          uAccessViolationAddress = fu0ValueFromCdbHexOutput(sb0Address1 or sb0Address2);
-          if sbInstruction in [b"dec", b"inc", b"neg", b"not", b"shl", b"shr"]:
-            # These instructions always read and then write to memory. We classify
-            # this as a write AV even if the address does not reference readable
-            # memory, in which case the AV was actually caused by the read.
-            sViolationTypeId = "W";
-            s0ViolationTypeNotes = "the %s instruction reads and writes to the same memory" % str(sbInstruction, "ascii", "strict");
-            if gbDebugOutput: print("AV %s Instruction always writes to memory => AV%s at 0x%X" % (
-              str(sbInstruction, "ascii", "strict"),
-              sViolationTypeId,
-              uAccessViolationAddress,
-            ));
-          elif sbInstruction in [b"cmp", b"idiv", b"imul", b"jmp", b"test"]:
-            # These instructions' destination register must be a register, so they
-            # can only have read from memory and this must be a read AV.
-            sViolationTypeId = "R";
-            s0ViolationTypeNotes = "the %s instruction only reads from memory" % str(sbInstruction, "ascii", "strict");
-            if gbDebugOutput: print("AV %s Instruction only reads from memory => AV%s at 0x%X" % (
-              str(sbInstruction, "ascii", "strict"),
-              sViolationTypeId,
-              uAccessViolationAddress,
-            ));
-          elif sbInstruction in [b"add", b"and", b"mov", b"movsx", b"movzx", b"or", b"sub", b"xor"]:
-            # The first operand is the destination, if it references memory it must
-            # be a write AV, otherwise it must be a read AV.
-            if b"[" in asbOperands[0]:
-              sViolationTypeId = "W";
-              s0ViolationTypeNotes = "the %s instruction's destination writes to from memory" % str(sbInstruction, "ascii", "strict");
-            else:
-              s0ViolationTypeNotes = "the %s instruction's source reads from from memory" % str(sbInstruction, "ascii", "strict");
-              sViolationTypeId = "R";
-            if gbDebugOutput: print("AV %s Instruction destination operand %s %s memory => AV%s at 0x%X" % (
-              str(sbInstruction, "ascii", "strict"),
-              str(asbOperands[0], "ascii", "replace"),
-              "references" if b"[" in asbOperands[0] else "does not reference",
-              sViolationTypeId,
-              uAccessViolationAddress,
-            ));
-          else:
-            raise AssertionError();
-            if gbDebugOutput: print("AV %s Instruction not handled => AV?" % repr(sbInstruction));
-            # TODO: parse more instructions.
-            # In the mean time, if we encounter the below, it means there is some confusion about
-            # an invalid address on an x64 processor:
-            if oException.auParameters[1] == 0xFFFFFFFFFFFFFFFF and sViolationTypeId == "R":
-              sViolationTypeId = "?";
-              s0ViolationTypeNotes = "the type of access must be read or write, but cannot be determined";
-        elif sb0Address3:
+        sb0AVAddress = sb0AVAddress1 or sb0AVAddress2 or sb0AVAddress3;
+        if sb0AVAddress:
+          uAccessViolationAddress = fu0ValueFromCdbHexOutput(sb0AVAddress);
+          assert uAccessViolationAddress, \
+              "Cannot convert address %s to a value (taken from %s)" % (repr(sb0AVAddress)[1:], repr(asbLastInstructionAndAddress[0])[1:]);
+        if sb0AVAddress3 is not None: 
+          # This is only expected to happens when an instruction changes *IP to
+          # point to an address that can not be executed. There's only two known
+          # instructions that do this: call and jmp.
           assert sbInstruction in [b"call", b"jmp"], \
-              "Unexpected last instruction output with sb0Address3 but not call/jmp:\r\n%s" % \
-              "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastInstructionAndAddress);
+              "Unexpected instruction %s that resulted in executing at address %s" % (repr(sbInstruction)[1:], repr(sb0AVAddress3)[1:]);
           sViolationTypeId = "E";
           s0ViolationTypeNotes = "the %s instruction's destination points to unallocated memory" % str(sbInstruction, "ascii", "strict");
-          uAccessViolationAddress = fu0ValueFromCdbHexOutput(sb0Address3);
           if gbDebugOutput: print("AV %s Instruction destination does not point to executable memory => AV%s @ %s" % (
             str(sbInstruction, "ascii", "strict"),
             sViolationTypeId,
             str(sbAddress, "ascii", "strict"),
           ));
-        else:
-          if sbInstruction in [b"call", b"push"]:
-            # The first operand is the source, the stack is the destination.
-            # If the first argument does not reference memory it must
-            # be a write AV on the stack, otherwise we do not know.
-            # We could find out but that is complex and doesn't seem worth
-            # implementing at this time.
-            if b"[" in asbOperands[0]:
-              sViolationTypeId = "?";
-              s0ViolationTypeNotes = "the %s instruction reads from memory and it writes to the stack" % str(sbInstruction, "ascii", "strict");
-              if gbDebugOutput: print("AV %s Instruction destination operand %s references memory => AV%s at 0x%X" % (
-                str(sbInstruction, "ascii", "replace"),
-                str(asbOperands[0], "ascii", "replace"),
-                sViolationTypeId,
-                uAccessViolationAddress,
-              ));
-            else:
-              sViolationTypeId = "W";
-              s0ViolationTypeNotes = "the %s instruction writes to the stack" % str(sbInstruction, "ascii", "strict");
-              # A call or push instruction would decrease the stack pointer by the
-              # size of a pointer for the ISA and store a value at the new
-              # address. The exception must therefore have happened at the current
-              # stack pointer address minus the size of a pointer.
-              iAccessViolationAddress = oProcess.fuGetValueForStackPointer() - oProcess.uPointerSizeInBytes;
-              # This might be negative, so we need to wrap it around the address
-              # space:
-              uAccessViolationAddress = iAccessViolationAddress + (0 if iAccessViolationAddress >= 0 else (1 << oProcess.uPointerSizeInBits));
-              if gbDebugOutput: print("AV %s Instruction destination operand %s does not reference memory => AV%s @ stack pointer 0x%X" % (
-                str(sbInstruction, "ascii", "replace"),
-                str(asbOperands[0], "ascii", "replace"),
-                sViolationTypeId,
-                uAccessViolationAddress,
-              ));
-          elif sbInstruction in [b"pop"]:
-            # The first operand is the destination, the stack is the source.
-            # If the first argument does not reference memory it must
-            # be a read AV on the stack, otherwise we do not know.
-            # We could find out but that is complex and doesn't seem worth
-            # implementing at this time.
-            if b"[" in asbOperands[0]:
-              sViolationTypeId = "?";
-              s0ViolationTypeNotes = "the %s instruction writes to memory and it read from the stack" % str(sbInstruction, "ascii", "strict");
-              if gbDebugOutput: print("AV %s Instruction destination operand %s references memory => AV%s @ 0x%X" % (
-                str(sbInstruction, "ascii", "replace"),
-                str(asbOperands[0], "ascii", "replace"),
-                sViolationTypeId,
-                uAccessViolationAddress,
-              ));
-            else:
-              sViolationTypeId = "R";
-              uAccessViolationAddress = oProcess.fuGetValueForStackPointer();
-              s0ViolationTypeNotes = "the %s instruction reads from the stack" % str(sbInstruction, "ascii", "strict");
-              if gbDebugOutput: print("AV %s Instruction destination operand %s does not reference memory => AV%s @ stack pointer 0x%X" % (
-                str(sbInstruction, "ascii", "replace"),
-                str(asbOperands[0], "ascii", "replace"),
-                sViolationTypeId,
-                uAccessViolationAddress,
-              ));
-          elif sbInstruction in [b"ret"]:
-            sViolationTypeId = "R";
-            uAccessViolationAddress = oProcess.fuGetValueForStackPointer();
-            s0ViolationTypeNotes = "the %s instruction reads from the stack" % str(sbInstruction, "ascii", "strict");
-            if gbDebugOutput: print("AV %s Instruction does not reference memory => AV%s @ stack pointer 0x%X" % (
+        elif sbInstruction in [b"dec", b"inc", b"neg", b"not", b"shl", b"shr"]:
+          # These instructions always read and then write to memory. We classify
+          # this as a write AV even if the address does not reference readable
+          # memory, in which case the AV was actually caused by the read.
+          sViolationTypeId = "W";
+          s0ViolationTypeNotes = "the %s instruction reads and writes to the same memory" % str(sbInstruction, "ascii", "strict");
+          if gbDebugOutput: print("AV %s Instruction always writes to memory => AV%s at" % (
+            str(sbInstruction, "ascii", "strict"),
+            sViolationTypeId,
+            uAccessViolationAddress,
+          ));
+        elif sbInstruction in [b"call", b"push"]:
+          # The first operand is the source, the stack is the destination.
+          # If the first argument does not reference memory it must
+          # be a write AV on the stack, otherwise we do not know.
+          # We could find out by seeing what Virtual Allocation exists at *SP
+          # but that is complex and doesn't seem worth implementing at this time.
+          if b"[" in asbOperands[0]:
+            sViolationTypeId = "?";
+            s0ViolationTypeNotes = "the %s instruction reads from memory and it writes to the stack" % str(sbInstruction, "ascii", "strict");
+            if gbDebugOutput: print("AV %s Instruction destination operand %s references memory => AV%s at 0x%X" % (
               str(sbInstruction, "ascii", "replace"),
+              str(asbOperands[0], "ascii", "replace"),
               sViolationTypeId,
               uAccessViolationAddress,
             ));
           else:
-            raise AssertionError();
-            if gbDebugOutput: print("AV %s Instruction not handled => AV?" % repr(sbInstruction));
-            # TODO: parse more instructions.
+            sViolationTypeId = "W";
+            s0ViolationTypeNotes = "the %s instruction writes to the stack" % str(sbInstruction, "ascii", "strict");
+            # A call or push instruction would decrease the stack pointer by the
+            # size of a pointer for the ISA and store a value at the new
+            # address. The exception must therefore have happened at the current
+            # stack pointer address minus the size of a pointer.
+            iAccessViolationAddress = oProcess.fuGetValueForStackPointer() - oProcess.uPointerSizeInBytes;
+            # This might be negative, so we need to wrap it around the address
+            # space:
+            uAccessViolationAddress = iAccessViolationAddress + (0 if iAccessViolationAddress >= 0 else (1 << oProcess.uPointerSizeInBits));
+            if gbDebugOutput: print("AV %s Instruction destination operand %s does not reference memory => AV%s @ stack pointer 0x%X" % (
+              str(sbInstruction, "ascii", "replace"),
+              str(asbOperands[0], "ascii", "replace"),
+              sViolationTypeId,
+              uAccessViolationAddress,
+            ));
+        elif sbInstruction in [b"cmp", b"idiv", b"imul", b"jmp", b"test"]:
+          # These instructions' destination register must be a register, so they
+          # can only have read from memory and this must be a read AV.
+          sViolationTypeId = "R";
+          s0ViolationTypeNotes = "the %s instruction only reads from memory" % str(sbInstruction, "ascii", "strict");
+          if gbDebugOutput: print("AV %s Instruction only reads from memory => AV%s at 0x%X" % (
+            str(sbInstruction, "ascii", "strict"),
+            sViolationTypeId,
+            uAccessViolationAddress,
+          ));
+        elif sbInstruction in [
+          b"add", b"sub",
+          b"and", b"or",
+          b"mov", b"movsx", b"movzx", 
+          b"movdqa", b"movdqu",
+          b"vmovdqa", b"vmovdqu", b"vmovsh", b"vmovw",
+          b"xor",
+        ]:
+          # The first operand is the destination, if it references memory it must
+          # be a write AV, otherwise it must be a read AV.
+          if b"[" in asbOperands[0]:
+            sViolationTypeId = "W";
+            s0ViolationTypeNotes = "the %s instruction's destination writes to memory" % str(sbInstruction, "ascii", "strict");
+          else:
+            sViolationTypeId = "R";
+            s0ViolationTypeNotes = "the %s instruction's source reads from memory" % str(sbInstruction, "ascii", "strict");
+          if gbDebugOutput: print("AV %s Instruction destination operand %s %s memory => AV%s at 0x%X" % (
+            str(sbInstruction, "ascii", "strict"),
+            str(asbOperands[0], "ascii", "replace"),
+            "references" if b"[" in asbOperands[0] else "does not reference",
+            sViolationTypeId,
+            uAccessViolationAddress,
+          ));
+        elif sbInstruction in [b"pop"]:
+          # The first operand is the destination, the stack is the source.
+          # If the first argument does not reference memory it must
+          # be a read AV on the stack, otherwise we do not know.
+          # We could find out but that is complex and doesn't seem worth
+          # implementing at this time.
+          if b"[" in asbOperands[0]:
+            sViolationTypeId = "?";
+            s0ViolationTypeNotes = "the %s instruction writes to memory and it read from the stack" % str(sbInstruction, "ascii", "strict");
+            if gbDebugOutput: print("AV %s Instruction destination operand %s references memory => AV%s @ 0x%X" % (
+              str(sbInstruction, "ascii", "replace"),
+              str(asbOperands[0], "ascii", "replace"),
+              sViolationTypeId,
+              uAccessViolationAddress,
+            ));
+          else:
+            sViolationTypeId = "R";
+            uAccessViolationAddress = oProcess.fuGetValueForStackPointer();
+            s0ViolationTypeNotes = "the %s instruction reads from the stack" % str(sbInstruction, "ascii", "strict");
+            if gbDebugOutput: print("AV %s Instruction destination operand %s does not reference memory => AV%s @ stack pointer 0x%X" % (
+              str(sbInstruction, "ascii", "replace"),
+              str(asbOperands[0], "ascii", "replace"),
+              sViolationTypeId,
+              uAccessViolationAddress,
+            ));
+        elif sbInstruction in [b"ret"]:
+          sViolationTypeId = "R";
+          uAccessViolationAddress = oProcess.fuGetValueForStackPointer();
+          s0ViolationTypeNotes = "the %s instruction reads from the stack" % str(sbInstruction, "ascii", "strict");
+          if gbDebugOutput: print("AV %s Instruction does not reference memory => AV%s @ stack pointer 0x%X" % (
+            str(sbInstruction, "ascii", "replace"),
+            sViolationTypeId,
+            uAccessViolationAddress,
+          ));
+        elif gbAssertOnUnhandledInstruction:
+          raise AssertionError("Unhandled instruction: %s" % repr(asbLastInstructionAndAddress[0])[1:]);
+        else:
+          if gbDebugOutput: print("AV %s Instruction not handled => AV?" % repr(sbInstruction));
+          # TODO: parse more instructions.
+          # In the mean time, if we encounter the below, it means there is some confusion about
+          # an invalid address on an x64 processor:
+          if oException.auParameters[1] == 0xFFFFFFFFFFFFFFFF and sViolationTypeId == "R":
             sViolationTypeId = "?";
             s0ViolationTypeNotes = "the type of access must be read or write, but cannot be determined";
   oBugReport.fAddMemoryRemark("Access violation", uAccessViolationAddress, None); # TODO Find out size of access
@@ -274,8 +284,14 @@ def cBugReport_foAnalyzeException_STATUS_ACCESS_VIOLATION(oBugReport, oProcess, 
         and oBugReport.o0Stack.aoFrames[0].u0InstructionPointer is uAccessViolationAddress:
       oBugReport.o0Stack.aoFrames[0].s0IsHiddenBecause = "called address";
   
-  fUpdateReportForProcessThreadAccessViolationTypeIdAndAddress(
-    oCdbWrapper, oBugReport, oProcess, oWindowsAPIThread, sViolationTypeId, uAccessViolationAddress
+  fUpdateReportForProcessThreadAccessViolationTypeIdAddressAndOptionalSize(
+    oCdbWrapper,
+    oBugReport,
+    oProcess,
+    oWindowsAPIThread,
+    sViolationTypeId,
+    uAccessViolationAddress,
+    u0AccessViolationSize = None, # NOT AVAILABLE (YET).
   );
 
   if s0ViolationTypeNotes:
