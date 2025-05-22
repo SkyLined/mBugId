@@ -111,7 +111,14 @@ class cBugId(object):
     oBugId.__oCdbWrapper.fAddCallback("Finished", lambda oCdbWrapper:
       oBugId.__oRunningLock.fRelease()
     );
-    
+
+  @property
+  def aoApplicationProcesses(oSelf):
+    return oSelf.__oCdbWrapper.aoApplicationProcesses[:];
+  
+  def fSetActivityReportInterval(oSelf, n0IntervalInSeconds: float | int | None):
+    oSelf.__oCdbWrapper.n0ActivityReportIntervalInSeconds = n0IntervalInSeconds;
+
   def fStart(oBugId):
     oBugId.__bStarted = True;
     oBugId.__oCdbWrapper.fStart();
@@ -173,7 +180,7 @@ class cBugId(object):
       "Process terminated", #(cProcess oProcess)
     ]:
       # These get a cProcess instance as their second argument from cCdbWrapper, which is an internal object that we
-      # do not want to expose. We'll retreive the associated mWindowsAPI.cProcess object and pass that as the second
+      # do not want to expose. We'll retrieve the associated mWindowsAPI.cProcess object and pass that as the second
       # argument to the callback instead. We'll also insert a boolean that indicates if the process is a main process.
       fOriginalCallback = fCallback;
       fCallback = lambda oCdbWrapper, oProcess, *txArguments: fOriginalCallback(

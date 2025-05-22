@@ -170,6 +170,7 @@ class cCdbWrapper(cWithCallbacks):
       "Bug cannot be ignored", # (str sReason)
       "Bug ignored", # (str, sInstruction, str[] asActions)
       "Bug report", # (cBugReport oBugReport)
+      "Cdb activity", # (nTimeSinceStartOfCdbActivityInSeconds)
       "Cdb command started executing", # (sbCommand, uAttempt, uTries, sb0Comment)
       "Cdb command finished executing", # (sbCommand, uAttempt, uTries, sb0Comment)
       "Cdb stderr output", # (str sOutput)
@@ -241,6 +242,7 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
     oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
     oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.time() at the moment the application was last resumed
+    oCdbWrapper.n0ActivityReportIntervalInSeconds = None; # How often to report cdb activity
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(
       oCdbWrapper,
