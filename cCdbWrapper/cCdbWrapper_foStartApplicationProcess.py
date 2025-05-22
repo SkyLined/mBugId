@@ -14,7 +14,11 @@ def __gfResumeProcessAfterAttach(oCdbWrapper, oAttachedToProcess):
       # handle this event.
       oCdbWrapper.fbRemoveCallback("Process attached", __gfResumeProcessAfterAttach);
 
-def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments):
+def cCdbWrapper_foStartApplicationProcess(oCdbWrapper,
+  sBinaryPath: str,
+  asArguments: list[str],
+  bRedirectOutputAndDoNotCreateANewWindow: bool = True,
+) -> cConsoleProcess | None:
   oCdbWrapper.fbFireCallbacks("Log message", "Starting application", {
     "Binary path": sBinaryPath, 
     "Arguments": " ".join([
@@ -27,6 +31,9 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
       sBinaryPath = sBinaryPath,
       asArguments = asArguments,
       bRedirectStdIn = False,
+      bRedirectStdOut = bRedirectOutputAndDoNotCreateANewWindow,
+      bRedirectStdErr = bRedirectOutputAndDoNotCreateANewWindow,
+      bNormalWindow = not bRedirectOutputAndDoNotCreateANewWindow,
       bSuspended = True,
     );
   except WindowsError as oWindowsError:
@@ -53,25 +60,26 @@ def cCdbWrapper_foStartApplicationProcess(oCdbWrapper, sBinaryPath, asArguments)
     "Command line": oConsoleProcess.sCommandLine,
   });
   oCdbWrapper.fbFireCallbacks("Process started", oConsoleProcess);
-  
-  # Create helper threads that read the application's output to stdout and stderr. No references to these
-  # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
-  # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
-  # after the process terminates, or this cdb stdio thread dies.
-  for (sPipeName, oPipe) in {
-    "stdout": oConsoleProcess.oStdOutPipe,
-    "stderr": oConsoleProcess.oStdErrPipe,
-  }.items():
-    oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId.setdefault(oConsoleProcess.uId, []).append(oPipe);
-    sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
-    oHelperThread = oCdbWrapper.foCreateHelperThread(
-      sThreadName,
-      oCdbWrapper.fApplicationStdOutOrErrHelperThread,
-      oConsoleProcess,
-      oPipe,
-      sPipeName,
-    );
-    oHelperThread.fStart();
+
+  if bRedirectOutputAndDoNotCreateANewWindow:  
+    # Create helper threads that read the application's output to stdout and stderr. No references to these
+    # threads are saved, as they are not needed: these threads only exist to read stdout/stderr output from the
+    # application and save it in the report. They will self-terminate when oConsoleProcess.fClose() is called
+    # after the process terminates, or this cdb stdio thread dies.
+    for (sPipeName, oPipe) in {
+      "stdout": oConsoleProcess.oStdOutPipe,
+      "stderr": oConsoleProcess.oStdErrPipe,
+    }.items():
+      oCdbWrapper.daoApplicationStdOutAndStdErrPipes_by_uProcessId.setdefault(oConsoleProcess.uId, []).append(oPipe);
+      sThreadName = "Application %s thread for process %d/0x%X" % (sPipeName, oConsoleProcess.uId, oConsoleProcess.uId);
+      oHelperThread = oCdbWrapper.foCreateHelperThread(
+        sThreadName,
+        oCdbWrapper.fApplicationStdOutOrErrHelperThread,
+        oConsoleProcess,
+        oPipe,
+        sPipeName,
+      );
+      oHelperThread.fStart();
   
   # We need cdb to attach to the process and we need to resume the process once
   # it has attached. We'll create an event handler that detects when cdb has
