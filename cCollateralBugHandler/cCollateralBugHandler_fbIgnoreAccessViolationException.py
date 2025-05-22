@@ -13,7 +13,9 @@ gasbInstructionsThatModifyFlags = [
 gasbInstructionsThatModifyDestination = [
     b"add", b"addsd",
     b"btc", b"btr", "bts",
-    b"mov", b"movzx", b"movsd",
+    b"mov", b"movsx", b"movzx", 
+    b"movdqa", b"movdqu",
+    b"vmovdqa", b"vmovdqu", b"vmovsh", b"vmovw",
     b"mulsd",
     b"sub", b"subsd",
     b"inc", b"dec",
