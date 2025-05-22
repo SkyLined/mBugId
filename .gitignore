@@ -8,5 +8,5 @@
 *.vs
 Internal error reports/*
 releases
-Tests/tmp/
+Tests/BugIdTests/build/
 Tests/Reports/
