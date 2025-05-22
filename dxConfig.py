@@ -168,7 +168,7 @@ dxConfig = {
   "bCollectInformationAboutAddressesInMemoryDumps": True, # Set to False to stop BugId collecting information about
                                         # every address in memory dumps. This speeds up report creation but doesn't
                                         # provide as much (potentially useful) information.
-  "bCollectInformationAboutPointersInMemoryDumps": True, # Set to False to stop BugId collecting information about
+  "bCollectInformationAboutPointersInMemoryDumps": False, # Set to False to stop BugId collecting information about
                                         # everything that could be a pointer in memory dumps. This speeds up report 
                                         # creation but doesn't provide as much (potentially useful) information.
   ### Page heap
