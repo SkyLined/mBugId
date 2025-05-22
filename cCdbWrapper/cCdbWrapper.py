@@ -226,8 +226,14 @@ class cCdbWrapper(cWithCallbacks):
     oCdbWrapper.oExcessiveCPUUsageDetector = cExcessiveCPUUsageDetector(oCdbWrapper);
     # Keep track of timeouts that should fire at some point in the future and timeouts that should fire now.
     oCdbWrapper.aoTimeouts = [];
-    oCdbWrapper.uUtilityInterruptThreadId = None; # Will be set to the thread id in which we triggered an AV to
-                                                  # interrupt the application.
+    # To interrupt the application, we will create a new thread in the utility process that causes an access violation.
+    # We want to know the thread id so we when cdb reports the exception, we can confirm it is the one we caused.
+    oCdbWrapper.u0UtilityInterruptThreadId = None;
+    # We want to terminate the utility process interrupt threads that cause the access violation as soon as cdb
+    # reports it, but cdb doesn't like it when the thread is terminated while it handling an exception in the thread.
+    # So we suspend the thread and save its thread id to be terminated later, which we'll do once we want to interrupt
+    # the application again.
+    oCdbWrapper.u0PreviousUtilityInterruptThreadId = None;
     # Two locks, one of which is always locked while the application is executing. 
     oCdbWrapper.bApplicationIsRunning = False;
     # Keep track of how long the application has been running, used for timeouts (see foSetTimeout, fCdbStdInOutThread
@@ -466,6 +472,8 @@ class cCdbWrapper(cWithCallbacks):
   
   # `fInterrupt` == `foSetTimeout` for 0 second (immediate)
   def fInterrupt(oCdbWrapper, sDescription, f0Callback = None, txCallbackArguments = tuple()):
+    assert oCdbWrapper.bApplicationIsRunning, \
+        "Cannot interrupt application execution when it is not running.";
     oCdbWrapper.foSetTimeout(sDescription, 0, f0Callback, txCallbackArguments);
   
   fRunTimeoutCallbacks = cCdbWrapper_fRunTimeoutCallbacks;
