@@ -99,7 +99,7 @@ def cCdbWrapper_fasbExecuteCdbCommand(oCdbWrapper,
       if uAttempt == uTries:
         raise;
     finally:
-      oCdbWrapper.fbFireCallbacks("Cdb command finished executing", sCommand, uAttempt, uTries, s0Comment);
+      oCdbWrapper.fbFireCallbacks("Cdb command finished executing", sCommandAndComment, uAttempt, uTries, s0Comment);
       if oCdbWrapper.bGenerateReportHTML and bAddCommandAndOutputToHTML and gbLogCommandExecutionTime:
         nExecutionTimeInSeconds = time.time() - nStartTimeInSeconds;
         oCdbWrapper.sCdbIOHTML += "Command executed in %.03f seconds.<br/>\n" % nExecutionTimeInSeconds;

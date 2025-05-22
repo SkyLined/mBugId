@@ -34,7 +34,8 @@ def cCdbWrapper_fAttachCdbToProcessForId(oCdbWrapper, uProcessId):
     sMessage = "Unable to attach to process %d/0x%X because it is being debugged or has a higher integrity level." % (uProcessId, uProcessId);
     assert oCdbWrapper.fbFireCallbacks("Failed to debug application", sMessage), \
         sMessage;
-    oCdbWrapper.fStop();  elif asbAttachToProcessOutput == [
+    oCdbWrapper.fStop();
+  elif asbAttachToProcessOutput == [
     b"Cannot debug pid %d, NTSTATUS 0xC0000048"% uProcessId,
     b'    "The process that you are attempting to attach to is already being debugged. Only one debugger can be invasively attached to a process at a time. A non-invasive attach is still possible when another debugger is attached."',
     b'Unable to initialize target, NTSTATUS 0xC0000048',
