@@ -246,8 +246,7 @@ class cCdbWrapper(cWithCallbacks):
     # rely on time.time(). Hence, both values are tracked.
     oCdbWrapper.oApplicationTimeLock = cLock(n0DeadlockTimeoutInSeconds = 1);
     oCdbWrapper.nConfirmedApplicationRunTimeInSeconds = 0; # Total time spent running before last interruption
-    oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;  # debugger time at the moment the application was last resumed
-    oCdbWrapper.nApplicationResumeTimeInSeconds = None;          # time.time() at the moment the application was last resumed
+    oCdbWrapper.n0ApplicationResumeTimeInSeconds = None;          # time.time() at the moment the application was last resumed
     oCdbWrapper.n0ActivityReportIntervalInSeconds = None; # How often to report cdb activity
     
     oCdbWrapper.oCollateralBugHandler = cCollateralBugHandler(
@@ -466,7 +465,7 @@ class cCdbWrapper(cWithCallbacks):
       return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds;
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
-      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds + time.time() - oCdbWrapper.nApplicationResumeTimeInSeconds;
+      return oCdbWrapper.nConfirmedApplicationRunTimeInSeconds + time.time() - oCdbWrapper.n0ApplicationResumeTimeInSeconds;
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
   

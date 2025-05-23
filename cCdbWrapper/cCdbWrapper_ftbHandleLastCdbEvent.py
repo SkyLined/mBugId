@@ -1,4 +1,4 @@
-import re;
+import re, time;
 
 from mWindowsSDK import DBG_CONTROL_C, STATUS_BREAKPOINT, STATUS_WAKE_SYSTEM_DEBUGGER;
 
@@ -89,13 +89,12 @@ def cCdbWrapper_ftbHandleLastCdbEvent(oCdbWrapper, asbOutputWhileRunningApplicat
     "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbLastEventOutput);
   oCdbWrapper.oApplicationTimeLock.fAcquire();
   try:
-    if oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds:
+    if oCdbWrapper.n0ApplicationResumeTimeInSeconds is not None:
       # Add the time between when the application was resumed and when the event happened to the total application
       # run time.
-      oCdbWrapper.nConfirmedApplicationRunTimeInSeconds += fnGetDebuggerTimeInSeconds(obEventTimeMatch.group(1)) - oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds;
-    # Mark the application as suspended by setting nApplicationResumeDebuggerTimeInSeconds to None.
-    oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = None;
-    oCdbWrapper.nApplicationResumeTimeInSeconds = None;
+      oCdbWrapper.nConfirmedApplicationRunTimeInSeconds += time.time() - oCdbWrapper.n0ApplicationResumeTimeInSeconds;
+      # Mark the application as suspended by setting n0ApplicationResumeTimeInSeconds to None.
+      oCdbWrapper.n0ApplicationResumeTimeInSeconds = None;
   finally:
     oCdbWrapper.oApplicationTimeLock.fRelease();
   

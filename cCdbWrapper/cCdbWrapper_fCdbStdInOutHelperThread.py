@@ -96,20 +96,9 @@ def cCdbWrapper_fCdbStdInOutHelperThread(oCdbWrapper):
     
     ### Keep track of time #########################################################################################
     # Mark the time when the application was resumed.
-    asbCdbTimeOutput = oCdbWrapper.fasbExecuteCdbCommand(
-      sbCommand = b".time;",
-      sb0Comment = b"Get debugger time",
-      bRetryOnTruncatedOutput = True,
-    );
-    oTimeMatch = len(asbCdbTimeOutput) > 0 and grbDebuggerTime.match(asbCdbTimeOutput[0]);
-    assert oTimeMatch, \
-        "Failed to get debugger time!\r\n%s" % \
-        "\r\n".join(fsCP437FromBytesString(sbLine) for sbLine in asbCdbTimeOutput);
-    del asbCdbTimeOutput;
     oCdbWrapper.oApplicationTimeLock.fAcquire();
     try:
-      oCdbWrapper.nApplicationResumeDebuggerTimeInSeconds = fnGetDebuggerTimeInSeconds(oTimeMatch.group(1));
-      oCdbWrapper.nApplicationResumeTimeInSeconds = time.time();
+      oCdbWrapper.n0ApplicationResumeTimeInSeconds = time.time();
     finally:
       oCdbWrapper.oApplicationTimeLock.fRelease();
     ### Resume application ###########################################################################################
